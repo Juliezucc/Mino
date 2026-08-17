@@ -30,23 +30,24 @@ export function Logo({ size = 40, color = colors.navy, baseline, style }: Props)
           mino
         </Text>
         <View style={styles.dots}>
+          {/* A minute rising off the wordmark: small bubble above, big one below. */}
+          <View
+            style={{
+              width: dot * 0.5,
+              height: dot * 0.5,
+              borderRadius: dot,
+              backgroundColor: colors.blue,
+              opacity: 0.55,
+              alignSelf: 'flex-end',
+              marginBottom: dot * 0.3,
+            }}
+          />
           <View
             style={{
               width: dot,
               height: dot,
               borderRadius: dot,
               backgroundColor: colors.blue,
-              marginBottom: dot * 0.35,
-            }}
-          />
-          <View
-            style={{
-              width: dot * 0.55,
-              height: dot * 0.55,
-              borderRadius: dot,
-              backgroundColor: colors.blue,
-              opacity: 0.6,
-              alignSelf: 'flex-end',
             }}
           />
         </View>

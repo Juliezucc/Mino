@@ -11,6 +11,10 @@ import { useActiveChild, useRunningSession } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
+function secondsLeft(endsAt: string): number {
+  return Math.max(0, Math.round((new Date(endsAt).getTime() - Date.now()) / 1000));
+}
+
 /**
  * The screen-time session.
  *
@@ -25,13 +29,15 @@ export default function SessionScreen() {
   const endSession = useMinoStore((s) => s.endSession);
 
   const session = running && (!sessionId || running.id === sessionId) ? running : null;
-  const [remaining, setRemaining] = useState(0);
+  // Seeded from the session itself: starting at 0 would read as "time is up"
+  // and close the session on the very first render.
+  const [remaining, setRemaining] = useState(() => (session ? secondsLeft(session.endsAt) : -1));
   const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     if (!session) return;
     const tick = () => {
-      const left = Math.max(0, Math.round((new Date(session.endsAt).getTime() - Date.now()) / 1000));
+      const left = secondsLeft(session.endsAt);
       setRemaining(left);
       return left;
     };
@@ -53,6 +59,7 @@ export default function SessionScreen() {
   };
 
   useEffect(() => {
+    // `remaining < 0` means "not measured yet" — only a real zero ends the session.
     if (session && remaining === 0 && !closing) finish('finished');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remaining, session]);
@@ -101,7 +108,7 @@ export default function SessionScreen() {
         </Text>
       </View>
 
-      <AnimatedMascot expression={expression} size={170} />
+      <AnimatedMascot expression={expression} size={170} style={styles.mascot} />
 
       <Card style={styles.card}>
         <Text variant="label" color={colors.textMuted}>
@@ -124,6 +131,7 @@ export default function SessionScreen() {
 const styles = StyleSheet.create({
   content: { paddingTop: spacing.md, gap: spacing.lg, alignItems: 'stretch' },
   head: { gap: spacing.xs },
+  mascot: { alignSelf: 'center' },
   card: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xl },
   track: {
     height: 12,

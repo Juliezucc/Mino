@@ -29,6 +29,8 @@ export function TimeRing({
   label = 'min disponibles',
   animate = true,
 }: Props) {
+  // Unique gradient id: two rings can be mounted at once (celebration screen).
+  const gradientId = `ring-${React.useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const animated = useCountUp(minutes, { enabled: animate });
   const shown = Math.round(animated);
 
@@ -41,7 +43,7 @@ export function TimeRing({
     <View style={[styles.wrap, { width: size, height: size }]}>
       <Svg width={size} height={size}>
         <Defs>
-          <LinearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+          <LinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
             <Stop offset="0" stopColor={colors.blue} />
             <Stop offset="1" stopColor={colors.purple} />
           </LinearGradient>
@@ -58,7 +60,7 @@ export function TimeRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="url(#ring)"
+          stroke={`url(#${gradientId})`}
           strokeWidth={stroke}
           strokeLinecap="round"
           fill="none"

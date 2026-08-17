@@ -27,7 +27,7 @@ const VIEWBOX = 200;
 const INK = '#1A1D2E';
 const SHOE = '#FFB592';
 const SHOE_DARK = '#F19E7C';
-const CHEEK = '#FF9BB8';
+const CHEEK = '#FF8FB0';
 
 interface Props {
   expression?: MascotExpression;
@@ -36,6 +36,11 @@ interface Props {
 }
 
 export function Mascot({ expression = 'happy', size = 160, style }: Props) {
+  // Gradient ids must be unique per instance: several mascots can share a
+  // screen, and on web a duplicated id makes every `url(#…)` fill collapse.
+  const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
+  const id = (name: string) => `${name}-${uid}`;
+
   const image = mascotImageFor(expression);
   if (image) {
     return (
@@ -49,47 +54,47 @@ export function Mascot({ expression = 'happy', size = 160, style }: Props) {
     <View style={style}>
       <Svg width={size} height={size} viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}>
         <Defs>
-          <LinearGradient id="body" x1="0.3" y1="0" x2="0.7" y2="1">
+          <LinearGradient id={id('body')} x1="0.3" y1="0" x2="0.7" y2="1">
             <Stop offset="0" stopColor="#7FD0FF" />
             <Stop offset="0.55" stopColor="#4EB6FF" />
             <Stop offset="1" stopColor="#2F9BEC" />
           </LinearGradient>
-          <LinearGradient id="limb" x1="0" y1="0" x2="0" y2="1">
+          <LinearGradient id={id('limb')} x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor="#57BAFF" />
             <Stop offset="1" stopColor="#2E97E8" />
           </LinearGradient>
-          <RadialGradient id="gloss" cx="0.5" cy="0.5" r="0.5">
+          <RadialGradient id={id('gloss')} cx="0.5" cy="0.5" r="0.5">
             <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.85" />
             <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
           </RadialGradient>
-          <RadialGradient id="ground" cx="0.5" cy="0.5" r="0.5">
+          <RadialGradient id={id('ground')} cx="0.5" cy="0.5" r="0.5">
             <Stop offset="0" stopColor="#1A1D2E" stopOpacity="0.16" />
             <Stop offset="1" stopColor="#1A1D2E" stopOpacity="0" />
           </RadialGradient>
         </Defs>
 
         {/* soft contact shadow */}
-        <Ellipse cx="100" cy="184" rx="54" ry="10" fill="url(#ground)" />
+        <Ellipse cx="100" cy="184" rx="54" ry="10" fill={`url(#${id('ground')})`} />
 
         {/* legs + shoes */}
         <G>
-          <Path d="M78 148 L74 168 Q74 172 79 172 L88 172 Q92 172 92 168 L90 148 Z" fill="url(#limb)" />
-          <Path d="M122 148 L126 168 Q126 172 121 172 L112 172 Q108 172 108 168 L110 148 Z" fill="url(#limb)" />
+          <Path d="M78 148 L74 168 Q74 172 79 172 L88 172 Q92 172 92 168 L90 148 Z" fill={`url(#${id('limb')})`} />
+          <Path d="M122 148 L126 168 Q126 172 121 172 L112 172 Q108 172 108 168 L110 148 Z" fill={`url(#${id('limb')})`} />
           <Ellipse cx="76" cy="174" rx="20" ry="9.5" fill={SHOE} />
           <Ellipse cx="124" cy="174" rx="20" ry="9.5" fill={SHOE} />
           <Ellipse cx="76" cy="178" rx="19" ry="5" fill={SHOE_DARK} opacity={0.5} />
           <Ellipse cx="124" cy="178" rx="19" ry="5" fill={SHOE_DARK} opacity={0.5} />
         </G>
 
-        <Arms expression={expression} />
+        <Arms expression={expression} limbFill={`url(#${id('limb')})`} />
 
         {/* body */}
-        <Ellipse cx="100" cy="96" rx="70" ry="66" fill="url(#body)" />
-        <Ellipse cx="74" cy="60" rx="30" ry="20" fill="url(#gloss)" />
+        <Ellipse cx="100" cy="96" rx="70" ry="66" fill={`url(#${id('body')})`} />
+        <Ellipse cx="74" cy="60" rx="30" ry="20" fill={`url(#${id('gloss')})`} />
 
         {/* cheeks */}
-        <Ellipse cx="56" cy="112" rx="13" ry="8.5" fill={CHEEK} opacity={0.55} />
-        <Ellipse cx="144" cy="112" rx="13" ry="8.5" fill={CHEEK} opacity={0.55} />
+        <Ellipse cx="55" cy="113" rx="13.5" ry="9" fill={CHEEK} opacity={0.85} />
+        <Ellipse cx="145" cy="113" rx="13.5" ry="9" fill={CHEEK} opacity={0.85} />
 
         <Eyes expression={expression} />
         <Mouth expression={expression} />
@@ -210,22 +215,24 @@ function Mouth({ expression }: { expression: MascotExpression }) {
 
 /* ---------------------------------------------------------------------- arms */
 
-function Arms({ expression }: { expression: MascotExpression }) {
+function Arms({ expression, limbFill }: { expression: MascotExpression; limbFill: string }) {
   const raised = expression === 'proud' || expression === 'delighted' || expression === 'motivated';
 
+  // Arms sit just outside the body outline, otherwise the round silhouette
+  // swallows them completely.
   if (raised) {
     return (
-      <G fill="url(#limb)">
-        <Ellipse cx="28" cy="72" rx="13" ry="22" transform="rotate(28 28 72)" />
-        <Ellipse cx="172" cy="72" rx="13" ry="22" transform="rotate(-28 172 72)" />
+      <G fill={limbFill}>
+        <Ellipse cx="27" cy="88" rx="12" ry="21" transform="rotate(38 27 88)" />
+        <Ellipse cx="173" cy="88" rx="12" ry="21" transform="rotate(-38 173 88)" />
       </G>
     );
   }
 
   return (
-    <G fill="url(#limb)">
-      <Ellipse cx="32" cy="112" rx="13" ry="22" transform="rotate(12 32 112)" />
-      <Ellipse cx="168" cy="112" rx="13" ry="22" transform="rotate(-12 168 112)" />
+    <G fill={limbFill}>
+      <Ellipse cx="26" cy="116" rx="12" ry="21" transform="rotate(14 26 116)" />
+      <Ellipse cx="174" cy="116" rx="12" ry="21" transform="rotate(-14 174 116)" />
     </G>
   );
 }

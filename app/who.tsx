@@ -53,7 +53,7 @@ export default function Who() {
               <Text variant="label" color={colors.blue}>
                 {`${minutes} min`}
               </Text>
-              <TimeCapsules minutes={minutes} compact maxCapsules={6} />
+              <TimeCapsules minutes={minutes} compact maxCapsules={8} />
             </Card>
           );
         })}
