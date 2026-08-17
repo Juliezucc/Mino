@@ -90,6 +90,9 @@ export const type = {
   buttonKid: { fontFamily: fonts.extraBold, fontSize: 20, lineHeight: 26 },
 } satisfies Record<string, TypeStyle>;
 
+/** Bottom padding a scroll view needs to clear the floating tab bar. */
+export const tabBarSpace = 118;
+
 /** Minimum touch target for a child-facing control. */
 export const hitSize = {
   kid: 64,

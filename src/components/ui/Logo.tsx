@@ -1,0 +1,69 @@
+import React from 'react';
+import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+
+import { colors, fonts, spacing } from '@/theme';
+
+import { Text } from './Text';
+
+interface Props {
+  size?: number;
+  color?: string;
+  /** Show the baseline under the wordmark. */
+  baseline?: boolean;
+  style?: StyleProp<ViewStyle>;
+}
+
+/**
+ * Wordmark: lowercase "mino" in a very round type, with a small blue bubble
+ * standing for the minute you just earned.
+ */
+export function Logo({ size = 40, color = colors.navy, baseline, style }: Props) {
+  const dot = size * 0.18;
+
+  return (
+    <View style={[styles.wrap, style]}>
+      <View style={styles.row}>
+        <Text
+          style={{ fontFamily: fonts.black, fontSize: size, lineHeight: size * 1.15, letterSpacing: -size * 0.03 }}
+          color={color}
+        >
+          mino
+        </Text>
+        <View style={styles.dots}>
+          <View
+            style={{
+              width: dot,
+              height: dot,
+              borderRadius: dot,
+              backgroundColor: colors.blue,
+              marginBottom: dot * 0.35,
+            }}
+          />
+          <View
+            style={{
+              width: dot * 0.55,
+              height: dot * 0.55,
+              borderRadius: dot,
+              backgroundColor: colors.blue,
+              opacity: 0.6,
+              alignSelf: 'flex-end',
+            }}
+          />
+        </View>
+      </View>
+      {baseline ? (
+        <Text variant="body" color={colors.textMuted}>
+          Chaque minute se gagne.
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { gap: spacing.xs },
+  row: { flexDirection: 'row', alignItems: 'flex-start' },
+  dots: { marginLeft: 3, marginTop: 2 },
+});
+
+export default Logo;
