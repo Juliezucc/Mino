@@ -1,0 +1,62 @@
+import { ID } from '@/domain/types';
+
+import {
+  ScreenTimeCapability,
+  ScreenTimeGrant,
+  ScreenTimeService,
+  ScreenTimeStatus,
+} from './ScreenTimeService';
+
+/**
+ * MVP implementation: an honest in-app countdown.
+ *
+ * It deliberately does not pretend to block anything — `capability` says
+ * 'timer-only' so the UI can word things truthfully.
+ */
+export class LocalTimerScreenTimeService implements ScreenTimeService {
+  readonly capability: ScreenTimeCapability = 'timer-only';
+
+  private grants = new Map<ID, ScreenTimeGrant>();
+
+  async isAuthorized(): Promise<boolean> {
+    return true;
+  }
+
+  async requestAuthorization(): Promise<boolean> {
+    return true;
+  }
+
+  async grant(params: { sessionId: ID; childId: ID; minutes: number }): Promise<ScreenTimeGrant> {
+    const startedAt = new Date();
+    const grant: ScreenTimeGrant = {
+      sessionId: params.sessionId,
+      childId: params.childId,
+      minutes: params.minutes,
+      startedAt: startedAt.toISOString(),
+      endsAt: new Date(startedAt.getTime() + params.minutes * 60_000).toISOString(),
+    };
+    this.grants.set(params.sessionId, grant);
+    return grant;
+  }
+
+  async revoke(sessionId: ID): Promise<{ consumedMinutes: number }> {
+    const grant = this.grants.get(sessionId);
+    if (!grant) return { consumedMinutes: 0 };
+    this.grants.delete(sessionId);
+
+    const elapsedMs = Date.now() - new Date(grant.startedAt).getTime();
+    const consumed = Math.min(grant.minutes, Math.max(0, Math.round(elapsedMs / 60_000)));
+    return { consumedMinutes: consumed };
+  }
+
+  async status(childId: ID): Promise<ScreenTimeStatus> {
+    const grant = [...this.grants.values()].find((g) => g.childId === childId);
+    if (!grant) return { active: false, remainingSeconds: 0 };
+
+    const remaining = Math.max(
+      0,
+      Math.round((new Date(grant.endsAt).getTime() - Date.now()) / 1000),
+    );
+    return { active: remaining > 0, grant, remainingSeconds: remaining };
+  }
+}
