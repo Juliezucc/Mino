@@ -15,19 +15,27 @@ import { mascotImageFor } from './mascotAssets';
 import { MascotExpression } from './types';
 
 /**
- * Vector placeholder for the 3D mascot: light blue round body, big shiny eyes
- * with a white ring, pink cheeks, small arms and peach shoes.
+ * Vector Mino, drawn to the brand board: an almost perfectly round light-blue
+ * body with a soft 3D sheen, very large shiny eyes ringed in white, pink
+ * cheeks, a wide open smile, small blue arms and chunky peach shoes.
  *
- * It is intentionally drawn — not a static PNG — so every expression exists
- * from day one. Drop real renders into `mascotAssets.ts` to replace it.
+ * It is drawn rather than shipped as PNGs so every expression exists from day
+ * one. Drop the final 3D renders into `mascotAssets.ts` to replace it.
  */
 
 const VIEWBOX = 200;
 
-const INK = '#1A1D2E';
-const SHOE = '#FFB592';
-const SHOE_DARK = '#F19E7C';
-const CHEEK = '#FF8FB0';
+const INK = '#15182A';
+const SHOE_DARK = '#EFA07D';
+const CHEEK = '#FF8FB2';
+const TONGUE = '#FF7DA0';
+const STAR = '#FFC85A';
+const STAR_EDGE = '#EFAE38';
+
+/** Every coordinate below is expressed in this 200×200 box. */
+const BODY = { cx: 100, cy: 92, rx: 66, ry: 64 };
+const EYE = { left: 79, right: 121, cy: 90, prx: 18.5, pry: 21, ring: 4.5 };
+const MOUTH_Y = 126;
 
 interface Props {
   expression?: MascotExpression;
@@ -39,7 +47,7 @@ export function Mascot({ expression = 'happy', size = 160, style }: Props) {
   // Gradient ids must be unique per instance: several mascots can share a
   // screen, and on web a duplicated id makes every `url(#…)` fill collapse.
   const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
-  const id = (name: string) => `${name}-${uid}`;
+  const ref = (name: string) => `url(#${name}-${uid})`;
 
   const image = mascotImageFor(expression);
   if (image) {
@@ -50,51 +58,81 @@ export function Mascot({ expression = 'happy', size = 160, style }: Props) {
     );
   }
 
+  const limb = ref('limb');
+
   return (
     <View style={style}>
       <Svg width={size} height={size} viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}>
         <Defs>
-          <LinearGradient id={id('body')} x1="0.3" y1="0" x2="0.7" y2="1">
-            <Stop offset="0" stopColor="#7FD0FF" />
-            <Stop offset="0.55" stopColor="#4EB6FF" />
-            <Stop offset="1" stopColor="#2F9BEC" />
+          {/* Off-centre radial: the body reads as a sphere lit from the top left. */}
+          <RadialGradient id={`body-${uid}`} cx="0.36" cy="0.28" r="0.85">
+            <Stop offset="0" stopColor="#9FDDFF" />
+            <Stop offset="0.35" stopColor="#67C4FF" />
+            <Stop offset="0.72" stopColor="#4EB6FF" />
+            <Stop offset="1" stopColor="#2B8FDE" />
+          </RadialGradient>
+          <LinearGradient id={`limb-${uid}`} x1="0.2" y1="0" x2="0.8" y2="1">
+            <Stop offset="0" stopColor="#63C1FF" />
+            <Stop offset="1" stopColor="#2E93E0" />
           </LinearGradient>
-          <LinearGradient id={id('limb')} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#57BAFF" />
-            <Stop offset="1" stopColor="#2E97E8" />
+          <LinearGradient id={`shoe-${uid}`} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#FFC4A6" />
+            <Stop offset="1" stopColor="#F5A582" />
           </LinearGradient>
-          <RadialGradient id={id('gloss')} cx="0.5" cy="0.5" r="0.5">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.85" />
+          <RadialGradient id={`gloss-${uid}`} cx="0.5" cy="0.5" r="0.5">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.75" />
+            <Stop offset="0.6" stopColor="#FFFFFF" stopOpacity="0.18" />
             <Stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
           </RadialGradient>
-          <RadialGradient id={id('ground')} cx="0.5" cy="0.5" r="0.5">
-            <Stop offset="0" stopColor="#1A1D2E" stopOpacity="0.16" />
+          <RadialGradient id={`cheek-${uid}`} cx="0.5" cy="0.5" r="0.5">
+            <Stop offset="0" stopColor={CHEEK} stopOpacity="0.85" />
+            <Stop offset="1" stopColor={CHEEK} stopOpacity="0" />
+          </RadialGradient>
+          <RadialGradient id={`ground-${uid}`} cx="0.5" cy="0.5" r="0.5">
+            <Stop offset="0" stopColor="#1A1D2E" stopOpacity="0.18" />
             <Stop offset="1" stopColor="#1A1D2E" stopOpacity="0" />
           </RadialGradient>
         </Defs>
 
-        {/* soft contact shadow */}
-        <Ellipse cx="100" cy="184" rx="54" ry="10" fill={`url(#${id('ground')})`} />
+        <Ellipse cx="100" cy="183" rx="52" ry="8" fill={ref('ground')} />
 
-        {/* legs + shoes */}
-        <G>
-          <Path d="M78 148 L74 168 Q74 172 79 172 L88 172 Q92 172 92 168 L90 148 Z" fill={`url(#${id('limb')})`} />
-          <Path d="M122 148 L126 168 Q126 172 121 172 L112 172 Q108 172 108 168 L110 148 Z" fill={`url(#${id('limb')})`} />
-          <Ellipse cx="76" cy="174" rx="20" ry="9.5" fill={SHOE} />
-          <Ellipse cx="124" cy="174" rx="20" ry="9.5" fill={SHOE} />
-          <Ellipse cx="76" cy="178" rx="19" ry="5" fill={SHOE_DARK} opacity={0.5} />
-          <Ellipse cx="124" cy="178" rx="19" ry="5" fill={SHOE_DARK} opacity={0.5} />
-        </G>
+        {/* Legs stay short: the body almost rests on the shoes. */}
+        <Path d="M82 140 L80 158 Q80 163 88 163 L96 163 Q101 163 100 158 L98 140 Z" fill={limb} />
+        <Path d="M118 140 L120 158 Q120 163 112 163 L104 163 Q99 163 100 158 L102 140 Z" fill={limb} />
 
-        <Arms expression={expression} limbFill={`url(#${id('limb')})`} />
+        <Path
+          d="M64 166 Q64 152 79 152 L92 152 Q99 152 99 160 L99 172 Q99 181 88 181 L75 181 Q64 181 64 172 Z"
+          fill={ref('shoe')}
+        />
+        <Path
+          d="M136 166 Q136 152 121 152 L108 152 Q101 152 101 160 L101 172 Q101 181 112 181 L125 181 Q136 181 136 172 Z"
+          fill={ref('shoe')}
+        />
+        <Path
+          d="M64.5 174 L99 174 Q99 181 88 181 L75 181 Q64.5 181 64.5 174 Z"
+          fill={SHOE_DARK}
+          opacity={0.45}
+        />
+        <Path
+          d="M135.5 174 L101 174 Q101 181 112 181 L125 181 Q135.5 181 135.5 174 Z"
+          fill={SHOE_DARK}
+          opacity={0.45}
+        />
 
-        {/* body */}
-        <Ellipse cx="100" cy="96" rx="70" ry="66" fill={`url(#${id('body')})`} />
-        <Ellipse cx="74" cy="60" rx="30" ry="20" fill={`url(#${id('gloss')})`} />
+        <Arms expression={expression} limbFill={limb} />
 
-        {/* cheeks */}
-        <Ellipse cx="55" cy="113" rx="13.5" ry="9" fill={CHEEK} opacity={0.85} />
-        <Ellipse cx="145" cy="113" rx="13.5" ry="9" fill={CHEEK} opacity={0.85} />
+        <Ellipse cx={BODY.cx} cy={BODY.cy} rx={BODY.rx} ry={BODY.ry} fill={ref('body')} />
+        <Ellipse
+          cx="73"
+          cy="50"
+          rx="29"
+          ry="20"
+          fill={ref('gloss')}
+          transform="rotate(-22 73 50)"
+        />
+
+        <Ellipse cx="52" cy="116" rx="15" ry="10" fill={ref('cheek')} />
+        <Ellipse cx="148" cy="116" rx="15" ry="10" fill={ref('cheek')} />
 
         <Eyes expression={expression} />
         <Mouth expression={expression} />
@@ -110,18 +148,18 @@ function Eyes({ expression }: { expression: MascotExpression }) {
   if (expression === 'proud') {
     // Happy closed eyes: two upward arcs.
     return (
-      <G stroke={INK} strokeWidth={6} strokeLinecap="round" fill="none">
-        <Path d="M60 92 Q74 76 88 92" />
-        <Path d="M112 92 Q126 76 140 92" />
+      <G stroke={INK} strokeWidth={7} strokeLinecap="round" fill="none">
+        <Path d="M65 94 Q79 78 93 94" />
+        <Path d="M107 94 Q121 78 135 94" />
       </G>
     );
   }
 
   if (expression === 'sleepy') {
     return (
-      <G stroke={INK} strokeWidth={6} strokeLinecap="round" fill="none">
-        <Path d="M60 90 Q74 102 88 90" />
-        <Path d="M112 90 Q126 102 140 90" />
+      <G stroke={INK} strokeWidth={7} strokeLinecap="round" fill="none">
+        <Path d="M65 88 Q79 102 93 88" />
+        <Path d="M107 88 Q121 102 135 88" />
       </G>
     );
   }
@@ -129,40 +167,53 @@ function Eyes({ expression }: { expression: MascotExpression }) {
   if (expression === 'delighted') {
     return (
       <G>
-        <EyeBall cx={74} cy={90} rx={19} ry={21} />
-        <EyeBall cx={126} cy={90} rx={19} ry={21} />
-        <Star cx={74} cy={88} r={9} fill="#FFC85A" />
-        <Star cx={126} cy={88} r={9} fill="#FFC85A" />
+        <EyeBall cx={EYE.left} cy={EYE.cy} prx={EYE.prx} pry={EYE.pry} />
+        <EyeBall cx={EYE.right} cy={EYE.cy} prx={EYE.prx} pry={EYE.pry} />
+        <Star cx={EYE.left} cy={EYE.cy - 1} r={9.5} fill={STAR} />
+        <Star cx={EYE.right} cy={EYE.cy - 1} r={9.5} fill={STAR} />
       </G>
     );
   }
 
   const wide = expression === 'surprised';
-  const droop = expression === 'sad' || expression === 'worried' ? 3 : 0;
-  const rx = wide ? 20 : 19;
-  const ry = wide ? 24 : 21;
+  const prx = wide ? EYE.prx + 1.5 : EYE.prx;
+  const pry = wide ? EYE.pry + 3 : EYE.pry;
+  const troubled = expression === 'worried' || expression === 'sad';
 
   return (
     <G>
-      <EyeBall cx={74} cy={90 + droop} rx={rx} ry={ry} />
-      <EyeBall cx={126} cy={90 + droop} rx={rx} ry={ry} />
-      {(expression === 'worried' || expression === 'sad') && (
-        <G stroke={INK} strokeWidth={4.5} strokeLinecap="round" fill="none" opacity={0.9}>
-          <Path d="M58 66 Q72 60 86 66" />
-          <Path d="M114 66 Q128 60 142 66" />
+      <EyeBall cx={EYE.left} cy={EYE.cy} prx={prx} pry={pry} />
+      <EyeBall cx={EYE.right} cy={EYE.cy} prx={prx} pry={pry} />
+      {troubled && (
+        <G stroke={INK} strokeWidth={3.6} strokeLinecap="round" fill="none" opacity={0.8}>
+          <Path d="M67 62 Q79 57 91 62" />
+          <Path d="M109 62 Q121 57 133 62" />
         </G>
       )}
     </G>
   );
 }
 
-function EyeBall({ cx, cy, rx, ry }: { cx: number; cy: number; rx: number; ry: number }) {
+function EyeBall({ cx, cy, prx, pry }: { cx: number; cy: number; prx: number; pry: number }) {
   return (
     <G>
-      <Ellipse cx={cx} cy={cy} rx={rx + 3.5} ry={ry + 3.5} fill="#FFFFFF" />
-      <Ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={INK} />
-      <Circle cx={cx - rx * 0.32} cy={cy - ry * 0.36} r={rx * 0.34} fill="#FFFFFF" />
-      <Circle cx={cx + rx * 0.3} cy={cy + ry * 0.34} r={rx * 0.15} fill="#FFFFFF" opacity={0.8} />
+      <Ellipse cx={cx} cy={cy} rx={prx + EYE.ring} ry={pry + EYE.ring} fill="#FFFFFF" />
+      <Ellipse cx={cx} cy={cy} rx={prx} ry={pry} fill={INK} />
+      {/* Two catchlights: the big one gives the glossy 3D read. */}
+      <Ellipse
+        cx={cx - prx * 0.3}
+        cy={cy - pry * 0.34}
+        rx={prx * 0.4}
+        ry={pry * 0.36}
+        fill="#FFFFFF"
+      />
+      <Circle
+        cx={cx + prx * 0.34}
+        cy={cy + pry * 0.32}
+        r={prx * 0.16}
+        fill="#FFFFFF"
+        opacity={0.85}
+      />
     </G>
   );
 }
@@ -170,13 +221,15 @@ function EyeBall({ cx, cy, rx, ry }: { cx: number; cy: number; rx: number; ry: n
 /* --------------------------------------------------------------------- mouth */
 
 function Mouth({ expression }: { expression: MascotExpression }) {
+  const y = MOUTH_Y;
+
   switch (expression) {
     case 'surprised':
-      return <Ellipse cx="100" cy="126" rx="9" ry="11" fill={INK} />;
+      return <Ellipse cx="100" cy={y + 8} rx={9.5} ry={12} fill={INK} />;
     case 'sad':
       return (
         <Path
-          d="M88 132 Q100 122 112 132"
+          d={`M88 ${y + 12} Q100 ${y + 2} 112 ${y + 12}`}
           stroke={INK}
           strokeWidth={5.5}
           strokeLinecap="round"
@@ -186,7 +239,7 @@ function Mouth({ expression }: { expression: MascotExpression }) {
     case 'worried':
       return (
         <Path
-          d="M88 128 Q94 122 100 128 Q106 134 112 128"
+          d={`M88 ${y + 8} Q94.5 ${y + 2} 100 ${y + 8} Q105.5 ${y + 14} 112 ${y + 8}`}
           stroke={INK}
           strokeWidth={5}
           strokeLinecap="round"
@@ -194,20 +247,26 @@ function Mouth({ expression }: { expression: MascotExpression }) {
         />
       );
     case 'sleepy':
-      return <Ellipse cx="100" cy="128" rx="7" ry="6" fill={INK} opacity={0.9} />;
+      return <Ellipse cx="100" cy={y + 6} rx={7.5} ry={6.5} fill={INK} />;
     case 'proud':
     case 'delighted':
       return (
         <G>
-          <Path d="M82 120 Q100 146 118 120 Z" fill={INK} />
-          <Path d="M92 133 Q100 141 108 133 Z" fill="#FF7DA0" />
+          <Path
+            d={`M83 ${y - 2} Q100 ${y - 6} 117 ${y - 2} Q117 ${y + 20} 100 ${y + 20} Q83 ${y + 20} 83 ${y - 2} Z`}
+            fill={INK}
+          />
+          <Path d={`M91 ${y + 11} Q100 ${y + 21} 109 ${y + 11} Z`} fill={TONGUE} />
         </G>
       );
     default:
       return (
         <G>
-          <Path d="M86 121 Q100 140 114 121 Z" fill={INK} />
-          <Path d="M94 131 Q100 137 106 131 Z" fill="#FF7DA0" />
+          <Path
+            d={`M85 ${y - 1} Q100 ${y - 5} 115 ${y - 1} Q115 ${y + 17} 100 ${y + 17} Q85 ${y + 17} 85 ${y - 1} Z`}
+            fill={INK}
+          />
+          <Path d={`M92 ${y + 9} Q100 ${y + 18} 108 ${y + 9} Z`} fill={TONGUE} />
         </G>
       );
   }
@@ -216,23 +275,23 @@ function Mouth({ expression }: { expression: MascotExpression }) {
 /* ---------------------------------------------------------------------- arms */
 
 function Arms({ expression, limbFill }: { expression: MascotExpression; limbFill: string }) {
-  const raised = expression === 'proud' || expression === 'delighted' || expression === 'motivated';
+  // Arms leave the SIDE of the body, never the top — raised any higher they
+  // read as ears instead of arms.
+  const raised = expression === 'proud' || expression === 'delighted';
 
-  // Arms sit just outside the body outline, otherwise the round silhouette
-  // swallows them completely.
   if (raised) {
     return (
       <G fill={limbFill}>
-        <Ellipse cx="27" cy="88" rx="12" ry="21" transform="rotate(38 27 88)" />
-        <Ellipse cx="173" cy="88" rx="12" ry="21" transform="rotate(-38 173 88)" />
+        <Path d="M48 100 Q28 92 20 76 Q15 65 27 62 Q38 61 43 74 Q48 88 58 96 Z" />
+        <Path d="M152 100 Q172 92 180 76 Q185 65 173 62 Q162 61 157 74 Q152 88 142 96 Z" />
       </G>
     );
   }
 
   return (
     <G fill={limbFill}>
-      <Ellipse cx="26" cy="116" rx="12" ry="21" transform="rotate(14 26 116)" />
-      <Ellipse cx="174" cy="116" rx="12" ry="21" transform="rotate(-14 174 116)" />
+      <Path d="M46 104 Q27 106 19 120 Q13 132 25 136 Q37 139 43 125 Q48 114 57 110 Z" />
+      <Path d="M154 104 Q173 106 181 120 Q187 132 175 136 Q163 139 157 125 Q152 114 143 110 Z" />
     </G>
   );
 }
@@ -241,14 +300,15 @@ function Arms({ expression, limbFill }: { expression: MascotExpression; limbFill
 
 function Extras({ expression }: { expression: MascotExpression }) {
   if (expression === 'motivated') {
-    return <Star cx={100} cy={140} r={20} fill="#FFC85A" stroke="#F0AE33" />;
+    // Held low against the belly, clear of the mouth.
+    return <Star cx={100} cy={162} r={19} fill={STAR} stroke={STAR_EDGE} />;
   }
   if (expression === 'sleepy') {
     return (
-      <G fill="#7A7CFF">
-        <ZLetter x={148} y={44} size={13} />
-        <ZLetter x={166} y={26} size={10} />
-        <ZLetter x={180} y={12} size={7} />
+      <G>
+        <ZLetter x={150} y={44} size={14} />
+        <ZLetter x={169} y={26} size={10} />
+        <ZLetter x={183} y={13} size={7} />
       </G>
     );
   }
@@ -290,7 +350,7 @@ function ZLetter({ x, y, size }: { x: number; y: number; size: number }) {
     <Path
       d={`M${x} ${y} h${size} l-${size} ${size} h${size}`}
       stroke="#7A7CFF"
-      strokeWidth={size * 0.22}
+      strokeWidth={size * 0.24}
       strokeLinecap="round"
       strokeLinejoin="round"
       fill="none"
