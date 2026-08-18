@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleProp, ViewStyle } from 'react-native';
+import { StyleProp, StyleSheet, ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -32,11 +32,13 @@ export interface MascotKeyframe {
   rotate?: number;
   /** Portion of `duration` spent travelling to this pose (0 = hard cut). */
   ease?: number;
+  /** Cross-fade into this pose, in ms. Defaults to half the duration, capped. */
+  fade?: number;
 }
 
 export type MascotAnimationName = 'celebrate' | 'wave' | 'breathe' | 'worry' | 'sleep';
 
-const REST: Required<Omit<MascotKeyframe, 'expression' | 'duration'>> = {
+const REST: Required<Omit<MascotKeyframe, 'expression' | 'duration' | 'fade'>> = {
   scale: 1,
   scaleX: 1,
   scaleY: 1,
@@ -50,20 +52,28 @@ const REST: Required<Omit<MascotKeyframe, 'expression' | 'duration'>> = {
  * chest-out, then settle. Roughly the beats a 2D animator would key by hand.
  */
 const CELEBRATE: MascotKeyframe[] = [
-  { expression: 'surprised', duration: 160, scale: 0.9, translateY: 6, scaleY: 0.94, ease: 0.5 },
-  { expression: 'delighted', duration: 260, scale: 1.1, translateY: -30, scaleY: 1.08, ease: 0.45 },
-  { expression: 'delighted', duration: 180, scale: 1, translateY: 0, scaleY: 0.9, scaleX: 1.1, ease: 0.5 },
-  { expression: 'proud', duration: 260, scale: 1.06, translateY: -16, rotate: -5, ease: 0.5 },
-  { expression: 'proud', duration: 240, scale: 1.02, translateY: -4, rotate: 5, ease: 0.7 },
-  { expression: 'delighted', duration: 600, scale: 1, translateY: 0, rotate: 0, ease: 0.6 },
+  // Anticipation: a small crouch down before the jump. Without it the take-off
+  // reads as a teleport however smooth the interpolation is.
+  { expression: 'happy', duration: 130, scale: 0.95, scaleY: 0.9, translateY: 10, ease: 0.6, fade: 90 },
+  // Take-off and apex. The pose changes mid-flight, where the eye is tracking
+  // the movement rather than the drawing, so the swap goes unnoticed.
+  { expression: 'surprised', duration: 110, scale: 1.04, scaleY: 1.08, translateY: -12, ease: 0.45, fade: 70 },
+  { expression: 'delighted', duration: 250, scale: 1.12, scaleY: 1.05, translateY: -36, ease: 0.4, fade: 80 },
+  // Landing: squash carries the weight.
+  { expression: 'delighted', duration: 150, scale: 1, scaleY: 0.87, scaleX: 1.13, translateY: 2, ease: 0.45 },
+  { expression: 'delighted', duration: 110, scale: 1.02, scaleY: 1.03, translateY: -6, ease: 0.6 },
+  // Proud beat, rocking left then right.
+  { expression: 'proud', duration: 240, scale: 1.06, translateY: -12, rotate: -5, ease: 0.5, fade: 150 },
+  { expression: 'proud', duration: 220, scale: 1.03, translateY: -4, rotate: 5, ease: 0.7 },
+  { expression: 'delighted', duration: 700, scale: 1, translateY: 0, rotate: 0, ease: 0.6, fade: 200 },
 ];
 
 /** Greeting on arrival: a small hop and a tilt, once. */
 const WAVE: MascotKeyframe[] = [
-  { expression: 'happy', duration: 140, scale: 0.94, scaleY: 0.94, ease: 0.5 },
-  { expression: 'proud', duration: 240, scale: 1.05, translateY: -14, rotate: -6, ease: 0.5 },
+  { expression: 'happy', duration: 130, scale: 0.95, scaleY: 0.93, translateY: 6, ease: 0.6 },
+  { expression: 'proud', duration: 240, scale: 1.05, translateY: -16, rotate: -6, ease: 0.45, fade: 110 },
   { expression: 'proud', duration: 240, scale: 1.03, translateY: -8, rotate: 6, ease: 0.7 },
-  { expression: 'happy', duration: 400, scale: 1, translateY: 0, rotate: 0, ease: 0.6 },
+  { expression: 'happy', duration: 460, scale: 1, translateY: 0, rotate: 0, ease: 0.6, fade: 180 },
 ];
 
 /** Idle breathing, loopable. Deliberately tiny — it must never pull focus. */
@@ -117,6 +127,15 @@ export function MascotAnimation({
   const timeline = frames ?? PRESETS[name];
 
   const [index, setIndex] = useState(0);
+  // Two stacked layers dissolving into each other. Swapping a single image
+  // reads as a cut however smooth the movement around it is; because the poses
+  // are normalised on the body, the dissolve keeps the body rock solid and only
+  // the arms and face morph — which is what sells it as one continuous move.
+  const [layers, setLayers] = useState(() => ({
+    from: timeline[0].expression,
+    to: timeline[0].expression,
+  }));
+  const mix = useSharedValue(1);
   const scale = useSharedValue(1);
   const scaleX = useSharedValue(1);
   const scaleY = useSharedValue(1);
@@ -145,6 +164,16 @@ export function MascotAnimation({
     translateY.value = withTiming(pose.translateY, config);
     rotate.value = withTiming(pose.rotate, config);
 
+    setLayers((previous) => {
+      if (previous.to === frame.expression) return previous;
+      return { from: previous.to, to: frame.expression };
+    });
+    mix.value = 0;
+    mix.value = withTiming(1, {
+      duration: frame.fade ?? Math.min(140, frame.duration * 0.5),
+      easing: Easing.inOut(Easing.quad),
+    });
+
     timer.current = setTimeout(() => {
       const next = index + 1;
       if (next < timeline.length) {
@@ -160,7 +189,7 @@ export function MascotAnimation({
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [index, timeline, loop, onFinish, rotate, scale, scaleX, scaleY, translateY]);
+  }, [index, timeline, loop, onFinish, rotate, scale, scaleX, scaleY, translateY, mix]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -172,15 +201,35 @@ export function MascotAnimation({
     ],
   }));
 
+  const fromStyle = useAnimatedStyle(() => ({ opacity: 1 - mix.value }));
+  const toStyle = useAnimatedStyle(() => ({ opacity: mix.value }));
+
   const current = timeline[index] ?? timeline[timeline.length - 1];
-  const expression =
-    !loop && finished.current ? restExpression ?? current.expression : current.expression;
+  const settled =
+    !loop && finished.current ? restExpression ?? current.expression : null;
 
   return (
-    <Animated.View style={[animatedStyle, style]}>
-      <Mascot expression={expression} size={size} />
+    <Animated.View style={[{ width: size, height: size }, animatedStyle, style]}>
+      {settled ? (
+        <Mascot expression={settled} size={size} />
+      ) : (
+        <>
+          {layers.from !== layers.to ? (
+            <Animated.View style={[styles.layer, fromStyle]}>
+              <Mascot expression={layers.from} size={size} />
+            </Animated.View>
+          ) : null}
+          <Animated.View style={[styles.layer, toStyle]}>
+            <Mascot expression={layers.to} size={size} />
+          </Animated.View>
+        </>
+      )}
     </Animated.View>
   );
 }
+
+const styles = StyleSheet.create({
+  layer: { position: 'absolute', top: 0, left: 0 },
+});
 
 export default MascotAnimation;
