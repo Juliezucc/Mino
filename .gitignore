@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Regenerable from docs/mascot-tests/ with scripts/video-to-sequence.mjs
+assets/mascot/sequence/f*.png

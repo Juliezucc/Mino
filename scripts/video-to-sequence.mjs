@@ -13,7 +13,7 @@
  * sequence, computed from the visible pixels. Generated clips drift in framing,
  * and drift reads as the mascot sliding around its box.
  *
- * Usage:  node scripts/video-to-sequence.mjs <video> [start] [duration]
+ * Usage:  node scripts/video-to-sequence.mjs <video> [start] [duration] [background]
  *
  * Requirements for the source clip:
  *   - flat white (or near-white) background, no gradient
@@ -29,23 +29,44 @@ import ffmpeg from 'ffmpeg-static';
 const VIDEO = process.argv[2];
 const START = Number(process.argv[3] ?? 0);
 const DUR = Number(process.argv[4] ?? 2);
+/**
+ * Animated WebP written by ffmpeg does not dispose frames to background, so
+ * transparent frames blend onto each other and every past arm position stays
+ * on screen. Flattening onto the screen colour sidesteps it entirely: opaque
+ * frames replace what came before. The transparent PNG sequence is still
+ * written next to it, and stays the source of truth.
+ *
+ * Pass 'none' to keep alpha, once a muxer that sets disposal is available.
+ */
+const BACKGROUND = process.argv[5] ?? 'white';
 if (!VIDEO) {
   console.error('Usage: node scripts/video-to-sequence.mjs <video> [start] [duration]');
   process.exit(1);
 }
 const FPS = 24;
-const W = 1044;
 const OUT = 'assets/mascot/sequence';
 const CANVAS = 640;
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 
+// Read the clip's own dimensions rather than assuming any. `ffmpeg -i` with no
+// output always exits non-zero, so the probe lives in a try/catch.
+let probe = '';
+try {
+  execFileSync(ffmpeg, ['-hide_banner', '-i', VIDEO], { stdio: ['ignore', 'pipe', 'pipe'] });
+} catch (error) {
+  probe = error.stderr?.toString() ?? '';
+}
+const match = probe.match(/,\s(\d{2,5})x(\d{2,5})[\s,]/);
+if (!match) throw new Error('dimensions de la vidéo illisibles');
+const W = Number(match[1]);
+const H = Number(match[2]);
+console.log(`source ${W}x${H}`);
+
 const raw = execFileSync(ffmpeg, ['-hide_banner', '-loglevel', 'error',
   '-ss', String(START), '-t', String(DUR), '-i', VIDEO,
   '-vf', `fps=${FPS}`, '-f', 'rawvideo', '-pix_fmt', 'rgba', '-'], { maxBuffer: 1 << 30 });
-
-const H = 880;
 const frameSize = W * H * 4;
 const count = Math.floor(raw.length / frameSize);
 console.log(`${count} images extraites`);
@@ -126,9 +147,19 @@ frames.forEach((f, i) => {
     '-pix_fmt', 'rgba', `${OUT}/f${String(i).padStart(3, '0')}.png`]);
 });
 
+const flatten = BACKGROUND === 'none'
+  ? []
+  : ['-f', 'lavfi', '-i', `color=${BACKGROUND}:s=${CANVAS}x${CANVAS}`,
+     '-filter_complex', '[1][0]overlay=shortest=1,format=rgb24'];
+
 execFileSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y',
   '-framerate', String(FPS), '-i', `${OUT}/f%03d.png`,
-  '-vcodec', 'libwebp', '-lossless', '0', '-q:v', '82', '-loop', '0',
+  ...flatten,
+  // Lossless: on flat-shaded 3D artwork it comes out both cleaner AND smaller
+  // than lossy, which streaks the character and fringes the alpha.
+  // loop 1 = play once and hold the last frame. A celebration that loops
+  // forever turns a reward into wallpaper.
+  '-vcodec', 'libwebp', '-lossless', '1', '-loop', '1',
   '-preset', 'picture', '-an', '-vsync', '0', `${OUT}/celebration.webp`]);
 
 execFileSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y',

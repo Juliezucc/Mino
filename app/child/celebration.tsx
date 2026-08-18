@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { MascotAnimation } from '@/components/mascot';
+import { MascotClip } from '@/components/mascot';
 import { Button, Confetti, Screen, Text, TimeRing } from '@/components/ui';
 import { MissionCompletion } from '@/domain/types';
 import { useActiveChild, useBalance, useFamily } from '@/store/selectors';
@@ -61,8 +61,6 @@ export default function Celebration() {
 
   return (
     <Screen background={colors.surface} contentStyle={styles.content} scroll={false}>
-      <Confetti />
-
       <View style={styles.top}>
         <Text variant="title" color={colors.mint} center>
           Mission validée !
@@ -74,7 +72,7 @@ export default function Celebration() {
         ) : null}
       </View>
 
-      <MascotAnimation name="celebrate" size={230} restExpression="delighted" />
+      <MascotClip name="celebrate" size={230} restExpression="delighted" />
 
       <Text variant="display" color={colors.blue} center style={styles.reward}>
         {`+${minutes}`}
@@ -90,6 +88,10 @@ export default function Celebration() {
       <TimeRing minutes={ringValue} size={190} label="min disponibles" />
 
       <Button label="SUPER !" icon="🎉" size="kid" onPress={close} />
+
+      {/* Last, so the confetti passes in front of the clip: a rendered clip is
+          flattened onto the screen colour and would otherwise mask it. */}
+      <Confetti />
     </Screen>
   );
 }
