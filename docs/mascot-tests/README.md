@@ -34,3 +34,36 @@ the part a video model gets wrong and code gets right:
 Then:
 
     node scripts/video-to-sequence.mjs <clip.mp4> <start> <duration>
+
+## Adding more clips
+
+Each clip becomes `assets/mascot/sequence/<name>.webp` plus a `<name>.json`
+carrying its duration, then gets registered in `src/components/mascot/MascotClip.tsx`.
+A one-shot clip hands back to the still artwork when it ends and keeps it
+breathing, so the mascot settles rather than freezing mid-gesture.
+
+| Clip | Where it plays | Length | Flags |
+| --- | --- | --- | --- |
+| `celebrate` | mission validated | 1.5 s | one-shot |
+| `idle` | child home, waiting | 2–3 s | `--loop --pingpong` |
+| `waiting` | mission sent, awaiting the parent | 1.5 s | one-shot |
+| `outOfTime` | no minutes left | 1.5 s | one-shot |
+
+`--pingpong` plays the frames forward then backward, so a looping clip closes
+seamlessly whatever pose the generator ends on — worth using for every `--loop`
+clip, since a generated clip almost never returns exactly to its first frame.
+
+### Prompt for the idle clip
+
+> Image-to-video. Locked-off camera, no camera movement, no zoom, no pan. Keep
+> the framing of the input image: the character stays the same size and in the
+> lower half of the frame. Plain flat white background. The character stands
+> still and simply breathes, blinks its eyes twice, and looks around slightly.
+> Very subtle motion, no jumping, no walking, it stays in place. Keep the
+> character design, proportions, colors and face identical throughout: no
+> morphing, no flattening, short rounded stubby arms, perfectly round body.
+> 3 seconds.
+
+Then:
+
+    node scripts/video-to-sequence.mjs <clip.mp4> <start> <duration> --name=idle --loop --pingpong

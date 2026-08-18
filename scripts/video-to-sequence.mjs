@@ -13,7 +13,12 @@
  * sequence, computed from the visible pixels. Generated clips drift in framing,
  * and drift reads as the mascot sliding around its box.
  *
- * Usage:  node scripts/video-to-sequence.mjs <video> [start] [duration] [background]
+ * Usage:  node scripts/video-to-sequence.mjs <video> [start] [duration] [options]
+ *           --name=celebrate     clip name, becomes <name>.webp + <name>.json
+ *           --loop               loop forever (idle clips) instead of playing once
+ *           --pingpong           append the frames in reverse, so the loop is
+ *                                seamless whatever pose the clip ends on
+ *           --background=white   flatten colour, or 'none' to keep alpha
  *
  * Requirements for the source clip:
  *   - flat white (or near-white) background, no gradient
@@ -23,7 +28,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import ffmpeg from 'ffmpeg-static';
 
 const VIDEO = process.argv[2];
@@ -38,17 +43,26 @@ const DUR = Number(process.argv[4] ?? 2);
  *
  * Pass 'none' to keep alpha, once a muxer that sets disposal is available.
  */
-const BACKGROUND = process.argv[5] ?? 'white';
+const flag = (name, fallback) => {
+  const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
+  return hit ? hit.split('=').slice(1).join('=') : fallback;
+};
+const BACKGROUND = flag('background', 'white');
+const NAME = flag('name', 'celebrate');
+const LOOP = process.argv.includes('--loop');
+const PINGPONG = process.argv.includes('--pingpong');
+
 if (!VIDEO) {
-  console.error('Usage: node scripts/video-to-sequence.mjs <video> [start] [duration]');
+  console.error('Usage: node scripts/video-to-sequence.mjs <video> [start] [duration] [--name=x] [--loop]');
   process.exit(1);
 }
 const FPS = 24;
 const OUT = 'assets/mascot/sequence';
 const CANVAS = 640;
+const FRAMES_DIR = `${OUT}/${NAME}-frames`;
 
-rmSync(OUT, { recursive: true, force: true });
-mkdirSync(OUT, { recursive: true });
+rmSync(FRAMES_DIR, { recursive: true, force: true });
+mkdirSync(FRAMES_DIR, { recursive: true });
 
 // Read the clip's own dimensions rather than assuming any. `ffmpeg -i` with no
 // output always exits non-zero, so the probe lives in a try/catch.
@@ -144,7 +158,7 @@ frames.forEach((f, i) => {
   execFileSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y',
     '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-i', tmp,
     '-vf', `scale=${sw}:-1,format=rgba,pad=iw+${pad * 2}:ih+${pad * 2}:${pad}:${pad}:color=black@0,crop=${CANVAS}:${CANVAS}:${cropX}:${cropY}`,
-    '-pix_fmt', 'rgba', `${OUT}/f${String(i).padStart(3, '0')}.png`]);
+    '-pix_fmt', 'rgba', `${FRAMES_DIR}/f${String(i).padStart(3, '0')}.png`]);
 });
 
 const flatten = BACKGROUND === 'none'
@@ -152,19 +166,42 @@ const flatten = BACKGROUND === 'none'
   : ['-f', 'lavfi', '-i', `color=${BACKGROUND}:s=${CANVAS}x${CANVAS}`,
      '-filter_complex', '[1][0]overlay=shortest=1,format=rgb24'];
 
+// A generated clip rarely ends where it started, so a plain loop jumps. Playing
+// it forward then backward always closes seamlessly.
+let total = frames.length;
+if (PINGPONG) {
+  for (let i = frames.length - 2; i > 0; i -= 1) {
+    copyFileSync(
+      `${FRAMES_DIR}/f${String(i).padStart(3, '0')}.png`,
+      `${FRAMES_DIR}/f${String(total).padStart(3, '0')}.png`,
+    );
+    total += 1;
+  }
+}
+
 execFileSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y',
-  '-framerate', String(FPS), '-i', `${OUT}/f%03d.png`,
+  '-framerate', String(FPS), '-i', `${FRAMES_DIR}/f%03d.png`,
   ...flatten,
   // Lossless: on flat-shaded 3D artwork it comes out both cleaner AND smaller
   // than lossy, which streaks the character and fringes the alpha.
-  // loop 1 = play once and hold the last frame. A celebration that loops
-  // forever turns a reward into wallpaper.
-  '-vcodec', 'libwebp', '-lossless', '1', '-loop', '1',
-  '-preset', 'picture', '-an', '-vsync', '0', `${OUT}/celebration.webp`]);
+  // loop 1 = play once; 0 = forever, for idle clips.
+  '-vcodec', 'libwebp', '-lossless', '1', '-loop', LOOP ? '0' : '1',
+  '-preset', 'picture', '-an', '-vsync', '0', `${OUT}/${NAME}.webp`]);
 
 execFileSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y',
-  '-framerate', String(FPS), '-i', `${OUT}/f%03d.png`,
+  '-framerate', String(FPS), '-i', `${FRAMES_DIR}/f%03d.png`,
   '-vf', 'scale=300:-1,split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse',
-  '-loop', '0', `${OUT}/preview.gif`]);
+  '-loop', '0', `${OUT}/${NAME}-preview.gif`]);
 
-console.log('WebP + GIF écrits dans', OUT);
+// The app needs the duration to know when a one-shot clip is over and it should
+// hand back to the still poses, so it ships next to the clip rather than being
+// hardcoded somewhere it can drift.
+writeFileSync(`${OUT}/${NAME}.json`, JSON.stringify({
+  frames: total,
+  fps: FPS,
+  durationMs: Math.round((total / FPS) * 1000),
+  loop: LOOP,
+}, null, 2) + '\n');
+
+console.log(`${NAME}.webp · ${total} images · ${Math.round((total / FPS) * 1000)} ms` +
+  `${LOOP ? ' · en boucle' : ''}${PINGPONG ? ' · aller-retour' : ''}`);
