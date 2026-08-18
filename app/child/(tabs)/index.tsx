@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AnimatedMascot } from '@/components/mascot';
+import { AnimatedMascot, MascotAnimation } from '@/components/mascot';
 import { MascotExpression } from '@/components/mascot/types';
 import { Button, Card, MinutesBadge, Screen, Text, TimeRing } from '@/components/ui';
 import { useBalanceDetail, useChildMissions, useActiveChild } from '@/store/selectors';
@@ -41,7 +41,12 @@ export default function ChildHome() {
             {message}
           </Text>
         </View>
-        <AnimatedMascot expression={expression} size={96} />
+        {expression === 'happy' ? (
+          // A single hop on arrival, then the mascot goes still.
+          <MascotAnimation name="wave" size={96} restExpression="happy" />
+        ) : (
+          <AnimatedMascot expression={expression} size={96} />
+        )}
       </View>
 
       <Card style={styles.ringCard} elevation="soft">

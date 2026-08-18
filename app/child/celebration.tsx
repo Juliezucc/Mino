@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AnimatedMascot } from '@/components/mascot';
+import { MascotAnimation } from '@/components/mascot';
 import { Button, Confetti, Screen, Text, TimeRing } from '@/components/ui';
 import { MissionCompletion } from '@/domain/types';
 import { useActiveChild, useBalance, useFamily } from '@/store/selectors';
@@ -74,7 +74,7 @@ export default function Celebration() {
         ) : null}
       </View>
 
-      <AnimatedMascot expression="delighted" size={190} animation="celebrate" />
+      <MascotAnimation name="celebrate" size={190} restExpression="delighted" />
 
       <Text variant="display" color={colors.blue} center style={styles.reward}>
         {`+${minutes}`}
