@@ -1,0 +1,30 @@
+# Mascot animation tests
+
+Reference material for generating an animated clip of Mino, not shipped in the app.
+
+- `kling-test.mp4` — first Kling AI attempt. On-model for about half a second,
+  then the character leaves the frame and flattens.
+- `kling-livephoto-still.jpeg` — the Live Photo still. Cropped, unusable.
+- `seeds/` — seed images for image-to-video. The character is deliberately small
+  and low with a lot of empty space above its head: an image-to-video model keeps
+  the framing of its seed, so a character that already fills the frame has
+  nowhere to jump to and will be cropped on the way up.
+
+## Prompt that keeps the character in frame
+
+Feed `seeds/seed-happy.png`, and ask for an in-place performance rather than a
+jump — the trajectory is added in the app by `MascotAnimation`, which is exactly
+the part a video model gets wrong and code gets right:
+
+> Image-to-video. Locked-off camera, no camera movement, no zoom, no pan.
+> Keep the framing of the input image: the character stays the same size and
+> stays in the lower half of the frame, with empty space above its head at all
+> times. Plain flat white background. The character bends its knees, squashes
+> down slightly, then stretches up with both arms raised in celebration, and
+> settles back. It stays on the ground — it does not leave the frame. Keep the
+> character design, proportions, colors and face identical throughout: no
+> morphing, no flattening, no shape changes. 2 seconds.
+
+Then:
+
+    node scripts/video-to-sequence.mjs <clip.mp4> <start> <duration>
