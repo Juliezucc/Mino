@@ -163,16 +163,27 @@ validation, et le compteur qui grimpe visiblement de 35 à 50.
 
 ## La mascotte
 
-`src/components/mascot/` contient une mascotte **vectorielle** qui couvre déjà les
-huit expressions de la charte (heureux, fier, motivé, surpris, ravi, inquiet, déçu,
-fatigué) et les situations produit (mission terminée, minutes gagnées, presque plus
-de temps, bravo…).
+Les huit expressions de la charte (heureux, fier, motivé, surpris, ravi, inquiet,
+déçu, fatigué) sont livrées en **rendus 3D** dans `assets/mascot/`.
 
-Pour passer aux rendus 3D définitifs : déposer un PNG par expression dans
-`assets/mascot/` et décommenter la ligne correspondante dans
-`src/components/mascot/mascotAssets.ts`. `<Mascot />` préfère l'image dès qu'elle
-existe et retombe sur le vecteur sinon — la migration peut donc se faire expression
-par expression, sans jamais casser l'application.
+Les rendus d'origine sont cadrés différemment d'une pose à l'autre — Mino s'assoit
+quand il est fatigué, écarte les bras quand il est ravi, et certaines poses portent
+des décors (confettis, nuage, ZZZ) qui débordent largement du personnage. Utilisés
+tels quels, la mascotte changerait de taille et sauterait d'un écran à l'autre.
+
+`scripts/normalize-mascot.mjs` règle ça : il isole le bleu du corps, y cherche le
+plus grand cercle inscrit — la sphère du corps, qui veut dire la même chose dans les
+huit poses — puis recadre tout le monde sur un carré de 1024 px, corps centré et de
+taille identique. Pour mettre une pose à jour : remplacer le fichier dans
+`assets/mascot/source/` et relancer le script.
+
+Une mascotte **vectorielle** reste en secours dans `src/components/mascot/Mascot.tsx` :
+`<Mascot />` utilise l'image dès qu'elle existe et retombe sur le vecteur sinon, donc
+un jeu incomplet ne casse jamais un écran.
+
+`MascotAnimation` enchaîne ces poses avec du mouvement (bond, écrasement à
+l'atterrissage, bascule) pour produire une vraie performance — voir l'écran de
+célébration.
 
 ---
 

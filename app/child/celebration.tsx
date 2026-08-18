@@ -74,7 +74,7 @@ export default function Celebration() {
         ) : null}
       </View>
 
-      <MascotAnimation name="celebrate" size={190} restExpression="delighted" />
+      <MascotAnimation name="celebrate" size={230} restExpression="delighted" />
 
       <Text variant="display" color={colors.blue} center style={styles.reward}>
         {`+${minutes}`}
