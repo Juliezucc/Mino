@@ -18,6 +18,15 @@ export type ButtonSize = 'kid' | 'default' | 'small';
 
 interface Props {
   label: string;
+  /**
+   * Ce qu'un lecteur d'écran annonce, quand le libellé visible ne suffit pas.
+   *
+   * Un bouton peut être elliptique à l'œil et incompréhensible à l'oreille :
+   * « Pas encore » a du sens sous une carte qui nomme l'enfant et sa mission,
+   * et n'en a aucun lu seul. Par défaut on annonce le libellé, qui est le bon
+   * choix dans la grande majorité des cas.
+   */
+  accessibilityLabel?: string;
   onPress: () => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -40,6 +49,7 @@ const palette: Record<ButtonVariant, { bg: string; fg: string; shadow: keyof typ
 
 export function Button({
   label,
+  accessibilityLabel,
   onPress,
   variant = 'primary',
   size = 'default',
@@ -62,7 +72,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!disabled || !!loading }}
       disabled={disabled || loading}
       onPress={handlePress}
