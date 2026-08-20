@@ -266,9 +266,9 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Qui fait quoi',
         body: [
-          'Mino, installé sur l’appareil de votre enfant, tient le compte des minos gagnés et les décompte pendant chaque session.',
-          'Empêcher une application de s’ouvrir est en revanche un pouvoir que seuls iOS et Android accordent, et seulement à travers leur contrôle parental. Pour l’instant, c’est donc lui qui applique la limite que Mino a calculée.',
-          'La bonne façon de le voir : Mino décide combien de temps est accordé et pourquoi, le système fait respecter ce total.',
+          'Mino, installé sur l’iPhone, l’iPad ou l’appareil Android de votre enfant, tient le compte du temps gagné et le décompte pendant chaque session.',
+          'Empêcher une application de s’ouvrir est en revanche un pouvoir que seuls iOS et Android accordent, et seulement à qui ils en donnent l’autorisation. Dans cette version, c’est donc le contrôle parental du système qui applique la limite que Mino a calculée.',
+          'La bonne façon de le voir aujourd’hui : Mino décide combien de temps est accordé et pourquoi, le système fait respecter ce total.',
         ],
         tip: 'Sans ce réglage, rien n’empêche votre enfant d’ouvrir YouTube sans passer par Mino. C’est cinq minutes, une seule fois, et tout tient ensuite.',
       },
@@ -290,11 +290,13 @@ export const GUIDE: GuideChapter[] = [
         outside: true,
       },
       {
-        title: 'Ce qui change bientôt',
+        title: 'Ce vers quoi nous allons',
         body: [
-          'Ce réglage manuel est une étape, pas la destination. Mino est construit pour prendre la main lui-même : verrouiller les applications par défaut, et lever le verrou exactement le temps que votre enfant a gagné — plus de limite quotidienne à estimer à l’avance.',
-          'Sur iPhone, cela passe par les autorisations de contrôle parental d’Apple, qui doivent nous être accordées ; sur Android, par les permissions équivalentes. Vous n’aurez rien à refaire : la configuration ci-dessus reste valable en attendant.',
+          'Le réglage manuel ci-dessus est une étape, pas la destination. Mino est développé pour prendre la main lui-même : les applications que vous choisissez restent verrouillées, et le verrou se lève exactement le temps que votre enfant a gagné — plus de limite quotidienne à estimer à l’avance, plus d’écart entre ce qu’il a mérité et ce qu’il peut faire.',
+          'Cela demande une autorisation d’Apple et de Google, que nous demandons expressément pour cet usage. Quand elle sera accordée, un écran « Blocage des applications » vous proposera d’autoriser Mino et de choisir les applications concernées. Rien de ce que vous avez réglé ci-dessus ne sera perdu : ce sera simplement devenu inutile.',
         ],
+        where: 'Espace parent → Réglages → Blocage des applications',
+        tip: 'Le système ne nous dira jamais quelles applications vous avez choisies — seulement combien. Mino ne peut donc pas savoir ce que votre enfant utilise, et c’est un choix que nous assumons.',
       },
     ],
   },

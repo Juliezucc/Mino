@@ -1,7 +1,10 @@
 import { buildDemoFamily } from '@/data/demo';
 import { adjustBalance, endSession, startSession } from '@/domain/actions';
 import { balanceOf } from '@/domain/ledger';
-import { LocalTimerScreenTimeService } from '@/services/screenTime';
+import {
+  DeviceManagedScreenTimeService,
+  LocalTimerScreenTimeService,
+} from '@/services/screenTime';
 
 describe('using screen time', () => {
   it('bills only the minutes actually spent', () => {
@@ -69,10 +72,13 @@ describe('using screen time', () => {
 });
 
 describe('ScreenTimeService seam', () => {
-  it('is honest about what the MVP can do', async () => {
+  it('is honest about what the fallback can do', async () => {
     const service = new LocalTimerScreenTimeService();
     expect(service.capability).toBe('timer-only');
-    expect(await service.isAuthorized()).toBe(true);
+    // Not 'approved': there is nothing to approve when nothing is enforced,
+    // and claiming otherwise would make the app offer a useless permission.
+    expect(await service.authorization()).toBe('unsupported');
+    expect((await service.selection()).count).toBe(0);
   });
 
   it('tracks a grant until it is revoked', async () => {
@@ -85,5 +91,88 @@ describe('ScreenTimeService seam', () => {
 
     await service.revoke('ses_1');
     expect((await service.status('child_1')).active).toBe(false);
+  });
+});
+
+describe('device-managed screen time', () => {
+  /** Stands in for the Swift and Kotlin modules, which cannot run in Jest. */
+  function fakeNative() {
+    const calls: string[] = [];
+    let shielded = true;
+    let until = 0;
+    return {
+      calls,
+      isShielded: () => shielded,
+      async authorizationStatus() {
+        return 'approved' as const;
+      },
+      async requestAuthorization() {
+        return 'approved' as const;
+      },
+      async presentPicker() {
+        return { count: 7 };
+      },
+      async selectionCount() {
+        return { count: 7 };
+      },
+      async shield() {
+        calls.push('shield');
+        shielded = true;
+        until = 0;
+      },
+      async unshield(deadline: number) {
+        calls.push('unshield');
+        shielded = false;
+        until = deadline;
+      },
+      async remaining() {
+        return Math.max(0, until - Date.now());
+      },
+    };
+  }
+
+  it('shields whatever the parent just picked, without waiting for a session', async () => {
+    const native = fakeNative();
+    const service = new DeviceManagedScreenTimeService(native);
+
+    expect((await service.chooseApps()).count).toBe(7);
+    expect(native.calls).toContain('shield');
+  });
+
+  it('lifts the shield for exactly the minutes earned', async () => {
+    const native = fakeNative();
+    const service = new DeviceManagedScreenTimeService(native);
+
+    const grant = await service.grant({ sessionId: 'ses_1', childId: 'c1', minutes: 20 });
+    expect(native.isShielded()).toBe(false);
+
+    const span = new Date(grant.endsAt).getTime() - new Date(grant.startedAt).getTime();
+    expect(span).toBe(20 * 60_000);
+
+    const status = await service.status('c1');
+    expect(status.active).toBe(true);
+    expect(status.remainingSeconds).toBeGreaterThan(1190);
+  });
+
+  it('puts the shield back before billing anything', async () => {
+    const native = fakeNative();
+    const service = new DeviceManagedScreenTimeService(native);
+
+    await service.grant({ sessionId: 'ses_1', childId: 'c1', minutes: 20 });
+    await service.revoke('ses_1');
+
+    expect(native.isShielded()).toBe(true);
+    expect(native.calls).toEqual(['unshield', 'shield']);
+  });
+
+  it('re-shields even for a session it never knew about', async () => {
+    const native = fakeNative();
+    const service = new DeviceManagedScreenTimeService(native);
+
+    // The app was killed and restarted mid-session: the map is empty, but the
+    // apps must still be locked again.
+    const out = await service.revoke('ses_unknown');
+    expect(out.consumedMinutes).toBe(0);
+    expect(native.isShielded()).toBe(true);
   });
 });

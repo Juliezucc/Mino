@@ -1,10 +1,12 @@
 import { ID } from '@/domain/types';
 
 import {
+  ScreenTimeAuthorization,
   ScreenTimeCapability,
   ScreenTimeGrant,
   ScreenTimeService,
   ScreenTimeStatus,
+  ShieldedSelection,
 } from './ScreenTimeService';
 
 /**
@@ -14,16 +16,28 @@ import {
  * 'timer-only' so the UI can word things truthfully.
  */
 export class LocalTimerScreenTimeService implements ScreenTimeService {
+  readonly name = 'timer';
   readonly capability: ScreenTimeCapability = 'timer-only';
 
   private grants = new Map<ID, ScreenTimeGrant>();
 
-  async isAuthorized(): Promise<boolean> {
-    return true;
+  // Nothing to authorise, because nothing is enforced. Saying 'unsupported'
+  // rather than 'approved' keeps the UI from offering a permission screen that
+  // would grant nothing.
+  async authorization(): Promise<ScreenTimeAuthorization> {
+    return 'unsupported';
   }
 
-  async requestAuthorization(): Promise<boolean> {
-    return true;
+  async requestAuthorization(): Promise<ScreenTimeAuthorization> {
+    return 'unsupported';
+  }
+
+  async chooseApps(): Promise<ShieldedSelection> {
+    return { count: 0 };
+  }
+
+  async selection(): Promise<ShieldedSelection> {
+    return { count: 0 };
   }
 
   async grant(params: { sessionId: ID; childId: ID; minutes: number }): Promise<ScreenTimeGrant> {

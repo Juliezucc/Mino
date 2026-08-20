@@ -73,11 +73,11 @@ export default function DevicesScreen() {
 
       <Card background={colors.blueSoft} elevation="none" style={styles.intro}>
         <Text variant="bodyStrong" color={colors.blueDark}>
-          Un seul écran est automatique : celui où Mino est installé.
+          Un seul écran est automatique : le téléphone ou la tablette où Mino est installé.
         </Text>
         <Text variant="body" color={colors.textMuted}>
-          Sur cet appareil-là, votre enfant lance lui-même son temps et le minuteur démarre tout de
-          suite.
+          Mino existe sur iPhone, iPad et Android. Sur un de ces appareils, votre enfant lance
+          lui-même son temps et le minuteur démarre tout de suite.
         </Text>
         <Text variant="body" color={colors.textMuted}>
           Une console, une télévision ou un ordinateur n’ouvrent leur temps de jeu à aucune

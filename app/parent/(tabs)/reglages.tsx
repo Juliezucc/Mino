@@ -113,7 +113,8 @@ export default function ParentSettings() {
         </Text>
         <Text variant="body" color={colors.textMuted}>
           Console, télévision, ordinateur : déclarez-les pour que vos enfants puissent y échanger
-          leur temps. Seul l’appareil où Mino est installé fonctionne automatiquement.
+          leur temps. Le fonctionnement automatique n’existe que sur un iPhone, un iPad ou un
+          appareil Android où Mino est installé.
         </Text>
         <Button
           label="Gérer les appareils"
@@ -131,6 +132,14 @@ export default function ParentSettings() {
           {capability === 'timer-only'
             ? 'Mino compte les minos gagnés et les décompte pendant chaque session. Le blocage des autres applications est assuré par le contrôle parental de l’appareil — le guide explique comment le régler en cinq minutes.'
             : 'Mino verrouille lui-même les applications et lève le verrou le temps gagné.'}
+        </Text>
+        <Button
+          label="Blocage des applications"
+          icon="🔒"
+          variant="secondary"
+          onPress={() => router.push('/parent/blocage')}
+        />
+        <Text variant="caption" color={colors.textSubtle}>
         </Text>
       </Card>
 

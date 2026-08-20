@@ -1,21 +1,26 @@
+import { DeviceManagedScreenTimeService } from './DeviceManagedScreenTimeService';
 import { LocalTimerScreenTimeService } from './LocalTimerScreenTimeService';
 import { ScreenTimeService } from './ScreenTimeService';
+import { getNativeScreenTime } from './native';
 
 export * from './ScreenTimeService';
-export { LocalTimerScreenTimeService };
+export { DeviceManagedScreenTimeService, LocalTimerScreenTimeService };
+export type { NativeScreenTime } from './native';
 
 let instance: ScreenTimeService | null = null;
 
 /**
  * Single entry point used by the app.
  *
- * To ship real blocking later:
- *   1. add `IosFamilyControlsScreenTimeService` / `AndroidUsageStatsScreenTimeService`;
- *   2. pick it here by `Platform.OS` + authorization;
- *   3. nothing else in the codebase changes.
+ * Real enforcement as soon as the build carries the native module; the honest
+ * in-app timer everywhere else — Expo Go, the web preview, and any build made
+ * before the modules land. No screen ever tests which one it got.
  */
 export function getScreenTimeService(): ScreenTimeService {
-  if (!instance) instance = new LocalTimerScreenTimeService();
+  if (!instance) {
+    const native = getNativeScreenTime();
+    instance = native ? new DeviceManagedScreenTimeService(native) : new LocalTimerScreenTimeService();
+  }
   return instance;
 }
 
