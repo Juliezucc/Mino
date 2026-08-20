@@ -3,6 +3,7 @@ import {
   CLOSED,
   DAILY_EXCHANGES,
   FAREWELL,
+  matchMission,
   normalise,
   phaseOf,
   triage,
@@ -97,9 +98,17 @@ export class LocalCompanionService implements CompanionService {
     }
 
     // « J'ai rangé ma chambre ! » — le moment où Mino doit connaître son monde.
-    const finished = context.missionsWaiting[0] ?? context.missionsTodo[0];
-    if (/j'?ai (fait|fini|rang|termin)/i.test(said) && finished) {
-      return `Trop bien 😮 « ${finished} », c’était justement une de tes missions aujourd’hui ! Tes parents vont pouvoir valider.`;
+    //
+    // Et où il doit surtout ne pas se tromper de mission : nommer la première
+    // de la liste plutôt que celle dont l'enfant parle donne un personnage qui
+    // n'écoute pas, ce qui est pire que de ne rien nommer du tout.
+    if (/j'?ai (fait|fini|rang|termin|reussi)/i.test(said)) {
+      const mission = matchMission(said, [...context.missionsWaiting, ...context.missionsTodo]);
+      if (mission) {
+        return `Trop bien 😮 « ${mission} », c’était justement une de tes missions aujourd’hui ! Tes parents vont pouvoir valider.`;
+      }
+      // Rien qui corresponde : on félicite sans inventer.
+      return `Bravo ! 👏 Ce n’était pas dans tes missions du jour, mais ça compte quand même 💙`;
     }
 
     if (nudge && challenge) {

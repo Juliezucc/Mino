@@ -6,8 +6,8 @@ export class NullSpeechService implements SpeechService {
   readonly available = false;
   readonly onDevice = false;
 
-  async requestPermission() {
-    return false;
+  async requestPermission(): Promise<'granted' | 'denied' | 'blocked'> {
+    return 'blocked';
   }
 
   async start() {

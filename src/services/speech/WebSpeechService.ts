@@ -39,11 +39,28 @@ export class WebSpeechService implements SpeechService {
 
   private recognition: Recognition | null = null;
 
-  async requestPermission(): Promise<boolean> {
-    // Le navigateur demande lui-même au premier `start()`. Rien à faire ici :
-    // solliciter le micro avant que l'enfant n'ait appuyé serait une demande
-    // d'autorisation sans raison visible, et donc un refus probable.
-    return this.available;
+  async requestPermission(): Promise<'granted' | 'denied' | 'blocked'> {
+    if (!this.available) return 'blocked';
+
+    // Dans un cadre intégré — l'aperçu de l'application, par exemple — le micro
+    // est refusé par la politique de la page hôte, et aucun réglage ne peut y
+    // changer quoi que ce soit. Le dire ainsi plutôt que d'envoyer l'enfant
+    // chercher un parent pour rien.
+    const framed = typeof window !== 'undefined' && window.self !== window.top;
+
+    try {
+      const permissions = (navigator as unknown as {
+        permissions?: { query?: (d: { name: string }) => Promise<{ state: string }> };
+      }).permissions;
+      const state = await permissions?.query?.({ name: 'microphone' })?.then((r) => r.state);
+      if (state === 'denied') return framed ? 'blocked' : 'denied';
+      if (state === 'granted') return 'granted';
+    } catch {
+      // L'API des permissions n'existe pas partout : on laisse `start()` faire
+      // la demande, comme avant.
+    }
+
+    return framed ? 'blocked' : 'granted';
   }
 
   async start(handlers: {

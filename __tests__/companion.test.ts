@@ -10,6 +10,7 @@ import {
   exchangesLeft,
   expressionFor,
   greeting,
+  matchMission,
   phaseOf,
   pickChallenge,
   triage,
@@ -305,5 +306,40 @@ describe('l’expression de Mino', () => {
     expect(expressionFor(base)).toBe('happy');
     expect(expressionFor({ ...base, phase: 'nudging' })).toBe('motivated');
     expect(expressionFor({ ...base, thinking: true })).toBe('motivated');
+  });
+});
+
+/**
+ * Reconnaître la mission dont l'enfant parle.
+ *
+ * Un personnage qui répond « Lancer une lessive » à « j'ai rangé ma chambre »
+ * donne l'impression de ne pas écouter — ce qui est pire que de ne rien nommer
+ * du tout.
+ */
+describe('la mission dont il est question', () => {
+  const missions = ['Ranger ma chambre', 'Lancer et étendre une lessive', 'Faire mes devoirs'];
+
+  it('trouve celle dont l’enfant parle, pas la première de la liste', () => {
+    expect(matchMission('j’ai rangé ma chambre', missions)).toBe('Ranger ma chambre');
+    expect(matchMission('j’ai fait la lessive', missions)).toBe('Lancer et étendre une lessive');
+    expect(matchMission('mes devoirs sont finis', missions)).toBe('Faire mes devoirs');
+  });
+
+  it('ne renvoie rien quand rien ne correspond', () => {
+    // Le cas vu en vrai : Léa n'a pas « ranger ma chambre » dans ses missions,
+    // et Mino lui répondait quand même « c'était justement une de tes missions ».
+    expect(matchMission('j’ai rangé ma chambre', ['Lancer et étendre une lessive'])).toBeNull();
+    expect(matchMission('j’ai joué dehors', missions)).toBeNull();
+  });
+
+  it('ignore les mots trop courts pour vouloir dire quelque chose', () => {
+    // « ma », « et », « une » figurent dans tous les intitulés : s'en servir
+    // ferait correspondre n'importe quoi avec n'importe quoi.
+    expect(matchMission('et ma une', missions)).toBeNull();
+  });
+
+  it('se moque des accents et des apostrophes', () => {
+    expect(matchMission("j'ai fait mes devoirs", missions)).toBe('Faire mes devoirs');
+    expect(matchMission('j’ai étendu la lessive', missions)).toBe('Lancer et étendre une lessive');
   });
 });

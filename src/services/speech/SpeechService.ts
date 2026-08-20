@@ -44,8 +44,17 @@ export interface SpeechService {
    */
   readonly onDevice: boolean;
 
-  /** Demande l'autorisation. Appelée au premier appui, jamais au démarrage. */
-  requestPermission(): Promise<boolean>;
+  /**
+   * Demande l'autorisation, au premier appui et jamais au démarrage.
+   *
+   * Trois réponses et non deux, parce qu'elles appellent trois phrases
+   * différentes : « refusé » se règle dans les réglages du téléphone,
+   * « impossible ici » ne se règle nulle part — c'est le cas de l'aperçu web,
+   * où le cadre interdit le micro — et dire à un enfant d'aller demander à ses
+   * parents quelque chose qu'aucun parent ne pourra changer est la pire des
+   * deux erreurs.
+   */
+  requestPermission(): Promise<'granted' | 'denied' | 'blocked'>;
 
   /**
    * Écoute jusqu'à `stop()`, en rappelant le texte à mesure.

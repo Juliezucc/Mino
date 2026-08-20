@@ -36,8 +36,10 @@ export class NativeSpeechService implements SpeechService {
     return new NativeSpeechService(native, onDevice);
   }
 
-  requestPermission(): Promise<boolean> {
-    return this.native.requestPermission().catch(() => false);
+  async requestPermission(): Promise<'granted' | 'denied' | 'blocked'> {
+    if (!this.available) return 'blocked';
+    const granted = await this.native.requestPermission().catch(() => false);
+    return granted ? 'granted' : 'denied';
   }
 
   start(handlers: {

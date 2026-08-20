@@ -427,3 +427,33 @@ export function expressionFor(input: {
   if (phase === 'nudging') return 'motivated';
   return 'happy';
 }
+
+/**
+ * La mission dont l'enfant est en train de parler, s'il y en a une.
+ *
+ * Les mots courts sont écartés : « ma », « une », « et » se retrouvent dans
+ * tous les intitulés et feraient correspondre n'importe quoi avec n'importe
+ * quoi. Restent les mots qui portent le sens — « chambre », « lessive »,
+ * « devoirs » — et c'est exactement ce qu'un enfant emploie pour dire ce qu'il
+ * a fait.
+ *
+ * Renvoie null plutôt qu'une approximation : un personnage qui se trompe de
+ * mission donne l'impression de ne pas écouter, ce qui est pire que de n'en
+ * nommer aucune.
+ */
+export function matchMission(said: string, titles: string[]): string | null {
+  const fold = (text: string) =>
+    normalise(text)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '');
+
+  const words = new Set(fold(said).split(/[^a-z0-9]+/).filter((w) => w.length > 3));
+  if (words.size === 0) return null;
+
+  for (const title of titles) {
+    const inTitle = fold(title).split(/[^a-z0-9]+/).filter((w) => w.length > 3);
+    if (inTitle.some((w) => words.has(w))) return title;
+  }
+  return null;
+}

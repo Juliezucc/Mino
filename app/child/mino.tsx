@@ -150,8 +150,17 @@ export default function CompanionScreen() {
       return;
     }
 
-    const allowed = await speech.requestPermission();
-    if (!allowed) {
+    const permission = await speech.requestPermission();
+
+    // Deux refus, deux phrases. « Impossible ici » ne se règle nulle part —
+    // c'est le cas dans cet aperçu, où le cadre interdit le micro — et envoyer
+    // un enfant chercher un parent pour quelque chose qu'aucun parent ne peut
+    // changer est la plus agaçante des deux erreurs.
+    if (permission === 'blocked') {
+      setMicError('La dictée ne marche pas dans cet aperçu. Sur un vrai téléphone, elle marchera !');
+      return;
+    }
+    if (permission === 'denied') {
       setMicError('Mino n’a pas le droit d’écouter. Un parent peut l’autoriser dans les réglages du téléphone.');
       return;
     }
@@ -320,7 +329,12 @@ export default function CompanionScreen() {
         )}
 
         {micError ? (
-          <Text variant="caption" color={colors.danger} center style={styles.footer}>
+          <Text
+            variant="caption"
+            color={micError.startsWith('La dictée') ? colors.textMuted : colors.danger}
+            center
+            style={styles.footer}
+          >
             {micError}
           </Text>
         ) : null}
