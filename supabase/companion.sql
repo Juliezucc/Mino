@@ -51,10 +51,18 @@ create index if not exists idx_companion_usage_day on companion_usage (day);
 
 alter table companion_usage enable row level security;
 
--- L'enfant peut voir ce qui lui reste ; il ne peut rien y écrire.
+/**
+ * Réservé aux parents.
+ *
+ * L'application de l'enfant n'en a pas besoin : elle demande ce qui lui reste
+ * par `companion_left()`, une fonction SECURITY DEFINER qui ne renvoie qu'un
+ * nombre. Ouvrir la table à toute la famille laisserait un appareil enfant lire
+ * la consommation de son frère — sans utilité, et donc sans raison.
+ */
 create policy companion_usage_read on companion_usage
   for select using (
-    child_id in (select id from children where family_id in (select auth_family_ids()))
+    auth_is_parent()
+    and child_id in (select id from children where family_id in (select auth_family_ids()))
   );
 
 -- ------------------------------------------------------ les conversations
@@ -90,14 +98,22 @@ create index if not exists idx_companion_messages_alert
 alter table companion_messages enable row level security;
 
 /**
- * Les parents lisent, l'enfant lit ce qui le concerne, personne ne modifie.
+ * Les parents lisent. Personne d'autre, et surtout pas les autres enfants.
  *
- * Et l'enfant en est prévenu à l'écran : « tes parents peuvent lire vos
- * conversations ». Laisser croire à un enfant qu'un espace est privé alors
- * qu'il ne l'est pas est un mensonge qu'il découvrira un jour.
+ * Tous les appareils enfants d'une famille partagent une même identité
+ * anonyme : une politique ouverte à la famille laisserait donc l'appareil d'un
+ * enfant lire les conversations de son frère. L'application ne l'affiche nulle
+ * part — l'écran de discussion ne garde aucun historique — mais un client
+ * modifié, lui, le pourrait, et une confidence entre un enfant et son
+ * personnage n'a rien à faire sur la tablette de sa sœur.
+ *
+ * L'enfant, lui, est prévenu que ses parents peuvent lire : c'est écrit sous
+ * sa conversation. Laisser croire à un enfant qu'un espace est privé alors
+ * qu'il ne l'est pas est un mensonge qu'il découvrira un jour ; le lui dire et
+ * n'ouvrir qu'aux parents est la seule position tenable.
  */
 create policy companion_messages_read on companion_messages
-  for select using (family_id in (select auth_family_ids()));
+  for select using (auth_is_parent() and family_id in (select auth_family_ids()));
 
 -- Aucune politique d'écriture : seule la fonction serveur écrit ici.
 

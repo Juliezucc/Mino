@@ -17,6 +17,18 @@ import { CORS, admin, env, fail, json } from '../_shared/mino.ts';
 
 /** Repris de src/domain/companion.ts. Voir ce fichier pour le raisonnement. */
 const DAILY_EXCHANGES = 20;
+
+/**
+ * La marge laissée aux alertes au-delà du budget du jour.
+ *
+ * Une alerte reçoit **toujours** sa réponse, budget épuisé ou non : un enfant
+ * en danger ne doit pas se heurter à un quota. Mais l'écriture, elle, doit
+ * rester bornée, sans quoi un client modifié remplirait la table — et noierait
+ * la vue que le parent est censé lire. Dix de plus : assez pour que les
+ * alertes réelles d'une journée soient toutes conservées, trop peu pour
+ * inonder quoi que ce soit.
+ */
+const ALERT_HEADROOM = 10;
 const MODEL = 'claude-haiku-4-5';
 
 const ALERT_PATTERNS = [
@@ -49,9 +61,9 @@ const CLOSED =
 const normalise = (s: string) => s.replace(/[’‘‛`´]/g, "'").replace(/\s+/g, ' ').trim();
 
 function triage(message: string): 'none' | 'tender' | 'alert' {
-  const clean = normalise(message);
-  if (ALERT_PATTERNS.some((p) => p.test(clean))) return 'alert';
-  if (TENDER_PATTERNS.some((p) => p.test(clean))) return 'tender';
+  const text = normalise(message);
+  if (ALERT_PATTERNS.some((p) => p.test(text))) return 'alert';
+  if (TENDER_PATTERNS.some((p) => p.test(text))) return 'tender';
   return 'none';
 }
 
@@ -113,6 +125,38 @@ const contextPrompt = (c: Context) =>
     `Phase : ${c.phase}.`,
   ].join('\n');
 
+/**
+ * Rend le contexte inoffensif.
+ *
+ * Il arrive de l'appareil de l'enfant, donc d'un endroit modifiable, et il est
+ * recopié tel quel dans la consigne envoyée au modèle. Sans ces bornes, un
+ * client trafiqué y glisserait ses propres instructions — la forme d'attaque
+ * la plus banale contre un produit qui met du texte d'utilisateur dans un
+ * prompt.
+ *
+ * Le prénom et l'âge, eux, ne sont pas nettoyés : ils sont **relus en base**,
+ * parce qu'il n'y a aucune raison de les croire sur parole.
+ */
+const clean = (value: unknown, max = 60): string =>
+  String(value ?? '').replace(/[\r\n]+/g, ' ').slice(0, max).trim();
+
+const cleanList = (value: unknown, max = 6): string[] =>
+  (Array.isArray(value) ? value : []).slice(0, max).map((v) => clean(v, 80)).filter(Boolean);
+
+function safeContext(raw: Context, child: { firstName: string; age: number }): Context {
+  return {
+    firstName: child.firstName,
+    age: child.age,
+    unit: raw?.unit === 'minutes' ? 'minutes' : 'minos',
+    balance: Number.isFinite(raw?.balance) ? Math.max(0, Math.min(9999, Math.round(raw.balance))) : 0,
+    missionsDone: cleanList(raw?.missionsDone),
+    missionsWaiting: cleanList(raw?.missionsWaiting),
+    missionsTodo: cleanList(raw?.missionsTodo),
+    challenges: cleanList(raw?.challenges, 3),
+    phase: ['open', 'nudging', 'closing', 'done'].includes(String(raw?.phase)) ? raw.phase : 'open',
+  };
+}
+
 /** Qui appelle, et pour quel enfant. La famille vient du jeton, jamais du corps. */
 async function childOfCaller(request: Request, childId: string) {
   const header = request.headers.get('Authorization');
@@ -131,12 +175,20 @@ async function childOfCaller(request: Request, childId: string) {
   // appartient à sa famille. Aucune comparaison d'identifiant côté code.
   const { data } = await anon
     .from('children')
-    .select('id, family_id, companion_enabled')
+    .select('id, family_id, companion_enabled, first_name, age')
     .eq('id', childId)
     .maybeSingle();
 
   if (!data || data.companion_enabled === false) return null;
-  return { childId: data.id as string, familyId: data.family_id as string };
+  return {
+    childId: data.id as string,
+    familyId: data.family_id as string,
+    // Relus ici plutôt que repris du corps de la requête : le prénom part dans
+    // la consigne du modèle, et un prénom venu du client est un prénom qu'on
+    // peut remplacer par une instruction.
+    firstName: String(data.first_name ?? '').slice(0, 40),
+    age: Number(data.age) || 8,
+  };
 }
 
 async function remember(input: {
@@ -169,26 +221,33 @@ Deno.serve(async (request) => {
   const message = body.message.slice(0, 300);
   const safety = triage(message);
 
-  await remember({ ...child, role: 'child', text: message, safety });
+  // Rien n'est écrit avant d'avoir été décompté.
+  //
+  // L'ordre inverse — écrire puis compter — laissait un client modifié remplir
+  // la table sans limite, et noyer au passage la vue que le parent est censé
+  // pouvoir lire. Le quota borne donc l'écriture, et pas seulement l'appel au
+  // modèle, qui n'est pas la ressource la plus facile à épuiser.
+  const { data: allowed } = await admin().rpc('companion_consume', {
+    p_child_id: child.childId,
+    // Une alerte dispose d'une marge au-delà du budget : elle reçoit toujours
+    // sa réponse, mais elle reste bornée en écriture.
+    p_budget: safety === 'alert' ? DAILY_EXCHANGES + ALERT_HEADROOM : DAILY_EXCHANGES,
+  });
 
-  // Ce qui touche à la sécurité de l'enfant n'atteint jamais le modèle et ne
-  // consomme aucun échange : la réponse est écrite, identique pour tous, et
-  // elle oriente vers des humains dont c'est le métier.
+  const record = allowed === true;
+  if (record) await remember({ ...child, role: 'child', text: message, safety });
+
+  // Ce qui touche à la sécurité de l'enfant n'atteint jamais le modèle : la
+  // réponse est écrite, identique pour tous, et elle oriente vers des humains
+  // dont c'est le métier. Elle est donnée **quoi qu'il arrive** — un enfant en
+  // danger ne doit pas se heurter à un quota.
   if (safety === 'alert') {
-    await remember({ ...child, role: 'mino', text: ALERT_REPLY, safety });
+    if (record) await remember({ ...child, role: 'mino', text: ALERT_REPLY, safety });
     const { data: left } = await admin().rpc('companion_left', { p_child_id: child.childId });
     return json({ text: ALERT_REPLY, safety, left: left ?? 0, closed: false });
   }
 
-  // Consommé avant l'appel, et de façon atomique : deux messages simultanés ne
-  // doivent pas passer pour un seul crédit.
-  const { data: allowed } = await admin().rpc('companion_consume', {
-    p_child_id: child.childId,
-    p_budget: DAILY_EXCHANGES,
-  });
-
-  if (allowed !== true) {
-    await remember({ ...child, role: 'mino', text: CLOSED, safety });
+  if (!record) {
     return json({ text: CLOSED, safety, left: 0, closed: true });
   }
 
@@ -219,7 +278,7 @@ Deno.serve(async (request) => {
           // Le point de cache : la consigne est identique à chaque appel, donc
           // facturée à 10 % à partir du deuxième message.
           { type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } },
-          { type: 'text', text: contextPrompt(body.context!) },
+          { type: 'text', text: contextPrompt(safeContext(body.context!, child)) },
         ],
         messages: [
           ...(body.history ?? []).slice(-6).map((turn) => ({

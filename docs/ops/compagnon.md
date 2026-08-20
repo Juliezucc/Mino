@@ -401,3 +401,77 @@ d'appareil. **Le point à valider en premier sur un vrai téléphone est
 `isOnDeviceAvailable('fr-FR')` :** si la réponse est non sur les appareils
 courants, la dictée intégrée n'existera pas et il faudra assumer le micro du
 clavier comme seule voie.
+
+---
+
+## Revue de sécurité de la surface ajoutée
+
+Le compagnon a ouvert un chemin qui n'existait pas : **une fonction serveur que
+l'appareil d'un enfant peut appeler**. Relecture de ce chemin, et de ce qu'il
+touche. Trois défauts trouvés et corrigés, deux limites connues laissées en
+l'état et documentées.
+
+### Corrigé — l'écriture précédait le décompte
+
+Le message de l'enfant était enregistré **avant** toute vérification de quota.
+Le budget bornait donc l'appel au modèle, mais pas l'écriture : un client
+modifié pouvait remplir `companion_messages` sans limite, et noyer au passage
+la vue que le parent est censé pouvoir lire. Les alertes, elles, ne consommaient
+rien du tout — donc rien ne les bornait.
+
+Le décompte passe désormais en premier, et une alerte dispose d'une marge de dix
+au-delà du budget : elle reçoit **toujours** sa réponse, quota épuisé ou non —
+un enfant en danger ne doit pas se heurter à un compteur — mais l'écriture, elle,
+reste bornée.
+
+### Corrigé — le contexte venait du client et partait dans la consigne
+
+Prénom, âge, missions, solde : tout arrivait de l'appareil et était recopié tel
+quel dans le prompt. Un client trafiqué y aurait glissé ses propres
+instructions — l'attaque la plus banale contre un produit qui met du texte
+d'utilisateur dans une consigne, et qui ici viserait un personnage pour enfants.
+
+**Le prénom et l'âge sont maintenant relus en base** ; le reste est borné en
+longueur et en nombre, et débarrassé des retours à la ligne.
+
+### Corrigé — un enfant pouvait lire les conversations de son frère
+
+Tous les appareils enfants d'une famille partagent une même identité anonyme.
+La politique de lecture, ouverte à la famille, laissait donc la tablette d'une
+sœur lire les confidences de son frère. L'application ne l'affiche nulle part
+— l'écran de discussion ne garde aucun historique — mais un client modifié le
+pouvait.
+
+`companion_messages` et `companion_usage` sont désormais **réservés aux
+parents** (`auth_is_parent()`). L'application de l'enfant n'en avait pas besoin :
+elle ne demande qu'un nombre, par une fonction qui ne renvoie qu'un nombre.
+
+### Limite connue — un appareil enfant peut agir pour n'importe quel enfant
+
+Puisqu'il n'existe pas d'identité par enfant, l'appareil de Noah peut écrire
+une demande au nom d'Elliott, et donc consommer son budget de conversation. Ce
+n'est pas nouveau : c'est déjà vrai pour « j'ai terminé » sur une mission,
+depuis le premier jour.
+
+Le corriger demanderait une identité par enfant côté base — un changement qui
+touche l'appairage, les politiques et le parcours d'installation. **À faire, mais
+pas dans le même geste que le reste**, et à mettre en regard du fait qu'une
+famille est précisément un endroit où les appareils se prêtent.
+
+### Limite connue — le verrou d'appareil vit sur l'appareil
+
+Un enfant qui effacerait les données de l'application retrouverait un appareil
+partagé. Sur iOS cela suppose de supprimer l'application, ce qui efface aussi
+l'appairage à la famille et se remarque. Le verrou décourage ; il ne scelle pas.
+
+### Vérifié par ailleurs
+
+- **La clé d'API** n'est nulle part dans l'application : elle ne vit que dans la
+  fonction serveur.
+- **`store-purchase`** exige un parent — `familyOfCaller` lit la table
+  `parents` — et refuse un achat dont le jeton de compte désigne une autre
+  famille.
+- **Le tri de sécurité** est fait sur l'appareil *et* sur le serveur : le
+  premier évite qu'une phrase grave parte sur le réseau, le second reste la
+  garantie, puisqu'un client se modifie.
+- **Le microphone** ne transmet aucun son, et aucun son n'est conservé.
