@@ -15,7 +15,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "fr.mino.app"
+      "bundleIdentifier": "fr.mino.app",
+      "infoPlist": {
+        "NSUserTrackingUsageDescription": "Mino ne suit personne : aucune publicité, aucun traceur."
+      }
     },
     "android": {
       "package": "fr.mino.app",
@@ -32,10 +35,21 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#4EB6FF",
+          "defaultChannel": "mino"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false
-    }
+    },
+    "description": "Grandir, une mission à la fois. Les enfants gagnent leur temps d’écran en accomplissant de petites responsabilités du quotidien.",
+    "primaryColor": "#4EB6FF",
+    "backgroundColor": "#F2F6FF"
   }
 }

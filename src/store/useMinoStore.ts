@@ -8,7 +8,9 @@ import * as actions from '@/domain/actions';
 import { Plan, Referral, Subscription } from '@/domain/billing';
 import { DeviceKind } from '@/domain/devices';
 import { AvatarKey, FamilyData, ID, RepeatRule } from '@/domain/types';
+import * as notify from '@/domain/notifications';
 import { AuthResult, getAuthService } from '@/services/auth';
+import { getNotificationService } from '@/services/notifications';
 import { getBillingService } from '@/services/billing';
 
 /**
@@ -40,6 +42,9 @@ interface MinoState {
    */
   subscription: Subscription | null;
   referrals: Referral[];
+
+  notifications: notify.NotificationPreferences;
+  setNotificationPreferences: (patch: Partial<notify.NotificationPreferences>) => void;
 
   bootstrap: () => Promise<void>;
   startDemo: () => Promise<void>;
@@ -117,6 +122,22 @@ export const useMinoStore = create<MinoState>((set, get) => {
     return outcome.result;
   }
 
+  /**
+   * The one place a notification leaves from.
+   *
+   * Preferences and quiet hours are checked here, once, rather than at each
+   * call site — a rule enforced in seven places is a rule that holds in six.
+   * And it never throws: a notification that fails to schedule must not take
+   * down the action that earned it.
+   */
+  async function announce(payload: notify.NotificationPayload | null) {
+    if (!payload) return;
+    if (!notify.shouldDeliver(payload, get().notifications)) return;
+    await getNotificationService()
+      .schedule(payload)
+      .catch(() => null);
+  }
+
   return {
     status: 'loading',
     repository: createRepository(),
@@ -126,6 +147,11 @@ export const useMinoStore = create<MinoState>((set, get) => {
     lastError: null,
     subscription: null,
     referrals: [],
+    notifications: notify.DEFAULT_PREFERENCES,
+
+    setNotificationPreferences(patch) {
+      set({ notifications: { ...get().notifications, ...patch } });
+    },
 
     async bootstrap() {
       const data = await get().repository.load();
@@ -278,6 +304,11 @@ export const useMinoStore = create<MinoState>((set, get) => {
           upsert: { completions: [out.completion] },
         };
       });
+
+      const data = get().data;
+      const child = notify.childOf(data, childId);
+      const mission = data?.missions.find((m) => m.id === missionId);
+      if (child && mission) await announce(notify.missionCompleted(child, mission));
       return id!;
     },
 
@@ -290,6 +321,13 @@ export const useMinoStore = create<MinoState>((set, get) => {
           upsert: { completions: [out.completion], transactions: [out.transaction] },
         };
       });
+
+      const data = get().data;
+      const completion = data?.completions.find((c) => c.id === completionId);
+      const child = notify.childOf(data, completion?.childId);
+      if (child && completion) {
+        await announce(notify.completionApproved(child, completion.minutesAwarded));
+      }
     },
 
     async rejectCompletion(completionId) {
@@ -298,6 +336,12 @@ export const useMinoStore = create<MinoState>((set, get) => {
         const out = actions.rejectCompletion(data, { completionId, parentId });
         return { data: out.data, upsert: { completions: [out.completion] } };
       });
+
+      const data = get().data;
+      const completion = data?.completions.find((c) => c.id === completionId);
+      const child = notify.childOf(data, completion?.childId);
+      const mission = data?.missions.find((m) => m.id === completion?.missionId);
+      if (child && mission) await announce(notify.completionRejected(child, mission));
     },
 
     async markCelebrated(completionId) {
@@ -329,6 +373,17 @@ export const useMinoStore = create<MinoState>((set, get) => {
         const out = actions.startSession(data, { childId, minutes, deviceId });
         return { data: out.data, result: out.session.id, upsert: { sessions: [out.session] } };
       });
+
+      const data = get().data;
+      const session = data?.sessions.find((s) => s.id === id);
+      const child = notify.childOf(data, childId);
+      if (!child || !session) return id!;
+
+      if (session.status === 'requested') {
+        await announce(notify.sessionRequested(child, minutes, data?.devices, deviceId));
+      } else {
+        await announce(notify.sessionEndingSoon(child, session.endsAt));
+      }
       return id!;
     },
 
@@ -337,6 +392,11 @@ export const useMinoStore = create<MinoState>((set, get) => {
         const out = actions.approveSession(data, { sessionId });
         return { data: out.data, upsert: { sessions: [out.session] } };
       });
+
+      const data = get().data;
+      const session = data?.sessions.find((s) => s.id === sessionId);
+      const child = notify.childOf(data, session?.childId);
+      if (child && session) await announce(notify.sessionEndingSoon(child, session.endsAt));
     },
 
     async refuseSession(sessionId) {
@@ -347,6 +407,11 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async endSession(sessionId, status) {
+      // The session is over, so the five-minute warning must not still be in
+      // the queue — a child who stopped early does not get buzzed about it.
+      await getNotificationService()
+        .cancelKind('session.endingSoon')
+        .catch(() => undefined);
       await commit('session.ended', (data) => {
         const out = actions.endSession(data, { sessionId, status });
         return {
@@ -371,6 +436,9 @@ export const useMinoStore = create<MinoState>((set, get) => {
         const next = actions.grantBonus(data, { childId, minutes, reason });
         return { data: next, upsert: { transactions: next.transactions.slice(-1) } };
       });
+
+      const child = notify.childOf(get().data, childId);
+      if (child) await announce(notify.bonusGranted(child, minutes, reason));
     },
 
     /* ------------------------------------------------------------ billing */

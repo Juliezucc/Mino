@@ -2,8 +2,10 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
-import { Button, Card, Logo, Screen, SectionHeader, Text } from '@/components/ui';
+import { Button, Card, Chip, Logo, Screen, SectionHeader, Text } from '@/components/ui';
 import { accessOf } from '@/domain/billing';
+import { QUIET_FROM_HOUR, QUIET_UNTIL_HOUR } from '@/domain/notifications';
+import { getNotificationService } from '@/services/notifications';
 import { getScreenTimeService } from '@/services/screenTime';
 import { useFamily, useParent } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -18,6 +20,9 @@ export default function ParentSettings() {
   const resetAll = useMinoStore((s) => s.resetAll);
   const startDemo = useMinoStore((s) => s.startDemo);
   const subscription = useMinoStore((s) => s.subscription);
+  const notifications = useMinoStore((s) => s.notifications);
+  const setNotifications = useMinoStore((s) => s.setNotificationPreferences);
+  const notifier = getNotificationService();
 
   const capability = getScreenTimeService().capability;
   const access = accessOf(subscription);
@@ -105,6 +110,51 @@ export default function ParentSettings() {
             onPress={() => router.push('/parent/parrainage')}
           />
         </View>
+      </Card>
+
+      <Card style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
+          NOTIFICATIONS
+        </Text>
+        {notifier.available ? (
+          <>
+            <View style={styles.row}>
+              <Chip
+                label="Mes alertes"
+                icon={notifications.parents ? '🔔' : '🔕'}
+                selected={notifications.parents}
+                onPress={() => setNotifications({ parents: !notifications.parents })}
+              />
+              <Chip
+                label="Alertes enfant"
+                icon={notifications.child ? '🔔' : '🔕'}
+                selected={notifications.child}
+                onPress={() => setNotifications({ child: !notifications.child })}
+              />
+              <Chip
+                label="Heures calmes"
+                icon="🌙"
+                selected={notifications.quietHours}
+                onPress={() => setNotifications({ quietHours: !notifications.quietHours })}
+              />
+            </View>
+            <Text variant="caption" color={colors.textSubtle}>
+              {notifications.quietHours
+                ? `Rien n’est envoyé entre ${QUIET_FROM_HOUR}h et ${QUIET_UNTIL_HOUR}h — sauf l’alerte « plus que 5 minutes », qui évite qu’un écran s’arrête sans prévenir.`
+                : 'Les notifications peuvent arriver à toute heure, y compris le soir sur l’appareil de votre enfant.'}
+            </Text>
+            <Button
+              label="Autoriser les notifications"
+              variant="secondary"
+              onPress={() => notifier.requestPermission().catch(() => undefined)}
+            />
+          </>
+        ) : (
+          <Text variant="body" color={colors.textMuted}>
+            Les notifications ne fonctionnent pas dans cet aperçu. Elles arriveront sur l’application
+            installée depuis l’App Store ou le Play Store.
+          </Text>
+        )}
       </Card>
 
       <Card style={styles.block}>
@@ -203,5 +253,6 @@ const styles = StyleSheet.create({
   },
   actions: { gap: spacing.md },
   links: { gap: spacing.sm },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   footer: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing.lg },
 });

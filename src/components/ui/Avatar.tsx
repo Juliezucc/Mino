@@ -9,36 +9,42 @@ import { Text } from './Text';
 import { avatarImage } from './avatarAssets';
 
 /**
- * Six little creatures from Mino's own world — a child picks a picture, never
- * types a name.
+ * Six animals — a child picks a picture, never types a name.
  *
- * They are keyed and labelled by colour on purpose: a five-year-old who cannot
- * read yet finds their profile as "the pink one", instantly, and colour is the
- * one attribute that survives being shown at 26px in a list.
+ * Animals rather than little creatures, and that is the whole point. We tried a
+ * set of round, bright-eyed monsters and they were charming, but they were also
+ * Mino's siblings: at 40px, in a row, a child could not tell which one was the
+ * guide and which one was them. Mino is the only character in this world.
  *
- * The emoji are a fallback for as long as the artwork is missing, and a safety
- * net if a file ever fails to load.
+ * Each animal keeps a distinct tint, so a five-year-old who cannot read finds
+ * their profile by colour and shape at once — the two things that survive being
+ * drawn at 26px in a list.
  */
 export const AVATARS: { key: AvatarKey; emoji: string; label: string; color: string }[] = [
-  { key: 'blue', emoji: '🐲', label: 'Bleu', color: '#DCEBFF' },
-  { key: 'green', emoji: '🌱', label: 'Vert', color: '#E2F6DA' },
-  { key: 'pink', emoji: '🐙', label: 'Rose', color: '#FFD9E6' },
-  { key: 'yellow', emoji: '👁️', label: 'Jaune', color: '#FFF0CE' },
-  { key: 'purple', emoji: '👾', label: 'Violet', color: '#EAE0FF' },
-  { key: 'teal', emoji: '🦕', label: 'Turquoise', color: '#D6F3F1' },
+  { key: 'fox', emoji: '🦊', label: 'Renard', color: '#FFE2CE' },
+  { key: 'panda', emoji: '🐼', label: 'Panda', color: '#E7ECFB' },
+  { key: 'rabbit', emoji: '🐰', label: 'Lapin', color: '#FFD9E6' },
+  { key: 'koala', emoji: '🐨', label: 'Koala', color: '#D6F3F1' },
+  { key: 'lion', emoji: '🦁', label: 'Lion', color: '#FFF0CE' },
+  { key: 'frog', emoji: '🐸', label: 'Grenouille', color: '#E2F6DA' },
 ];
 
 /**
- * Profiles created before the creatures replaced the animals. Kept so an
- * existing family does not open the app to a blank avatar.
+ * Every key this app has ever written, mapped forward. Two renames have gone
+ * through here; an existing family must never open Mino to a blank avatar.
  */
 const LEGACY: Record<string, AvatarKey> = {
-  fox: 'yellow',
-  cat: 'pink',
-  panda: 'teal',
-  rabbit: 'purple',
-  bear: 'blue',
-  owl: 'green',
+  // The colour keys, from the monster set.
+  blue: 'fox',
+  green: 'frog',
+  pink: 'rabbit',
+  yellow: 'lion',
+  purple: 'panda',
+  teal: 'koala',
+  // The first animal set, before the colours.
+  cat: 'rabbit',
+  bear: 'koala',
+  owl: 'lion',
 };
 
 export function avatarFor(key: AvatarKey) {

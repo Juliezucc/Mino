@@ -44,10 +44,14 @@ export interface Parent {
 }
 
 /**
- * Which creature a child picked. Keyed by colour: it is how a child who cannot
- * read yet recognises their own profile, and it survives being drawn at 26px.
+ * Which animal a child picked.
+ *
+ * Animals, deliberately — not little creatures. Mino is the only character in
+ * this world, and an avatar that is also a round body with big shiny eyes makes
+ * a child ask which one is them. Keeping the avatars to recognisable animals
+ * leaves the mascot unmistakable.
  */
-export type AvatarKey = 'blue' | 'green' | 'pink' | 'yellow' | 'purple' | 'teal';
+export type AvatarKey = 'fox' | 'panda' | 'rabbit' | 'koala' | 'lion' | 'frog';
 
 export interface Child {
   id: ID;

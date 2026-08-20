@@ -23,7 +23,7 @@ import ffmpeg from 'ffmpeg-static';
 
 const SHEET = process.argv[2] ?? 'assets/avatars/source/monsters.png';
 const OUT = 'assets/avatars';
-const NAMES = ['blue', 'green', 'pink', 'yellow', 'purple', 'teal'];
+const NAMES = ['fox', 'panda', 'rabbit', 'koala', 'lion', 'frog'];
 const SIZE = 512;
 /** Share of the square the character fills, leaving air inside the circle. */
 const FILL = 0.88;

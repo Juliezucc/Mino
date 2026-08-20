@@ -1,23 +1,24 @@
 import { AvatarKey } from '@/domain/types';
 
 /**
- * The rendered avatar artwork.
+ * The rendered avatar artwork, when there is any.
  *
- * Same arrangement as the mascot: one file listing the images, so replacing the
- * art is a matter of dropping new PNGs in `assets/avatars/` and nothing else.
- * Until they exist, `Avatar` falls back to the emoji, so the app never breaks
- * waiting on a drawing.
+ * Empty on purpose today: the app ships emoji animals, because the one set of
+ * illustrated avatars we tried read as six little Minos and made the mascot
+ * ambiguous. Any future set has to stay clearly *not* the mascot — animals,
+ * flat, no round body, no big shiny eyes.
  *
- * Produce them with:
- *   node scripts/slice-avatars.mjs assets/avatars/source/monsters.png
+ * The seam is kept so that swapping art in is dropping six PNGs in
+ * `assets/avatars/` and uncommenting below — `scripts/slice-avatars.mjs` cuts
+ * them out of a single sheet.
  */
 export const AVATAR_IMAGES: Partial<Record<AvatarKey, number>> = {
-  // blue: require('../../../assets/avatars/blue.png'),
-  // green: require('../../../assets/avatars/green.png'),
-  // pink: require('../../../assets/avatars/pink.png'),
-  // yellow: require('../../../assets/avatars/yellow.png'),
-  // purple: require('../../../assets/avatars/purple.png'),
-  // teal: require('../../../assets/avatars/teal.png'),
+  // fox: require('../../../assets/avatars/fox.png'),
+  // panda: require('../../../assets/avatars/panda.png'),
+  // rabbit: require('../../../assets/avatars/rabbit.png'),
+  // koala: require('../../../assets/avatars/koala.png'),
+  // lion: require('../../../assets/avatars/lion.png'),
+  // frog: require('../../../assets/avatars/frog.png'),
 };
 
 export function avatarImage(key: AvatarKey): number | undefined {

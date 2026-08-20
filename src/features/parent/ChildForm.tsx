@@ -28,7 +28,7 @@ const AGES = Array.from({ length: MAX_AGE - MIN_AGE + 1 }, (_, i) => MIN_AGE + i
 export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
   const [firstName, setFirstName] = useState(initial?.firstName ?? '');
   const [age, setAge] = useState(initial?.age ?? 8);
-  const [avatarKey, setAvatarKey] = useState<AvatarKey>(initial?.avatarKey ?? 'blue');
+  const [avatarKey, setAvatarKey] = useState<AvatarKey>(initial?.avatarKey ?? 'fox');
   const [requireApproval, setRequireApproval] = useState(initial?.requireApproval ?? false);
   const [error, setError] = useState<string | undefined>();
 
