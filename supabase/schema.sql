@@ -110,23 +110,6 @@ create table if not exists missions (
 -- Existing installs.
 alter table missions add column if not exists auto_approve boolean not null default false;
 
-/**
- * Une mission qui se compte d'elle-même ne se compte qu'une fois par jour.
- *
- * Sans cela, un client modifié rejouerait la même déclaration en boucle : la
- * règle est tenue côté application, mais une règle qui n'existe que dans le
- * client n'est pas une règle. L'index la grave dans la base.
- *
- * Réserve assumée : la journée est comptée en UTC. Une mission déclarée deux
- * fois dans l'heure qui suit minuit heure de Paris passerait donc deux fois.
- * C'est une fenêtre d'une heure, la nuit, sur une fonctionnalité qu'un parent
- * a explicitement ouverte — le remède (stocker le fuseau de la famille et
- * l'appliquer ici) coûte plus cher que le mal.
- */
-create unique index if not exists uniq_completion_approved_per_day
-  on mission_completions (mission_id, child_id, (completed_at at time zone 'UTC')::date)
-  where status = 'approved';
-
 create table if not exists mission_assignments (
   id         text primary key,
   mission_id text not null references missions (id) on delete cascade,
@@ -151,6 +134,39 @@ create table if not exists mission_completions (
   celebrated_at     timestamptz
 );
 
+/**
+ * Une mission qui se compte d'elle-même ne se compte qu'une fois par jour.
+ *
+ * Sans cela, un client modifié rejouerait la même déclaration en boucle : la
+ * règle est tenue côté application, mais une règle qui n'existe que dans le
+ * client n'est pas une règle. L'index la grave dans la base.
+ *
+ * Réserve assumée : la journée est comptée en UTC. Une mission déclarée deux
+ * fois dans l'heure qui suit minuit heure de Paris passerait donc deux fois.
+ * C'est une fenêtre d'une heure, la nuit, sur une fonctionnalité qu'un parent
+ * a explicitement ouverte — le remède (stocker le fuseau de la famille et
+ * l'appliquer ici) coûte plus cher que le mal.
+ */
+create unique index if not exists uniq_completion_approved_per_day
+  on mission_completions (mission_id, child_id, ((completed_at at time zone 'UTC')::date))
+  where status = 'approved';
+
+/**
+ * Et une seule demande en attente à la fois, pour la même mission.
+ *
+ * Un appareil a le droit d'écrire des lignes « en attente » : sans cette
+ * contrainte, il peut en écrire mille, et c'est l'écran du parent qu'il noie.
+ * Aucune minute n'est en jeu, mais une file d'attente inutilisable revient à
+ * supprimer la confirmation.
+ *
+ * Une mission refusée n'est plus « pending » : l'enfant peut donc la refaire
+ * et la redéclarer le jour même, ce qui est exactement l'intention de
+ * « À refaire ».
+ */
+create unique index if not exists uniq_completion_pending_per_day
+  on mission_completions (mission_id, child_id, ((completed_at at time zone 'UTC')::date))
+  where status = 'pending';
+
 -- Append-only ledger. The balance of a child is the SUM of `delta` here and
 -- is never stored as a mutable counter.
 create table if not exists screen_time_transactions (
@@ -163,6 +179,22 @@ create table if not exists screen_time_transactions (
   ref_id     text,
   created_at timestamptz not null default now()
 );
+
+/**
+ * Une complétion ne paie qu'une fois.
+ *
+ * C'est la contrainte qui manquait, et sans elle tout le reste ne tenait pas :
+ * les politiques vérifient qu'une ligne de récompense pointe bien vers une
+ * complétion approuvée du bon montant, mais rien n'empêchait d'écrire cent
+ * fois la même. Cent lignes valides, cent fois les minutes — le solde étant
+ * la somme du registre.
+ *
+ * Vaut pour tout le monde, parent compris : deux récompenses pour une seule
+ * mission accomplie est une erreur, quelle que soit la main qui l'écrit.
+ */
+create unique index if not exists uniq_reward_per_completion
+  on screen_time_transactions (ref_id)
+  where kind = 'mission_reward' and ref_id is not null;
 
 create table if not exists screen_time_sessions (
   id                text primary key,
@@ -514,10 +546,24 @@ create policy mission_completions_insert on mission_completions
       -- permission is read from the mission row, which no device can write, and
       -- the amount must match it exactly: a modified client may claim a mission,
       -- never invent the reward, and never claim one it was not granted.
+      --
+      -- The join on `mission_assignments` is what makes the last clause true.
+      -- Without it, "granted" meant "granted to anyone in the family": a child
+      -- could count a sibling's mission as their own, and the amount would
+      -- match, and every other check would pass.
+      --
+      -- `reviewed_by` must stay empty: nobody reviewed this. Letting a device
+      -- write a parent's id there would forge, in the family's own history,
+      -- the one fact this whole feature is about — who vouched for it.
       or (
         status = 'approved'
+        and reviewed_by is null
         and exists (
           select 1 from missions m
+          join mission_assignments a
+            on a.mission_id = m.id
+           and a.child_id = mission_completions.child_id
+           and a.active
           where m.id = mission_completions.mission_id
             and m.family_id = mission_completions.family_id
             and m.auto_approve
@@ -553,12 +599,18 @@ create policy screen_time_transactions_insert on screen_time_transactions
       -- points at must exist, be approved, belong to this child, and the amount
       -- must equal the mission's own reward. Without the join on `ref_id` a
       -- device could write any number it liked and call it a mission.
+      --
+      -- `uniq_reward_per_completion` complète cette politique et lui est
+      -- indispensable : elle dit qu'une ligne est juste, l'index dit qu'il n'y
+      -- en a qu'une.
       or (
         kind = 'mission_reward'
         and exists (
           select 1
           from mission_completions c
           join missions m on m.id = c.mission_id
+          join mission_assignments a
+            on a.mission_id = m.id and a.child_id = c.child_id and a.active
           where c.id = screen_time_transactions.ref_id
             and c.child_id = screen_time_transactions.child_id
             and c.family_id = screen_time_transactions.family_id

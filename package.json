@@ -8,6 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "jest",
+    "test:sql": "node scripts/test-sql.mjs",
     "typecheck": "tsc --noEmit",
     "faq": "node --experimental-strip-types --no-warnings scripts/export-faq.mjs",
     "licences": "node scripts/licences.mjs",

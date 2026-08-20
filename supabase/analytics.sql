@@ -292,13 +292,23 @@ with mois as (
   select date_trunc('month', created_at)::date as mois, count(*) as comptes_crees
   from families group by 1
 ),
+-- On compte les familles, pas les événements : c'est le PREMIER essai de
+-- chaque famille qui la range dans un mois, d'où le regroupement en deux
+-- temps. Le faire en un seul — `group by date_trunc(min(...))` — est refusé
+-- par PostgreSQL, et à raison : ça n'a pas de sens.
 essais as (
-  select date_trunc('month', min(occurred_at))::date as mois, count(distinct family_id) as essais
-  from billing_events where kind = 'essai_commence' group by 1
+  select mois, count(*) as essais
+  from (
+    select family_id, date_trunc('month', min(occurred_at))::date as mois
+    from billing_events where kind = 'essai_commence' group by family_id
+  ) premiers group by mois
 ),
 payants as (
-  select date_trunc('month', min(occurred_at))::date as mois, count(distinct family_id) as payants
-  from billing_events where kind = 'abonnement_commence' group by 1
+  select mois, count(*) as payants
+  from (
+    select family_id, date_trunc('month', min(occurred_at))::date as mois
+    from billing_events where kind = 'abonnement_commence' group by family_id
+  ) premiers group by mois
 ),
 installs as (
   select month as mois, sum(installs) as installs from marketing_spend group by 1

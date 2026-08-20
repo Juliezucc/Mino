@@ -116,6 +116,7 @@ supabase/
   analytics.sql       journal facturation et vues      ← puis celui-ci
   store.sql           achats App Store et Play Store   ← puis celui-ci
   companion.sql       budget et conversations de Mino  ← et enfin celui-ci
+  test/               un PostgreSQL jetable qui attaque la RLS
   functions/          fonctions serveur (Deno) : billing, stripe-webhook,
                       store-purchase, store-notifications
 docs/                 ce dossier
@@ -125,7 +126,7 @@ __tests__/            189 tests
 
 ---
 
-## Le chemin d'une validation, de bout en bout
+## Le chemin d'une confirmation, de bout en bout
 
 C'est le parcours prioritaire du produit, et il traverse toutes les couches :
 
@@ -150,6 +151,20 @@ La tablette de l'enfant reçoit le signal
 
 Couvert de bout en bout par `__tests__/journey.test.ts`.
 
+Une mission que le parent a ouverte (`auto_approve`) saute l'attente : la
+complétion est écrite directement approuvée, avec la transaction, en une seule
+opération. Ce raccourci est **le seul endroit où un appareil d'enfant écrit des
+minutes**, et il tient à quatre garde-fous côté base, tous vérifiés par
+`npm run test:sql` :
+
+1. la mission doit porter `auto_approve` — colonne qu'aucun appareil ne peut
+   écrire ;
+2. le montant doit être exactement celui de la mission ;
+3. une assignation active doit relier cette mission à cet enfant — sans quoi un
+   enfant se compterait la mission de son frère ;
+4. une complétion ne paie qu'une fois, et une mission ne se compte qu'une fois
+   par jour (`uniq_reward_per_completion`, `uniq_completion_approved_per_day`).
+
 ---
 
 ## Ce qui n'est pas fait, et qu'il faut savoir avant de commencer
@@ -158,8 +173,11 @@ Couvert de bout en bout par `__tests__/journey.test.ts`.
   appelle un contrat (`services/screenTime/native.ts`) qui n'a pas
   d'implémentation Swift ni Kotlin. Il faut Xcode, un appareil réel, et
   l'habilitation Apple. Voir `docs/apple-family-controls.md`.
-- **`scale.sql`, `support.sql`, `analytics.sql` et `store.sql` n'ont jamais été
-  exécutés** contre une vraie base. Ils sont écrits, pas éprouvés.
+- **Les fichiers SQL s'appliquent, mais sur un PostgreSQL nu.** `npm run
+  test:sql` les joue tous les six dans l'ordre, sur une base jetable, et
+  attaque la RLS depuis une session d'appareil. Ce qui reste hors de portée :
+  le vrai `realtime` de Supabase — le canal privé n'est donc pas éprouvé — et
+  les déclencheurs branchés sur de vrais webhooks de facturation.
 - **L'achat natif n'a pas de module natif branché.** `services/billing/native.ts`
   décrit le contrat ; il reste à choisir la bibliothèque et à faire un achat de
   test en bac à sable. Voir `docs/ops/paiements.md`.
@@ -173,9 +191,18 @@ Couvert de bout en bout par `__tests__/journey.test.ts`.
 ```bash
 npm run typecheck   # TypeScript strict, zéro erreur attendue
 npm test            # 189 tests
+npm run test:sql    # applique le schéma sur un PostgreSQL jetable et l'attaque
 npm run licences    # aucune licence contaminante embarquée
 npm run faq         # régénère docs/support/ si la FAQ a changé
 ```
+
+`test:sql` mérite un mot. Le schéma n'avait jamais été exécuté : la première
+tentative a buté sur un index déclaré avant sa table, puis sur une expression
+d'index mal parenthésée. `supabase db push` aurait échoué, et l'index qui
+tient la validation automatique n'aurait jamais existé. Rien de tout cela
+n'était visible à la relecture. La suite applique donc le fichier pour de vrai,
+puis joue vingt-sept tentatives depuis une session d'appareil : se compter la
+mission d'un frère, rejouer une récompense, se signer du nom d'un parent.
 
 Et surtout : **rejouer le parcours 35 → 50 minutes dans l'application**. Les
 trois défauts les plus graves trouvés jusqu'ici — un bouclier d'écran qui ne se
