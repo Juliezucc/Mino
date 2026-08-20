@@ -1,6 +1,6 @@
 # mino
 
-**Chaque minute se gagne.**
+**Grandir, une mission à la fois.**
 
 Mino est une application familiale pour les enfants de 5 à 12 ans. Le principe tient
 en une ligne :
@@ -56,7 +56,24 @@ Autres scripts :
 ```bash
 npm test           # tests du domaine et du parcours complet
 npm run typecheck  # TypeScript strict
+npm run faq        # régénère docs/support/ depuis src/content/faq.ts
+npm run licences   # recense les licences des dépendances
+npm run assets     # régénère icônes et écran de lancement
 ```
+
+---
+
+## Documentation
+
+| Sujet | Fichier |
+| --- | --- |
+| Architecture, règles à ne pas casser | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| Tenir 10 000 familles, coûts | [`docs/ops/capacite.md`](docs/ops/capacite.md) |
+| MRR, churn, cohortes, LTV, CAC | [`docs/ops/analytics.md`](docs/ops/analytics.md) |
+| Propriété intellectuelle, comptes, accès | [`docs/ops/propriete-et-acces.md`](docs/ops/propriete-et-acces.md) |
+| Process marketing | [`docs/marketing/`](docs/marketing/) |
+| Blocage réel des écrans | [`docs/blocage-ecrans.md`](docs/blocage-ecrans.md) |
+| Habilitation Apple | [`docs/apple-family-controls.md`](docs/apple-family-controls.md) |
 
 ---
 
@@ -126,9 +143,21 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
 `createRepository()` choisit alors `SupabaseRepository` automatiquement. Appliquez
-`supabase/schema.sql` : il crée les tables, les index, la vue de solde, les règles
-RLS et la publication realtime (le parent valide sur son téléphone, la tablette de
-l'enfant se met à jour sans rafraîchissement).
+les quatre fichiers SQL **dans cet ordre** :
+
+| Fichier | Ce qu'il apporte |
+| --- | --- |
+| `supabase/schema.sql` | tables, RLS, code parent, rattachement d'un appareil |
+| `supabase/scale.sql` | index, temps réel par famille, purges, solde serveur |
+| `supabase/support.sql` | signalements et file de traitement |
+| `supabase/analytics.sql` | journal de facturation et vues de pilotage |
+
+Le temps réel passe par un **canal privé par famille** (`famille:<id>`), alimenté
+par un déclencheur : le parent valide sur son téléphone, la tablette de l'enfant
+se met à jour sans rafraîchissement. Le mécanisme `postgres_changes`, qui
+évaluait chaque écriture de la base contre chaque client connecté, a été
+abandonné — il ne tient pas au-delà de quelques milliers de connexions
+(voir [`docs/ops/capacite.md`](docs/ops/capacite.md)).
 
 ---
 
@@ -142,7 +171,12 @@ de conception, pas une option :
 - pas de chat, pas de contenu public, pas de profil public ;
 - les enfants d'une famille ne sont jamais visibles par une autre famille — c'est
   garanti par les policies RLS, pas seulement par le code client ;
-- l'espace parent est protégé par un code à 4 chiffres.
+- l'espace parent est protégé par un code à 4 chiffres, qui **n'est lisible nulle
+  part** : son empreinte vit dans une table sans aucune politique de lecture, et
+  la vérification est faite par le serveur, avec limitation des tentatives. La
+  tablette de l'enfant ne peut donc pas le lire, même en cherchant ;
+- un signalement de bug est nettoyé avant de partir : ni prénom d'enfant, ni
+  adresse, ni code (`src/domain/diagnostics.ts`).
 
 ---
 

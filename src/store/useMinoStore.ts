@@ -137,6 +137,42 @@ async function migrateLegacyPin(
 }
 
 export const useMinoStore = create<MinoState>((set, get) => {
+  /**
+   * The live link to the family, when the backend offers one.
+   *
+   * `writing` and `missed` exist for one race: a remote reload landing between
+   * a local action and the write that saves it would replace what the parent
+   * just did with the state from before they did it. So a reload arriving
+   * mid-write is not dropped — it is remembered and replayed once the write has
+   * settled.
+   */
+  let unwatch: (() => void) | null = null;
+  let writing = 0;
+  let missed = false;
+
+  function watch(data: FamilyData | null) {
+    unwatch?.();
+    unwatch = null;
+
+    const repository = get().repository;
+    const familyId = data?.family.id;
+    if (!familyId || !repository.subscribe) return;
+
+    unwatch = repository.subscribe(familyId, (fresh) => {
+      if (writing > 0) {
+        missed = true;
+        return;
+      }
+      set({ data: fresh });
+    });
+  }
+
+  /** Publishes the family after a write, so `set` and `watch` never diverge. */
+  function publish(data: FamilyData | null, rest: Partial<MinoState> = {}) {
+    set({ data, ...rest } as Partial<MinoState>);
+    watch(data);
+  }
+
   /** Runs a pure domain transition, persists it, publishes it. */
   async function commit<T>(
     kind: ChangeEvent['kind'],
@@ -147,11 +183,26 @@ export const useMinoStore = create<MinoState>((set, get) => {
 
     const outcome = run(current);
     set({ data: outcome.data, lastError: null });
-    await get().repository.persist(outcome.data, {
-      kind,
-      upsert: outcome.upsert,
-      deleteChildId: outcome.deleteChildId,
-    });
+
+    writing += 1;
+    try {
+      await get().repository.persist(outcome.data, {
+        kind,
+        upsert: outcome.upsert,
+        deleteChildId: outcome.deleteChildId,
+      });
+    } finally {
+      writing -= 1;
+    }
+
+    // Something changed elsewhere while this was being written: pick it up now
+    // rather than leave the two devices disagreeing until the next launch.
+    if (writing === 0 && missed) {
+      missed = false;
+      const fresh = await get().repository.load().catch(() => null);
+      if (fresh) set({ data: fresh });
+    }
+
     return outcome.result;
   }
 
@@ -188,7 +239,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
 
     async bootstrap() {
       const data = await migrateLegacyPin(await get().repository.load(), get().repository);
-      set({ data, status: 'ready' });
+      publish(data, { status: 'ready' });
       if (data) await get().loadBilling();
     },
 
@@ -197,7 +248,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
       // The demo's PIN lives where every PIN lives — in the auth service,
       // never in the family document.
       await getAuthService().setParentPin(DEMO_PARENT_PIN);
-      set({ data, status: 'ready', activeChildId: null, parentUnlocked: false });
+      publish(data, { status: 'ready', activeChildId: null, parentUnlocked: false });
       await get().repository.persist(data, { kind: 'bootstrap' });
       await get().loadBilling();
     },
@@ -216,7 +267,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
         email,
         familyName: familyName?.trim() || `Famille de ${parentName}`,
       });
-      set({ data, status: 'ready', activeChildId: null, parentUnlocked: true });
+      publish(data, { status: 'ready', activeChildId: null, parentUnlocked: true });
       await get().repository.persist(data, { kind: 'bootstrap' });
       await get().loadBilling();
       return { ok: true };
@@ -226,7 +277,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
       const result = await getAuthService().signIn(input);
       if (!result.ok) return result;
       const data = await get().repository.load();
-      set({ data, status: 'ready', activeChildId: null, parentUnlocked: true });
+      publish(data, { status: 'ready', activeChildId: null, parentUnlocked: true });
       if (data) await get().loadBilling();
       return { ok: true };
     },
@@ -240,15 +291,14 @@ export const useMinoStore = create<MinoState>((set, get) => {
       const data = await get().repository.joinFamily(input);
       if (!data) return false;
       // The child's device never lands in the parent area, whatever it holds.
-      set({ data, status: 'ready', activeChildId: null, parentUnlocked: false });
+      publish(data, { status: 'ready', activeChildId: null, parentUnlocked: false });
       await get().loadBilling();
       return true;
     },
 
     async resetAll() {
       await get().repository.clear();
-      set({
-        data: null,
+      publish(null, {
         activeChildId: null,
         parentUnlocked: false,
         status: 'ready',

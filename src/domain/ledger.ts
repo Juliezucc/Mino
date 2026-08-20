@@ -13,6 +13,45 @@ export function balanceOf(transactions: ScreenTimeTransaction[], childId: ID): n
   return transactions.reduce((sum, tx) => (tx.childId === childId ? sum + tx.delta : sum), 0);
 }
 
+/**
+ * Folds the history a device did not download into one opening line per child.
+ *
+ * A device carries only the recent ledger, but the balance must stay exactly
+ * the sum of what it holds — the app has one rule about time and this is it.
+ * So for each child the server's true total is compared with the total of the
+ * lines actually present, and the difference becomes a single dated entry.
+ *
+ * The invariant that matters: after this call,
+ * `balanceOf(result, childId) === trueBalance[childId]`, whatever was truncated.
+ */
+export function withOpeningBalances(
+  recent: ScreenTimeTransaction[],
+  trueBalance: Record<ID, number>,
+  familyId: ID,
+  before: ISODate,
+): ScreenTimeTransaction[] {
+  const opening: ScreenTimeTransaction[] = [];
+
+  for (const [childId, total] of Object.entries(trueBalance)) {
+    const carried = balanceOf(recent, childId);
+    const delta = total - carried;
+    if (delta === 0) continue;
+
+    opening.push({
+      id: `opening-${childId}`,
+      familyId,
+      childId,
+      delta,
+      kind: 'initial_balance',
+      reason: 'Total des minutes avant cette période',
+      // Dated one second before the window so it always sorts last in history.
+      createdAt: new Date(new Date(before).getTime() - 1000).toISOString(),
+    });
+  }
+
+  return [...recent, ...opening];
+}
+
 export function isSameDay(a: ISODate | Date, b: ISODate | Date): boolean {
   const da = a instanceof Date ? a : new Date(a);
   const db = b instanceof Date ? b : new Date(b);

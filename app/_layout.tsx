@@ -14,6 +14,8 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { getDiagnosticsService } from '@/services/diagnostics';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors } from '@/theme';
 
@@ -33,6 +35,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     bootstrap();
+    // Ce qui n'avait pas pu partir la dernière fois — souvent le plus utile,
+    // puisqu'un plantage et une mauvaise connexion vont souvent ensemble.
+    getDiagnosticsService()
+      .flush()
+      .catch(() => undefined);
   }, [bootstrap]);
 
   const ready = fontsLoaded && status === 'ready';
@@ -45,19 +52,24 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.flex}>
       <SafeAreaProvider>
         <StatusBar style="dark" />
-        {ready ? (
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
-              animation: 'slide_from_right',
-            }}
-          />
-        ) : (
-          <View style={styles.loading}>
-            <ActivityIndicator color={colors.blue} size="large" />
-          </View>
-        )}
+        {/* Sous le fournisseur de zones sûres, pour que l'écran de secours ne
+            passe pas sous l'encoche : c'est le seul écran qu'on ne peut pas
+            corriger après coup. */}
+        <ErrorBoundary>
+          {ready ? (
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+                animation: 'slide_from_right',
+              }}
+            />
+          ) : (
+            <View style={styles.loading}>
+              <ActivityIndicator color={colors.blue} size="large" />
+            </View>
+          )}
+        </ErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

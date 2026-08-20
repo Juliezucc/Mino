@@ -1,0 +1,666 @@
+{
+  "source": "src/content/faq.ts",
+  "locale": "fr-FR",
+  "entries": [
+    {
+      "id": "installer-appareil-enfant",
+      "title": "Comment installer Mino sur l’appareil de mon enfant ?",
+      "body": "Installez Mino depuis l’App Store ou le Play Store sur son téléphone ou sa tablette, ouvrez l’application et choisissez « J’ai un code famille ». Votre code se trouve dans Réglages, sur votre propre téléphone. Le système vous demandera ensuite l’autorisation d’un adulte : c’est normal, c’est ce qui permet de vraiment débloquer le temps d’écran.",
+      "category": "Installation",
+      "keywords": [
+        "installer",
+        "installation",
+        "appareil enfant",
+        "telephone enfant",
+        "tablette",
+        "configurer",
+        "demarrer",
+        "commencer"
+      ]
+    },
+    {
+      "id": "ou-trouver-code-famille",
+      "title": "Où trouver mon code famille ?",
+      "body": "Dans l’espace parent, onglet Réglages. C’est un code de six caractères. Attention à ne pas le confondre avec le code de parrainage, qui sert à inviter d’autres familles et ne rattache aucun appareil.",
+      "category": "Installation",
+      "keywords": [
+        "code famille",
+        "code",
+        "six caracteres",
+        "rattacher",
+        "jumeler",
+        "appairer"
+      ]
+    },
+    {
+      "id": "code-famille-refuse",
+      "title": "Le code famille est refusé sur l’appareil de mon enfant",
+      "body": "Vérifiez les caractères qui se ressemblent : le zéro et la lettre O, le 1 et le I. La casse n’a pas d’importance, les espaces non plus. Après dix essais ratés en une heure, l’appareil doit attendre : c’est une protection, réessayez un peu plus tard.",
+      "category": "Installation",
+      "keywords": [
+        "code refuse",
+        "code incorrect",
+        "code ne marche pas",
+        "famille introuvable",
+        "erreur code"
+      ]
+    },
+    {
+      "id": "faut-il-installer-cote-parent",
+      "title": "Dois-je aussi installer Mino sur mon téléphone ?",
+      "body": "Oui. C’est depuis votre téléphone que vous créez les missions, validez les demandes et suivez le temps en cours. L’application de l’enfant ne sert qu’à lui.",
+      "category": "Installation",
+      "keywords": [
+        "deux applications",
+        "telephone parent",
+        "mon telephone",
+        "cote parent"
+      ]
+    },
+    {
+      "id": "deux-parents",
+      "title": "Nous sommes deux parents, sur deux téléphones",
+      "body": "Chacun installe Mino et se connecte au même compte. Les validations, les missions et l’historique sont partagés en direct : ce que l’un valide, l’autre le voit aussitôt.",
+      "category": "Installation",
+      "keywords": [
+        "deux parents",
+        "conjoint",
+        "partage",
+        "garde alternee",
+        "papa maman"
+      ]
+    },
+    {
+      "id": "enfant-sans-telephone",
+      "title": "Mon enfant n’a pas de téléphone",
+      "body": "Mino fonctionne quand même. Vous déclarez ses écrans dans Appareils — console, télévision, ordinateur familial — et vous validez ses demandes depuis votre téléphone. La différence : sur ces écrans-là, c’est vous qui ouvrez et fermez l’accès, Mino ne peut pas le faire tout seul.",
+      "category": "Installation",
+      "keywords": [
+        "pas de telephone",
+        "sans telephone",
+        "petit",
+        "jeune enfant",
+        "console seulement"
+      ]
+    },
+    {
+      "id": "console-tv-ordinateur",
+      "title": "Est-ce que ça marche avec une Switch, une PlayStation ou la télé ?",
+      "body": "Ces écrans se déclarent dans Appareils et entrent dans le système de minos : l’enfant demande, vous validez, le temps est décompté. Mais aucun système de console ou de téléviseur ne laisse une application extérieure couper l’accès. Sur ces écrans, le blocage reste entre vos mains — Mino tient le compte, vous tenez la manette.",
+      "category": "Installation",
+      "keywords": [
+        "switch",
+        "nintendo",
+        "playstation",
+        "ps5",
+        "xbox",
+        "console",
+        "television",
+        "tele",
+        "ordinateur",
+        "pc",
+        "mac"
+      ]
+    },
+    {
+      "id": "enfant-deux-appareils",
+      "title": "Mon enfant a un téléphone et une tablette",
+      "body": "Installez Mino sur les deux avec le même code famille et le même profil. Le compteur de minos est unique : le temps dépensé sur l’un est décompté pour l’autre.",
+      "category": "Installation",
+      "keywords": [
+        "deux appareils",
+        "tablette et telephone",
+        "plusieurs ecrans"
+      ]
+    },
+    {
+      "id": "ados",
+      "title": "Est-ce que c’est adapté à un adolescent ?",
+      "body": "Oui. À partir de treize ans, Mino change de vocabulaire et de mise en page : on parle de minutes et non de minos, les célébrations s’effacent, les missions proposées concernent l’autonomie, le travail et l’équilibre. L’âge se règle sur sa fiche.",
+      "category": "Installation",
+      "keywords": [
+        "ado",
+        "adolescent",
+        "grand",
+        "13 ans",
+        "15 ans",
+        "college",
+        "lycee"
+      ]
+    },
+    {
+      "id": "applis-ne-se-bloquent-pas",
+      "title": "Les applications ne se bloquent pas sur le téléphone de mon enfant",
+      "body": "C’est presque toujours l’autorisation système qui manque. Sur l’appareil de l’enfant, ouvrez Mino, allez dans Réglages et relancez « Autoriser le temps d’écran » : le système demandera le compte d’un adulte. Sans cette autorisation, Mino compte le temps mais ne peut rien fermer.",
+      "category": "Temps d’écran",
+      "keywords": [
+        "bloque pas",
+        "blocage",
+        "ne bloque rien",
+        "applications ouvertes",
+        "autorisation",
+        "temps ecran ne marche pas"
+      ]
+    },
+    {
+      "id": "choisir-applis-bloquees",
+      "title": "Comment choisir les applications à bloquer ?",
+      "body": "Depuis l’appareil de l’enfant, dans Réglages, « Applications concernées ». Le système affiche sa propre liste — c’est lui qui la fournit, Mino ne voit jamais quelles applications sont installées. Choisissez les jeux et les réseaux, laissez de côté l’école et les outils du quotidien.",
+      "category": "Temps d’écran",
+      "keywords": [
+        "choisir applications",
+        "quelles applis",
+        "liste",
+        "selection",
+        "youtube",
+        "tiktok",
+        "jeux"
+      ]
+    },
+    {
+      "id": "appels-messages",
+      "title": "Est-ce que les appels et les messages sont bloqués aussi ?",
+      "body": "Non, sauf si vous les ajoutez vous-même à la liste. Le téléphone, les messages et les appels d’urgence restent accessibles : un enfant doit pouvoir joindre un adulte, minos ou pas.",
+      "category": "Temps d’écran",
+      "keywords": [
+        "appels",
+        "telephoner",
+        "sms",
+        "messages",
+        "urgence",
+        "joindre"
+      ]
+    },
+    {
+      "id": "temps-ecoule",
+      "title": "Que se passe-t-il quand le temps est écoulé ?",
+      "body": "L’enfant reçoit un avertissement cinq minutes avant, puis les applications choisies se referment. Rien n’est perdu : il retrouve ses minos dès qu’il en gagne de nouveaux.",
+      "category": "Temps d’écran",
+      "keywords": [
+        "fin du temps",
+        "temps ecoule",
+        "coupure",
+        "ferme",
+        "stop",
+        "avertissement"
+      ]
+    },
+    {
+      "id": "arreter-session",
+      "title": "Puis-je arrêter le temps en cours à distance ?",
+      "body": "Oui. L’accueil de l’espace parent affiche la session en cours et le temps restant ; vous pouvez l’arrêter d’un geste. Les minutes non utilisées reviennent à l’enfant — on ne lui prend pas ce qu’il a gagné.",
+      "category": "Temps d’écran",
+      "keywords": [
+        "arreter",
+        "stopper",
+        "couper",
+        "a distance",
+        "session en cours",
+        "interrompre",
+        "diner",
+        "repas"
+      ]
+    },
+    {
+      "id": "donner-bonus",
+      "title": "Comment offrir du temps en plus ?",
+      "body": "Depuis la fiche de l’enfant, « Donner un bonus ». Indiquez la raison : c’est elle qui donne sa valeur au geste, et elle apparaît dans son historique.",
+      "category": "Missions et minos",
+      "keywords": [
+        "bonus",
+        "offrir",
+        "cadeau",
+        "recompense",
+        "ajouter du temps",
+        "minutes en plus"
+      ]
+    },
+    {
+      "id": "enfant-lance-son-temps",
+      "title": "Mon enfant peut-il lancer son temps tout seul ?",
+      "body": "Sur l’appareil où Mino est installé, oui, s’il a des minos : c’est le principe même, il dépense ce qu’il a gagné. Si vous préférez valider chaque fois, activez « Demander avant chaque session » sur sa fiche. Sur les autres écrans, votre validation est toujours requise.",
+      "category": "Temps d’écran",
+      "keywords": [
+        "lancer seul",
+        "demarrer son temps",
+        "autonomie",
+        "sans demander",
+        "validation"
+      ]
+    },
+    {
+      "id": "desinstalle-mino",
+      "title": "Et si mon enfant désinstalle Mino ?",
+      "body": "Les restrictions posées par le système ne disparaissent pas avec l’application : elles ont été autorisées par un adulte et se lèvent de la même façon. Vous pouvez aussi empêcher la suppression d’applications dans les réglages de son appareil — le guide explique où.",
+      "category": "Temps d’écran",
+      "keywords": [
+        "desinstaller",
+        "supprimer app",
+        "contourner",
+        "triche",
+        "malin",
+        "enlever"
+      ]
+    },
+    {
+      "id": "change-heure",
+      "title": "Mon enfant a changé l’heure de son téléphone",
+      "body": "Le décompte s’appuie sur l’heure du serveur, pas sur celle de l’appareil : avancer l’horloge ne donne pas une minute de plus.",
+      "category": "Temps d’écran",
+      "keywords": [
+        "changer heure",
+        "horloge",
+        "triche heure",
+        "date",
+        "contourner"
+      ]
+    },
+    {
+      "id": "cest-quoi-un-mino",
+      "title": "C’est quoi un mino ?",
+      "body": "Une minute de temps d’écran, gagnée par une mission. Un mino vaut toujours une minute, et il ne s’achète jamais — c’est le seul mot que voient les enfants jusqu’à treize ans.",
+      "category": "Missions et minos",
+      "keywords": [
+        "mino",
+        "minos",
+        "monnaie",
+        "points",
+        "minutes",
+        "unite"
+      ]
+    },
+    {
+      "id": "enfant-ne-voit-pas-mission",
+      "title": "Mon enfant ne voit pas sa mission",
+      "body": "Vérifiez sa récurrence : une mission « certains jours » n’apparaît que les jours choisis. Vérifiez aussi qu’elle lui est bien attribuée, et pas seulement à son frère ou à sa sœur. Une mission déjà terminée disparaît de sa liste : c’est voulu, pour qu’il ne voie que ce qui lui reste à faire.",
+      "category": "Missions et minos",
+      "keywords": [
+        "ne voit pas",
+        "mission absente",
+        "liste vide",
+        "disparu",
+        "invisible"
+      ]
+    },
+    {
+      "id": "missions-ne-reviennent-pas",
+      "title": "Les missions ne reviennent pas le lendemain",
+      "body": "Une mission quotidienne réapparaît au changement de journée sur l’appareil. Si elle ne revient pas, c’est en général qu’elle a été créée comme mission unique : ouvrez-la et vérifiez sa récurrence.",
+      "category": "Missions et minos",
+      "keywords": [
+        "recurrence",
+        "lendemain",
+        "reset",
+        "reinitialisation",
+        "chaque jour",
+        "quotidienne"
+      ]
+    },
+    {
+      "id": "valide-par-erreur",
+      "title": "J’ai validé une mission par erreur",
+      "body": "Ajustez le compteur depuis la fiche de l’enfant. La correction apparaît dans son historique : rien n’est effacé, on ajoute une ligne. C’est ce qui garantit que le compteur et l’historique ne se contredisent jamais.",
+      "category": "Missions et minos",
+      "keywords": [
+        "erreur",
+        "annuler validation",
+        "retirer",
+        "corriger",
+        "trop de minutes"
+      ]
+    },
+    {
+      "id": "refuser-sans-vexer",
+      "title": "Comment refuser une mission sans décourager mon enfant ?",
+      "body": "Un refus dans Mino renvoie la mission dans sa liste, sans reproche : elle est « à refaire », pas « ratée ». Dites-lui de vive voix ce qui manque — l’application ne le dira jamais à votre place.",
+      "category": "Missions et minos",
+      "keywords": [
+        "refuser",
+        "refus",
+        "pas fait",
+        "mal fait",
+        "decourager",
+        "punir"
+      ]
+    },
+    {
+      "id": "combien-de-minutes",
+      "title": "Combien de minutes faut-il donner par mission ?",
+      "body": "Entre 5 et 15 minutes pour un geste quotidien, jusqu’à 30 pour quelque chose de long ou de pénible. Le repère qui marche : une journée de missions faites doit donner à peu près le temps d’écran que vous acceptiez déjà.",
+      "category": "Missions et minos",
+      "keywords": [
+        "combien de minutes",
+        "valeur",
+        "bareme",
+        "trop",
+        "pas assez",
+        "equilibre"
+      ]
+    },
+    {
+      "id": "suggestions-routines",
+      "title": "Je n’ai pas d’idées de missions",
+      "body": "À la création d’une mission, Mino propose des suggestions adaptées à l’âge, et des routines toutes faites — le coucher, le matin, les devoirs — qui créent plusieurs missions d’un coup. Vous pouvez tout modifier ensuite.",
+      "category": "Missions et minos",
+      "keywords": [
+        "idees",
+        "suggestions",
+        "exemples",
+        "routine",
+        "coucher",
+        "matin",
+        "devoirs"
+      ]
+    },
+    {
+      "id": "enfant-ment",
+      "title": "Mon enfant dit avoir fait une mission sans l’avoir faite",
+      "body": "C’est exactement pour cela que la validation existe : rien n’arrive sur son compteur sans votre accord. Refusez, la mission revient dans sa liste. Le système est conçu pour que la vérification reste humaine.",
+      "category": "Missions et minos",
+      "keywords": [
+        "ment",
+        "mensonge",
+        "triche",
+        "pas fait",
+        "verifier"
+      ]
+    },
+    {
+      "id": "fratrie",
+      "title": "Comment gérer plusieurs enfants ?",
+      "body": "Chaque enfant a son profil, ses missions et son compteur — rien n’est commun. Une même mission peut être attribuée à plusieurs enfants d’un coup, et certaines suggestions parlent explicitement du frère ou de la sœur.",
+      "category": "Missions et minos",
+      "keywords": [
+        "plusieurs enfants",
+        "fratrie",
+        "frere",
+        "soeur",
+        "jumeaux",
+        "partage"
+      ]
+    },
+    {
+      "id": "code-parent-oublie",
+      "title": "J’ai oublié mon code parent",
+      "body": "Le code parent est lié à votre compte, pas à l’appareil. Déconnectez-vous et reconnectez-vous avec votre e-mail et votre mot de passe : vous pourrez en choisir un nouveau. Après cinq essais ratés, l’accès se bloque cinq minutes.",
+      "category": "Compte et code parent",
+      "keywords": [
+        "code parent oublie",
+        "pin oublie",
+        "code incorrect",
+        "bloque",
+        "quatre chiffres"
+      ]
+    },
+    {
+      "id": "mot-de-passe-oublie",
+      "title": "J’ai oublié mon mot de passe",
+      "body": "Depuis l’écran de connexion, « Mot de passe oublié ». Vous recevrez un lien par e-mail. Pensez à regarder dans les indésirables.",
+      "category": "Compte et code parent",
+      "keywords": [
+        "mot de passe",
+        "connexion",
+        "reinitialiser",
+        "mail non recu"
+      ]
+    },
+    {
+      "id": "enfant-connait-code-parent",
+      "title": "Mon enfant a vu mon code parent",
+      "body": "Changez-le depuis Réglages, sur votre téléphone. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis sa tablette, même en cherchant.",
+      "category": "Compte et code parent",
+      "keywords": [
+        "code decouvert",
+        "changer code",
+        "espionne",
+        "securite code"
+      ]
+    },
+    {
+      "id": "changer-email",
+      "title": "Comment changer mon adresse e-mail ?",
+      "body": "Depuis Réglages, section Compte. Une confirmation part sur la nouvelle adresse : le changement n’est effectif qu’une fois le lien ouvert.",
+      "category": "Compte et code parent",
+      "keywords": [
+        "changer email",
+        "adresse mail",
+        "nouvelle adresse"
+      ]
+    },
+    {
+      "id": "supprimer-compte",
+      "title": "Comment supprimer mon compte et nos données ?",
+      "body": "Depuis Réglages, « Supprimer le compte ». Tout est effacé sous trente jours : profils des enfants, missions, historique. Les factures sont conservées dix ans, comme la loi comptable l’exige, et elles ne contiennent aucune donnée d’enfant.",
+      "category": "Données et confidentialité",
+      "keywords": [
+        "supprimer compte",
+        "effacer",
+        "rgpd",
+        "donnees",
+        "partir",
+        "desinscription"
+      ]
+    },
+    {
+      "id": "prix",
+      "title": "Combien coûte Mino ?",
+      "body": "9,90 € par mois, ou 79 € par an — deux mois offerts. Toute la famille est comprise : autant d’enfants et d’appareils que vous voulez, sans supplément.",
+      "category": "Abonnement",
+      "keywords": [
+        "prix",
+        "tarif",
+        "combien",
+        "cout",
+        "payant",
+        "gratuit",
+        "abonnement"
+      ]
+    },
+    {
+      "id": "essai-gratuit",
+      "title": "Serai-je prélevé à la fin de l’essai ?",
+      "body": "L’essai dure trente jours et ne devient payant que si vous ne l’annulez pas. L’annulation se fait en deux touches depuis Réglages, sans avoir à écrire à qui que ce soit, et vous gardez l’accès jusqu’à la fin de la période.",
+      "category": "Abonnement",
+      "keywords": [
+        "essai",
+        "gratuit",
+        "trente jours",
+        "30 jours",
+        "preleve",
+        "carte bancaire"
+      ]
+    },
+    {
+      "id": "annuler",
+      "title": "Comment annuler mon abonnement ?",
+      "body": "Réglages, puis Abonnement, puis « Annuler ». C’est immédiat et sans justification. Vous gardez l’accès jusqu’à la fin de la période déjà payée, et vos données restent intactes si vous revenez.",
+      "category": "Abonnement",
+      "keywords": [
+        "annuler",
+        "resilier",
+        "arreter",
+        "desabonner",
+        "stop"
+      ]
+    },
+    {
+      "id": "parrainage",
+      "title": "Comment fonctionne le parrainage ?",
+      "body": "Votre filleul obtient soixante jours d’essai au lieu de trente. Dès qu’il devient payant, vous recevez un mois offert — jusqu’à douze par an. Votre code se trouve dans Réglages, section Parrainage.",
+      "category": "Abonnement",
+      "keywords": [
+        "parrainage",
+        "parrain",
+        "filleul",
+        "inviter",
+        "code parrainage",
+        "offert",
+        "gratuit"
+      ]
+    },
+    {
+      "id": "changer-formule",
+      "title": "Puis-je passer du mensuel à l’annuel ?",
+      "body": "Oui, à tout moment depuis Abonnement. Le changement est calculé au prorata : ce que vous avez déjà payé est déduit.",
+      "category": "Abonnement",
+      "keywords": [
+        "changer formule",
+        "annuel",
+        "mensuel",
+        "passer",
+        "prorata"
+      ]
+    },
+    {
+      "id": "facture",
+      "title": "Où trouver mes factures ?",
+      "body": "Dans Abonnement, « Gérer mon paiement » : vous y trouvez toutes vos factures, avec la TVA. Elles sont également envoyées par e-mail à chaque prélèvement.",
+      "category": "Abonnement",
+      "keywords": [
+        "facture",
+        "recu",
+        "tva",
+        "comptabilite",
+        "justificatif"
+      ]
+    },
+    {
+      "id": "paiement-refuse",
+      "title": "Mon paiement a été refusé",
+      "body": "Mettez votre carte à jour dans « Gérer mon paiement ». L’accès reste ouvert quelques jours pendant les nouvelles tentatives : personne ne perd son compte pour une carte expirée.",
+      "category": "Abonnement",
+      "keywords": [
+        "paiement refuse",
+        "carte",
+        "echec",
+        "impaye",
+        "expire"
+      ]
+    },
+    {
+      "id": "donnees-enfant",
+      "title": "Quelles données collectez-vous sur mon enfant ?",
+      "body": "Son prénom, son âge et son avatar. Rien d’autre : pas d’adresse e-mail, pas de photo, pas de numéro. Mino ne sait pas quelles applications sont installées sur son appareil — le système ne les lui montre jamais.",
+      "category": "Données et confidentialité",
+      "keywords": [
+        "donnees enfant",
+        "collecte",
+        "vie privee",
+        "rgpd",
+        "prenom",
+        "age"
+      ]
+    },
+    {
+      "id": "publicite-revente",
+      "title": "Y a-t-il de la publicité ? Revendez-vous les données ?",
+      "body": "Aucune publicité, aucune revente, aucun traceur marketing du côté de l’enfant. Mino est financé par l’abonnement, et par rien d’autre. C’est un choix de conception, pas une promesse : il n’y a pas de régie publicitaire dans l’application.",
+      "category": "Données et confidentialité",
+      "keywords": [
+        "publicite",
+        "pub",
+        "revente",
+        "donnees vendues",
+        "tracking",
+        "traceur"
+      ]
+    },
+    {
+      "id": "geolocalisation",
+      "title": "Mino localise-t-il mon enfant ?",
+      "body": "Non. L’application ne demande jamais la position et ne pourrait pas l’obtenir. Ce n’est pas un outil de surveillance.",
+      "category": "Données et confidentialité",
+      "keywords": [
+        "geolocalisation",
+        "gps",
+        "position",
+        "localiser",
+        "surveiller",
+        "espionner"
+      ]
+    },
+    {
+      "id": "autre-famille",
+      "title": "Une autre famille peut-elle voir mon enfant ?",
+      "body": "Non, et pas seulement parce que l’application ne l’affiche pas : la base de données elle-même refuse de renvoyer les lignes d’une famille à quelqu’un qui n’en fait pas partie. Il n’y a ni profil public, ni messagerie, ni contenu partagé entre familles.",
+      "category": "Données et confidentialité",
+      "keywords": [
+        "autre famille",
+        "visible",
+        "public",
+        "chat",
+        "messagerie",
+        "inconnu",
+        "securite"
+      ]
+    },
+    {
+      "id": "ou-sont-les-donnees",
+      "title": "Où sont hébergées les données ?",
+      "body": "Dans l’Union européenne. Elles ne sont transférées à aucun pays tiers en dehors de ce que nécessite le paiement, assuré par Stripe.",
+      "category": "Données et confidentialité",
+      "keywords": [
+        "hebergement",
+        "serveur",
+        "europe",
+        "ue",
+        "rgpd",
+        "stockage"
+      ]
+    },
+    {
+      "id": "compteur-ne-bouge-pas",
+      "title": "Le compteur de mon enfant ne bouge pas",
+      "body": "Les minutes n’arrivent qu’après votre validation : regardez les demandes en attente sur l’accueil de l’espace parent. Si vous avez validé et que le compteur ne suit pas, fermez et rouvrez l’application sur l’appareil de l’enfant.",
+      "category": "Ça ne marche pas",
+      "keywords": [
+        "compteur",
+        "bouge pas",
+        "minutes",
+        "pas de minos",
+        "bloque",
+        "zero"
+      ]
+    },
+    {
+      "id": "pas-de-synchro",
+      "title": "Les deux appareils n’affichent pas la même chose",
+      "body": "Vérifiez que les deux sont bien en ligne, puis fermez et rouvrez l’application sur celui qui est en retard. Si l’écart persiste au-delà d’une minute, signalez-le : c’est un problème de notre côté, pas du vôtre.",
+      "category": "Ça ne marche pas",
+      "keywords": [
+        "synchronisation",
+        "pas a jour",
+        "decalage",
+        "differents",
+        "retard"
+      ]
+    },
+    {
+      "id": "notifications-non-recues",
+      "title": "Je ne reçois pas les notifications",
+      "body": "Vérifiez qu’elles sont autorisées pour Mino dans les réglages de votre téléphone, puis dans Réglages, section Notifications. Sachez aussi que les notifications sont silencieuses entre 20 h et 7 h — sauf l’alerte de fin de temps, qui passe toujours.",
+      "category": "Ça ne marche pas",
+      "keywords": [
+        "notification",
+        "alerte",
+        "pas recu",
+        "silencieux",
+        "sonnerie"
+      ]
+    },
+    {
+      "id": "application-plante",
+      "title": "L’application se ferme toute seule",
+      "body": "Mettez-la à jour depuis la boutique, c’est la cause la plus fréquente. Si cela recommence, envoyez-nous un signalement depuis Aide : il partira avec le contexte technique nécessaire, et sans aucune donnée sur vos enfants.",
+      "category": "Ça ne marche pas",
+      "keywords": [
+        "plante",
+        "crash",
+        "se ferme",
+        "bug",
+        "ferme toute seule",
+        "ecran noir"
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import {
   Child,
   FamilyData,
   Family,
+  ID,
   Mission,
   MissionAssignment,
   MissionCompletion,
@@ -11,6 +12,8 @@ import {
   ScreenTimeSession,
   ScreenTimeTransaction,
 } from '@/domain/types';
+
+import { withOpeningBalances } from '@/domain/ledger';
 
 import { Device } from '@/domain/devices';
 
@@ -229,6 +232,29 @@ const deviceToRow = (d: Device) => ({
 
 /* -------------------------------------------------------------- repository */
 
+/**
+ * How much history a device carries.
+ *
+ * A family that has used Mino for three years has produced tens of thousands
+ * of ledger lines. Downloading all of them at every launch is the kind of cost
+ * nobody notices in the first year and nobody can undo in the third.
+ *
+ * What is *not* bounded: anything still waiting on someone. A mission completed
+ * four months ago and never reviewed has to arrive, or it disappears from the
+ * parent's screen without ever having been answered.
+ */
+const HISTORY_DAYS = 120;
+const HISTORY_MAX = 400;
+
+const since = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();
+
+/** Merges two row sets on `id`, keeping the first occurrence. */
+function mergeById<T extends { id: string }>(...groups: T[][]): T[] {
+  const seen = new Map<string, T>();
+  for (const group of groups) for (const row of group) if (!seen.has(row.id)) seen.set(row.id, row);
+  return [...seen.values()];
+}
+
 class SupabaseRepository implements MinoRepository {
   readonly name = 'supabase';
 
@@ -247,17 +273,35 @@ class SupabaseRepository implements MinoRepository {
       return res.data ?? [];
     };
 
-    const [parents, children, missions, assignments, completions, transactions, sessions, devices] =
+    const window = since(HISTORY_DAYS);
+
+    const [parents, children, missions, assignments, devices] = await Promise.all([
+      fetch(TABLES.parents),
+      fetch(TABLES.children),
+      fetch(TABLES.missions),
+      fetch(TABLES.assignments),
+      fetch(TABLES.devices),
+    ]);
+
+    const [recentCompletions, pendingCompletions, recentTransactions, recentSessions, liveSessions, balances] =
       await Promise.all([
-        fetch(TABLES.parents),
-        fetch(TABLES.children),
-        fetch(TABLES.missions),
-        fetch(TABLES.assignments),
-        fetch(TABLES.completions),
-        fetch(TABLES.transactions),
-        fetch(TABLES.sessions),
-        fetch(TABLES.devices),
+        this.rows(TABLES.completions, (q) =>
+          q.gte('completed_at', window).order('completed_at', { ascending: false }).limit(HISTORY_MAX),
+        ),
+        // Never truncated: a request nobody answered is the one thing that must
+        // not fall off the end of the list.
+        this.rows(TABLES.completions, (q) => q.eq('status', 'pending')),
+        this.rows(TABLES.transactions, (q) =>
+          q.gte('created_at', window).order('created_at', { ascending: false }).limit(HISTORY_MAX),
+        ),
+        this.rows(TABLES.sessions, (q) =>
+          q.gte('started_at', window).order('started_at', { ascending: false }).limit(HISTORY_MAX),
+        ),
+        this.rows(TABLES.sessions, (q) => q.in('status', ['running', 'requested'])),
+        this.balances(),
       ]);
+
+    const transactions = recentTransactions.map(rowToTransaction);
 
     return {
       family,
@@ -265,11 +309,27 @@ class SupabaseRepository implements MinoRepository {
       children: children.map(rowToChild),
       missions: missions.map(rowToMission),
       assignments: assignments.map(rowToAssignment),
-      completions: completions.map(rowToCompletion),
-      transactions: transactions.map(rowToTransaction),
-      sessions: sessions.map(rowToSession),
+      completions: mergeById(recentCompletions, pendingCompletions).map(rowToCompletion),
+      transactions: withOpeningBalances(transactions, balances, family.id, window),
+      sessions: mergeById(recentSessions, liveSessions).map(rowToSession),
       devices: devices.map(rowToDevice),
     };
+  }
+
+  /** One filtered read, with the error handling every call site would repeat. */
+  private async rows(table: string, shape: (q: any) => any): Promise<any[]> {
+    const res = await shape(this.client.from(table).select('*'));
+    if (res.error) throw res.error;
+    return res.data ?? [];
+  }
+
+  /** The true balance of every child, summed over the whole ledger by the server. */
+  private async balances(): Promise<Record<string, number>> {
+    const { data, error } = await this.client.rpc('family_balances');
+    if (error || !Array.isArray(data)) return {};
+    const out: Record<string, number> = {};
+    for (const row of data) out[row.child_id] = row.minutes;
+    return out;
   }
 
   async persist(data: FamilyData, change: ChangeEvent): Promise<void> {
@@ -346,22 +406,51 @@ class SupabaseRepository implements MinoRepository {
 
   /**
    * Realtime: a parent validating on their phone must update the child's tablet
-   * without a refresh. Any change in the family reloads the document.
+   * without a refresh.
+   *
+   * On a private broadcast channel, not on `postgres_changes`. The difference
+   * is not a detail of implementation but of arithmetic: `postgres_changes`
+   * evaluates every write in the database against every connected client, so
+   * its cost is the product of the two and it stops following somewhere in the
+   * low thousands. A channel named after the family is only ever reached by the
+   * devices of that family — the cost stops being a product.
+   *
+   * Who may listen is decided by the database, not here: see the policy on
+   * `realtime.messages` in scale.sql.
    */
-  subscribe(onRemoteChange: (data: FamilyData) => void): () => void {
-    const channel = this.client
-      .channel('mino-family')
-      .on('postgres_changes', { event: '*', schema: 'public' }, () => {
+  subscribe(familyId: ID, onRemoteChange: (data: FamilyData) => void): () => void {
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let channel: ReturnType<SupabaseClient['channel']> | null = null;
+
+    // Approving a mission writes a completion and a transaction milliseconds
+    // apart. Reloading twice for one gesture is one reload too many.
+    const reload = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
         this.load()
           .then((data) => {
-            if (data) onRemoteChange(data);
+            if (data && !disposed) onRemoteChange(data);
           })
           .catch(() => undefined);
-      })
-      .subscribe();
+      }, 300);
+    };
+
+    (async () => {
+      // A private channel is authorised with the caller's token, so it has to
+      // be handed over before joining.
+      await this.client.realtime.setAuth().catch(() => undefined);
+      if (disposed) return;
+      channel = this.client
+        .channel(`famille:${familyId}`, { config: { private: true } })
+        .on('broadcast', { event: 'change' }, reload)
+        .subscribe();
+    })();
 
     return () => {
-      this.client.removeChannel(channel);
+      disposed = true;
+      if (timer) clearTimeout(timer);
+      if (channel) this.client.removeChannel(channel);
     };
   }
 }

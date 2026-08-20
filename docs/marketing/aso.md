@@ -1,0 +1,152 @@
+# Fiches App Store et Play Store
+
+Le trafic le mieux qualifié qui existe, et il est gratuit : un parent qui tape
+« temps d'écran enfant » est déjà convaincu du problème.
+
+À préparer **avant** le lancement. Les premières semaines de classement pèsent
+durablement, et une fiche améliorée trois mois trop tard ne rattrape pas ce
+qu'elle a laissé passer.
+
+---
+
+## Ce que cherchent les parents, en français
+
+Par intention, de la plus fréquente à la plus précise :
+
+| Intention | Ce qui est tapé |
+|---|---|
+| Limiter | « contrôle parental », « temps d'écran enfant », « limiter écran enfant » |
+| Bloquer | « bloquer applications enfant », « limiter youtube enfant » |
+| Organiser | « tâches enfants », « routine enfant », « responsabilités enfants » |
+| Récompenser | « récompense enfant », « motiver enfant tâches » |
+
+Mino se situe à l'intersection des deux premières familles et des deux
+dernières, ce qui est à la fois sa force et sa difficulté : personne ne cherche
+« gagner du temps d'écran en faisant des missions », parce que personne ne sait
+que ça existe. **On se référence sur « contrôle parental », et on convainc sur
+le reste.**
+
+---
+
+## App Store
+
+**Nom** (30 caractères) :
+`Mino — Temps d'écran gagné`
+
+**Sous-titre** (30 caractères) :
+`Missions, minutes, écrans`
+
+Le sous-titre est indexé au même titre que le nom : y placer des mots, pas un
+slogan. Le slogan « Grandir, une mission à la fois » a sa place dans la première
+capture d'écran, pas ici.
+
+**Mots-clés** (100 caractères, séparés par des virgules, sans espaces, sans
+répéter ceux du nom) :
+
+```
+controle,parental,ecran,enfant,famille,taches,routine,recompense,limiter,bloquer,ado
+```
+
+**Texte promotionnel** (170 caractères, modifiable sans nouvelle version — à
+utiliser pour la saison) :
+
+> Fini la négociation du soir. Votre enfant fait ses missions, gagne des
+> minutes, et profite de ses écrans. Vous validez, c'est tout.
+
+---
+
+## Play Store
+
+**Titre** (30) : `Mino — Temps d'écran gagné`
+
+**Description courte** (80) :
+> Votre enfant gagne son temps d'écran en faisant ses missions du quotidien.
+
+Le référencement Play s'appuie sur le texte complet plutôt que sur une liste de
+mots-clés : les termes doivent apparaître **naturellement dans les phrases**,
+sans entassement — qui est pénalisé.
+
+---
+
+## La description longue
+
+Structure qui fonctionne pour ce public : le problème d'abord, la mécanique
+ensuite, la preuve après, le prix à la fin.
+
+> **Le temps d'écran se gagne, il ne se négocie plus.**
+>
+> Chaque soir, la même discussion. Mino la remplace par une règle simple, que
+> les enfants comprennent tout de suite :
+>
+> **Je fais mes missions → je gagne du temps → je profite de mes écrans.**
+>
+> **Comment ça marche**
+> Vous créez de petites responsabilités quotidiennes : ranger sa chambre, mettre
+> la table, lire dix minutes. Chacune vaut des minutes d'écran. Votre enfant
+> appuie sur « J'ai terminé », vous validez, les minutes arrivent aussitôt.
+>
+> **Un vrai blocage, pas un simple compteur**
+> Quand le temps est écoulé, les applications que vous avez choisies se
+> referment. Le téléphone, les messages et les appels d'urgence restent
+> toujours accessibles.
+>
+> **Pour les grands aussi**
+> À partir de treize ans, Mino change de langage : des minutes plutôt que des
+> minos, des missions qui parlent d'autonomie, de travail et d'équilibre.
+>
+> **Les autres écrans comptent aussi**
+> Console, télévision, ordinateur familial : déclarez-les, et ils entrent dans
+> le même système.
+>
+> **Ce que Mino ne fait pas**
+> Aucune publicité. Aucune revente de données. Aucune géolocalisation. Aucune
+> messagerie. Aucun profil public. Votre enfant n'a ni compte, ni adresse
+> e-mail. Nous collectons son prénom, son âge et son avatar — rien d'autre.
+>
+> **Essai de 30 jours**, puis 9,90 €/mois ou 79 €/an pour toute la famille,
+> autant d'enfants et d'appareils que vous voulez. Annulation en deux touches.
+
+---
+
+## Les captures d'écran
+
+Elles sont vues **avant** la description, et souvent à la place. Cinq suffisent,
+dans cet ordre — chacune avec une phrase en haut, lisible sans zoomer :
+
+1. **« Le temps d'écran se gagne. »** — l'écran enfant, compteur bien visible.
+2. **« Vous validez, les minutes arrivent. »** — la demande côté parent.
+3. **« Un vrai blocage, pas un compteur. »** — le moment où le temps se termine.
+4. **« Console, télé, ordinateur : tout compte. »** — l'écran Appareils.
+5. **« Aucune pub. Aucune donnée revendue. »** — la promesse de confidentialité.
+
+La cinquième compte plus qu'il n'y paraît : c'est la première inquiétude d'un
+parent devant une application destinée à son enfant, et presque aucun
+concurrent n'y répond frontalement.
+
+---
+
+## Les avis, qui pèsent autant que tout le reste
+
+En dessous de 4,0, le classement décroche et le taux d'installation s'effondre.
+
+**Quand demander** : après une mission validée, pas au premier lancement. Un
+parent à qui on demande un avis avant que le produit n'ait servi met deux
+étoiles, et il a raison.
+
+**Répondre à tous les avis négatifs**, sans exception et sans défensive. La
+réponse est lue par les futurs installeurs bien plus que par son destinataire :
+c'est de la fiche produit, pas du service après-vente.
+
+Beaucoup d'avis à une étoile sur ce type d'application disent la même chose :
+« ça ne bloque rien ». C'est presque toujours l'autorisation système qui n'a pas
+été accordée. La réponse tient en deux phrases et se trouve déjà dans la FAQ
+(`applis-ne-se-bloquent-pas`) — c'est aussi pourquoi le parcours d'installation
+mérite tout le soin qu'on lui donne.
+
+---
+
+## Le rythme
+
+Une révision par trimestre : mots-clés selon ce qui remonte, texte promotionnel
+selon la saison (rentrée en août, résolutions en janvier), captures à chaque
+changement visuel notable.

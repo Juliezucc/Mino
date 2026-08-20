@@ -39,6 +39,47 @@ function planOf(subscription: Stripe.Subscription): 'monthly' | 'yearly' | null 
   return null;
 }
 
+/**
+ * Appends one line to the billing ledger.
+ *
+ * `subscriptions` is a mirror: every change overwrites it. A family that tried,
+ * paid four months and left leaves a single "canceled" row there — which is why
+ * churn, cohorts and past MRR cannot be recovered from it afterwards. They are
+ * not hard to compute without this: they are impossible, because the fact was
+ * never written down. Same rule as the screen-time ledger, applied to money.
+ *
+ * `stripe_event_id` is unique, and Stripe replays its webhooks — so a duplicate
+ * is dropped rather than counted twice.
+ */
+async function record(input: {
+  familyId: string;
+  kind: string;
+  eventId: string;
+  status?: string | null;
+  plan?: string | null;
+  amountCents?: number | null;
+  occurredAt?: string;
+}) {
+  const { error } = await admin()
+    .from('billing_events')
+    .upsert(
+      {
+        family_id: input.familyId,
+        kind: input.kind,
+        status: input.status ?? null,
+        plan: input.plan ?? null,
+        amount_cents: input.amountCents ?? null,
+        stripe_event_id: input.eventId,
+        occurred_at: input.occurredAt ?? new Date().toISOString(),
+      },
+      { onConflict: 'stripe_event_id', ignoreDuplicates: true },
+    );
+
+  // A missing ledger line must never fail the webhook: Stripe would retry, and
+  // the mirror — which is what the app actually reads — is already correct.
+  if (error) console.error('journal facturation', input.kind, error);
+}
+
 /** Mirrors a Stripe subscription into our table. */
 async function sync(subscription: Stripe.Subscription) {
   const familyId =
@@ -114,7 +155,7 @@ async function rewardReferrer(referrerFamilyId: string) {
 }
 
 /** The referee just paid for real: settle any referral waiting on them. */
-async function settleReferral(refereeFamilyId: string) {
+async function settleReferral(refereeFamilyId: string, eventId: string) {
   const db = admin();
 
   const { data: pending } = await db
@@ -159,7 +200,17 @@ async function settleReferral(refereeFamilyId: string) {
     })
     .eq('id', pending.id);
 
-  if (creditedFamilyId) await rewardReferrer(creditedFamilyId);
+  if (creditedFamilyId) {
+    await rewardReferrer(creditedFamilyId);
+    // Un mois offert est un revenu abandonné : il doit apparaître dans les
+    // comptes du parrain, sans quoi le parrainage semble gratuit.
+    await record({
+      familyId: creditedFamilyId,
+      kind: 'parrainage_credite',
+      eventId: `${eventId}:parrainage`,
+      amountCents: -Math.round(MONTHLY_PRICE_EUR * 100) * REFERRAL.referrerFreeMonths,
+    });
+  }
 }
 
 Deno.serve(async (request) => {
@@ -202,7 +253,29 @@ Deno.serve(async (request) => {
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
-        await sync(event.data.object as Stripe.Subscription);
+        const subscription = event.data.object as Stripe.Subscription;
+        const familyId = await sync(subscription);
+        if (!familyId) break;
+
+        const common = {
+          familyId,
+          eventId: event.id,
+          status: statusOf(subscription),
+          plan: planOf(subscription),
+        };
+
+        if (event.type === 'customer.subscription.deleted') {
+          await record({ ...common, kind: 'resiliation_effective' });
+        } else if (event.type === 'customer.subscription.created') {
+          await record({
+            ...common,
+            kind: subscription.trial_end ? 'essai_commence' : 'abonnement_commence',
+          });
+        } else if (subscription.cancel_at_period_end) {
+          // Le moment qui compte pour comprendre pourquoi on perd des clients :
+          // la décision, pas la fin de période qui suit un mois plus tard.
+          await record({ ...common, kind: 'resiliation_demandee' });
+        }
         break;
       }
 
@@ -214,16 +287,52 @@ Deno.serve(async (request) => {
         const subscriptionId = (invoice as unknown as { subscription?: string }).subscription;
         if (typeof subscriptionId !== 'string') break;
 
-        const familyId = await sync(await stripe().subscriptions.retrieve(subscriptionId));
-        if (familyId) await settleReferral(familyId);
+        const subscription = await stripe().subscriptions.retrieve(subscriptionId);
+        const familyId = await sync(subscription);
+        if (!familyId) break;
+
+        const common = {
+          familyId,
+          status: statusOf(subscription),
+          plan: planOf(subscription),
+          // Hors taxes : c'est le revenu, pas l'encaissement. La TVA n'est pas
+          // à nous et n'a rien à faire dans un MRR.
+          amountCents: (invoice.total_excluding_tax ?? invoice.amount_paid) ?? null,
+        };
+
+        // Premier vrai paiement de cette famille ? On ne peut le savoir qu'ici,
+        // et c'est cette date qui ancre les cohortes de conversion.
+        const { count } = await admin()
+          .from('billing_events')
+          .select('id', { count: 'exact', head: true })
+          .eq('family_id', familyId)
+          .eq('kind', 'paiement');
+
+        if ((count ?? 0) === 0) {
+          await record({ ...common, kind: 'abonnement_commence', eventId: `${event.id}:debut` });
+        }
+
+        await record({ ...common, kind: 'paiement', eventId: event.id });
+        await settleReferral(familyId, event.id);
         break;
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         const subscriptionId = (invoice as unknown as { subscription?: string }).subscription;
-        if (typeof subscriptionId === 'string') {
-          await sync(await stripe().subscriptions.retrieve(subscriptionId));
+        if (typeof subscriptionId !== 'string') break;
+
+        const subscription = await stripe().subscriptions.retrieve(subscriptionId);
+        const familyId = await sync(subscription);
+        if (familyId) {
+          await record({
+            familyId,
+            kind: 'paiement_echoue',
+            eventId: event.id,
+            status: statusOf(subscription),
+            plan: planOf(subscription),
+            amountCents: invoice.amount_due ?? null,
+          });
         }
         break;
       }

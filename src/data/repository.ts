@@ -37,8 +37,14 @@ export interface MinoRepository {
   load(): Promise<FamilyData | null>;
   persist(data: FamilyData, change: ChangeEvent): Promise<void>;
   clear(): Promise<void>;
-  /** Realtime push from the backend, when the implementation supports it. */
-  subscribe?(onRemoteChange: (data: FamilyData) => void): () => void;
+  /**
+   * Realtime push from the backend, when the implementation supports it.
+   *
+   * The family id is passed in rather than discovered: a subscription that has
+   * to load the document before it can listen pays for the document twice, once
+   * at every launch of every device.
+   */
+  subscribe?(familyId: ID, onRemoteChange: (data: FamilyData) => void): () => void;
 
   /**
    * Attaches this device to a family, from the child's side.
