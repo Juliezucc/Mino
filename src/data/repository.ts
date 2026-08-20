@@ -11,6 +11,7 @@ export type ChangeKind =
   | 'child.updated'
   | 'child.removed'
   | 'mission.created'
+  | 'mission.updated'
   | 'mission.archived'
   | 'completion.created'
   | 'completion.approved'

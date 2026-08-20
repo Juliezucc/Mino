@@ -259,3 +259,43 @@ describe('les missions sans confirmation', () => {
     expect(mission.autoApprove).toBe(false);
   });
 });
+
+/**
+ * Changer d'avis sur une mission déjà créée.
+ *
+ * Le réglage n'a de sens que s'il se retire : un parent découvre au bout d'une
+ * semaine que confirmer « faire son lit » tous les matins ne lui apprend rien,
+ * et c'est à ce moment-là qu'il doit pouvoir le changer — pas à la création,
+ * où il ne sait pas encore.
+ */
+describe('modifier une mission', () => {
+  it('accorde et retire la confiance après coup', () => {
+    const base = buildDemoFamily(new Date('2026-08-20T09:00:00.000Z'));
+    const lit = base.missions.find((m) => m.title === 'Faire mon lit')!;
+    expect(lit.autoApprove).toBe(false);
+
+    const ouverte = actions.updateMission(base, lit.id, { autoApprove: true });
+    expect(ouverte.missions.find((m) => m.id === lit.id)!.autoApprove).toBe(true);
+
+    const refermee = actions.updateMission(ouverte, lit.id, { autoApprove: false });
+    expect(refermee.missions.find((m) => m.id === lit.id)!.autoApprove).toBe(false);
+  });
+
+  it('ne touche pas au temps déjà gagné', () => {
+    // Les complétions gardent une copie du barème : rouvrir une mission ne
+    // réécrit pas ce qu'un enfant a déjà obtenu.
+    const base = buildDemoFamily(new Date('2026-08-20T09:00:00.000Z'));
+    const noah = base.children[0];
+    const avant = balanceOf(base.transactions, noah.id);
+
+    const apres = actions.updateMission(base, base.missions[0].id, { autoApprove: true });
+    expect(balanceOf(apres.transactions, noah.id)).toBe(avant);
+  });
+
+  it('refuse un nom vide', () => {
+    const base = buildDemoFamily(new Date('2026-08-20T09:00:00.000Z'));
+    expect(() => actions.updateMission(base, base.missions[0].id, { title: '   ' })).toThrow(
+      actions.DomainError,
+    );
+  });
+});

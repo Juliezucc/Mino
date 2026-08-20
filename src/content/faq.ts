@@ -473,6 +473,15 @@ export const FAQ: FaqEntry[] = [
     keywords: ['sans confirmation', 'automatique', 'valider automatiquement', 'pas confirmer', 'gagner du temps', 'auto'],
     route: '/parent/mission-new',
   },
+  {
+    id: 'changer-confirmation-mission',
+    question: 'Comment changer ce réglage sur une mission déjà créée ?',
+    answer:
+      'Dans l’onglet Missions, chaque mission porte une petite étiquette : « Vous confirmez » ou « Se compte toute seule ». Touchez-la pour passer de l’une à l’autre. C’est immédiat, et cela ne change rien aux minutes déjà gagnées.',
+    category: 'missions',
+    keywords: ['changer', 'modifier mission', 'revenir en arriere', 'retirer automatique', 'reglage mission'],
+    route: '/parent/missions',
+  },
 
   /* ------------------------------------------------------ confidentialité */
   {

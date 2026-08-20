@@ -121,6 +121,10 @@ Chaque enfant a son profil, ses missions et son compteur — rien n’est commun
 
 Oui. À la création d’une mission, choisissez « Ça compte tout seul » : les minutes arriveront dès que votre enfant appuiera sur « J’ai terminé », et vous serez prévenu sans avoir rien à faire. C’est fait pour ce que vous constatez de toute façon — se brosser les dents, faire son lit. Le réglage se change mission par mission, à tout moment.
 
+### Comment changer ce réglage sur une mission déjà créée ?
+
+Dans l’onglet Missions, chaque mission porte une petite étiquette : « Vous confirmez » ou « Se compte toute seule ». Touchez-la pour passer de l’une à l’autre. C’est immédiat, et cela ne change rien aux minutes déjà gagnées.
+
 ## 🔐 Compte et code parent
 
 ### J’ai oublié mon code parent

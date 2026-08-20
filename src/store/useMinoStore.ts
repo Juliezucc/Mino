@@ -106,6 +106,10 @@ interface MinoState {
     /** La mission se compte d'elle-même. Voir `Mission.autoApprove`. */
     autoApprove?: boolean;
   }) => Promise<ID>;
+  editMission: (
+    missionId: ID,
+    patch: { title?: string; icon?: string; autoApprove?: boolean },
+  ) => Promise<void>;
   archiveMission: (missionId: ID) => Promise<void>;
 
   completeMission: (childId: ID, missionId: ID) => Promise<ID>;
@@ -423,6 +427,14 @@ export const useMinoStore = create<MinoState>((set, get) => {
         };
       });
       return id!;
+    },
+
+    async editMission(missionId, patch) {
+      await commit('mission.updated', (data) => {
+        const next = actions.updateMission(data, missionId, patch);
+        const mission = next.missions.find((m) => m.id === missionId);
+        return { data: next, upsert: mission ? { missions: [mission] } : undefined };
+      });
     },
 
     async archiveMission(missionId) {

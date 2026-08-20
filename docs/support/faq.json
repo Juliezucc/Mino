@@ -677,6 +677,19 @@
       ]
     },
     {
+      "id": "changer-confirmation-mission",
+      "title": "Comment changer ce réglage sur une mission déjà créée ?",
+      "body": "Dans l’onglet Missions, chaque mission porte une petite étiquette : « Vous confirmez » ou « Se compte toute seule ». Touchez-la pour passer de l’une à l’autre. C’est immédiat, et cela ne change rien aux minutes déjà gagnées.",
+      "category": "Missions et minos",
+      "keywords": [
+        "changer",
+        "modifier mission",
+        "revenir en arriere",
+        "retirer automatique",
+        "reglage mission"
+      ]
+    },
+    {
       "id": "donnees-enfant",
       "title": "Quelles données collectez-vous sur mon enfant ?",
       "body": "Son prénom, son âge et son avatar. Rien d’autre : pas d’adresse e-mail, pas de photo, pas de numéro. Mino ne sait pas quelles applications sont installées sur son appareil — le système ne les lui montre jamais.",

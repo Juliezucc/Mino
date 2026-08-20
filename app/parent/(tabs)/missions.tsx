@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, EmptyState, MinutesBadge, Screen, SectionHeader, Text } from '@/components/ui';
 import { ROUTINES, suits } from '@/domain/missionLibrary';
@@ -15,6 +15,7 @@ export default function ParentMissions() {
   const data = useFamily();
   const children = useChildren();
   const archiveMission = useMinoStore((s) => s.archiveMission);
+  const editMission = useMinoStore((s) => s.editMission);
 
   if (!data) return null;
 
@@ -106,6 +107,31 @@ export default function ParentMissions() {
                   <MinutesBadge minutes={mission.minutes} />
                 </View>
 
+                {/* Le réglage se change ici, sur la mission elle-même.
+                    Le proposer seulement à la création serait le figer : un
+                    parent découvre au bout d'une semaine que confirmer « faire
+                    son lit » tous les matins ne lui apprend rien, et c'est
+                    exactement à ce moment-là qu'il doit pouvoir le retirer. */}
+                <Pressable
+                  onPress={() =>
+                    editMission(mission.id, { autoApprove: !mission.autoApprove }).catch(
+                      () => undefined,
+                    )
+                  }
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: mission.autoApprove === true }}
+                  accessibilityLabel={
+                    mission.autoApprove
+                      ? `« ${mission.title} » se compte toute seule. Toucher pour la faire passer par vous.`
+                      : `« ${mission.title} » passe par vous. Toucher pour qu’elle se compte toute seule.`
+                  }
+                  style={[styles.auto, mission.autoApprove && styles.autoOn]}
+                >
+                  <Text variant="caption" color={mission.autoApprove ? colors.mint : colors.textMuted}>
+                    {mission.autoApprove ? '⚡  Se compte toute seule' : '✓  Vous confirmez'}
+                  </Text>
+                </Pressable>
+
                 <View style={styles.footer}>
                   <View style={styles.avatars}>
                     {assigned.map((childId) => {
@@ -147,6 +173,14 @@ const styles = StyleSheet.create({
   content: { paddingTop: spacing.lg, paddingBottom: tabBarSpace, gap: spacing.lg },
   list: { gap: spacing.md },
   card: { gap: spacing.md },
+  auto: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceSunken,
+  },
+  autoOn: { backgroundColor: colors.mintSoft },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   iconTile: {
     width: 52,

@@ -145,6 +145,32 @@ export function createMission(
   };
 }
 
+/**
+ * Modifier une mission déjà créée.
+ *
+ * Volontairement limité à ce qui se change sans réécrire le passé. Le temps
+ * gagné, lui, n'est pas ici : les complétions en gardent une copie au moment où
+ * elles sont faites (`minutesRequested`), et changer le barème d'une mission ne
+ * doit pas modifier ce qu'un enfant a déjà obtenu.
+ */
+export function updateMission(
+  data: FamilyData,
+  missionId: ID,
+  patch: { title?: string; icon?: string; autoApprove?: boolean },
+): FamilyData {
+  if (patch.title !== undefined && !patch.title.trim()) {
+    throw new DomainError('Le nom de la mission est obligatoire.');
+  }
+  return {
+    ...data,
+    missions: data.missions.map((m) =>
+      m.id === missionId
+        ? { ...m, ...patch, ...(patch.title ? { title: patch.title.trim() } : {}), id: m.id }
+        : m,
+    ),
+  };
+}
+
 export function archiveMission(data: FamilyData, missionId: ID): FamilyData {
   return {
     ...data,
