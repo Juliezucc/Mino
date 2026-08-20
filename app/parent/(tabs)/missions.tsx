@@ -147,14 +147,22 @@ export default function ParentMissions() {
                       );
                     })}
                   </View>
-                  <Button
-                    label="Supprimer"
-                    variant="ghost"
-                    size="small"
-                    full={false}
-                    haptic={false}
+                  {/* Discret, et volontairement : supprimer était jusqu'ici
+                      l'élément le plus visible de chaque ligne après le titre.
+                      Une action qu'on ne fait presque jamais, et qui efface,
+                      n'a rien à faire au premier plan — elle reste à sa place,
+                      avec la même surface tactile. */}
+                  <Pressable
                     onPress={() => confirmArchive(mission.id, mission.title)}
-                  />
+                    accessibilityRole="button"
+                    accessibilityLabel={`Supprimer la mission « ${mission.title} »`}
+                    hitSlop={8}
+                    style={styles.remove}
+                  >
+                    <Text variant="caption" color={colors.textSubtle}>
+                      🗑  Supprimer
+                    </Text>
+                  </Pressable>
                 </View>
               </Card>
             );
@@ -199,6 +207,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     paddingTop: spacing.md,
   },
+  remove: { paddingVertical: spacing.xs, paddingLeft: spacing.md },
   avatars: { flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap', flex: 1 },
   assignee: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
 });

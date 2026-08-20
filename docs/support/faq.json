@@ -48,7 +48,7 @@
     {
       "id": "faut-il-installer-cote-parent",
       "title": "Dois-je aussi installer Mino sur mon téléphone ?",
-      "body": "Oui. C’est depuis votre téléphone que vous créez les missions, validez les demandes et suivez le temps en cours. L’application de l’enfant ne sert qu’à lui.",
+      "body": "Oui. C’est depuis votre téléphone que vous créez les missions, confirmez les demandes et suivez le temps en cours. L’application de l’enfant ne sert qu’à lui.",
       "category": "Installation",
       "keywords": [
         "deux applications",
@@ -60,7 +60,7 @@
     {
       "id": "deux-parents",
       "title": "Nous sommes deux parents, sur deux téléphones",
-      "body": "Chacun installe Mino et se connecte au même compte. Les validations, les missions et l’historique sont partagés en direct : ce que l’un valide, l’autre le voit aussitôt.",
+      "body": "Chacun installe Mino et se connecte au même compte. Les confirmations, les missions et l’historique sont partagés en direct : ce que l’un confirme, l’autre le voit aussitôt.",
       "category": "Installation",
       "keywords": [
         "deux parents",
@@ -73,7 +73,7 @@
     {
       "id": "enfant-sans-telephone",
       "title": "Mon enfant n’a pas de téléphone",
-      "body": "Mino fonctionne quand même. Vous déclarez ses écrans dans Appareils — console, télévision, ordinateur familial — et vous validez ses demandes depuis votre téléphone. La différence : sur ces écrans-là, c’est vous qui ouvrez et fermez l’accès, Mino ne peut pas le faire tout seul.",
+      "body": "Mino fonctionne quand même. Vous déclarez ses écrans dans Appareils — console, télévision, ordinateur familial — et vous confirmez ses demandes depuis votre téléphone. La différence : sur ces écrans-là, c’est vous qui ouvrez et fermez l’accès, Mino ne peut pas le faire tout seul.",
       "category": "Installation",
       "keywords": [
         "pas de telephone",
@@ -86,7 +86,7 @@
     {
       "id": "console-tv-ordinateur",
       "title": "Est-ce que ça marche avec une Switch, une PlayStation ou la télé ?",
-      "body": "Ces écrans se déclarent dans Appareils et entrent dans le système de minos : l’enfant demande, vous validez, le temps est décompté. Mais aucun système de console ou de téléviseur ne laisse une application extérieure couper l’accès. Sur ces écrans, le blocage reste entre vos mains — Mino tient le compte, vous tenez la manette.",
+      "body": "Ces écrans se déclarent dans Appareils et entrent dans le système de minos : l’enfant demande, vous confirmez, le temps est décompté. Mais aucun système de console ou de téléviseur ne laisse une application extérieure couper l’accès. Sur ces écrans, le blocage reste entre vos mains — Mino tient le compte, vous tenez la manette.",
       "category": "Installation",
       "keywords": [
         "switch",
@@ -218,7 +218,7 @@
     {
       "id": "enfant-lance-son-temps",
       "title": "Mon enfant peut-il lancer son temps tout seul ?",
-      "body": "Sur l’appareil où Mino est installé, oui, s’il a des minos : c’est le principe même, il dépense ce qu’il a gagné. Si vous préférez valider chaque fois, activez « Demander avant chaque session » sur sa fiche. Sur les autres écrans, votre validation est toujours requise.",
+      "body": "Sur l’appareil où Mino est installé, oui, s’il a des minos : c’est le principe même, il dépense ce qu’il a gagné. Si vous préférez confirmer chaque fois, activez « Demander avant chaque session » sur sa fiche. Sur les autres écrans, votre confirmation est toujours requise.",
       "category": "Temps d’écran",
       "keywords": [
         "lancer seul",
@@ -298,12 +298,13 @@
     },
     {
       "id": "valide-par-erreur",
-      "title": "J’ai validé une mission par erreur",
+      "title": "J’ai confirmé une mission par erreur",
       "body": "Ajustez le compteur depuis la fiche de l’enfant. La correction apparaît dans son historique : rien n’est effacé, on ajoute une ligne. C’est ce qui garantit que le compteur et l’historique ne se contredisent jamais.",
       "category": "Missions et minos",
       "keywords": [
         "erreur",
         "annuler validation",
+        "valide par erreur",
         "retirer",
         "corriger",
         "trop de minutes"
@@ -595,7 +596,7 @@
     {
       "id": "parler-a-mino",
       "title": "Mon enfant discute avec Mino : qu’est-ce que c’est ?",
-      "body": "Quand son temps d’écran est terminé, Mino reste et peut discuter avec lui — une vingtaine d’échanges par jour, puis il l’envoie jouer. Mino connaît ses missions du jour, propose des défis sans écran, et ne valide jamais une mission ni ne donne de minutes : cela n’appartient qu’à vous. Vous pouvez lire toutes leurs conversations, et votre enfant en est prévenu.",
+      "body": "Quand son temps d’écran est terminé, Mino reste et peut discuter avec lui — une vingtaine d’échanges par jour, puis il l’envoie jouer. Mino connaît ses missions du jour, propose des défis sans écran, et ne confirme jamais une mission ni ne donne de minutes : cela n’appartient qu’à vous. Vous pouvez lire toutes leurs conversations, et votre enfant en est prévenu.",
       "category": "Données et confidentialité",
       "keywords": [
         "discuter",
@@ -763,7 +764,7 @@
     {
       "id": "compteur-ne-bouge-pas",
       "title": "Le compteur de mon enfant ne bouge pas",
-      "body": "Les minutes n’arrivent qu’après votre validation : regardez les demandes en attente sur l’accueil de l’espace parent. Si vous avez validé et que le compteur ne suit pas, fermez et rouvrez l’application sur l’appareil de l’enfant.",
+      "body": "Les minutes n’arrivent qu’après votre confirmation : regardez les demandes en attente sur l’accueil de l’espace parent. Si vous avez confirmé et que le compteur ne suit pas, fermez et rouvrez l’application sur l’appareil de l’enfant.",
       "category": "Ça ne marche pas",
       "keywords": [
         "compteur",

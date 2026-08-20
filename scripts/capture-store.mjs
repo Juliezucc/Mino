@@ -210,6 +210,17 @@ async function step(instruction) {
     }
   }
 
+  // « défiler 420 » : certains écrans ont leur moment plus bas que le pli.
+  // C'est le cas de la confirmation — les deux boutons sont ce qu'il faut
+  // montrer, et ils arrivent après la vue d'ensemble.
+  const scroll = instruction.match(/^défiler (\d+)$/i);
+  if (scroll) {
+    await page.mouse.move(200, 500);
+    await page.mouse.wheel(0, Number(scroll[1]));
+    await wait(900);
+    return;
+  }
+
   if (instruction === 'code parent') {
     for (const digit of PIN) {
       await page.getByText(digit, { exact: true }).filter({ visible: true }).first().click();

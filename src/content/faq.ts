@@ -81,7 +81,7 @@ export const FAQ: FaqEntry[] = [
     id: 'faut-il-installer-cote-parent',
     question: 'Dois-je aussi installer Mino sur mon téléphone ?',
     answer:
-      'Oui. C’est depuis votre téléphone que vous créez les missions, validez les demandes et suivez le temps en cours. L’application de l’enfant ne sert qu’à lui.',
+      'Oui. C’est depuis votre téléphone que vous créez les missions, confirmez les demandes et suivez le temps en cours. L’application de l’enfant ne sert qu’à lui.',
     category: 'installation',
     keywords: ['deux applications', 'telephone parent', 'mon telephone', 'cote parent'],
   },
@@ -89,7 +89,7 @@ export const FAQ: FaqEntry[] = [
     id: 'deux-parents',
     question: 'Nous sommes deux parents, sur deux téléphones',
     answer:
-      'Chacun installe Mino et se connecte au même compte. Les validations, les missions et l’historique sont partagés en direct : ce que l’un valide, l’autre le voit aussitôt.',
+      'Chacun installe Mino et se connecte au même compte. Les confirmations, les missions et l’historique sont partagés en direct : ce que l’un confirme, l’autre le voit aussitôt.',
     category: 'installation',
     keywords: ['deux parents', 'conjoint', 'partage', 'garde alternee', 'papa maman'],
   },
@@ -97,7 +97,7 @@ export const FAQ: FaqEntry[] = [
     id: 'enfant-sans-telephone',
     question: 'Mon enfant n’a pas de téléphone',
     answer:
-      'Mino fonctionne quand même. Vous déclarez ses écrans dans Appareils — console, télévision, ordinateur familial — et vous validez ses demandes depuis votre téléphone. La différence : sur ces écrans-là, c’est vous qui ouvrez et fermez l’accès, Mino ne peut pas le faire tout seul.',
+      'Mino fonctionne quand même. Vous déclarez ses écrans dans Appareils — console, télévision, ordinateur familial — et vous confirmez ses demandes depuis votre téléphone. La différence : sur ces écrans-là, c’est vous qui ouvrez et fermez l’accès, Mino ne peut pas le faire tout seul.',
     category: 'installation',
     keywords: ['pas de telephone', 'sans telephone', 'petit', 'jeune enfant', 'console seulement'],
     guide: 'autres-ecrans',
@@ -106,7 +106,7 @@ export const FAQ: FaqEntry[] = [
     id: 'console-tv-ordinateur',
     question: 'Est-ce que ça marche avec une Switch, une PlayStation ou la télé ?',
     answer:
-      'Ces écrans se déclarent dans Appareils et entrent dans le système de minos : l’enfant demande, vous validez, le temps est décompté. Mais aucun système de console ou de téléviseur ne laisse une application extérieure couper l’accès. Sur ces écrans, le blocage reste entre vos mains — Mino tient le compte, vous tenez la manette.',
+      'Ces écrans se déclarent dans Appareils et entrent dans le système de minos : l’enfant demande, vous confirmez, le temps est décompté. Mais aucun système de console ou de téléviseur ne laisse une application extérieure couper l’accès. Sur ces écrans, le blocage reste entre vos mains — Mino tient le compte, vous tenez la manette.',
     category: 'installation',
     keywords: ['switch', 'nintendo', 'playstation', 'ps5', 'xbox', 'console', 'television', 'tele', 'ordinateur', 'pc', 'mac'],
     guide: 'autres-ecrans',
@@ -184,7 +184,7 @@ export const FAQ: FaqEntry[] = [
     id: 'enfant-lance-son-temps',
     question: 'Mon enfant peut-il lancer son temps tout seul ?',
     answer:
-      'Sur l’appareil où Mino est installé, oui, s’il a des minos : c’est le principe même, il dépense ce qu’il a gagné. Si vous préférez valider chaque fois, activez « Demander avant chaque session » sur sa fiche. Sur les autres écrans, votre validation est toujours requise.',
+      'Sur l’appareil où Mino est installé, oui, s’il a des minos : c’est le principe même, il dépense ce qu’il a gagné. Si vous préférez confirmer chaque fois, activez « Demander avant chaque session » sur sa fiche. Sur les autres écrans, votre confirmation est toujours requise.',
     category: 'temps-ecran',
     keywords: ['lancer seul', 'demarrer son temps', 'autonomie', 'sans demander', 'validation'],
   },
@@ -233,11 +233,11 @@ export const FAQ: FaqEntry[] = [
   },
   {
     id: 'valide-par-erreur',
-    question: 'J’ai validé une mission par erreur',
+    question: 'J’ai confirmé une mission par erreur',
     answer:
       'Ajustez le compteur depuis la fiche de l’enfant. La correction apparaît dans son historique : rien n’est effacé, on ajoute une ligne. C’est ce qui garantit que le compteur et l’historique ne se contredisent jamais.',
     category: 'missions',
-    keywords: ['erreur', 'annuler validation', 'retirer', 'corriger', 'trop de minutes'],
+    keywords: ['erreur', 'annuler validation', 'valide par erreur', 'retirer', 'corriger', 'trop de minutes'],
   },
   {
     id: 'refuser-sans-vexer',
@@ -422,7 +422,7 @@ export const FAQ: FaqEntry[] = [
     id: 'parler-a-mino',
     question: 'Mon enfant discute avec Mino : qu’est-ce que c’est ?',
     answer:
-      'Quand son temps d’écran est terminé, Mino reste et peut discuter avec lui — une vingtaine d’échanges par jour, puis il l’envoie jouer. Mino connaît ses missions du jour, propose des défis sans écran, et ne valide jamais une mission ni ne donne de minutes : cela n’appartient qu’à vous. Vous pouvez lire toutes leurs conversations, et votre enfant en est prévenu.',
+      'Quand son temps d’écran est terminé, Mino reste et peut discuter avec lui — une vingtaine d’échanges par jour, puis il l’envoie jouer. Mino connaît ses missions du jour, propose des défis sans écran, et ne confirme jamais une mission ni ne donne de minutes : cela n’appartient qu’à vous. Vous pouvez lire toutes leurs conversations, et votre enfant en est prévenu.',
     category: 'confidentialite',
     keywords: ['discuter', 'parler', 'chat', 'ia', 'intelligence artificielle', 'compagnon', 'personnage'],
     route: '/parent/enfants',
@@ -532,7 +532,7 @@ export const FAQ: FaqEntry[] = [
     id: 'compteur-ne-bouge-pas',
     question: 'Le compteur de mon enfant ne bouge pas',
     answer:
-      'Les minutes n’arrivent qu’après votre validation : regardez les demandes en attente sur l’accueil de l’espace parent. Si vous avez validé et que le compteur ne suit pas, fermez et rouvrez l’application sur l’appareil de l’enfant.',
+      'Les minutes n’arrivent qu’après votre confirmation : regardez les demandes en attente sur l’accueil de l’espace parent. Si vous avez confirmé et que le compteur ne suit pas, fermez et rouvrez l’application sur l’appareil de l’enfant.',
     category: 'problemes',
     keywords: ['compteur', 'bouge pas', 'minutes', 'pas de minos', 'bloque', 'zero'],
   },

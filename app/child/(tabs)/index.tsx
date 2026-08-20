@@ -127,8 +127,8 @@ export default function ChildHome() {
               </Text>
               <Text variant="caption" color={colors.textMuted}>
                 {unit === 'minos'
-                  ? 'Ton parent doit valider pour ajouter tes minos.'
-                  : 'En attente de validation par ton parent.'}
+                  ? 'Ton parent confirme, et tes minos arrivent.'
+                  : 'En attente de confirmation par ton parent.'}
               </Text>
             </View>
           </View>

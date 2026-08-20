@@ -48,8 +48,8 @@ export default function ChildMissions() {
             ? `${todo.length} mission${todo.length > 1 ? 's' : ''} à faire${unit === 'minos' ? ' · touche une carte pour commencer' : ''}`
             : open.length > 0
               ? unit === 'minos'
-                ? 'Ton parent doit valider · tes minos arrivent après'
-                : 'En attente de validation'
+                ? 'Ton parent confirme · tes minos arrivent après'
+                : 'En attente de confirmation'
               : 'Tout est fait pour aujourd’hui !'}
         </Text>
       </View>

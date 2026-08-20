@@ -100,6 +100,33 @@ L'alternative — passer `supportsTablet` à `false` — aurait été un renonce
 la tablette partagée du salon est précisément l'un des usages pour lesquels le
 verrou d'appareil a été écrit.
 
+La deuxième série a révélé trois autres choses, toutes invisibles en lisant le
+code :
+
+- L'accueil parent annonçait encore « **Demandes à valider** », alors que les
+  boutons disent « C'est fait » et « À refaire ». Le mot a été retiré de toute
+  l'application, de la FAQ et de la fiche : il juge la mission, et personne ne
+  « valide » une chambre rangée.
+- « **Supprimer** » était, sur chaque ligne de mission, l'élément le plus
+  visible après le titre. Une action rare et destructrice ne mérite pas cette
+  place : elle est passée en gris discret, à surface tactile égale.
+- Deux frères qui font leur lit le même matin donnaient dans l'historique deux
+  lignes **strictement identiques**. Les lignes portent désormais le prénom,
+  mais seulement là où la liste mélange plusieurs enfants.
+
+Enfin, un piège de méthode, corrigé dans l'outil : `build-web-preview.mjs` ne
+faisait qu'emballer `dist/`, et publiait donc l'export précédent. Une série de
+captures entière a été produite à partir d'un code qui n'était plus le nôtre.
+Le script **exporte désormais lui-même** avant d'emballer.
+
+### La grammaire des chemins
+
+`path`, dans `store-screens.json`, est une suite d'instructions séparées par
+`→` : un libellé à toucher, `onglet X` pour la barre d'onglets, `code parent`
+pour le pavé numérique, et `défiler N` pour faire descendre la page de N
+pixels. Ce dernier existe parce que le moment à montrer n'est pas toujours
+au-dessus du pli — la confirmation, justement, ne l'est pas.
+
 ---
 
 ## À vérifier au moment de la soumission

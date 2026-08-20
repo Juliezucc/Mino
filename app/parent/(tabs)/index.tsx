@@ -59,8 +59,8 @@ export default function ParentHome() {
           <Text variant="hero">{`Bonjour ${parent?.displayName ?? ''} 👋`}</Text>
           <Text variant="body" color={colors.textMuted}>
             {waiting > 0
-              ? `${waiting} demande${waiting > 1 ? 's' : ''} à valider`
-              : 'Tout est à jour, rien à valider.'}
+              ? `${waiting} demande${waiting > 1 ? 's' : ''} vous attend${waiting > 1 ? 'ent' : ''}`
+              : 'Tout est à jour.'}
           </Text>
         </View>
         <Mascot expression={waiting > 0 ? 'motivated' : 'happy'} size={72} />
@@ -145,7 +145,9 @@ export default function ParentHome() {
 
       <View style={styles.section}>
         <SectionHeader
-          title="Demandes à valider"
+          // « à valider » jugeait la mission — ranger sa chambre n'est pas une
+          // demande qu'on approuve. Ce qui attend ici, c'est un enfant.
+          title="En attente de vous"
           subtitle={waiting > 0 ? 'Les minutes sont ajoutées immédiatement' : undefined}
         />
         {waiting === 0 ? (
@@ -182,7 +184,7 @@ export default function ParentHome() {
           title="Historique"
           action={{ label: 'Voir tout', onPress: () => router.push('/parent/enfants') }}
         />
-        <HistoryList transactions={recent} />
+        <HistoryList transactions={recent} attributeTo={children} />
       </View>
     </Screen>
   );

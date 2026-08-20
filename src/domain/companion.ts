@@ -313,7 +313,7 @@ export function greeting(context: CompanionContext): string {
   const { firstName, missionsWaiting } = context;
 
   if (missionsWaiting.length > 0) {
-    return `Plus de temps d’écran pour aujourd’hui 🥲 Mais moi je reste ! Et j’ai vu que tu avais fini « ${missionsWaiting[0]} » — tes parents vont pouvoir valider 👀`;
+    return `Plus de temps d’écran pour aujourd’hui 🥲 Mais moi je reste ! Et j’ai vu que tu avais fini « ${missionsWaiting[0]} » — tes parents vont pouvoir confirmer 👀`;
   }
   return `Plus de temps d’écran pour aujourd’hui 🥲 Mais moi je reste ! Tu veux me raconter ta journée, ${firstName} ?`;
 }

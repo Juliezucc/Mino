@@ -105,7 +105,7 @@ export class LocalCompanionService implements CompanionService {
     if (/j'?ai (fait|fini|rang|termin|reussi)/i.test(said)) {
       const mission = matchMission(said, [...context.missionsWaiting, ...context.missionsTodo]);
       if (mission) {
-        return `Trop bien 😮 « ${mission} », c’était justement une de tes missions aujourd’hui ! Tes parents vont pouvoir valider.`;
+        return `Trop bien 😮 « ${mission} », c’était justement une de tes missions aujourd’hui ! Tes parents vont pouvoir confirmer.`;
       }
       // Rien qui corresponde : on félicite sans inventer.
       return `Bravo ! 👏 Ce n’était pas dans tes missions du jour, mais ça compte quand même 💙`;

@@ -51,7 +51,7 @@ controle,parental,ecran,enfant,famille,taches,routine,recompense,limiter,bloquer
 utiliser pour la saison) :
 
 > Fini la négociation du soir. Votre enfant fait ses missions, gagne des
-> minutes, et profite de ses écrans. Vous validez, c'est tout.
+> minutes, et profite de ses écrans. Vous confirmez, c'est tout.
 
 ---
 
@@ -83,7 +83,13 @@ ensuite, la preuve après, le prix à la fin.
 > **Comment ça marche**
 > Vous créez de petites responsabilités quotidiennes : ranger sa chambre, mettre
 > la table, lire dix minutes. Chacune vaut des minutes d'écran. Votre enfant
-> appuie sur « J'ai terminé », vous validez, les minutes arrivent aussitôt.
+> appuie sur « J'ai terminé », vous confirmez, les minutes arrivent aussitôt.
+> Des routines toutes prêtes — matin, coucher, devoirs — créent la première
+> série en une touche.
+>
+> **Vous décidez mission par mission**
+> Certaines méritent votre œil, d'autres non. Chaque mission peut se compter
+> toute seule ou passer par vous, et ça se change quand vous voulez.
 >
 > **Un vrai blocage, pas un simple compteur**
 > Quand le temps est écoulé, les applications que vous avez choisies se
@@ -121,7 +127,10 @@ L'ordre retenu ci-dessous est celui d'origine ; celui qui est réellement produi
 compte huit visuels et figure dans le fichier de légendes.
 
 1. **« Le temps d'écran se gagne. »** — l'écran enfant, compteur bien visible.
-2. **« Vous validez, les minutes arrivent. »** — la demande côté parent.
+2. **« Vous confirmez, les minutes arrivent. »** — la demande côté parent.
+   « Valider » a été abandonné partout : le mot juge la mission — on ne
+   « valide » pas une chambre rangée — alors que ce qu'un parent confirme,
+   c'est que son enfant l'a bien faite.
 3. **« Un vrai blocage, pas un compteur. »** — le moment où le temps se termine.
    ⚠️ **À ne pas employer tant que le blocage n'est pas dans le binaire soumis.**
    Le service par défaut est `timer-only` : promettre un blocage qu'il ne fait

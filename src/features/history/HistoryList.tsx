@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Card, Text } from '@/components/ui';
 import { isSameDay } from '@/domain/ledger';
 import { formatMinos } from '@/domain/minos';
-import { ScreenTimeTransaction } from '@/domain/types';
+import { Child, ScreenTimeTransaction } from '@/domain/types';
 import { colors, radii, spacing } from '@/theme';
 
 interface Props {
@@ -12,6 +12,14 @@ interface Props {
   limit?: number;
   /** Children read minos, parents read minutes (see `domain/minos`). */
   unit?: 'minutes' | 'minos';
+  /**
+   * À passer quand la liste mélange plusieurs enfants — l'accueil parent.
+   *
+   * Sans elle, deux frères qui font leur lit le même matin donnent deux lignes
+   * « Faire mon lit · +5 min » rigoureusement identiques, et l'historique ne
+   * répond plus à la seule question qu'on lui pose : qui, et quand.
+   */
+  attributeTo?: Child[];
 }
 
 const KIND_ICON: Record<ScreenTimeTransaction['kind'], string> = {
@@ -38,9 +46,14 @@ function timeLabel(date: Date): string {
  * The ledger, read by a human. Every line is one transaction — the balance is
  * literally the sum of what is displayed here.
  */
-export function HistoryList({ transactions, limit, unit = 'minutes' }: Props) {
+export function HistoryList({ transactions, limit, unit = 'minutes', attributeTo }: Props) {
   const now = new Date();
   const shown = limit ? transactions.slice(0, limit) : transactions;
+  // Un seul enfant à l'écran : son prénom sur chaque ligne serait du bruit.
+  const nameOf = (childId: string) =>
+    attributeTo && attributeTo.length > 1
+      ? attributeTo.find((c) => c.id === childId)?.firstName
+      : undefined;
 
   if (shown.length === 0) {
     return (
@@ -84,7 +97,7 @@ export function HistoryList({ transactions, limit, unit = 'minutes' }: Props) {
                       {tx.reason}
                     </Text>
                     <Text variant="caption" color={colors.textSubtle}>
-                      {timeLabel(date)}
+                      {[timeLabel(date), nameOf(tx.childId)].filter(Boolean).join(' · ')}
                     </Text>
                   </View>
                   <Text variant="bodyStrong" color={positive ? colors.mint : colors.textMuted}>

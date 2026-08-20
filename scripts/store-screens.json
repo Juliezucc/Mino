@@ -14,8 +14,8 @@
   {
     "id": "vous-validez",
     "caption": "Rien ne s’ajoute sans vous",
-    "subcaption": "Vous validez la demande, et les minutes arrivent sur son compteur.",
-    "path": "Découvrir avec la démo → Espace parent → code parent"
+    "subcaption": "Vous confirmez d’une touche, et les minutes arrivent sur son compteur.",
+    "path": "Découvrir avec la démo → Espace parent → code parent → défiler 470"
   },
   {
     "id": "son-temps",
@@ -25,9 +25,9 @@
   },
   {
     "id": "vos-missions",
-    "caption": "Vos missions, ou des routines prêtes",
-    "subcaption": "Un intitulé, un temps gagné, un enfant. Une routine du coucher se crée d’un coup.",
-    "path": "Découvrir avec la démo → Espace parent → code parent → onglet Missions-parent"
+    "caption": "Vous décidez, mission par mission",
+    "subcaption": "Celles qui se comptent toutes seules, celles qui passent par vous. Ça se change en une touche.",
+    "path": "Découvrir avec la démo → Espace parent → code parent → onglet Missions-parent → défiler 1250"
   },
   {
     "id": "autres-ecrans",

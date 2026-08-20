@@ -46,8 +46,25 @@ const USED_FONTS = [
   'Nunito_900Black',
 ];
 
+/**
+ * Exporter d'abord, systématiquement.
+ *
+ * Ce script ne faisait qu'emballer, et `dist/` gardait l'export précédent : on
+ * pouvait donc republier — et photographier pour les boutiques — une version
+ * qui n'était plus celle du code. C'est arrivé. `SKIP_EXPORT=1` reste là pour
+ * ré-emballer sans reconstruire quand on ne touche qu'à ce fichier.
+ */
+if (!process.env.SKIP_EXPORT) {
+  console.log('export web…');
+  execFileSync('npx', ['expo', 'export', '-p', 'web', '--output-dir', DIST], { stdio: 'inherit' });
+}
+
 const bundleDir = join(DIST, '_expo/static/js/web');
-const bundleName = readdirSync(bundleDir).find((f) => f.endsWith('.js'));
+// L'export laisse les bundles précédents en place : prendre le plus récent,
+// jamais le premier venu.
+const bundleName = readdirSync(bundleDir)
+  .filter((f) => f.endsWith('.js'))
+  .sort((a, b) => statSync(join(bundleDir, b)).mtimeMs - statSync(join(bundleDir, a)).mtimeMs)[0];
 if (!bundleName) throw new Error('bundle introuvable — lancer `npx expo export -p web` d’abord');
 let bundle = readFileSync(join(bundleDir, bundleName), 'utf8');
 console.log(`bundle ${bundleName} · ${(bundle.length / 1e6).toFixed(1)} Mo`);
