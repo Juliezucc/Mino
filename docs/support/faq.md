@@ -111,7 +111,7 @@ Entre 5 et 15 minutes pour un geste quotidien, jusqu’à 30 pour quelque chose 
 
 ### Mon enfant dit avoir fait une mission sans l’avoir faite
 
-C’est exactement pour cela que la validation existe : rien n’arrive sur son compteur sans votre accord. Refusez, la mission revient dans sa liste. Le système est conçu pour que la vérification reste humaine.
+C’est exactement pour cela que vous confirmez chaque mission : rien n’arrive sur son compteur sans votre accord. Appuyez sur « À refaire », et elle revient dans sa liste. Le système est conçu pour que la vérification reste humaine.
 
 ### Comment gérer plusieurs enfants ?
 

@@ -103,7 +103,7 @@ export function missionCompleted(child: Child, mission: Mission): NotificationPa
     audience: 'parents',
     childId: child.id,
     title: `${child.firstName} a terminé une mission`,
-    body: `${mission.icon} ${mission.title} · ${mission.minutes} min à valider`,
+    body: `${mission.icon} ${mission.title} · ${mission.minutes} min si c’est fait`,
     route: '/parent',
   };
 }

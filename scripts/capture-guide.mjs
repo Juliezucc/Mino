@@ -64,6 +64,19 @@ async function open() {
   await wait(2500);
 }
 
+/**
+ * Ramène au sélecteur de profil.
+ *
+ * L'application rouvre sur le dernier profil utilisé — c'est le comportement
+ * voulu, et il n'y a aucune raison de le changer. Mais un script de capture, lui,
+ * a besoin de repasser par « Qui utilise Mino ? » : il oublie donc ce que
+ * l'appareil avait retenu, ce que fait aussi un parent qui réinstalle.
+ */
+async function toProfilePicker() {
+  await page.evaluate(() => localStorage.removeItem('mino.device.profile.v1'));
+  await open();
+}
+
 async function tap(text, settle = 1400) {
   const target = page.getByText(text, { exact: false }).first();
   await target.waitFor({ timeout: 10000 });
@@ -124,7 +137,7 @@ await tap('AI TERMINÉ', 1800);
 await shot('enfant-attente');
 
 // Côté parent : la validation, puis la configuration.
-await open();
+await toProfilePicker();
 await unlockParent();
 await shot('parent-accueil');
 
@@ -160,11 +173,11 @@ await wait(1600);
 await tap('Gérer les appareils', 1800);
 await shot('parent-appareils');
 
-// La célébration, une fois la demande validée.
-await open();
+// La célébration, une fois la mission confirmée.
+await toProfilePicker();
 await unlockParent();
-await tap('VALIDER +15 MIN', 2200);
-await open();
+await tap('C’est fait', 2200);
+await toProfilePicker();
 await tap('Noah', 2600);
 await shot('enfant-celebration');
 

@@ -268,7 +268,7 @@ export const FAQ: FaqEntry[] = [
     id: 'enfant-ment',
     question: 'Mon enfant dit avoir fait une mission sans l’avoir faite',
     answer:
-      'C’est exactement pour cela que la validation existe : rien n’arrive sur son compteur sans votre accord. Refusez, la mission revient dans sa liste. Le système est conçu pour que la vérification reste humaine.',
+      'C’est exactement pour cela que vous confirmez chaque mission : rien n’arrive sur son compteur sans votre accord. Appuyez sur « À refaire », et elle revient dans sa liste. Le système est conçu pour que la vérification reste humaine.',
     category: 'missions',
     keywords: ['ment', 'mensonge', 'triche', 'pas fait', 'verifier'],
   },

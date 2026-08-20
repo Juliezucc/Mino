@@ -180,10 +180,10 @@ export const GUIDE: GuideChapter[] = [
         screen: 'enfantMission',
       },
       {
-        title: 'Vous validez, ou vous refusez',
+        title: 'Vous confirmez, ou la mission repart',
         body: [
-          'Les demandes apparaissent sur votre accueil. Validez, et les minutes arrivent instantanément sur son compteur.',
-          'Si ce n’est pas fait, refusez : la mission repasse simplement en « à faire », sans pénalité. Expliquez-lui de vive voix — c’est plus efficace que n’importe quel message dans une application.',
+          'Les demandes apparaissent sur votre accueil. Vous n’approuvez pas la mission : vous confirmez qu’elle est faite. Appuyez sur « C’est fait », et les minutes arrivent instantanément sur son compteur.',
+          'Si ce n’est pas fait, appuyez sur « À refaire » : la mission repasse simplement en « à faire », sans pénalité. Expliquez-lui de vive voix — c’est plus efficace que n’importe quel message dans une application.',
         ],
         where: 'Espace parent → Accueil',
         screen: 'parentAccueil',

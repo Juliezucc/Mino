@@ -133,7 +133,7 @@ L'enfant appuie sur « J'AI TERMINÉ »
 
 Le téléphone du parent reçoit le signal
   → recharge, affiche la demande
-  → « VALIDER +15 MIN » → domain/actions.approveCompletion()
+  → « C’EST FAIT · +15 MIN » → domain/actions.approveCompletion()
   → écrit DEUX lignes : la complétion approuvée ET la transaction +15
   → RLS n'accepte cette écriture que d'un parent (auth_is_parent())
 

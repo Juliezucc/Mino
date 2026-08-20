@@ -9,7 +9,7 @@ import { useMinoStore } from '@/store/useMinoStore';
  *     → Noah sees the mission
  *     → Noah taps "J'ai terminé"
  *     → Julie sees the request
- *     → Julie taps "Valider +15 min"
+ *     → Julie taps "C’est fait · +15 min"
  *     → Noah gets a celebration and his counter goes from 35 to 50.
  */
 describe('mission → validation → minutes', () => {

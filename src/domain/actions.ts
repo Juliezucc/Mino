@@ -188,7 +188,7 @@ export function completeMission(
 }
 
 /**
- * Parent taps "VALIDER +15 MIN" → the completion is approved AND a ledger entry
+ * Parent taps "C’est fait +15 min" → the completion is approved AND a ledger entry
  * is written in the same operation. There is no path that credits minutes
  * without a transaction.
  */
