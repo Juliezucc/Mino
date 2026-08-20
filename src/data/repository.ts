@@ -39,4 +39,17 @@ export interface MinoRepository {
   clear(): Promise<void>;
   /** Realtime push from the backend, when the implementation supports it. */
   subscribe?(onRemoteChange: (data: FamilyData) => void): () => void;
+
+  /**
+   * Attaches this device to a family, from the child's side.
+   *
+   * Two secrets, not one: the family code AND the parent's e-mail. The code is
+   * four characters and gets read aloud across a kitchen; on its own it is
+   * guessable, and guessing it would drop a stranger inside a family with
+   * children in it. Requiring the e-mail as well makes that attack pointless.
+   *
+   * Returns null when the pair does not match — deliberately without saying
+   * which half was wrong.
+   */
+  joinFamily(input: { code: string; parentEmail: string }): Promise<FamilyData | null>;
 }

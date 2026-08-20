@@ -79,20 +79,28 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Reliez l’appareil à votre famille',
         body: [
-          'Sur l’appareil de l’enfant, choisissez « Rejoindre une famille » et saisissez le code famille.',
-          'Vous le trouvez dans Réglages, sur votre propre téléphone. Il ressemble à MINO-6BVJ.',
+          'Sur l’appareil de l’enfant, à l’ouverture de Mino, touchez « J’ai un code famille ». Deux informations sont demandées : le code famille et votre adresse e-mail.',
+          'Vous trouvez le code dans Réglages, sur votre propre téléphone. Il ressemble à MINO-6BVJ.',
         ],
         where: 'Espace parent → Réglages → Code famille',
-        screen: 'parentReglages',
-        tip: 'Le code famille et le code de parrainage sont deux choses différentes. Le premier fait entrer un appareil chez vous, le second se partage sans risque.',
+        screen: 'rejoindre',
+        tip: 'Pourquoi l’e-mail en plus du code ? Parce qu’un code de quatre caractères se lit à voix haute et finit sur le frigo. À lui seul, il se devine — et le deviner ferait entrer un inconnu dans une famille où il y a des enfants. Les deux ensemble, non.',
       },
       {
-        title: 'Laissez l’enfant choisir son profil',
+        title: 'Dites de qui est l’appareil',
         body: [
-          'L’appareil affiche « Qui utilise Mino ? ». Votre enfant touche son personnage, et il est chez lui. Aucun mot de passe, aucune adresse e-mail : à cet âge, tout ce qui se tape est un obstacle.',
-          'S’ils sont plusieurs sur le même appareil, chacun retrouve son profil à cet écran.',
+          'Mino demande à quel enfant appartient cet appareil, ou s’il est partagé. Un profil se choisit d’une touche : aucun mot de passe, aucune adresse e-mail pour l’enfant. À cet âge, tout ce qui se tape est un obstacle.',
+          'Sur un appareil partagé, chacun retrouve son profil à l’ouverture.',
         ],
         screen: 'qui',
+      },
+      {
+        title: 'Reprenez le téléphone pour la dernière étape',
+        body: [
+          'Mino demande alors de passer l’appareil à un adulte : c’est vous qui autorisez le verrouillage des applications, et personne d’autre. C’est à faire une seule fois.',
+          'Si vous préférez le faire plus tard, l’étape se retrouve à tout moment dans Réglages → Blocage des applications.',
+        ],
+        where: 'Sur l’appareil de l’enfant',
       },
       {
         title: 'Vérifiez que l’espace parent est bien protégé',
@@ -101,6 +109,7 @@ export const GUIDE: GuideChapter[] = [
           'Vérifiez aussi qu’il voit bien son compteur et ses missions à lui, et pas ceux de son frère ou de sa sœur.',
         ],
         screen: 'enfantAccueil',
+        tip: 'Même si quelqu’un devinait votre code, l’appareil d’un enfant ne peut techniquement pas valider une mission ni s’ajouter du temps : la base de données le lui refuse.',
       },
     ],
   },

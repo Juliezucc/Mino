@@ -9,6 +9,7 @@
 export const SCREENS = {
   accueil: require('../../assets/guide/accueil.webp'),
   qui: require('../../assets/guide/qui.webp'),
+  rejoindre: require('../../assets/guide/rejoindre.webp'),
   enfantAccueil: require('../../assets/guide/enfant-accueil.webp'),
   enfantMissions: require('../../assets/guide/enfant-missions.webp'),
   enfantMission: require('../../assets/guide/enfant-mission.webp'),

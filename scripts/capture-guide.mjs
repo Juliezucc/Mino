@@ -168,5 +168,11 @@ await open();
 await tap('Noah', 2600);
 await shot('enfant-celebration');
 
+// L'écran de configuration côté enfant : il n'apparaît que sans famille locale.
+await page.evaluate(() => localStorage.removeItem('mino.family.v1'));
+await open();
+await tap('J’ai un code famille', 1800);
+await shot('rejoindre');
+
 console.log(problems.length ? `\nerreurs : ${problems.slice(0, 3).join(' | ')}` : '\naucune erreur');
 await browser.close();

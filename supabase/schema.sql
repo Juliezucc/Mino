@@ -336,3 +336,166 @@ create policy referrals_select on referrals
     referrer_family_id in (select auth_family_ids())
     or referee_family_id in (select auth_family_ids())
   );
+
+
+-- ------------------------------------------------------- rejoindre une famille
+
+-- One row per device that joined from the child's side. It is to a child's
+-- tablet what `parents` is to a parent's phone: the only bridge between an
+-- authenticated session and a family.
+create table if not exists family_devices (
+  id        text primary key,
+  family_id text not null references families (id) on delete cascade,
+  user_id   uuid not null unique references auth.users (id) on delete cascade,
+  joined_at timestamptz not null default now()
+);
+
+alter table family_devices enable row level security;
+
+drop policy if exists family_devices_select on family_devices;
+create policy family_devices_select on family_devices
+  for select using (user_id = auth.uid());
+
+-- Both kinds of member resolve through the same helper.
+create or replace function auth_family_ids()
+returns setof text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select family_id from parents where user_id = auth.uid()
+  union
+  select family_id from family_devices where user_id = auth.uid()
+$$;
+
+/**
+ * Is the caller a parent, or a child's device?
+ *
+ * This is the line the whole security model rests on. A child's device may read
+ * everything in its family and say "I have finished" — it may never decide that
+ * a mission is worth fifteen minutes, and it may never add time to a counter.
+ */
+create or replace function auth_is_parent()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from parents where user_id = auth.uid())
+$$;
+
+-- A child's device attaching itself to a family.
+--
+-- RLS deliberately hides a family from anyone outside it, so the client cannot
+-- look one up to check a code — which is exactly right, and exactly why this
+-- has to be a SECURITY DEFINER function instead.
+--
+-- Two secrets are required, never one. The family code is four characters, gets
+-- read aloud across a kitchen and written on a fridge; on its own it is
+-- guessable, and guessing it would drop a stranger inside a family with
+-- children in it. The parent's e-mail has to match as well.
+--
+-- Returns the family id on success and null otherwise, without ever saying
+-- which half was wrong: naming it would turn one secret into two separate
+-- things to guess.
+create or replace function join_family(p_code text, p_email text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_family_id text;
+begin
+  if auth.uid() is null then
+    return null;
+  end if;
+
+  select f.id into v_family_id
+  from families f
+  join parents p on p.family_id = f.id
+  where upper(f.code) = upper(trim(p_code))
+    and lower(p.email) = lower(trim(p_email))
+  limit 1;
+
+  if v_family_id is null then
+    -- Roughly the cost of a success, so timing alone says nothing.
+    perform pg_sleep(0.15);
+    return null;
+  end if;
+
+  insert into family_devices (id, family_id, user_id, joined_at)
+  values (gen_random_uuid()::text, v_family_id, auth.uid(), now())
+  on conflict (user_id) do update set family_id = excluded.family_id;
+
+  return v_family_id;
+end;
+$$;
+
+revoke all on function join_family(text, text) from public;
+grant execute on function join_family(text, text) to authenticated;
+
+-- ------------------------------------------- ce qu'un appareil enfant peut faire
+
+-- The blanket family_access policies above are replaced, for the three tables
+-- where the difference between a parent and a child actually matters.
+
+-- Completions: a child says "I have finished". Only a parent decides.
+drop policy if exists mission_completions_family_access on mission_completions;
+
+drop policy if exists mission_completions_select on mission_completions;
+create policy mission_completions_select on mission_completions
+  for select using (family_id in (select auth_family_ids()));
+
+drop policy if exists mission_completions_insert on mission_completions;
+create policy mission_completions_insert on mission_completions
+  for insert with check (
+    family_id in (select auth_family_ids())
+    -- A device may only ever create a request. Approving one's own mission is
+    -- the single most obvious thing a child would try.
+    and (auth_is_parent() or (status = 'pending' and minutes_awarded = 0))
+  );
+
+drop policy if exists mission_completions_update on mission_completions;
+create policy mission_completions_update on mission_completions
+  for update using (family_id in (select auth_family_ids()) and auth_is_parent())
+  with check (family_id in (select auth_family_ids()) and auth_is_parent());
+
+-- Transactions: a child's device may spend time, never grant it.
+drop policy if exists screen_time_transactions_family_access on screen_time_transactions;
+
+drop policy if exists screen_time_transactions_select on screen_time_transactions;
+create policy screen_time_transactions_select on screen_time_transactions
+  for select using (family_id in (select auth_family_ids()));
+
+drop policy if exists screen_time_transactions_insert on screen_time_transactions;
+create policy screen_time_transactions_insert on screen_time_transactions
+  for insert with check (
+    family_id in (select auth_family_ids())
+    and (
+      auth_is_parent()
+      -- The only line a device may write: time coming off, for time used.
+      or (delta < 0 and kind = 'screen_time_used')
+    )
+  );
+
+-- The ledger is append-only for everyone. Nothing is corrected by editing a
+-- past line; a mistake is fixed by adding a new one, which is what keeps the
+-- history and the balance from ever disagreeing.
+drop policy if exists screen_time_transactions_update on screen_time_transactions;
+drop policy if exists screen_time_transactions_delete on screen_time_transactions;
+
+-- Missions belong to the parent. A device reads them and nothing more.
+drop policy if exists missions_family_access on missions;
+
+drop policy if exists missions_select on missions;
+create policy missions_select on missions
+  for select using (family_id in (select auth_family_ids()));
+
+drop policy if exists missions_write on missions;
+create policy missions_write on missions
+  for all
+  using (family_id in (select auth_family_ids()) and auth_is_parent())
+  with check (family_id in (select auth_family_ids()) and auth_is_parent());

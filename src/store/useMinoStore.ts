@@ -48,6 +48,8 @@ interface MinoState {
     pin: string;
     familyName?: string;
   }) => Promise<void>;
+  /** From the child's device: attach to a family with the code + parent e-mail. */
+  joinFamily: (input: { code: string; parentEmail: string }) => Promise<boolean>;
   resetAll: () => Promise<void>;
 
   selectChild: (childId: ID | null) => void;
@@ -144,6 +146,15 @@ export const useMinoStore = create<MinoState>((set, get) => {
       set({ data, status: 'ready', activeChildId: null, parentUnlocked: true });
       await get().repository.persist(data, { kind: 'bootstrap' });
       await get().loadBilling();
+    },
+
+    async joinFamily(input) {
+      const data = await get().repository.joinFamily(input);
+      if (!data) return false;
+      // The child's device never lands in the parent area, whatever it holds.
+      set({ data, status: 'ready', activeChildId: null, parentUnlocked: false });
+      await get().loadBilling();
+      return true;
     },
 
     async resetAll() {

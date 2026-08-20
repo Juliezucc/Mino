@@ -322,6 +322,32 @@ class SupabaseRepository implements MinoRepository {
   }
 
   /**
+   * Joining is a server decision, not a client one.
+   *
+   * Row-level security deliberately hides a family from anyone outside it, so
+   * the client cannot look one up to check a code. `join_family` is a
+   * SECURITY DEFINER function (see schema.sql): it validates the code and the
+   * parent's e-mail together, attaches the caller, and only then does RLS start
+   * returning the family's rows.
+   */
+  async joinFamily(input: { code: string; parentEmail: string }): Promise<FamilyData | null> {
+    // `auth.uid()` has to exist before the function can attach anything, and a
+    // child never signs in: the device gets an anonymous session of its own.
+    const { data: session } = await this.client.auth.getSession();
+    if (!session.session) {
+      const { error: signInError } = await this.client.auth.signInAnonymously();
+      if (signInError) return null;
+    }
+
+    const { data, error } = await this.client.rpc('join_family', {
+      p_code: input.code.trim().toUpperCase(),
+      p_email: input.parentEmail.trim().toLowerCase(),
+    });
+    if (error || !data) return null;
+    return this.load();
+  }
+
+  /**
    * Realtime: a parent validating on their phone must update the child's tablet
    * without a refresh. Any change in the family reloads the document.
    */
