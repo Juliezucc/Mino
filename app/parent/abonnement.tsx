@@ -1,7 +1,7 @@
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, Card, Screen, ScreenHeader, Text } from '@/components/ui';
 import {
@@ -11,8 +11,11 @@ import {
   TRIAL_DAYS,
   accessOf,
   annualSavingPercent,
+  canCancelInApp,
   describePlan,
   formatPrice,
+  isStore,
+  sellerOf,
 } from '@/domain/billing';
 import { getBillingService } from '@/services/billing';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -49,6 +52,8 @@ export default function SubscriptionScreen() {
   const choosePlan = useMinoStore((s) => s.choosePlan);
   const cancelSubscription = useMinoStore((s) => s.cancelSubscription);
   const resumeSubscription = useMinoStore((s) => s.resumeSubscription);
+  const restorePurchases = useMinoStore((s) => s.restorePurchases);
+  const loadBilling = useMinoStore((s) => s.loadBilling);
 
   const [selected, setSelected] = useState<Plan>('yearly');
   const [loading, setLoading] = useState(false);
@@ -57,14 +62,37 @@ export default function SubscriptionScreen() {
   const billing = getBillingService();
   const access = accessOf(subscription);
 
+  /**
+   * Rafraîchir avant d'afficher un prix.
+   *
+   * Le cas arrive vraiment : on s'abonne sur le site, puis on ouvre cet écran
+   * sur son iPhone avant que l'état ne soit revenu — et on paie une seconde
+   * fois, à Apple cette fois. La famille se retrouve avec deux abonnements,
+   * dont un qu'elle ne sait pas résilier. Une lecture au montage ferme presque
+   * toute la fenêtre, et `has_active_subscription()` ferme le reste côté base.
+   */
+  useEffect(() => {
+    loadBilling().catch(() => undefined);
+  }, [loadBilling]);
+
+  /**
+   * Un seul bouton, deux rails.
+   *
+   * Dans l'application, la feuille de paiement du système s'ouvre et se
+   * referme sur place — Face ID, et c'est fini. Sur le web, on ouvre le
+   * navigateur et rien n'est payé tant qu'on n'est pas allé au bout. L'écran
+   * n'a pas à savoir lequel est branché : le service le dit dans sa réponse.
+   */
   const subscribe = async () => {
     setLoading(true);
     setError(null);
     try {
-      const { url } = await choosePlan(selected);
-      // Selling on the web: the payment happens in the browser, and the
-      // subscription only becomes real when the provider says so.
-      if (url) await Linking.openURL(url);
+      const outcome = await choosePlan(selected);
+      if (outcome.kind === 'url') await Linking.openURL(outcome.url);
+      // Refermer la feuille de paiement est un choix, pas une panne : afficher
+      // une erreur rouge à quelqu'un qui a simplement hésité est le meilleur
+      // moyen qu'il ne revienne pas.
+      if (outcome.kind === 'failed') setError(outcome.reason);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible d’ouvrir le paiement.');
     } finally {
@@ -72,7 +100,42 @@ export default function SubscriptionScreen() {
     }
   };
 
+  const restore = async () => {
+    setLoading(true);
+    setError(null);
+    const outcome = await restorePurchases();
+    if (outcome.kind === 'failed') setError(outcome.reason);
+    setLoading(false);
+  };
+
+  /**
+   * Résilier, là où la résiliation existe.
+   *
+   * Un abonnement acheté dans l'application ne s'annule que dans les réglages
+   * du téléphone : ni Apple ni Google n'exposent d'API pour le faire. Un
+   * bouton « Résilier » qui appellerait notre serveur échouerait en silence,
+   * et le parent croirait avoir résilié.
+   */
   const confirmCancel = () => {
+    if (!canCancelInApp(subscription)) {
+      const seller = sellerOf(subscription?.source);
+      Alert.alert(
+        'Résilier l’abonnement',
+        `Votre abonnement a été souscrit via ${seller}. La résiliation se fait dans les réglages de votre téléphone, en deux touches — nous vous y emmenons.`,
+        [
+          { text: 'Plus tard', style: 'cancel' },
+          {
+            text: 'M’y emmener',
+            onPress: async () => {
+              const { url } = await billing.openPortal(subscription!.familyId);
+              if (url) await Linking.openURL(url).catch(() => setError('Ouvrez Réglages › votre nom › Abonnements.'));
+            },
+          },
+        ],
+      );
+      return;
+    }
+
     Alert.alert(
       'Résilier l’abonnement ?',
       subscription?.currentPeriodEnd
@@ -139,7 +202,11 @@ export default function SubscriptionScreen() {
       {access.kind === 'active' && !access.cancelAtPeriodEnd ? (
         <View style={styles.actions}>
           <Button
-            label="Gérer mon moyen de paiement"
+            label={
+              isStore(subscription?.source)
+                ? 'Gérer mon abonnement'
+                : 'Gérer mon moyen de paiement'
+            }
             variant="secondary"
             onPress={async () => {
               const { url } = await billing.openPortal(subscription!.familyId);
@@ -193,6 +260,13 @@ export default function SubscriptionScreen() {
             onPress={subscribe}
             loading={loading}
           />
+
+          {/* Obligatoire dès qu'on vend par une boutique : quelqu'un qui change
+              de téléphone doit retrouver son abonnement sans repayer, et Apple
+              refuse à la revue les applications qui n'offrent pas ce bouton. */}
+          {billing.capability === 'store' ? (
+            <Button label="Restaurer mes achats" variant="ghost" onPress={restore} />
+          ) : null}
         </>
       )}
 
@@ -212,9 +286,18 @@ export default function SubscriptionScreen() {
       ) : null}
 
       <View style={styles.footer}>
-        <Text variant="caption" color={colors.textSubtle}>
+        <Text variant="caption" color={colors.textSubtle} center>
           {`Un abonnement couvre toute la famille · essai de ${TRIAL_DAYS} jours · ${formatPrice(MONTHLY_PRICE_EUR)} par mois`}
         </Text>
+        {/* Apple exige que la durée, le prix et le renouvellement soient dits
+            sur l'écran d'achat lui-même — pas seulement dans les conditions.
+            C'est aussi ce qui évite le prélèvement surprise, première cause
+            d'avis à une étoile. */}
+        {billing.capability === 'store' ? (
+          <Text variant="caption" color={colors.textSubtle} center>
+            {`Abonnement reconduit automatiquement, sauf résiliation au moins 24 h avant la fin de la période. Vendu par ${sellerOf(subscription?.source ?? (Platform.OS === 'ios' ? 'apple' : 'google'))}, et résiliable dans les réglages de votre téléphone.`}
+          </Text>
+        ) : null}
         <Button
           label="Conditions générales"
           variant="ghost"

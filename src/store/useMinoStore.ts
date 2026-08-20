@@ -11,7 +11,7 @@ import { AvatarKey, FamilyData, ID, RepeatRule } from '@/domain/types';
 import * as notify from '@/domain/notifications';
 import { AuthResult, getAuthService } from '@/services/auth';
 import { getNotificationService } from '@/services/notifications';
-import { getBillingService } from '@/services/billing';
+import { CheckoutOutcome, getBillingService } from '@/services/billing';
 
 /**
  * Single source of truth for the running app.
@@ -97,7 +97,8 @@ interface MinoState {
   grantBonus: (childId: ID, minutes: number, reason: string) => Promise<void>;
 
   loadBilling: () => Promise<void>;
-  choosePlan: (plan: Plan) => Promise<{ url: string }>;
+  choosePlan: (plan: Plan) => Promise<CheckoutOutcome>;
+  restorePurchases: () => Promise<CheckoutOutcome>;
   cancelSubscription: () => Promise<void>;
   resumeSubscription: () => Promise<void>;
   redeemReferral: (code: string) => Promise<{ ok: boolean; reason?: string }>;
@@ -547,16 +548,41 @@ export const useMinoStore = create<MinoState>((set, get) => {
       return result;
     },
 
+    /**
+     * Retrouver un abonnement déjà payé, sur un nouveau téléphone.
+     *
+     * Sur le web il n'y a rien à restaurer — l'abonnement suit le compte. Sur
+     * les boutiques il suit l'appareil tant qu'on ne le réclame pas, et Apple
+     * refuse à la revue toute application qui vend sans offrir ce bouton.
+     */
+    async restorePurchases() {
+      const familyId = get().data?.family.id;
+      if (!familyId) return { kind: 'failed' as const, reason: 'Aucune famille.' };
+
+      const billing = getBillingService();
+      if (!billing.restore) {
+        return { kind: 'failed' as const, reason: 'Rien à restaurer sur cette version.' };
+      }
+
+      const result = await billing.restore(familyId);
+      await get().loadBilling();
+      return result;
+    },
+
     async cancelSubscription() {
       const familyId = get().data?.family.id;
-      if (!familyId) return;
-      set({ subscription: await getBillingService().cancel(familyId) });
+      const cancel = getBillingService().cancel;
+      // Absent sur les boutiques : là-bas, la résiliation se fait dans les
+      // réglages du téléphone, et l'écran y renvoie au lieu d'appeler ceci.
+      if (!familyId || !cancel) return;
+      set({ subscription: await cancel.call(getBillingService(), familyId) });
     },
 
     async resumeSubscription() {
       const familyId = get().data?.family.id;
-      if (!familyId) return;
-      set({ subscription: await getBillingService().resume(familyId) });
+      const resume = getBillingService().resume;
+      if (!familyId || !resume) return;
+      set({ subscription: await resume.call(getBillingService(), familyId) });
     },
 
     async redeemReferral(code) {

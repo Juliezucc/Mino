@@ -1,4 +1,5 @@
 import {
+  MONTHLY_PRICE_EUR,
   REFERRAL,
   Referral,
   Subscription,
@@ -6,10 +7,14 @@ import {
   addMonths,
   annualSavingPercent,
   applyFreeMonths,
+  canCancelInApp,
   canUseReferralCode,
   creditedMonthsInYear,
   hasAccess,
+  manageSubscriptionUrl,
+  netOf,
   qualifyReferral,
+  sellerOf,
   startTrial,
 } from '@/domain/billing';
 
@@ -167,5 +172,62 @@ describe('pricing', () => {
   it('the annual plan really is cheaper', () => {
     expect(annualSavingPercent()).toBeGreaterThan(0);
     expect(annualSavingPercent()).toBeLessThan(100);
+  });
+});
+
+/**
+ * Les deux rails.
+ *
+ * Dans l'application, Apple et Google exigent leur propre système de paiement ;
+ * sur le web, Stripe. Un seul abonnement des deux côtés — mais trois choses
+ * changent selon le rail, et l'utilisateur les voit toutes les trois.
+ */
+describe('achat natif et achat web', () => {
+  it('interdit de résilier dans l’app un abonnement acheté dans une boutique', () => {
+    // Apple et Google ne fournissent aucune API d'annulation : afficher le
+    // bouton produirait un échec silencieux.
+    const store = { ...startTrial('f1'), status: 'active' as const, source: 'apple' as const };
+    const web = { ...startTrial('f1'), status: 'active' as const, source: 'stripe' as const };
+
+    expect(canCancelInApp(store)).toBe(false);
+    expect(canCancelInApp(web)).toBe(true);
+  });
+
+  it('envoie chacun là où sa résiliation existe vraiment', () => {
+    expect(manageSubscriptionUrl('apple')).toContain('apple.com/account/subscriptions');
+    expect(manageSubscriptionUrl('google')).toContain('play.google.com/store/account/subscriptions');
+    expect(manageSubscriptionUrl('stripe')).toBeNull();
+  });
+
+  it('nomme le vendeur, qui n’est pas toujours nous', () => {
+    // Ce qui décide aussi de qui rembourse — et les CGV doivent le dire.
+    expect(sellerOf('apple')).toBe('Apple');
+    expect(sellerOf('stripe')).toBe('Agence Wheb');
+  });
+
+  it('compare les rails sur la même assiette', () => {
+    // Une commission de boutique porte sur le prix hors taxes ; les frais
+    // Stripe sur le montant encaissé. Comparer les bruts se trompe d'environ
+    // un cinquième, ce qui est exactement l'ordre de grandeur de la décision.
+    const stripe = netOf(MONTHLY_PRICE_EUR, 'stripe');
+    const store = netOf(MONTHLY_PRICE_EUR, 'apple');
+
+    expect(stripe).toBeCloseTo(7.85, 2);
+    expect(store).toBeCloseTo(7.01, 2);
+  });
+
+  it('chiffre ce que coûte le passage d’Apple à 30 %', () => {
+    const reduit = netOf(MONTHLY_PRICE_EUR, 'apple');
+    const plein = netOf(MONTHLY_PRICE_EUR, 'apple', { reduced: false });
+
+    expect(plein).toBeCloseTo(5.775, 3);
+    // Le seuil du programme Small Business vaut donc un cinquième du revenu.
+    expect(plein / reduit).toBeCloseTo(0.82, 2);
+  });
+
+  it('garde la période d’essai en dehors des deux rails', () => {
+    // L'essai est accordé par nous, pas par une boutique : c'est ce qui permet
+    // aux 60 jours du parrainage d'exister sans dépendre d'Apple.
+    expect(startTrial('f1').source).toBeUndefined();
   });
 });

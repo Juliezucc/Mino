@@ -1,7 +1,7 @@
 import { Plan, Referral, Subscription } from '@/domain/billing';
 import { ID } from '@/domain/types';
 
-import { BillingService } from './BillingService';
+import { BillingService, CheckoutOutcome } from './BillingService';
 
 /**
  * Talks to our own backend, which talks to Stripe.
@@ -50,11 +50,17 @@ export class StripeWebBillingService implements BillingService {
     );
   }
 
-  startCheckout(input: { familyId: ID; plan: Plan; referralCode?: string }) {
-    return this.call<{ url: string }>('/billing/checkout', {
+  async startCheckout(input: {
+    familyId: ID;
+    plan: Plan;
+    referralCode?: string;
+  }): Promise<CheckoutOutcome> {
+    const { url } = await this.call<{ url: string }>('/billing/checkout', {
       method: 'POST',
       body: JSON.stringify(input),
     });
+    // Rien n'est payé tant que le navigateur n'a pas été jusqu'au bout.
+    return { kind: 'url', url };
   }
 
   openPortal(familyId: ID) {

@@ -87,6 +87,8 @@ export interface SubscriptionRow {
   current_period_end: string | null;
   cancel_at_period_end: boolean;
   credit_months: number;
+  /** Par où le paiement est passé. Absent pendant l'essai, qui n'a pas de rail. */
+  source: 'stripe' | 'apple' | 'google' | null;
   customer_id: string | null;
   subscription_id: string | null;
 }
@@ -101,6 +103,7 @@ export function rowToSubscription(row: SubscriptionRow) {
     currentPeriodEnd: row.current_period_end,
     cancelAtPeriodEnd: row.cancel_at_period_end,
     creditMonths: row.credit_months,
+    source: row.source ?? undefined,
     customerId: row.customer_id ?? undefined,
     subscriptionId: row.subscription_id ?? undefined,
   };

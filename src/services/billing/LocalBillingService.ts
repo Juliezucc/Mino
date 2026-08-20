@@ -1,7 +1,7 @@
 import { REFERRAL, Plan, Referral, Subscription, addMonths, startTrial } from '@/domain/billing';
 import { ID } from '@/domain/types';
 
-import { BillingService } from './BillingService';
+import { BillingService, CheckoutOutcome } from './BillingService';
 
 /**
  * A stand-in that charges nothing.
@@ -28,7 +28,7 @@ export class LocalBillingService implements BillingService {
     return this.subscriptions.get(familyId) ?? null;
   }
 
-  async startCheckout({ familyId, plan }: { familyId: ID; plan: Plan }): Promise<{ url: string }> {
+  async startCheckout({ familyId, plan }: { familyId: ID; plan: Plan }): Promise<CheckoutOutcome> {
     // No provider: pretend the checkout succeeded so the rest of the flow is
     // exercisable. A real service returns a provider URL and changes nothing
     // until the webhook lands.
@@ -38,11 +38,12 @@ export class LocalBillingService implements BillingService {
       ...current,
       status: 'active',
       plan,
+      source: 'stripe',
       currentPeriodEnd: addMonths(now, plan === 'yearly' ? 12 : 1 + current.creditMonths),
       creditMonths: 0,
       cancelAtPeriodEnd: false,
     });
-    return { url: '' };
+    return { kind: 'done' };
   }
 
   async openPortal(): Promise<{ url: string }> {

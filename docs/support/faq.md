@@ -143,11 +143,23 @@ Depuis Réglages, section Compte. Une confirmation part sur la nouvelle adresse 
 
 ### Serai-je prélevé à la fin de l’essai ?
 
-L’essai dure trente jours et ne devient payant que si vous ne l’annulez pas. L’annulation se fait en deux touches depuis Réglages, sans avoir à écrire à qui que ce soit, et vous gardez l’accès jusqu’à la fin de la période.
+L’essai dure trente jours et rien n’est prélevé pendant cette période : aucune carte ne vous est demandée pour commencer. Vous ne payez qu’au moment où vous choisissez une formule, à la fin de l’essai.
 
 ### Comment annuler mon abonnement ?
 
-Réglages, puis Abonnement, puis « Annuler ». C’est immédiat et sans justification. Vous gardez l’accès jusqu’à la fin de la période déjà payée, et vos données restent intactes si vous revenez.
+Cela dépend d’où vous vous êtes abonné. Depuis l’application : dans les réglages de votre téléphone, à la rubrique Abonnements — l’écran Abonnement de Mino vous y emmène directement. Depuis notre site : dans Réglages, puis Abonnement, puis « Résilier ». Dans les deux cas c’est immédiat, sans justification, et vous gardez l’accès jusqu’à la fin de la période payée.
+
+### J’ai payé sur mon iPhone : est-ce que ça marche sur le site ?
+
+Oui. L’abonnement appartient à votre compte Mino, pas à l’appareil où vous l’avez payé. Vous êtes abonné partout : sur le téléphone de votre enfant, sur celui de l’autre parent, et sur le site.
+
+### J’ai changé de téléphone et je ne suis plus abonné
+
+Reconnectez-vous d’abord avec votre e-mail : dans neuf cas sur dix, tout revient. Si l’abonnement avait été souscrit dans l’application, touchez « Restaurer mes achats » sur l’écran Abonnement, avec le même compte Apple ou Google qu’au moment de l’achat.
+
+### Puis-je être remboursé ?
+
+Si vous vous êtes abonné dans l’application, le remboursement se demande à Apple ou à Google, qui sont les vendeurs de cet abonnement — nous n’avons pas la main dessus. Si vous êtes passé par notre site, écrivez-nous. Dans les deux cas, la résiliation suffit à ne plus être prélevé.
 
 ### Comment fonctionne le parrainage ?
 
@@ -155,15 +167,15 @@ Votre filleul obtient soixante jours d’essai au lieu de trente. Dès qu’il d
 
 ### Puis-je passer du mensuel à l’annuel ?
 
-Oui, à tout moment depuis Abonnement. Le changement est calculé au prorata : ce que vous avez déjà payé est déduit.
+Oui, à tout moment. Depuis l’application, le changement se fait dans les réglages de votre téléphone, à la rubrique Abonnements ; depuis le site, dans Abonnement. Ce que vous avez déjà payé est déduit.
 
 ### Où trouver mes factures ?
 
-Dans Abonnement, « Gérer mon paiement » : vous y trouvez toutes vos factures, avec la TVA. Elles sont également envoyées par e-mail à chaque prélèvement.
+Si vous vous êtes abonné dans l’application, les reçus viennent d’Apple ou de Google et se retrouvent dans l’historique d’achats de votre compte — ce sont eux qui encaissent. Si vous êtes passé par notre site, vos factures sont dans Abonnement, « Gérer mon paiement », et vous en recevez une par e-mail à chaque prélèvement.
 
 ### Mon paiement a été refusé
 
-Mettez votre carte à jour dans « Gérer mon paiement ». L’accès reste ouvert quelques jours pendant les nouvelles tentatives : personne ne perd son compte pour une carte expirée.
+Mettez à jour le moyen de paiement là où vous vous êtes abonné : dans votre compte Apple ou Google si l’abonnement vient de l’application, dans « Gérer mon paiement » s’il vient du site. L’accès reste ouvert quelques jours pendant les nouvelles tentatives : personne ne perd son compte pour une carte expirée.
 
 ## 🛡️ Données et confidentialité
 

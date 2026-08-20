@@ -142,7 +142,15 @@ export const TERMS: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: 'Le paiement est effectué en ligne par carte bancaire, via notre prestataire Stripe. Vos coordonnées bancaires ne sont jamais conservées par Mino.',
+          text: 'L’abonnement peut être souscrit de deux façons, et cette distinction emporte des conséquences que nous précisons ci-dessous.',
+        },
+        {
+          kind: 'p',
+          text: 'Depuis notre site, le paiement est effectué en ligne par carte bancaire via notre prestataire Stripe. Agence Wheb est alors le vendeur, émet la facture et collecte la TVA. Vos coordonnées bancaires ne sont jamais conservées par Mino.',
+        },
+        {
+          kind: 'p',
+          text: 'Depuis l’application, le paiement est effectué par l’intermédiaire de l’App Store d’Apple ou du Google Play Store, conformément aux règles de ces plateformes. Apple ou Google est alors le vendeur de l’abonnement : la facturation, la collecte de la TVA, la gestion du moyen de paiement, la résiliation et les éventuels remboursements relèvent de ses conditions générales et de votre compte chez lui. Agence Wheb reste l’éditeur du service et votre interlocuteur pour tout ce qui concerne Mino lui-même.',
         },
         {
           kind: 'p',
@@ -159,11 +167,19 @@ export const TERMS: LegalDocument = {
       blocks: [
         {
           kind: 'note',
-          text: 'Vous pouvez résilier à tout moment, en trois clics, depuis Réglages → Abonnement. Aucun appel, aucun courrier, aucune justification.',
+          text: 'Vous pouvez résilier à tout moment, sans appel, sans courrier et sans justification.',
         },
         {
           kind: 'p',
-          text: 'La résiliation prend effet à la fin de la période déjà payée : vous conservez l’accès jusque-là, et rien n’est prélevé ensuite. Conformément à l’article L. 215-1-1 du Code de la consommation, la fonctionnalité de résiliation est accessible en permanence et directement depuis votre espace.',
+          text: 'Si vous vous êtes abonné depuis notre site, la résiliation se fait en trois clics depuis Réglages → Abonnement. Conformément à l’article L. 215-1-1 du Code de la consommation, cette fonctionnalité est accessible en permanence et directement depuis votre espace.',
+        },
+        {
+          kind: 'p',
+          text: 'Si vous vous êtes abonné depuis l’application, la résiliation s’effectue dans la rubrique Abonnements de votre compte Apple ou Google, seul endroit où ces plateformes permettent de la faire. L’écran Abonnement de Mino comporte un bouton qui vous y conduit directement, en un geste.',
+        },
+        {
+          kind: 'p',
+          text: 'Dans les deux cas, la résiliation prend effet à la fin de la période déjà payée : vous conservez l’accès jusque-là, et rien n’est prélevé ensuite.',
         },
         {
           kind: 'p',
@@ -184,7 +200,7 @@ export const TERMS: LegalDocument = {
         },
         {
           kind: 'p',
-          text: `Pour exercer ce droit, il suffit de nous écrire à ${OPERATOR.email}.`,
+          text: `Pour exercer ce droit, il suffit de nous écrire à ${OPERATOR.email}. Si votre abonnement a été souscrit depuis l’application, la demande de remboursement doit être adressée à Apple ou à Google, vendeur de cet abonnement, selon la procédure prévue par sa plateforme ; nous vous aidons volontiers à la formuler, mais nous n’avons pas la faculté de procéder nous-mêmes au remboursement.`,
         },
       ],
     },

@@ -38,6 +38,72 @@ export const REFERRAL = {
 
 export type Plan = 'monthly' | 'yearly';
 
+/**
+ * Par où l'argent est passé.
+ *
+ * Deux rails, un seul abonnement. Dans l'application, Apple et Google
+ * l'exigent : tout paiement qui débloque une fonctionnalité numérique dans
+ * l'app doit passer par leur système. Sur le web, Stripe, moins cher et sans
+ * intermédiaire.
+ *
+ * Ce n'est pas un détail comptable. La source décide de trois choses que
+ * l'utilisateur voit : qui encaisse, où l'on résilie, et qui rembourse. Une
+ * application qui se trompe là-dessus promet une résiliation en deux touches
+ * puis affiche un bouton qui ne peut rien faire.
+ */
+export type BillingSource = 'stripe' | 'apple' | 'google';
+
+/** Un achat passé par une boutique se gère dans les réglages du téléphone. */
+export function isStore(source: BillingSource | undefined): boolean {
+  return source === 'apple' || source === 'google';
+}
+
+/**
+ * Ce que chaque rail laisse réellement.
+ *
+ * Les commissions des boutiques se calculent sur le prix hors taxes, la TVA
+ * étant reversée par elles — elles sont vendeur officiel de l'abonnement.
+ * Stripe prélève sur le montant encaissé, TVA comprise, et la TVA reste à
+ * reverser.
+ *
+ * Ces taux sont utilisés pour comparer les rails dans les tableaux de bord,
+ * jamais pour facturer quoi que ce soit.
+ */
+export const COMMISSION = {
+  /** 1,5 % + 0,25 € pour une carte européenne. */
+  stripeRate: 0.015,
+  stripeFixedEur: 0.25,
+  /** Programme Small Business d'Apple, et Play pour les abonnements. */
+  storeReduced: 0.15,
+  /** Apple hors programme, première année d'un abonné. */
+  storeStandard: 0.3,
+  /** TVA française, reversée par la boutique ou par nous selon le rail. */
+  vatRate: 0.2,
+} as const;
+
+/**
+ * Ce qui reste vraiment, hors taxes, pour un paiement donné.
+ *
+ * Le seul calcul qui permette de comparer les deux rails : un encaissement
+ * Stripe et un versement Apple ne portent pas sur la même assiette, et les
+ * comparer bruts donne une réponse fausse d'environ un cinquième.
+ */
+export function netOf(
+  amountEur: number,
+  source: BillingSource,
+  { reduced = true }: { reduced?: boolean } = {},
+): number {
+  const excludingVat = amountEur / (1 + COMMISSION.vatRate);
+
+  if (source === 'stripe') {
+    const fees = amountEur * COMMISSION.stripeRate + COMMISSION.stripeFixedEur;
+    return excludingVat - fees;
+  }
+
+  const rate = reduced ? COMMISSION.storeReduced : COMMISSION.storeStandard;
+  return excludingVat * (1 - rate);
+}
+
 export type SubscriptionStatus =
   /** Inside the free trial, nothing charged yet. */
   | 'trialing'
@@ -60,9 +126,43 @@ export interface Subscription {
   cancelAtPeriodEnd: boolean;
   /** Referral months won and not yet consumed. */
   creditMonths: number;
+  /**
+   * Par où le paiement passe. Absent tant que rien n'a été acheté : la période
+   * d'essai n'appartient à aucun rail, elle est accordée par nous.
+   */
+  source?: BillingSource;
   /** Ids at the payment provider. Absent until the first checkout. */
   customerId?: string;
   subscriptionId?: string;
+}
+
+/* -------------------------------------------------- résilier, selon le rail */
+
+/**
+ * Peut-on résilier sans quitter l'application ?
+ *
+ * Non, dès que l'achat est passé par une boutique : Apple et Google ne
+ * fournissent aucune API pour annuler un abonnement, c'est une décision qui
+ * appartient au compte du client. Prétendre le contraire produit un bouton qui
+ * échoue silencieusement — et une promesse de « résiliation en deux touches »
+ * qui devient fausse.
+ */
+export function canCancelInApp(sub: Subscription | null): boolean {
+  return !!sub && !isStore(sub.source);
+}
+
+/** Où envoyer quelqu'un qui veut résilier, selon d'où vient son abonnement. */
+export function manageSubscriptionUrl(source: BillingSource | undefined): string | null {
+  if (source === 'apple') return 'https://apps.apple.com/account/subscriptions';
+  if (source === 'google') return 'https://play.google.com/store/account/subscriptions';
+  return null;
+}
+
+/** Qui encaisse, et donc qui rembourse. À dire, pas à cacher. */
+export function sellerOf(source: BillingSource | undefined): string {
+  if (source === 'apple') return 'Apple';
+  if (source === 'google') return 'Google';
+  return 'Agence Wheb';
 }
 
 export type ReferralStatus =

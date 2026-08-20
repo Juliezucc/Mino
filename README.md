@@ -70,6 +70,7 @@ npm run assets     # régénère icônes et écran de lancement
 | Architecture, règles à ne pas casser | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | Tenir 10 000 familles, coûts | [`docs/ops/capacite.md`](docs/ops/capacite.md) |
 | MRR, churn, cohortes, LTV, CAC | [`docs/ops/analytics.md`](docs/ops/analytics.md) |
+| Les deux rails de paiement | [`docs/ops/paiements.md`](docs/ops/paiements.md) |
 | Propriété intellectuelle, comptes, accès | [`docs/ops/propriete-et-acces.md`](docs/ops/propriete-et-acces.md) |
 | Process marketing | [`docs/marketing/`](docs/marketing/) |
 | Blocage réel des écrans | [`docs/blocage-ecrans.md`](docs/blocage-ecrans.md) |
@@ -151,6 +152,7 @@ les quatre fichiers SQL **dans cet ordre** :
 | `supabase/scale.sql` | index, temps réel par famille, purges, solde serveur |
 | `supabase/support.sql` | signalements et file de traitement |
 | `supabase/analytics.sql` | journal de facturation et vues de pilotage |
+| `supabase/store.sql` | achats App Store et Play Store, revenu net par rail |
 
 Le temps réel passe par un **canal privé par famille** (`famille:<id>`), alimenté
 par un déclencheur : le parent valide sur son téléphone, la tablette de l'enfant

@@ -31,7 +31,7 @@ toujours le vrai solde (`__tests__/history.test.ts`).
 
 `src/domain/` ne contient que des fonctions `(données, entrée) → nouvelles
 données`. Aucun appel réseau, aucun accès au stockage, aucun composant. C'est ce
-qui rend les règles testables sans lancer l'application — 133 tests en 3
+qui rend les règles testables sans lancer l'application — 139 tests en 3
 secondes.
 
 Le store appelle une fonction pure, persiste le résultat, publie le nouvel état.
@@ -56,12 +56,14 @@ deux fonctions serveur y touchent.
 ### 4. Tout ce qui est extérieur passe par une couture
 
 Cinq services, chacun avec une implémentation locale et une réelle, choisies
-dans un `index.ts` :
+dans un `index.ts`. La facturation en a deux réelles, et ce n'est pas un choix :
+Apple et Google exigent leur propre système dès qu'un paiement débloque une
+fonctionnalité dans l'application.
 
 | Couture | Local | Réel |
 |---|---|---|
 | `services/auth` | mémoire + AsyncStorage | Supabase Auth |
-| `services/billing` | simulation | Stripe (fonctions serveur) |
+| `services/billing` | simulation | Stripe sur le web, App Store / Play Store dans l'app |
 | `services/screenTime` | minuteur | FamilyControls / UsageStats |
 | `services/notifications` | rien | expo-notifications |
 | `services/diagnostics` | file locale | table `support_reports` |
@@ -98,10 +100,12 @@ supabase/
   scale.sql           index, temps réel, purges        ← puis celui-ci
   support.sql         signalements                     ← puis celui-ci
   analytics.sql       journal facturation et vues      ← puis celui-ci
-  functions/          fonctions serveur (Deno) : billing, stripe-webhook
+  store.sql           achats App Store et Play Store   ← et enfin celui-ci
+  functions/          fonctions serveur (Deno) : billing, stripe-webhook,
+                      store-purchase, store-notifications
 docs/                 ce dossier
 scripts/              génération : visuels, guide, FAQ, licences
-__tests__/            133 tests
+__tests__/            139 tests
 ```
 
 ---
@@ -139,8 +143,11 @@ Couvert de bout en bout par `__tests__/journey.test.ts`.
   appelle un contrat (`services/screenTime/native.ts`) qui n'a pas
   d'implémentation Swift ni Kotlin. Il faut Xcode, un appareil réel, et
   l'habilitation Apple. Voir `docs/apple-family-controls.md`.
-- **`scale.sql`, `support.sql` et `analytics.sql` n'ont jamais été exécutés**
-  contre une vraie base. Ils sont écrits, pas éprouvés.
+- **`scale.sql`, `support.sql`, `analytics.sql` et `store.sql` n'ont jamais été
+  exécutés** contre une vraie base. Ils sont écrits, pas éprouvés.
+- **L'achat natif n'a pas de module natif branché.** `services/billing/native.ts`
+  décrit le contrat ; il reste à choisir la bibliothèque et à faire un achat de
+  test en bac à sable. Voir `docs/ops/paiements.md`.
 - **Aucun tir de charge n'a été fait.** Les chiffres de `capacite.md` sont des
   calculs.
 
@@ -150,7 +157,7 @@ Couvert de bout en bout par `__tests__/journey.test.ts`.
 
 ```bash
 npm run typecheck   # TypeScript strict, zéro erreur attendue
-npm test            # 133 tests
+npm test            # 139 tests
 npm run licences    # aucune licence contaminante embarquée
 npm run faq         # régénère docs/support/ si la FAQ a changé
 ```
