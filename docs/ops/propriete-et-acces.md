@@ -175,13 +175,12 @@ seulement effacé.
    Elles sont complètes et cohérentes, mais elles n'ont pas de valeur validée.
    Une application destinée à des enfants, en France, avec paiement récurrent :
    les trois sujets où l'erreur se paie.
-2. **Souscrire à un médiateur de la consommation.** Obligatoire pour toute vente
-   en ligne aux particuliers en France. Le champ est encore
-   `[Nom et coordonnées du médiateur]` dans les CGV — c'est une mention
-   manquante, sanctionnable, et qui se remplit en une journée (~100 à 300 €/an).
-3. **Recherche d'antériorité puis dépôt de la marque « Mino ».**
-4. **Demande d'habilitation Apple Family Controls** — voir
+2. **Recherche d'antériorité puis dépôt de la marque « Mino ».**
+3. **Demande d'habilitation Apple Family Controls** — voir
    `docs/apple-family-controls.md`. C'est le chemin critique du produit : sans
    elle, le blocage réel n'existe pas, et le délai ne dépend pas de nous.
-5. **Compléter le tableau des comptes** ci-dessus, avec la double
+4. **Compléter le tableau des comptes** ci-dessus, avec la double
    authentification partout.
+5. **Créer les produits d'abonnement** dans App Store Connect et la Play
+   Console, et s'inscrire au programme Small Business d'Apple — voir
+   `docs/ops/paiements.md`.

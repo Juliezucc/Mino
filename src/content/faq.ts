@@ -409,6 +409,14 @@ export const FAQ: FaqEntry[] = [
     category: 'abonnement',
     keywords: ['paiement refuse', 'carte', 'echec', 'impaye', 'expire'],
   },
+  {
+    id: 'reclamation-mediation',
+    question: 'Je ne suis pas d’accord et vous ne me répondez pas',
+    answer:
+      'Écrivez-nous d’abord : c’est presque toujours plus rapide, et c’est aussi une étape obligatoire avant la suite. Si nous n’avons pas trouvé de solution, vous pouvez saisir gratuitement le médiateur de la consommation dont nous relevons, CM2C, sur www.cm2c.net. C’est gratuit, facultatif, et cela ne vous empêche jamais de saisir la justice.',
+    category: 'abonnement',
+    keywords: ['reclamation', 'litige', 'mediateur', 'mediation', 'pas content', 'desaccord', 'cm2c'],
+  },
 
   /* ------------------------------------------------------ confidentialité */
   {

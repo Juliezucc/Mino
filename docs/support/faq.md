@@ -177,6 +177,10 @@ Si vous vous êtes abonné dans l’application, les reçus viennent d’Apple o
 
 Mettez à jour le moyen de paiement là où vous vous êtes abonné : dans votre compte Apple ou Google si l’abonnement vient de l’application, dans « Gérer mon paiement » s’il vient du site. L’accès reste ouvert quelques jours pendant les nouvelles tentatives : personne ne perd son compte pour une carte expirée.
 
+### Je ne suis pas d’accord et vous ne me répondez pas
+
+Écrivez-nous d’abord : c’est presque toujours plus rapide, et c’est aussi une étape obligatoire avant la suite. Si nous n’avons pas trouvé de solution, vous pouvez saisir gratuitement le médiateur de la consommation dont nous relevons, CM2C, sur www.cm2c.net. C’est gratuit, facultatif, et cela ne vous empêche jamais de saisir la justice.
+
 ## 🛡️ Données et confidentialité
 
 ### Comment supprimer mon compte et nos données ?

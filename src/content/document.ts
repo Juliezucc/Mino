@@ -32,11 +32,6 @@ export interface LegalDocument {
 /**
  * The company behind Mino, from the Kbis of 3 April 2026.
  *
- * One field still carries a placeholder, on purpose — publishing a document that
- * visibly says [à compléter] is far better than one that quietly states
- * something wrong: `mediator` requires an actual subscription to a consumer
- * mediator, which is mandatory before selling to consumers in France.
- *
  * The president's home address appears on the Kbis and is deliberately NOT
  * reproduced here: the registered office is the only address a legal notice
  * needs.
@@ -52,5 +47,18 @@ export const OPERATOR = {
   email: 'contact@mino.app',
   privacyEmail: 'privacy@mino.app',
   host: 'Supabase (hébergement et base de données, région européenne)',
-  mediator: '[Nom et coordonnées du médiateur de la consommation]',
+  /**
+   * Le médiateur de la consommation, obligatoire pour toute vente aux
+   * consommateurs en France.
+   *
+   * L'article R. 616-1 du Code de la consommation demande le nom du médiateur
+   * et **l'adresse de son site internet** — pas son adresse postale. C'est
+   * donc exactement ce qui figure ici : une adresse postale reproduite de
+   * mémoire et devenue obsolète serait pire qu'absente, puisqu'elle enverrait
+   * un client mécontent à un endroit qui ne le recevra pas.
+   */
+  mediator: {
+    name: 'CM2C — Centre de la Médiation de la Consommation de Conciliateurs de Justice',
+    website: 'www.cm2c.net',
+  },
 };

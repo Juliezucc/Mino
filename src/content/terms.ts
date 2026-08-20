@@ -240,11 +240,19 @@ export const TERMS: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: `Pour toute réclamation, écrivez-nous à ${OPERATOR.email} : nous cherchons toujours une solution amiable en premier.`,
+          text: `Pour toute réclamation, écrivez-nous à ${OPERATOR.email} : nous cherchons toujours une solution amiable en premier, et c'est presque toujours la voie la plus rapide.`,
         },
         {
           kind: 'p',
-          text: `À défaut de règlement, vous pouvez recourir gratuitement au médiateur de la consommation dont nous relevons — ${OPERATOR.mediator} — ou utiliser la plateforme européenne de règlement en ligne des litiges accessible à l’adresse ec.europa.eu/consumers/odr.`,
+          text: `À défaut de règlement dans un délai raisonnable, vous pouvez recourir gratuitement au médiateur de la consommation dont nous relevons : ${OPERATOR.mediator.name}. La saisine s'effectue en ligne à l'adresse ${OPERATOR.mediator.website}.`,
+        },
+        {
+          kind: 'p',
+          text: 'Conformément à l’article L. 612-2 du Code de la consommation, le médiateur ne peut être saisi que si vous nous avez préalablement adressé une réclamation écrite restée sans solution, et dans un délai d’un an à compter de cette réclamation.',
+        },
+        {
+          kind: 'note',
+          text: 'Le recours à la médiation est gratuit pour vous, facultatif, et ne vous prive à aucun moment de la possibilité de saisir la justice.',
         },
       ],
     },
