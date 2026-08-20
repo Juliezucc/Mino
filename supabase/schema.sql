@@ -36,10 +36,12 @@ exception when duplicate_object then null; end $$;
 -- ----------------------------------------------------------------- tables
 
 create table if not exists families (
-  id         text primary key,
-  name       text not null,
-  code       text not null unique,
-  created_at timestamptz not null default now()
+  id            text primary key,
+  name          text not null,
+  code          text not null unique,
+  -- Shared with other families, unlike `code`, which lets a device join.
+  referral_code text not null unique,
+  created_at    timestamptz not null default now()
 );
 
 -- One row per parent account. `user_id` links to Supabase Auth; it is the
@@ -253,3 +255,57 @@ alter publication supabase_realtime add table screen_time_transactions;
 alter publication supabase_realtime add table missions;
 alter publication supabase_realtime add table mission_assignments;
 alter publication supabase_realtime add table children;
+
+-- ------------------------------------------------------------- abonnements
+
+-- Billing state mirrors what Stripe says. Nothing here is writable by a client:
+-- a family that could set its own `status` to 'active' is a family that will.
+-- The service role, driven by Stripe webhooks, is the only writer.
+create table if not exists subscriptions (
+  family_id            text primary key references families(id) on delete cascade,
+  status               text not null check (status in ('trialing','active','past_due','canceled')),
+  plan                 text check (plan in ('monthly','yearly')),
+  trial_ends_at        timestamptz,
+  current_period_end   timestamptz,
+  cancel_at_period_end boolean not null default false,
+  -- Referral months earned but not yet applied to a period.
+  credit_months        integer not null default 0 check (credit_months >= 0),
+  customer_id          text,
+  subscription_id      text,
+  updated_at           timestamptz not null default now()
+);
+
+create table if not exists referrals (
+  id                 text primary key,
+  code               text not null,
+  referrer_family_id text not null references families(id) on delete cascade,
+  referee_family_id  text not null references families(id) on delete cascade,
+  status             text not null check (status in ('pending','qualified','credited','rejected')),
+  created_at         timestamptz not null default now(),
+  qualified_at       timestamptz,
+  credited_at        timestamptz,
+  rejection_reason   text,
+  -- One family can only ever be referred once: the anti-farming rule, enforced
+  -- by the database rather than by whoever remembers to check it.
+  constraint referrals_one_per_referee unique (referee_family_id),
+  constraint referrals_no_self check (referrer_family_id <> referee_family_id)
+);
+
+create index if not exists referrals_referrer_idx on referrals (referrer_family_id, status);
+
+alter table subscriptions enable row level security;
+alter table referrals     enable row level security;
+
+-- Read-only for the family it belongs to. No insert, update or delete policy is
+-- declared on purpose: with RLS enabled and no policy, those are all denied.
+drop policy if exists subscriptions_select on subscriptions;
+create policy subscriptions_select on subscriptions
+  for select using (family_id in (select auth_family_ids()));
+
+-- A family sees the referrals it made, and the one it benefited from.
+drop policy if exists referrals_select on referrals;
+create policy referrals_select on referrals
+  for select using (
+    referrer_family_id in (select auth_family_ids())
+    or referee_family_id in (select auth_family_ids())
+  );

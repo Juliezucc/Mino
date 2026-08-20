@@ -5,7 +5,9 @@ import { LocalRepository } from '@/data/localRepository';
 import { ChangeEvent, MinoRepository } from '@/data/repository';
 import { createSupabaseRepository } from '@/data/supabaseRepository';
 import * as actions from '@/domain/actions';
+import { Plan, Referral, Subscription } from '@/domain/billing';
 import { AvatarKey, FamilyData, ID, RepeatRule } from '@/domain/types';
+import { getBillingService } from '@/services/billing';
 
 /**
  * Single source of truth for the running app.
@@ -28,6 +30,14 @@ interface MinoState {
   activeChildId: ID | null;
   parentUnlocked: boolean;
   lastError: string | null;
+
+  /**
+   * Billing lives outside the family document on purpose: it belongs to the
+   * payment provider, not to the family's own content, and the app only ever
+   * mirrors what the provider says.
+   */
+  subscription: Subscription | null;
+  referrals: Referral[];
 
   bootstrap: () => Promise<void>;
   startDemo: () => Promise<void>;
@@ -64,6 +74,12 @@ interface MinoState {
   startSession: (childId: ID, minutes: number) => Promise<ID>;
   endSession: (sessionId: ID, status?: 'finished' | 'stopped') => Promise<void>;
   adjustBalance: (childId: ID, delta: number, reason: string) => Promise<void>;
+
+  loadBilling: () => Promise<void>;
+  choosePlan: (plan: Plan) => Promise<{ url: string }>;
+  cancelSubscription: () => Promise<void>;
+  resumeSubscription: () => Promise<void>;
+  redeemReferral: (code: string) => Promise<{ ok: boolean; reason?: string }>;
 }
 
 export const useMinoStore = create<MinoState>((set, get) => {
@@ -92,16 +108,20 @@ export const useMinoStore = create<MinoState>((set, get) => {
     activeChildId: null,
     parentUnlocked: false,
     lastError: null,
+    subscription: null,
+    referrals: [],
 
     async bootstrap() {
       const data = await get().repository.load();
       set({ data, status: 'ready' });
+      if (data) await get().loadBilling();
     },
 
     async startDemo() {
       const data = buildDemoFamily();
       set({ data, status: 'ready', activeChildId: null, parentUnlocked: false });
       await get().repository.persist(data, { kind: 'bootstrap' });
+      await get().loadBilling();
     },
 
     async createAccount({ parentName, email, pin, familyName }) {
@@ -113,11 +133,19 @@ export const useMinoStore = create<MinoState>((set, get) => {
       });
       set({ data, status: 'ready', activeChildId: null, parentUnlocked: true });
       await get().repository.persist(data, { kind: 'bootstrap' });
+      await get().loadBilling();
     },
 
     async resetAll() {
       await get().repository.clear();
-      set({ data: null, activeChildId: null, parentUnlocked: false, status: 'ready' });
+      set({
+        data: null,
+        activeChildId: null,
+        parentUnlocked: false,
+        status: 'ready',
+        subscription: null,
+        referrals: [],
+      });
     },
 
     selectChild(childId) {
@@ -252,6 +280,49 @@ export const useMinoStore = create<MinoState>((set, get) => {
         const next = actions.adjustBalance(data, { childId, delta, reason });
         return { data: next, upsert: { transactions: next.transactions.slice(-1) } };
       });
+    },
+
+    /* ------------------------------------------------------------ billing */
+
+    async loadBilling() {
+      const familyId = get().data?.family.id;
+      if (!familyId) return;
+      const billing = getBillingService();
+      // Billing must never block the app: a payment provider being down is not
+      // a reason for a child to lose their missions.
+      const [subscription, referrals] = await Promise.all([
+        billing.getSubscription(familyId).catch(() => null),
+        billing.listReferrals(familyId).catch(() => []),
+      ]);
+      set({ subscription, referrals });
+    },
+
+    async choosePlan(plan) {
+      const familyId = get().data?.family.id;
+      if (!familyId) throw new Error('Aucune famille.');
+      const result = await getBillingService().startCheckout({ familyId, plan });
+      await get().loadBilling();
+      return result;
+    },
+
+    async cancelSubscription() {
+      const familyId = get().data?.family.id;
+      if (!familyId) return;
+      set({ subscription: await getBillingService().cancel(familyId) });
+    },
+
+    async resumeSubscription() {
+      const familyId = get().data?.family.id;
+      if (!familyId) return;
+      set({ subscription: await getBillingService().resume(familyId) });
+    },
+
+    async redeemReferral(code) {
+      const familyId = get().data?.family.id;
+      if (!familyId) return { ok: false, reason: 'Aucune famille.' };
+      const result = await getBillingService().redeemReferralCode({ familyId, code });
+      if (result.subscription) set({ subscription: result.subscription });
+      return { ok: result.ok, reason: result.reason };
     },
   };
 });

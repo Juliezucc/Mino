@@ -54,7 +54,7 @@ export function Logo({ size = 40, color = colors.navy, baseline, style }: Props)
       </View>
       {baseline ? (
         <Text variant="body" color={colors.textMuted}>
-          Chaque minute se gagne.
+          Grandir, une mission à la fois.
         </Text>
       ) : null}
     </View>

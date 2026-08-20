@@ -3,6 +3,7 @@ import React from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { Button, Card, Logo, Screen, SectionHeader, Text } from '@/components/ui';
+import { accessOf } from '@/domain/billing';
 import { getScreenTimeService } from '@/services/screenTime';
 import { useFamily, useParent } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -16,8 +17,20 @@ export default function ParentSettings() {
   const lockParent = useMinoStore((s) => s.lockParent);
   const resetAll = useMinoStore((s) => s.resetAll);
   const startDemo = useMinoStore((s) => s.startDemo);
+  const subscription = useMinoStore((s) => s.subscription);
 
   const capability = getScreenTimeService().capability;
+  const access = accessOf(subscription);
+  const accessLabel =
+    access.kind === 'trial'
+      ? `Essai gratuit · ${access.daysLeft} jour${access.daysLeft > 1 ? 's' : ''} restant${access.daysLeft > 1 ? 's' : ''}`
+      : access.kind === 'active'
+        ? access.cancelAtPeriodEnd
+          ? 'Résilié · actif jusqu’à la fin de la période'
+          : `Actif · formule ${subscription?.plan === 'yearly' ? 'annuelle' : 'mensuelle'}`
+        : access.kind === 'grace'
+          ? 'Paiement en attente'
+          : 'Aucun abonnement actif';
 
   const confirmReset = () => {
     Alert.alert(
@@ -76,6 +89,26 @@ export default function ParentSettings() {
 
       <Card style={styles.block}>
         <Text variant="label" color={colors.textMuted}>
+          ABONNEMENT
+        </Text>
+        <Text variant="cardTitle">{accessLabel}</Text>
+        <View style={styles.links}>
+          <Button
+            label="Gérer mon abonnement"
+            variant="secondary"
+            onPress={() => router.push('/parent/abonnement')}
+          />
+          <Button
+            label="Parrainer une famille"
+            icon="🎁"
+            variant="secondary"
+            onPress={() => router.push('/parent/parrainage')}
+          />
+        </View>
+      </Card>
+
+      <Card style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
           TEMPS D’ÉCRAN
         </Text>
         <Text variant="body">
@@ -98,6 +131,22 @@ export default function ParentSettings() {
           {`Stockage des données : ${repositoryName === 'local' ? 'appareil uniquement' : 'Supabase (RLS activée)'}`}
         </Text>
       </Card>
+
+      <View style={styles.links}>
+        <Button label="Aide et mode d’emploi" icon="💡" variant="secondary" onPress={() => router.push('/aide')} />
+        <Button
+          label="Politique de confidentialité"
+          variant="ghost"
+          haptic={false}
+          onPress={() => router.push('/legal/confidentialite')}
+        />
+        <Button
+          label="Conditions générales"
+          variant="ghost"
+          haptic={false}
+          onPress={() => router.push('/legal/cgv')}
+        />
+      </View>
 
       <View style={styles.actions}>
         <Button label="Verrouiller l’espace parent" variant="secondary" onPress={() => {
@@ -128,5 +177,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
   },
   actions: { gap: spacing.md },
+  links: { gap: spacing.sm },
   footer: { alignItems: 'center', gap: spacing.sm, paddingTop: spacing.lg },
 });

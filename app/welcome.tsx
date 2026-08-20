@@ -30,7 +30,7 @@ export default function Welcome() {
       <View style={styles.header}>
         <Logo size={44} />
         <Text variant="hero" style={styles.claim}>
-          Chaque minute{'\n'}se gagne.
+          Grandir,{'\n'}une mission à la fois.
         </Text>
         <Text variant="body" color={colors.textMuted}>
           Mino accompagne les enfants au quotidien pour transformer leurs efforts en temps d’écran,

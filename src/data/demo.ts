@@ -1,4 +1,4 @@
-import { createFamilyCode, createId } from '@/domain/id';
+import { createFamilyCode, createId, createReferralCode } from '@/domain/id';
 import {
   Child,
   FamilyData,
@@ -29,6 +29,7 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     id: createId('fam'),
     name: 'Famille Martin',
     code: createFamilyCode(),
+    referralCode: createReferralCode(),
     createdAt: at(now, 8),
   };
 
@@ -198,6 +199,7 @@ export function buildEmptyFamily(
     id: createId('fam'),
     name: input.familyName,
     code: createFamilyCode(),
+    referralCode: createReferralCode(),
     createdAt: now.toISOString(),
   };
   const parent: Parent = {

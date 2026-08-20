@@ -45,9 +45,16 @@ const rowToFamily = (r: any): Family => ({
   id: r.id,
   name: r.name,
   code: r.code,
+  referralCode: r.referral_code,
   createdAt: r.created_at,
 });
-const familyToRow = (f: Family) => ({ id: f.id, name: f.name, code: f.code, created_at: f.createdAt });
+const familyToRow = (f: Family) => ({
+  id: f.id,
+  name: f.name,
+  code: f.code,
+  referral_code: f.referralCode,
+  created_at: f.createdAt,
+});
 
 const rowToParent = (r: any): Parent => ({
   id: r.id,

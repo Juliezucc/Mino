@@ -1,0 +1,224 @@
+import { LegalDocument, OPERATOR } from './document';
+
+import { ANNUAL_PRICE_EUR, MONTHLY_PRICE_EUR, REFERRAL, TRIAL_DAYS } from '@/domain/billing';
+
+/**
+ * Terms of sale and of use — French consumer law, EU distance selling.
+ *
+ * The commercial rules here are the same constants the code enforces, imported
+ * rather than retyped: a price or a referral cap that drifts between the terms
+ * and the billing engine is exactly the kind of discrepancy that turns into a
+ * dispute.
+ *
+ * NOT LEGAL ADVICE. Have a lawyer review this before selling, in particular the
+ * withdrawal, tacit renewal and mediation clauses.
+ */
+export const TERMS: LegalDocument = {
+  title: 'Conditions générales',
+  subtitle: 'Conditions générales de vente et d’utilisation de Mino',
+  updatedAt: '20 août 2026',
+  intro: [
+    {
+      kind: 'p',
+      text: 'Ces conditions régissent l’utilisation de l’application Mino et l’abonnement qui y donne accès. En créant un compte, vous les acceptez.',
+    },
+  ],
+  sections: [
+    {
+      title: '1. L’éditeur',
+      blocks: [
+        {
+          kind: 'p',
+          text: `Mino est édité par ${OPERATOR.legalName}, ${OPERATOR.legalForm}, siège social ${OPERATOR.address}, immatriculée sous le numéro ${OPERATOR.siret}, TVA intracommunautaire ${OPERATOR.vatNumber}. Directeur de la publication : ${OPERATOR.publisher}. Hébergement : ${OPERATOR.host}. Contact : ${OPERATOR.email}.`,
+        },
+      ],
+    },
+    {
+      title: '2. Le service',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Mino permet à un parent de définir de petites responsabilités du quotidien, appelées missions, et d’accorder à son enfant du temps d’écran lorsqu’elles sont accomplies. L’enfant signale qu’il a terminé, le parent valide ou refuse, et le temps accordé s’ajoute au compteur de l’enfant.',
+        },
+        {
+          kind: 'note',
+          text: 'Dans sa version actuelle, Mino mesure le temps d’écran au moyen d’un minuteur intégré. Il ne bloque pas lui-même l’accès aux autres applications de l’appareil. Pour un blocage effectif, utilisez les outils du système : Temps d’écran sur iOS, Family Link sur Android.',
+        },
+        {
+          kind: 'p',
+          text: 'Mino ne comporte ni monnaie virtuelle, ni achat intégré, ni publicité, ni messagerie, ni contenu public. Les minos affichés à l’enfant sont l’unité dans laquelle le service exprime les minutes de temps d’écran : un mino vaut toujours une minute, ils ne peuvent être ni achetés, ni vendus, ni convertis.',
+        },
+      ],
+    },
+    {
+      title: '3. Qui peut souscrire',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Le compte doit être ouvert par une personne majeure, titulaire de l’autorité parentale sur les enfants dont elle crée les profils, ou dûment autorisée par ce titulaire. En créant un profil enfant, vous déclarez disposer de cette qualité.',
+        },
+      ],
+    },
+    {
+      title: '4. Prix',
+      blocks: [
+        {
+          kind: 'rows',
+          rows: [
+            { label: 'Abonnement mensuel', value: `${MONTHLY_PRICE_EUR.toFixed(2).replace('.', ',')} € TTC par mois, sans engagement.` },
+            { label: 'Abonnement annuel', value: `${ANNUAL_PRICE_EUR.toFixed(2).replace('.', ',')} € TTC par an, soit une remise par rapport au tarif mensuel.` },
+          ],
+        },
+        {
+          kind: 'p',
+          text: 'Un seul abonnement couvre toute la famille, quel que soit le nombre d’enfants et d’appareils. Les prix sont indiqués toutes taxes comprises ; la TVA applicable est celle du pays de résidence du client au sein de l’Union européenne. Nous pouvons faire évoluer nos tarifs, en vous en informant au moins un mois à l’avance ; le nouveau tarif ne s’applique qu’aux périodes postérieures, et vous pouvez résilier d’ici là.',
+        },
+      ],
+    },
+    {
+      title: '5. La période d’essai',
+      blocks: [
+        {
+          kind: 'p',
+          text: `Tout nouveau compte bénéficie d’une période d’essai de ${TRIAL_DAYS} jours, donnant accès à l’intégralité du service. Aucun montant n’est prélevé pendant cette période.`,
+        },
+        {
+          kind: 'p',
+          text: 'À l’issue de l’essai, l’abonnement choisi démarre automatiquement, sauf si vous avez résilié avant son terme. Vous pouvez résilier à tout moment pendant l’essai, en quelques secondes depuis votre compte, sans avoir à vous justifier et sans qu’aucune somme ne soit due.',
+        },
+        {
+          kind: 'p',
+          text: 'Nous vous prévenons par e-mail avant la fin de la période d’essai.',
+        },
+      ],
+    },
+    {
+      title: '6. Le parrainage',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Chaque abonné dispose d’un code de parrainage personnel qu’il peut partager librement.',
+        },
+        {
+          kind: 'bullets',
+          items: [
+            `La personne parrainée bénéficie d’une période d’essai portée à ${REFERRAL.refereeTrialDays} jours au lieu de ${TRIAL_DAYS}.`,
+            `Le parrain reçoit ${REFERRAL.referrerFreeMonths} mois d’abonnement offert lorsque son filleul devient abonné payant, c’est-à-dire à l’issue de son premier paiement effectif.`,
+            'Les mois offerts se cumulent et repoussent d’autant la prochaine échéance de paiement.',
+            `Un même parrain peut recevoir au maximum ${REFERRAL.maxFreeMonthsPerYear} mois offerts par période de douze mois.`,
+            'Un code ne peut pas être utilisé par un foyer déjà client, ni sur un compte utilisant un moyen de paiement déjà associé à un autre compte.',
+            'Les mois offerts n’ont aucune valeur monétaire : ils ne peuvent être ni échangés, ni remboursés, ni transférés.',
+          ],
+        },
+        {
+          kind: 'p',
+          text: 'Nous nous réservons le droit d’annuler des mois offerts obtenus par des moyens frauduleux, notamment par la création de comptes fictifs, et de suspendre le compte concerné.',
+        },
+      ],
+    },
+    {
+      title: '7. Paiement et reconduction',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Le paiement est effectué en ligne par carte bancaire, via notre prestataire Stripe. Vos coordonnées bancaires ne sont jamais conservées par Mino.',
+        },
+        {
+          kind: 'p',
+          text: 'L’abonnement se reconduit tacitement à chaque échéance, mensuelle ou annuelle. Conformément à l’article L. 215-1 du Code de la consommation, nous vous informons par écrit, au plus tôt trois mois et au plus tard un mois avant le terme de chaque période annuelle, de la possibilité de ne pas reconduire votre abonnement.',
+        },
+        {
+          kind: 'p',
+          text: 'En cas d’échec de paiement, l’accès est suspendu après relance. Les données de la famille sont conservées le temps de régulariser la situation.',
+        },
+      ],
+    },
+    {
+      title: '8. Résiliation',
+      blocks: [
+        {
+          kind: 'note',
+          text: 'Vous pouvez résilier à tout moment, en trois clics, depuis Réglages → Abonnement. Aucun appel, aucun courrier, aucune justification.',
+        },
+        {
+          kind: 'p',
+          text: 'La résiliation prend effet à la fin de la période déjà payée : vous conservez l’accès jusque-là, et rien n’est prélevé ensuite. Conformément à l’article L. 215-1-1 du Code de la consommation, la fonctionnalité de résiliation est accessible en permanence et directement depuis votre espace.',
+        },
+        {
+          kind: 'p',
+          text: 'Nous pouvons de notre côté résilier un compte en cas de manquement grave à ces conditions, après vous en avoir informé.',
+        },
+      ],
+    },
+    {
+      title: '9. Droit de rétractation',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Vous disposez d’un délai de quatorze jours à compter de la souscription pour vous rétracter, sans avoir à motiver votre décision, conformément aux articles L. 221-18 et suivants du Code de la consommation.',
+        },
+        {
+          kind: 'p',
+          text: `Si vous demandez que le service commence immédiatement, vous pouvez toujours vous rétracter dans ce délai ; seule la part du service effectivement fournie reste due. En pratique, la période d’essai de ${TRIAL_DAYS} jours rend cette question sans objet dans la quasi-totalité des cas : rien ne vous est prélevé avant son terme.`,
+        },
+        {
+          kind: 'p',
+          text: `Pour exercer ce droit, il suffit de nous écrire à ${OPERATOR.email}.`,
+        },
+      ],
+    },
+    {
+      title: '10. Disponibilité et responsabilité',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Nous mettons tout en œuvre pour assurer la disponibilité du service, sans pouvoir garantir une continuité absolue : des interruptions peuvent survenir pour maintenance ou pour des causes indépendantes de notre volonté.',
+        },
+        {
+          kind: 'p',
+          text: 'Mino est un outil d’organisation familiale. Il ne se substitue ni à votre autorité parentale, ni à un dispositif de contrôle parental système, ni à un accompagnement éducatif ou médical. Vous restez seul décisionnaire du temps d’écran accordé à votre enfant.',
+        },
+      ],
+    },
+    {
+      title: '11. Propriété intellectuelle',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'L’application, sa charte graphique, la mascotte Mino et l’ensemble de ses contenus sont protégés. Votre abonnement vous confère un droit d’usage personnel et familial, non exclusif et non cessible. Les contenus que vous créez — noms de missions, prénoms des enfants — restent les vôtres.',
+        },
+      ],
+    },
+    {
+      title: '12. Données personnelles',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Le traitement de vos données est décrit dans notre politique de confidentialité, accessible depuis les réglages de l’application, qui fait partie intégrante des présentes conditions.',
+        },
+      ],
+    },
+    {
+      title: '13. Réclamations et médiation',
+      blocks: [
+        {
+          kind: 'p',
+          text: `Pour toute réclamation, écrivez-nous à ${OPERATOR.email} : nous cherchons toujours une solution amiable en premier.`,
+        },
+        {
+          kind: 'p',
+          text: 'À défaut de règlement, vous pouvez recourir gratuitement au médiateur de la consommation dont nous relevons — [Nom et coordonnées du médiateur] — ou utiliser la plateforme européenne de règlement en ligne des litiges accessible à l’adresse ec.europa.eu/consumers/odr.',
+        },
+      ],
+    },
+    {
+      title: '14. Droit applicable',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Ces conditions sont soumises au droit français. En tant que consommateur, vous conservez le bénéfice des dispositions impératives de la loi de votre pays de résidence au sein de l’Union européenne.',
+        },
+      ],
+    },
+  ],
+};

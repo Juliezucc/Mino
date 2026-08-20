@@ -15,6 +15,11 @@ export interface Family {
   name: string;
   /** Short human code used by a child device to join the family. */
   code: string;
+  /**
+   * Referral code, shared with other families. Deliberately not `code`: one is
+   * handed to strangers, the other lets a device into the family.
+   */
+  referralCode: string;
   createdAt: ISODate;
 }
 

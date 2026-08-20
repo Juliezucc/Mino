@@ -1,0 +1,181 @@
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Share, StyleSheet, View } from 'react-native';
+
+import { Button, Card, Field, Screen, ScreenHeader, Text } from '@/components/ui';
+import { REFERRAL, TRIAL_DAYS, creditedMonthsInYear } from '@/domain/billing';
+import { useFamily } from '@/store/selectors';
+import { useMinoStore } from '@/store/useMinoStore';
+import { colors, radii, spacing } from '@/theme';
+
+const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
+  pending: { label: 'En essai', tone: colors.textMuted },
+  qualified: { label: 'Mois à venir', tone: colors.yellow },
+  credited: { label: 'Mois offert ✓', tone: colors.mint },
+  rejected: { label: 'Non retenu', tone: colors.textSubtle },
+};
+
+/**
+ * Referral.
+ *
+ * Two-sided on purpose: the newcomer gets a longer trial, the referrer gets a
+ * month once that newcomer actually pays. Rewarding at sign-up instead would
+ * pay for accounts rather than for customers.
+ */
+export default function ReferralScreen() {
+  const router = useRouter();
+  const data = useFamily();
+  const referrals = useMinoStore((s) => s.referrals);
+  const subscription = useMinoStore((s) => s.subscription);
+  const redeemReferral = useMinoStore((s) => s.redeemReferral);
+
+  const [code, setCode] = useState('');
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  if (!data) return null;
+
+  const myCode = data.family.referralCode;
+  const earned = creditedMonthsInYear(referrals, data.family.id);
+  const canRedeem = subscription?.status === 'trialing';
+
+  const share = () => {
+    Share.share({
+      message: `On utilise Mino à la maison : les enfants gagnent leur temps d’écran en faisant leurs missions. Avec mon code ${myCode}, tu as ${REFERRAL.refereeTrialDays} jours d’essai au lieu de ${TRIAL_DAYS}.`,
+    }).catch(() => undefined);
+  };
+
+  const redeem = async () => {
+    setLoading(true);
+    const result = await redeemReferral(code);
+    setMessage(
+      result.ok
+        ? { ok: true, text: `C’est fait : votre essai passe à ${REFERRAL.refereeTrialDays} jours.` }
+        : { ok: false, text: result.reason ?? 'Ce code n’a pas pu être utilisé.' },
+    );
+    if (result.ok) setCode('');
+    setLoading(false);
+  };
+
+  return (
+    <Screen contentStyle={styles.content}>
+      <ScreenHeader onBack={() => router.back()} title="Parrainage" />
+
+      <Card style={styles.codeCard} background={colors.blueSoft} elevation="none">
+        <Text variant="label" color={colors.blueDark}>
+          MON CODE
+        </Text>
+        <Text variant="display" color={colors.blueDark} style={styles.code}>
+          {myCode}
+        </Text>
+        <Button label="Partager mon code" icon="🎁" onPress={share} />
+      </Card>
+
+      <Card style={styles.block}>
+        <Text variant="cardTitle">Comment ça marche</Text>
+        <View style={styles.steps}>
+          {[
+            `La famille que vous parrainez démarre avec ${REFERRAL.refereeTrialDays} jours d’essai au lieu de ${TRIAL_DAYS}.`,
+            `Dès qu’elle devient abonnée, vous recevez ${REFERRAL.referrerFreeMonths} mois offert.`,
+            'Les mois offerts se cumulent et repoussent votre prochain paiement.',
+            `Maximum ${REFERRAL.maxFreeMonthsPerYear} mois offerts par an.`,
+          ].map((step, index) => (
+            <View key={step} style={styles.step}>
+              <View style={styles.number}>
+                <Text variant="caption" color={colors.onBrand}>
+                  {index + 1}
+                </Text>
+              </View>
+              <Text variant="body" color={colors.textMuted} style={styles.stepText}>
+                {step}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </Card>
+
+      <Card style={styles.block}>
+        <Text variant="cardTitle">
+          {referrals.length > 0
+            ? `Mes filleuls · ${earned} mois offert${earned > 1 ? 's' : ''}`
+            : 'Mes filleuls'}
+        </Text>
+        {referrals.length === 0 ? (
+          <Text variant="body" color={colors.textMuted}>
+            Personne pour l’instant. Partagez votre code à une famille à qui Mino ferait du bien.
+          </Text>
+        ) : (
+          <View style={styles.list}>
+            {referrals.map((referral) => {
+              const status = STATUS_LABEL[referral.status] ?? STATUS_LABEL.pending;
+              return (
+                <View key={referral.id} style={styles.row}>
+                  <Text variant="body">
+                    {new Date(referral.createdAt).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'long',
+                    })}
+                  </Text>
+                  <Text variant="label" color={status.tone}>
+                    {status.label}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </Card>
+
+      {canRedeem ? (
+        <Card style={styles.block}>
+          <Text variant="cardTitle">On vous a parrainé ?</Text>
+          <Text variant="body" color={colors.textMuted}>
+            {`Entrez le code reçu pour passer à ${REFERRAL.refereeTrialDays} jours d’essai. Il ne peut être utilisé que pendant l’essai.`}
+          </Text>
+          <Field
+            placeholder="Code à 6 caractères"
+            autoCapitalize="characters"
+            value={code}
+            onChangeText={(v) => setCode(v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+          />
+          {message ? (
+            <Text variant="caption" color={message.ok ? colors.mint : colors.danger}>
+              {message.text}
+            </Text>
+          ) : null}
+          <Button
+            label="UTILISER CE CODE"
+            onPress={redeem}
+            disabled={code.length !== 6}
+            loading={loading}
+          />
+        </Card>
+      ) : null}
+
+      <Text variant="caption" color={colors.textSubtle} center>
+        Les mois offerts n’ont pas de valeur monétaire et ne sont pas remboursables.
+      </Text>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { paddingTop: spacing.md, paddingBottom: spacing.xl, gap: spacing.lg },
+  codeCard: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xl },
+  code: { letterSpacing: 6 },
+  block: { gap: spacing.md },
+  steps: { gap: spacing.md },
+  step: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  number: {
+    width: 22,
+    height: 22,
+    borderRadius: radii.pill,
+    backgroundColor: colors.blue,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  stepText: { flex: 1 },
+  list: { gap: spacing.sm },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+});
