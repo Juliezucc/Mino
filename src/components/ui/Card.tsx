@@ -11,6 +11,8 @@ interface Props {
   elevation?: 'none' | 'soft' | 'lifted';
   background?: string;
   accessibilityLabel?: string;
+  /** For cards that act as a toggle, so the state is announced too. */
+  accessibilityState?: { selected?: boolean; disabled?: boolean };
   disabled?: boolean;
 }
 
@@ -23,6 +25,7 @@ export function Card({
   elevation = 'soft',
   background = colors.surface,
   accessibilityLabel,
+  accessibilityState,
   disabled,
 }: Props) {
   const base: StyleProp<ViewStyle> = [
@@ -39,6 +42,7 @@ export function Card({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={accessibilityState}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [base, pressed && styles.pressed, disabled && styles.disabled]}

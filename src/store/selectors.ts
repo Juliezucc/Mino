@@ -34,6 +34,15 @@ export function useChild(childId: ID | null | undefined): Child | null {
   );
 }
 
+/** The other children of the family — what makes sibling missions relevant. */
+export function useSiblings(childId: ID | null | undefined): Child[] {
+  const children = useChildren();
+  return useMemo(
+    () => (childId ? children.filter((c) => c.id !== childId) : EMPTY),
+    [children, childId],
+  );
+}
+
 export function useActiveChild(): Child | null {
   const activeChildId = useMinoStore((s) => s.activeChildId);
   return useChild(activeChildId);

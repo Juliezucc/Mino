@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Chip, Field, Text } from '@/components/ui';
+import { resolveTitle, suggestionsFor } from '@/domain/missionLibrary';
 import { ID, RepeatKind, RepeatRule, Weekday } from '@/domain/types';
 import { useChildren } from '@/store/selectors';
 import { colors, radii, spacing } from '@/theme';
@@ -20,16 +21,6 @@ interface Props {
   onSubmit: (value: MissionFormValue) => void | Promise<void>;
   loading?: boolean;
 }
-
-/** Ready-made missions: one tap fills the name, the icon and the reward. */
-const SUGGESTIONS = [
-  { title: 'Faire mon lit', icon: '🛏️', minutes: 5 },
-  { title: 'Ranger ma chambre', icon: '🧸', minutes: 15 },
-  { title: 'Débarrasser la table', icon: '🍽️', minutes: 10 },
-  { title: 'Me brosser les dents', icon: '🪥', minutes: 5 },
-  { title: 'Préparer mon cartable', icon: '🎒', minutes: 10 },
-  { title: 'Faire mes devoirs', icon: '📚', minutes: 20 },
-];
 
 const ICONS = ['🛏️', '🧸', '🍽️', '🪥', '🎒', '📚', '🧺', '🐶', '🚿', '🧹', '🥣', '⭐'];
 const QUICK_MINUTES = [5, 10, 15, 20, 30];
@@ -54,6 +45,17 @@ export function MissionForm({ initialChildIds = [], submitLabel = 'CRÉER LA MIS
   const [days, setDays] = useState<Weekday[]>([1, 2, 3, 4, 5]);
   const [childIds, setChildIds] = useState<ID[]>(initialChildIds);
   const [error, setError] = useState<string | undefined>();
+
+  // Suggestions follow whoever is selected: age-appropriate, and only naming a
+  // brother or sister when there is one.
+  const suggestions = useMemo(() => {
+    const picked = children.filter((c) => childIds.includes(c.id));
+    const child = picked.length === 1 ? picked[0] : null;
+    const siblings = child ? children.filter((c) => c.id !== child.id) : [];
+    return suggestionsFor(child, siblings)
+      .slice(0, 10)
+      .map((s) => ({ ...s, label: resolveTitle(s, siblings) }));
+  }, [children, childIds]);
 
   const toggleChild = (id: ID) =>
     setChildIds((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
@@ -83,14 +85,14 @@ export function MissionForm({ initialChildIds = [], submitLabel = 'CRÉER LA MIS
           Missions prêtes à l’emploi
         </Text>
         <View style={styles.row}>
-          {SUGGESTIONS.map((s) => (
+          {suggestions.map((s) => (
             <Chip
-              key={s.title}
-              label={s.title}
+              key={s.id}
+              label={s.label}
               icon={s.icon}
-              selected={title === s.title}
+              selected={title === s.label}
               onPress={() => {
-                setTitle(s.title);
+                setTitle(s.label);
                 setIcon(s.icon);
                 setMinutes(s.minutes);
                 setCustomMinutes('');
