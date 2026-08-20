@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Mascot } from '@/components/mascot';
 import { AVATARS, Avatar, Button, Card, MinutesBadge, Screen, SectionHeader, Text } from '@/components/ui';
 import { unitOf } from '@/domain/ageBand';
 import { HistoryList } from '@/features/history/HistoryList';
@@ -52,6 +53,30 @@ export default function ChildProfile() {
         </Text>
       </Card>
 
+      {/* Mino est là même quand il reste des minos.
+          Le bouton visible sur l'écran « plus de temps » reste le moment fort —
+          c'est là que Mino prend tout son sens. Mais le réserver à ce seul
+          instant le rendait introuvable : un enfant qui a envie de parler à son
+          personnage ne devrait pas avoir à dépenser son temps d'écran d'abord.
+          Le budget quotidien ne change pas, donc le coût non plus. */}
+      {child.companionEnabled === false ? null : (
+        <Card style={styles.talk} background={colors.blueSoft} elevation="none">
+          <Mascot expression="happy" size={56} />
+          <View style={styles.talkText}>
+            <Text variant="cardTitle">Parler à Mino</Text>
+            <Text variant="caption" color={colors.textMuted}>
+              Il est là même quand tu n’as plus de temps d’écran.
+            </Text>
+          </View>
+          <Button
+            label="DISCUTER"
+            size="small"
+            full={false}
+            onPress={() => router.push('/child/mino')}
+          />
+        </Card>
+      )}
+
       <View style={styles.section}>
         <SectionHeader title="Mon personnage" subtitle="Touche pour en changer" />
         <View style={styles.avatars}>
@@ -98,6 +123,8 @@ export default function ChildProfile() {
 
 const styles = StyleSheet.create({
   content: { paddingTop: spacing.lg, paddingBottom: tabBarSpace, gap: spacing.xl },
+  talk: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  talkText: { flex: 1, gap: 2 },
   identity: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl },
   identityStats: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   section: { gap: spacing.md },
