@@ -3,24 +3,26 @@ import { StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icons/Icon';
 import { Card, MinutesBadge, StatusPill, Text } from '@/components/ui';
-import { formatMinos } from '@/domain/minos';
+import { TimeUnit, formatTime } from '@/domain/minos';
 import { ChildMission } from '@/domain/missions';
 import { accentFor, colors, radii, spacing } from '@/theme';
 
 interface Props {
   item: ChildMission;
+  /** Children read minos, teenagers read minutes (see `domain/ageBand`). */
+  unit?: TimeUnit;
   onPress?: () => void;
 }
 
 /** Big, tappable mission card: emoji, name, reward. Readable at a glance. */
-export function MissionCard({ item, onPress }: Props) {
+export function MissionCard({ item, unit = 'minos', onPress }: Props) {
   const accent = accentFor(item.mission.id);
   const done = item.state === 'done';
 
   return (
     <Card
       onPress={onPress}
-      accessibilityLabel={`${item.mission.title}, ${formatMinos(item.mission.minutes)}`}
+      accessibilityLabel={`${item.mission.title}, ${formatTime(item.mission.minutes, unit)}`}
       style={[styles.card, done && styles.done]}
     >
       <View style={styles.row}>
@@ -37,7 +39,7 @@ export function MissionCard({ item, onPress }: Props) {
               minutes={item.mission.minutes}
               tone={done ? 'muted' : 'blue'}
               size="sm"
-              unit="minos"
+              unit={unit}
             />
             <StatusPill state={item.state} />
           </View>

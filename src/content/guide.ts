@@ -55,7 +55,8 @@ export const GUIDE: GuideChapter[] = [
         title: 'Ajoutez vos enfants',
         body: [
           'Espace parent → Enfants → Ajouter un enfant. Un prénom, un âge, un personnage. C’est tout ce que Mino sait d’eux, et c’est volontaire.',
-          'L’âge sert à filtrer les missions proposées : on ne suggère pas « passer l’aspirateur » à un enfant de 5 ans.',
+          'L’âge sert à deux choses. Il filtre les missions proposées — on ne suggère pas « passer l’aspirateur » à un enfant de 5 ans — et il décide du registre de l’application.',
+          'Jusqu’à 12 ans, Mino parle en minos, félicite, et affiche de très gros boutons. À partir de 13 ans il passe en version ado : des minutes, un ton sobre, pas de confettis, et des missions qui ont du sens à cet âge — réviser, gérer son linge, une heure sans téléphone.',
         ],
         where: 'Espace parent → Enfants',
         screen: 'parentEnfants',
@@ -130,6 +131,14 @@ export const GUIDE: GuideChapter[] = [
         tip: 'Commencez par trois à cinq missions par enfant. Une liste trop longue décourage, et l’enfant finit par ne plus la regarder.',
       },
       {
+        title: 'Lisez les consignes de sécurité',
+        body: [
+          'Les missions qui touchent à la cuisine, aux appareils ou aux produits d’entretien portent un encadré ⚠️ avant que vous ne les acceptiez : « sans objet tranchant ni cuisson », « sans les couteaux », « produits ménagers manipulés par l’adulte ».',
+          'Ce sont des repères, pas des règles absolues. C’est vous qui connaissez votre enfant, et c’est à vous de juger — et d’être là.',
+        ],
+        tip: 'Une mission proposée par une application n’est pas une mission validée pour votre enfant. L’enfant reste sous votre surveillance, toujours.',
+      },
+      {
         title: 'Ou créez la vôtre',
         body: [
           'Missions → Créer une mission. Un nom, une icône, le temps gagné, l’enfant, la récurrence. Les suggestions du haut sont filtrées sur l’âge de l’enfant sélectionné.',
@@ -188,6 +197,48 @@ export const GUIDE: GuideChapter[] = [
   },
 
   {
+    id: 'console',
+    title: 'Console, télé, ordinateur',
+    icon: '🎮',
+    summary: 'Échanger du temps gagné contre une Switch ou la télévision.',
+    duration: '2 minutes',
+    steps: [
+      {
+        title: 'Pourquoi ce n’est pas automatique',
+        body: [
+          'Une Nintendo Switch, une PlayStation, une télévision ou l’ordinateur familial n’ouvrent leur temps de jeu à aucune application extérieure. Il n’existe aucun moyen, pour Mino, de démarrer ou d’arrêter une console à distance.',
+          'Plutôt que d’ignorer ces écrans — qui sont souvent les seuls chez les plus jeunes — Mino en fait un échange encadré : l’enfant demande, vous lancez le minuteur, et les deux écrans affichent le même compte à rebours.',
+        ],
+      },
+      {
+        title: 'L’enfant demande',
+        body: [
+          'Dans « Mon temps », il choisit l’écran — 🎮 Console, 📺 Télévision, 💻 Ordinateur — puis la durée, et appuie sur « Demander à mon parent ».',
+          'Rien n’est décompté à ce moment-là. Une demande sans réponse ne coûte rien.',
+        ],
+        screen: 'enfantTemps',
+      },
+      {
+        title: 'Vous lancez le minuteur',
+        body: [
+          'La demande arrive sur votre accueil, à côté des missions à valider. Vous lancez, ou vous refusez.',
+          'Le décompte démarre au moment où vous lancez, pas au moment où l’enfant a demandé : une demande vue une demi-heure plus tard ne lui coûte pas une demi-heure.',
+        ],
+        where: 'Espace parent → Accueil',
+        screen: 'parentAccueil',
+      },
+      {
+        title: 'Tout le monde voit le même chrono',
+        body: [
+          'Pendant la session, le temps restant s’affiche sur votre écran comme sur le sien, sous « Écrans en cours ». Quand c’est fini, vous clôturez — et seul le temps réellement écoulé est décompté.',
+          'C’est là tout l’intérêt : « tu avais vingt minutes » cesse d’être une discussion sur la mémoire de chacun.',
+        ],
+        tip: 'La console reste sous votre contrôle : Mino tient le compte et vous prévient, il n’éteint rien tout seul.',
+      },
+    ],
+  },
+
+  {
     id: 'blocage',
     title: 'Faire respecter le temps gagné',
     icon: '🔒',
@@ -240,7 +291,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Les minos, c’est des minutes',
         body: [
-          'Votre enfant ne voit pas « minutes » mais « minos ». C’est le même chiffre : un mino vaut exactement une minute de temps d’écran, toujours.',
+          'Jusqu’à 12 ans, votre enfant ne voit pas « minutes » mais « minos ». C’est le même chiffre : un mino vaut exactement une minute de temps d’écran, toujours. À partir de 13 ans, Mino affiche des minutes — à cet âge, un mot inventé passe pour de l’infantilisation.',
           'Ce n’est pas une monnaie. Les minos ne s’achètent pas, ne se vendent pas, et ne servent à rien d’autre qu’au temps qu’ils désignent.',
           `Les plus jeunes, qui ne lisent pas encore les chiffres, comptent les capsules : une capsule vaut ${MINUTES_PER_CAPSULE} minos.`,
         ],

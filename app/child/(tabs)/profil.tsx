@@ -3,6 +3,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AVATARS, Avatar, Button, Card, MinutesBadge, Screen, SectionHeader, Text } from '@/components/ui';
+import { unitOf } from '@/domain/ageBand';
 import { HistoryList } from '@/features/history/HistoryList';
 import { useActiveChild, useBalanceDetail, useFamily, useHistory } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -28,6 +29,8 @@ export default function ChildProfile() {
 
   if (!child || !balance || !data) return null;
 
+  const unit = unitOf(child);
+
   const approved = data.completions.filter(
     (c) => c.childId === child.id && c.status === 'approved',
   ).length;
@@ -41,8 +44,8 @@ export default function ChildProfile() {
           {`${child.age} ans`}
         </Text>
         <View style={styles.identityStats}>
-          <MinutesBadge minutes={balance.minutes} tone="blue" signed={false} unit="minos" />
-          <MinutesBadge minutes={balance.earnedToday} tone="mint" unit="minos" />
+          <MinutesBadge minutes={balance.minutes} tone="blue" signed={false} unit={unit} />
+          <MinutesBadge minutes={balance.earnedToday} tone="mint" unit={unit} />
         </View>
         <Text variant="caption" color={colors.textSubtle} center>
           {`${approved} mission${approved > 1 ? 's' : ''} validée${approved > 1 ? 's' : ''} au total`}
@@ -84,8 +87,8 @@ export default function ChildProfile() {
       </View>
 
       <View style={styles.section}>
-        <SectionHeader title="Mon historique" subtitle="Chaque mino gagné ou utilisé" />
-        <HistoryList transactions={history} limit={12} unit="minos" />
+        <SectionHeader title="Mon historique" subtitle={unit === 'minos' ? 'Chaque mino gagné ou utilisé' : 'Chaque minute gagnée ou utilisée'} />
+        <HistoryList transactions={history} limit={12} unit={unit} />
       </View>
 
       <Button label="Changer de profil" variant="secondary" onPress={() => router.replace('/who')} />

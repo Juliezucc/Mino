@@ -60,6 +60,17 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     createdAt: at(now, 8),
   };
 
+  // A teenager, so the second register is visible the moment the demo opens:
+  // minutes instead of minos, sober wording, no confetti.
+  const lea: Child = {
+    id: createId('child'),
+    familyId: family.id,
+    firstName: 'Léa',
+    age: 14,
+    avatarKey: 'purple',
+    createdAt: at(now, 8),
+  };
+
   const mission = (
     title: string,
     icon: string,
@@ -94,8 +105,11 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
   const table = mission('Débarrasser la table', '🍽️', 10, [noah.id]);
   const teeth = mission('Me brosser les dents', '🪥', 5, [noah.id, elliott.id]);
   const bag = mission('Préparer mon cartable', '🎒', 10, [elliott.id]);
+  const homework = mission('Faire mes devoirs sans qu’on me le demande', '📝', 25, [lea.id]);
+  const laundry = mission('Lancer et étendre une lessive', '🧺', 20, [lea.id]);
+  const offline = mission('Une heure sans téléphone', '🌙', 20, [lea.id]);
 
-  const missions = [bed, room, table, teeth, bag];
+  const missions = [bed, room, table, teeth, bag, homework, laundry, offline];
 
   const completions: MissionCompletion[] = [];
   const transactions: ScreenTimeTransaction[] = [];
@@ -164,6 +178,18 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     createdAt: at(now, 8, 5),
   });
 
+  // Léa: 25 earned + 30 initial = 55 minutes available.
+  approved(homework, lea.id, 8, 30);
+  transactions.push({
+    id: createId('tx'),
+    familyId: family.id,
+    childId: lea.id,
+    delta: 30,
+    kind: 'initial_balance',
+    reason: 'Bienvenue sur Mino',
+    createdAt: at(now, 8, 5),
+  });
+
   // One request already waiting, so the parent side is never empty on first launch.
   const bagAssignment = bag.assignments[0];
   completions.push({
@@ -181,7 +207,7 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
   return {
     family,
     parents: [julie],
-    children: [noah, elliott],
+    children: [noah, elliott, lea],
     missions: missions.map((m) => m.mission),
     assignments: missions.flatMap((m) => m.assignments),
     completions,

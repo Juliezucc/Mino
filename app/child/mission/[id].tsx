@@ -5,7 +5,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
 import { Button, Card, Screen, ScreenHeader, StatusPill, Text } from '@/components/ui';
-import { formatMinos, minoUnit } from '@/domain/minos';
+import { unitOf } from '@/domain/ageBand';
+import { formatTime, unitLabel } from '@/domain/minos';
 import { accentFor, colors, radii, spacing } from '@/theme';
 import { useActiveChild, useChildMissions } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -27,6 +28,7 @@ export default function MissionDetail() {
   const item = missions.find((m) => m.mission.id === id);
   if (!child || !item) return null;
 
+  const unit = unitOf(child);
   const accent = accentFor(item.mission.id);
   const waiting = item.state === 'pending';
   const done = item.state === 'done';
@@ -85,7 +87,9 @@ export default function MissionDetail() {
             Bien joué !
           </Text>
           <Text variant="body" color={colors.textMuted} center>
-            Demande envoyée à ton parent. Tes minos arrivent dès qu’il valide.
+            {unit === 'minos'
+              ? 'Demande envoyée à ton parent. Tes minos arrivent dès qu’il valide.'
+              : 'Demande envoyée. Le temps arrive dès validation.'}
           </Text>
         </Card>
       ) : done ? (
@@ -95,7 +99,7 @@ export default function MissionDetail() {
             Mission validée !
           </Text>
           <Text variant="body" color={colors.textMuted} center>
-            {`Tu as gagné ${formatMinos(item.completion?.minutesAwarded ?? item.mission.minutes)}.`}
+            {`Tu as gagné ${formatTime(item.completion?.minutesAwarded ?? item.mission.minutes, unit)}.`}
           </Text>
         </Card>
       ) : (
@@ -107,7 +111,7 @@ export default function MissionDetail() {
             {`+${item.mission.minutes}`}
           </Text>
           <Text variant="section" color={colors.blue}>
-            {minoUnit(item.mission.minutes).toUpperCase()}
+            {unitLabel(item.mission.minutes, unit).toUpperCase()}
           </Text>
           <AnimatedMascot expression="happy" size={140} />
           <Text variant="body" color={colors.textMuted} center>

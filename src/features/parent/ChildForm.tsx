@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AVATARS, Avatar, Button, Chip, Field, Text } from '@/components/ui';
+import { MAX_AGE, MIN_AGE, bandForAge } from '@/domain/ageBand';
 import { AvatarKey } from '@/domain/types';
 import { colors, spacing } from '@/theme';
 
@@ -18,7 +19,8 @@ interface Props {
   loading?: boolean;
 }
 
-const AGES = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+/** 4 to 17: Mino keeps working through adolescence, in a different register. */
+const AGES = Array.from({ length: MAX_AGE - MIN_AGE + 1 }, (_, i) => MIN_AGE + i);
 
 /** Shared by onboarding and the parent area, so a child is created the same way everywhere. */
 export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
@@ -61,6 +63,11 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
             />
           ))}
         </View>
+        <Text variant="caption" color={colors.textSubtle}>
+          {bandForAge(age) === 'ado'
+            ? 'À partir de 13 ans, Mino passe en version ado : minutes plutôt que minos, ton sobre, missions adaptées.'
+            : 'Mino parle en minos et adapte les missions proposées à cet âge.'}
+        </Text>
       </View>
 
       <View style={styles.block}>

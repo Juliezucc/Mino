@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { AnimatedMascot, MascotAnimation } from '@/components/mascot';
 import { MascotExpression } from '@/components/mascot/types';
 import { Button, Card, MinutesBadge, Screen, Text, TimeRing } from '@/components/ui';
+import { unitOf } from '@/domain/ageBand';
 import { useBalanceDetail, useChildMissions, useActiveChild } from '@/store/selectors';
 import { colors, spacing, tabBarSpace } from '@/theme';
 
@@ -17,6 +18,8 @@ export default function ChildHome() {
 
   if (!child || !balance) return null;
 
+  const unit = unitOf(child);
+
   const todo = missions.filter((m) => m.state === 'todo');
   const waiting = missions.filter((m) => m.state === 'pending');
 
@@ -25,9 +28,13 @@ export default function ChildHome() {
 
   const message =
     balance.minutes === 0
-      ? 'Plus de minos… fais une mission pour en gagner !'
+      ? unit === 'minos'
+        ? 'Plus de minos… fais une mission pour en gagner !'
+        : 'Plus de temps. Une mission et tu en regagnes.'
       : balance.minutes < 10
-        ? 'Presque plus de minos ! Une mission et hop.'
+        ? unit === 'minos'
+          ? 'Presque plus de minos ! Une mission et hop.'
+          : 'Presque plus de temps.'
         : todo.length > 0
           ? `Tu as ${todo.length} mission${todo.length > 1 ? 's' : ''} à faire aujourd’hui.`
           : 'Toutes tes missions sont faites. Bravo !';
@@ -36,7 +43,9 @@ export default function ChildHome() {
     <Screen contentStyle={styles.content}>
       <View style={styles.header}>
         <View style={styles.headerTexts}>
-          <Text variant="hero">{`Salut ${child.firstName} ! 👋`}</Text>
+          <Text variant="hero">
+            {unit === 'minos' ? `Salut ${child.firstName} ! 👋` : `Bonjour ${child.firstName}`}
+          </Text>
           <Text variant="body" color={colors.textMuted}>
             {message}
           </Text>
@@ -50,13 +59,13 @@ export default function ChildHome() {
       </View>
 
       <Card style={styles.ringCard} elevation="soft">
-        <TimeRing minutes={balance.minutes} unit="minos" />
+        <TimeRing minutes={balance.minutes} unit={unit} />
         {balance.earnedToday > 0 ? (
           <View style={styles.earned}>
             <Text variant="label" color={colors.textMuted}>
               Gagné aujourd’hui
             </Text>
-            <MinutesBadge minutes={balance.earnedToday} tone="mint" unit="minos" />
+            <MinutesBadge minutes={balance.earnedToday} tone="mint" unit={unit} />
           </View>
         ) : null}
       </Card>
@@ -79,7 +88,9 @@ export default function ChildHome() {
                   : '1 mission en attente'}
               </Text>
               <Text variant="caption" color={colors.textMuted}>
-                {`Ton parent doit valider pour ajouter tes minos.`}
+                {unit === 'minos'
+                  ? 'Ton parent doit valider pour ajouter tes minos.'
+                  : 'En attente de validation par ton parent.'}
               </Text>
             </View>
           </View>

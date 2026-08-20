@@ -6,7 +6,8 @@ import { AnimatedMascot } from '@/components/mascot';
 import { MascotExpression } from '@/components/mascot/types';
 import { Button, Card, Screen, ScreenHeader, Text } from '@/components/ui';
 import { formatDuration } from '@/domain/ledger';
-import { formatMinos } from '@/domain/minos';
+import { unitOf } from '@/domain/ageBand';
+import { formatTime } from '@/domain/minos';
 import { getScreenTimeService } from '@/services/screenTime';
 import { useActiveChild, useRunningSession } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -80,6 +81,7 @@ export default function SessionScreen() {
     );
   }
 
+  const unit = unitOf(child);
   const total = session.requestedMinutes * 60;
   const progress = total > 0 ? remaining / total : 0;
   const expression: MascotExpression =
@@ -105,7 +107,11 @@ export default function SessionScreen() {
           Bon écran !
         </Text>
         <Text variant="body" color={colors.textMuted} center>
-          {progress <= 0.15 ? 'Presque plus de minos !' : 'Profite bien de tes minos.'}
+          {progress <= 0.15
+            ? 'Presque plus de temps !'
+            : unit === 'minos'
+              ? 'Profite bien de tes minos.'
+              : 'Bon écran.'}
         </Text>
       </View>
 
@@ -122,7 +128,7 @@ export default function SessionScreen() {
           <View style={[styles.fill, { width: `${Math.max(0, Math.min(1, progress)) * 100}%` }]} />
         </View>
         <Text variant="caption" color={colors.textSubtle} center>
-          {`Sur ${formatMinos(session.requestedMinutes)} · ce que tu utilises est retiré de ton compteur`}
+          {`Sur ${formatTime(session.requestedMinutes, unit)} · ce que tu utilises est retiré de ton compteur`}
         </Text>
       </Card>
     </Screen>

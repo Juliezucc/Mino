@@ -87,6 +87,34 @@ export function useHistory(childId: ID | null | undefined) {
   return useMemo(() => (childId ? historyOf(transactions, childId) : EMPTY), [transactions, childId]);
 }
 
+/** The child's pending "can I play on the console?" request, if any. */
+export function useRequestedSession(childId: ID | null | undefined) {
+  const sessions = useMinoStore((s) => s.data?.sessions ?? EMPTY);
+  return useMemo(
+    () =>
+      childId ? sessions.find((s) => s.childId === childId && s.status === 'requested') ?? null : null,
+    [sessions, childId],
+  );
+}
+
+/** Every child's screen request waiting on a parent, newest first. */
+export function useScreenRequests() {
+  const sessions = useMinoStore((s) => s.data?.sessions ?? EMPTY);
+  return useMemo(
+    () =>
+      sessions
+        .filter((s) => s.status === 'requested')
+        .sort((a, b) => (b.requestedAt ?? '').localeCompare(a.requestedAt ?? '')),
+    [sessions],
+  );
+}
+
+/** Sessions currently running, so a parent can watch and close them. */
+export function useRunningSessions() {
+  const sessions = useMinoStore((s) => s.data?.sessions ?? EMPTY);
+  return useMemo(() => sessions.filter((s) => s.status === 'running'), [sessions]);
+}
+
 export function useRunningSession(childId: ID | null | undefined) {
   const sessions = useMinoStore((s) => s.data?.sessions ?? EMPTY);
   return useMemo(

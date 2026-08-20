@@ -51,11 +51,32 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '3. Qui peut souscrire',
+      title: '3. Qui peut souscrire, et sous quelle responsabilité',
       blocks: [
         {
           kind: 'p',
           text: 'Le compte doit être ouvert par une personne majeure, titulaire de l’autorité parentale sur les enfants dont elle crée les profils, ou dûment autorisée par ce titulaire. En créant un profil enfant, vous déclarez disposer de cette qualité.',
+        },
+        {
+          kind: 'note',
+          text: 'L’enfant demeure à tout moment sous la responsabilité et la surveillance du titulaire de l’autorité parentale. Mino est un outil d’organisation familiale : il n’est ni un dispositif de surveillance, ni un mode de garde, et ne se substitue en aucun cas à la présence d’un adulte.',
+        },
+        {
+          kind: 'p',
+          text: 'Les missions que Mino propose sont des suggestions. Il vous appartient d’apprécier, pour chacune, si elle est adaptée à l’âge, à la maturité et aux capacités de votre enfant, de l’expliquer et de l’encadrer.',
+        },
+        {
+          kind: 'bullets',
+          items: [
+            'Toute mission impliquant la cuisine, un appareil électroménager, un objet tranchant, une source de chaleur ou un produit d’entretien doit être réalisée en présence et sous la surveillance d’un adulte.',
+            'Aucune mission ne doit conduire un enfant à sortir seul du domicile sans votre accord exprès et adapté à son âge.',
+            'La garde d’un frère ou d’une sœur par un mineur ne décharge en aucun cas l’adulte de sa responsabilité : un adulte responsable doit rester joignable et disponible.',
+            'Vous restez seul décisionnaire du temps d’écran accordé à votre enfant et des contenus auxquels il accède.',
+          ],
+        },
+        {
+          kind: 'p',
+          text: 'Notre responsabilité ne saurait être engagée à raison de la réalisation d’une mission créée ou acceptée par vous, ni des conséquences de l’usage que votre enfant fait du temps d’écran que vous lui accordez.',
         },
       ],
     },

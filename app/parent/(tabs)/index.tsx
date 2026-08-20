@@ -16,8 +16,17 @@ import {
 } from '@/components/ui';
 import { balanceDetail } from '@/domain/ledger';
 import { RequestCard } from '@/features/parent/RequestCard';
+import { ScreenRequestCard } from '@/features/parent/ScreenRequestCard';
 import { HistoryList } from '@/features/history/HistoryList';
-import { useChildren, useFamily, useParent, usePendingRequests } from '@/store/selectors';
+import {
+  useChildren,
+  useFamily,
+  useParent,
+  usePendingRequests,
+  useRunningSessions,
+  useScreenRequests,
+} from '@/store/selectors';
+import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing, tabBarSpace } from '@/theme';
 
 /** Parent dashboard: my children, and above all the requests waiting for me. */
@@ -27,8 +36,17 @@ export default function ParentHome() {
   const children = useChildren();
   const data = useFamily();
   const requests = usePendingRequests();
+  const screenRequests = useScreenRequests();
+  const runningSessions = useRunningSessions();
+  const approveSession = useMinoStore((s) => s.approveSession);
+  const refuseSession = useMinoStore((s) => s.refuseSession);
+  const endSession = useMinoStore((s) => s.endSession);
 
   if (!data) return null;
+
+  // A console request and a mission waiting for approval are both "something
+  // needs me", and a parent should not have to look in two places for them.
+  const waiting = requests.length + screenRequests.length;
 
   const recent = [...data.transactions]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -40,12 +58,12 @@ export default function ParentHome() {
         <View style={styles.headerTexts}>
           <Text variant="hero">{`Bonjour ${parent?.displayName ?? ''} 👋`}</Text>
           <Text variant="body" color={colors.textMuted}>
-            {requests.length > 0
-              ? `${requests.length} demande${requests.length > 1 ? 's' : ''} à valider`
+            {waiting > 0
+              ? `${waiting} demande${waiting > 1 ? 's' : ''} à valider`
               : 'Tout est à jour, rien à valider.'}
           </Text>
         </View>
-        <Mascot expression={requests.length > 0 ? 'motivated' : 'happy'} size={72} />
+        <Mascot expression={waiting > 0 ? 'motivated' : 'happy'} size={72} />
       </View>
 
       <View style={styles.section}>
@@ -93,21 +111,57 @@ export default function ParentHome() {
         )}
       </View>
 
+      {runningSessions.length > 0 ? (
+        <View style={styles.section}>
+          <SectionHeader
+            title="Écrans en cours"
+            subtitle="Le compte à rebours tourne aussi chez votre enfant"
+          />
+          {runningSessions.map((session) => {
+            const child = children.find((c) => c.id === session.childId);
+            if (!child) return null;
+            return (
+              <ScreenRequestCard
+                key={session.id}
+                session={session}
+                child={child}
+                onStop={() => endSession(session.id, 'stopped').catch(() => undefined)}
+              />
+            );
+          })}
+        </View>
+      ) : null}
+
       <View style={styles.section}>
         <SectionHeader
           title="Demandes à valider"
-          subtitle={requests.length > 0 ? 'Les minutes sont ajoutées immédiatement' : undefined}
+          subtitle={waiting > 0 ? 'Les minutes sont ajoutées immédiatement' : undefined}
         />
-        {requests.length === 0 ? (
+        {waiting === 0 ? (
           <Card elevation="none" background={colors.surfaceMuted}>
             <Text variant="body" color={colors.textMuted} center>
               Aucune demande en attente.
             </Text>
           </Card>
         ) : (
-          requests.map((completion) => (
-            <RequestCard key={completion.id} completion={completion} />
-          ))
+          <>
+            {screenRequests.map((session) => {
+              const child = children.find((c) => c.id === session.childId);
+              if (!child) return null;
+              return (
+                <ScreenRequestCard
+                  key={session.id}
+                  session={session}
+                  child={child}
+                  onApprove={() => approveSession(session.id).catch(() => undefined)}
+                  onRefuse={() => refuseSession(session.id).catch(() => undefined)}
+                />
+              );
+            })}
+            {requests.map((completion) => (
+              <RequestCard key={completion.id} completion={completion} />
+            ))}
+          </>
         )}
       </View>
 

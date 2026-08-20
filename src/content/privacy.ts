@@ -115,6 +115,10 @@ export const PRIVACY: LegalDocument = {
           text: 'En France, le consentement d’un mineur au traitement de ses données n’est valable qu’à partir de 15 ans ; en deçà, l’autorisation du titulaire de l’autorité parentale est requise. C’est la raison pour laquelle l’espace parent est protégé par un code et que l’enfant ne peut ni créer un compte, ni modifier les réglages, ni communiquer avec l’extérieur.',
         },
         {
+          kind: 'note',
+          text: 'Mino ne surveille pas les enfants et n’est pas un mode de garde : l’enfant reste à tout moment sous la responsabilité et la surveillance de l’adulte titulaire de l’autorité parentale.',
+        },
+        {
           kind: 'bullets',
           items: [
             'Un enfant ne peut pas être contacté depuis l’application : il n’y a ni messagerie, ni commentaire, ni partage.',

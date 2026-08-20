@@ -6,6 +6,7 @@ import { ChangeEvent, MinoRepository } from '@/data/repository';
 import { createSupabaseRepository } from '@/data/supabaseRepository';
 import * as actions from '@/domain/actions';
 import { Plan, Referral, Subscription } from '@/domain/billing';
+import { ScreenTargetKind } from '@/domain/screens';
 import { AvatarKey, FamilyData, ID, RepeatRule } from '@/domain/types';
 import { getBillingService } from '@/services/billing';
 
@@ -71,7 +72,9 @@ interface MinoState {
   rejectCompletion: (completionId: ID) => Promise<void>;
   markCelebrated: (completionId: ID) => Promise<void>;
 
-  startSession: (childId: ID, minutes: number) => Promise<ID>;
+  startSession: (childId: ID, minutes: number, target?: ScreenTargetKind) => Promise<ID>;
+  approveSession: (sessionId: ID) => Promise<void>;
+  refuseSession: (sessionId: ID) => Promise<void>;
   endSession: (sessionId: ID, status?: 'finished' | 'stopped') => Promise<void>;
   adjustBalance: (childId: ID, delta: number, reason: string) => Promise<void>;
 
@@ -254,12 +257,26 @@ export const useMinoStore = create<MinoState>((set, get) => {
       });
     },
 
-    async startSession(childId, minutes) {
+    async startSession(childId, minutes, target) {
       const id = await commit<ID>('session.started', (data) => {
-        const out = actions.startSession(data, { childId, minutes });
+        const out = actions.startSession(data, { childId, minutes, target });
         return { data: out.data, result: out.session.id, upsert: { sessions: [out.session] } };
       });
       return id!;
+    },
+
+    async approveSession(sessionId) {
+      await commit('session.started', (data) => {
+        const out = actions.approveSession(data, { sessionId });
+        return { data: out.data, upsert: { sessions: [out.session] } };
+      });
+    },
+
+    async refuseSession(sessionId) {
+      await commit('session.ended', (data) => {
+        const out = actions.refuseSession(data, { sessionId });
+        return { data: out.data, upsert: { sessions: [out.session] } };
+      });
     },
 
     async endSession(sessionId, status) {

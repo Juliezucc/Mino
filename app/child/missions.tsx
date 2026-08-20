@@ -3,6 +3,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { EmptyState, MinutesBadge, Screen, ScreenHeader, Text } from '@/components/ui';
+import { unitOf } from '@/domain/ageBand';
 import { MissionCard } from '@/features/child/MissionCard';
 import { useActiveChild, useBalance, useChildMissions } from '@/store/selectors';
 import { colors, spacing } from '@/theme';
@@ -27,6 +28,8 @@ export default function ChildMissions() {
 
   if (!child) return null;
 
+  const unit = unitOf(child);
+
   const todo = missions.filter((m) => m.state === 'todo');
   const open = missions.filter((m) => m.state !== 'done');
   const allDone = missions.length > 0 && open.length === 0;
@@ -35,16 +38,18 @@ export default function ChildMissions() {
     <Screen contentStyle={styles.content}>
       <ScreenHeader
         onBack={() => router.back()}
-        right={<MinutesBadge minutes={balance} tone="blue" signed={false} unit="minos" />}
+        right={<MinutesBadge minutes={balance} tone="blue" signed={false} unit={unit} />}
       />
 
       <View style={styles.head}>
         <Text variant="hero">Mes missions</Text>
         <Text variant="body" color={colors.textMuted}>
           {todo.length > 0
-            ? `${todo.length} mission${todo.length > 1 ? 's' : ''} à faire · touche une carte pour commencer`
+            ? `${todo.length} mission${todo.length > 1 ? 's' : ''} à faire${unit === 'minos' ? ' · touche une carte pour commencer' : ''}`
             : open.length > 0
-              ? 'Ton parent doit valider · tes minos arrivent après'
+              ? unit === 'minos'
+                ? 'Ton parent doit valider · tes minos arrivent après'
+                : 'En attente de validation'
               : 'Tout est fait pour aujourd’hui !'}
         </Text>
       </View>
@@ -58,7 +63,11 @@ export default function ChildMissions() {
       ) : allDone ? (
         <EmptyState
           title="Tout est fait ! 🎉"
-          message="Plus rien à faire aujourd’hui. Va profiter de tes minos !"
+          message={
+            unit === 'minos'
+              ? 'Plus rien à faire aujourd’hui. Va profiter de tes minos !'
+              : 'Plus rien à faire aujourd’hui. Le temps gagné est à toi.'
+          }
           expression="proud"
           action={{ label: 'MON TEMPS', icon: '⏱️', onPress: () => router.push('/child/temps') }}
         />
@@ -68,6 +77,7 @@ export default function ChildMissions() {
             <MissionCard
               key={item.mission.id}
               item={item}
+              unit={unit}
               onPress={() =>
                 router.push({ pathname: '/child/mission/[id]', params: { id: item.mission.id } })
               }

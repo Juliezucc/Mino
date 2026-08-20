@@ -5,7 +5,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { MascotClip } from '@/components/mascot';
 import { Button, Confetti, Screen, Text, TimeRing } from '@/components/ui';
-import { minoUnit } from '@/domain/minos';
+import { registerOf } from '@/domain/ageBand';
+import { unitLabel } from '@/domain/minos';
 import { MissionCompletion } from '@/domain/types';
 import { useActiveChild, useBalance, useFamily } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -53,6 +54,9 @@ export default function Celebration() {
 
   if (!child || !completion) return null;
 
+  // A fourteen-year-old showered in confetti closes the app. Same moment,
+  // different volume.
+  const { unit, celebrate } = registerOf(child);
   const mission = data?.missions.find((m) => m.id === completion.missionId);
 
   const close = () => {
@@ -64,7 +68,7 @@ export default function Celebration() {
     <Screen background={colors.surface} contentStyle={styles.content} scroll={false}>
       <View style={styles.top}>
         <Text variant="title" color={colors.mint} center>
-          Mission validée !
+          {celebrate ? 'Mission validée !' : 'Mission validée'}
         </Text>
         {mission ? (
           <Text variant="body" color={colors.textMuted} center>
@@ -73,26 +77,36 @@ export default function Celebration() {
         ) : null}
       </View>
 
-      <MascotClip name="celebrate" size={230} restExpression="delighted" />
+      <MascotClip
+        name="celebrate"
+        size={celebrate ? 230 : 150}
+        restExpression={celebrate ? 'delighted' : 'proud'}
+        loop={false}
+      />
 
       <Text variant="display" color={colors.blue} center style={styles.reward}>
         {`+${minutes}`}
       </Text>
       <Text variant="title" color={colors.blue} center>
-        {minoUnit(minutes).toUpperCase()}
+        {unitLabel(minutes, unit).toUpperCase()}
       </Text>
 
       <Text variant="section" center>
-        {`Bravo ${child.firstName} !`}
+        {celebrate ? `Bravo ${child.firstName} !` : `Ajouté à ton compteur, ${child.firstName}.`}
       </Text>
 
-      <TimeRing minutes={ringValue} size={190} unit="minos" />
+      <TimeRing minutes={ringValue} size={190} unit={unit} />
 
-      <Button label="SUPER !" icon="🎉" size="kid" onPress={close} />
+      <Button
+        label={celebrate ? 'SUPER !' : 'OK'}
+        icon={celebrate ? '🎉' : undefined}
+        size={celebrate ? 'kid' : 'default'}
+        onPress={close}
+      />
 
       {/* Last, so the confetti passes in front of the clip: a rendered clip is
           flattened onto the screen colour and would otherwise mask it. */}
-      <Confetti />
+      {celebrate ? <Confetti /> : null}
     </Screen>
   );
 }

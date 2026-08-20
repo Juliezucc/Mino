@@ -155,20 +155,36 @@ export default function RoutineDetail() {
                 <Card
                   key={item.suggestion.id}
                   onPress={() => toggle(item.suggestion.id)}
-                  accessibilityLabel={item.title}
+                  accessibilityLabel={
+                    item.suggestion.safety
+                      ? `${item.title}. ${item.suggestion.safety}`
+                      : item.title
+                  }
                   accessibilityState={{ selected: on }}
-                  style={[styles.item, !on && styles.itemOff]}
+                  style={[styles.itemCard, !on && styles.itemOff]}
                 >
-                  <View style={[styles.check, on && styles.checkOn]}>
-                    <Text variant="label" color={on ? colors.onBrand : colors.textSubtle}>
-                      {on ? '✓' : ''}
+                  <View style={styles.item}>
+                    <View style={[styles.check, on && styles.checkOn]}>
+                      <Text variant="label" color={on ? colors.onBrand : colors.textSubtle}>
+                        {on ? '✓' : ''}
+                      </Text>
+                    </View>
+                    <Text style={styles.itemIcon}>{item.suggestion.icon}</Text>
+                    <Text variant="cardTitle" style={styles.itemTitle} numberOfLines={2}>
+                      {item.title}
                     </Text>
+                    <MinutesBadge minutes={item.suggestion.minutes} size="sm" />
                   </View>
-                  <Text style={styles.itemIcon}>{item.suggestion.icon}</Text>
-                  <Text variant="cardTitle" style={styles.itemTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                  <MinutesBadge minutes={item.suggestion.minutes} size="sm" />
+
+                  {/* Shown before the parent accepts, not buried in a help page:
+                      a suggestion an app makes reads as one it vouches for. */}
+                  {item.suggestion.safety ? (
+                    <View style={styles.safety}>
+                      <Text variant="caption" color={colors.textMuted}>
+                        {`⚠️  ${item.suggestion.safety}`}
+                      </Text>
+                    </View>
+                  ) : null}
                 </Card>
               );
             })}
@@ -192,8 +208,15 @@ const styles = StyleSheet.create({
   block: { gap: spacing.md },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   list: { gap: spacing.sm },
+  itemCard: { gap: spacing.sm },
   item: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   itemOff: { opacity: 0.45 },
+  safety: {
+    backgroundColor: colors.yellowSoft,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
   itemIcon: { fontSize: 26 },
   itemTitle: { flex: 1 },
   check: {

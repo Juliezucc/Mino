@@ -50,3 +50,24 @@ export function formatMinos(minutes: number, { signed = false }: FormatOptions =
   const sign = signed && value > 0 ? '+' : '';
   return `${sign}${value} ${minoUnit(value)}`;
 }
+
+export type TimeUnit = 'minos' | 'minutes';
+
+/**
+ * One formatter for both registers, so a screen carries the unit it was given
+ * rather than deciding on the spot and drifting from its neighbours.
+ */
+export function formatTime(
+  minutes: number,
+  unit: TimeUnit,
+  { signed = false }: FormatOptions = {},
+): string {
+  if (unit === 'minos') return formatMinos(minutes, { signed });
+  const value = Math.round(minutes);
+  return `${signed && value > 0 ? '+' : ''}${value} min`;
+}
+
+/** The unit word alone: "minos", "min". */
+export function unitLabel(minutes: number, unit: TimeUnit): string {
+  return unit === 'minos' ? minoUnit(Math.round(minutes)) : 'min';
+}

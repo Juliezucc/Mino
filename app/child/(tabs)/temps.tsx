@@ -1,41 +1,54 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
-import { formatMinos } from '@/domain/minos';
 import { Button, Card, Chip, MinutesBadge, Screen, Text, TimeCapsules, TimeRing } from '@/components/ui';
+import { unitOf } from '@/domain/ageBand';
+import { formatTime } from '@/domain/minos';
+import { SCREEN_TARGETS, ScreenTargetKind, isSupervised, targetFor } from '@/domain/screens';
 import { getScreenTimeService } from '@/services/screenTime';
-import { useActiveChild, useBalanceDetail, useRunningSession } from '@/store/selectors';
+import {
+  useActiveChild,
+  useBalanceDetail,
+  useRequestedSession,
+  useRunningSession,
+} from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
-import { colors, spacing, tabBarSpace } from '@/theme';
+import { colors, radii, spacing, tabBarSpace } from '@/theme';
 
 const DURATIONS = [10, 20, 30];
 
-/** "Mon temps": how much I own, how it looks, and how to spend it. */
+/** "Mon temps": how much I own, on which screen I want it, and how to start. */
 export default function ChildTime() {
   const router = useRouter();
   const child = useActiveChild();
   const balance = useBalanceDetail(child?.id);
   const running = useRunningSession(child?.id);
+  const requested = useRequestedSession(child?.id);
   const startSession = useMinoStore((s) => s.startSession);
 
+  const [target, setTarget] = useState<ScreenTargetKind>('device');
   const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   if (!child || !balance) return null;
 
+  const unit = unitOf(child);
   const options = DURATIONS.filter((d) => d <= balance.minutes);
+  const supervised = isSupervised(target);
 
   const begin = async () => {
     if (!selected) return;
     setLoading(true);
     try {
-      const sessionId = await startSession(child.id, selected);
+      const sessionId = await startSession(child.id, selected, target);
+      setError(null);
+      if (supervised) return; // The screen switches to "waiting" on its own.
+
       // The service seam: today an in-app timer, tomorrow real app unblocking.
       await getScreenTimeService().grant({ sessionId, childId: child.id, minutes: selected });
-      setError(null);
       router.push({ pathname: '/child/session', params: { sessionId } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de démarrer.');
@@ -49,26 +62,38 @@ export default function ChildTime() {
       <Text variant="hero">Mon temps</Text>
 
       <Card style={styles.ringCard}>
-        <TimeRing minutes={balance.minutes} unit="minos" />
-        <TimeCapsules minutes={balance.minutes} />
+        <TimeRing minutes={balance.minutes} unit={unit} />
+        {unit === 'minos' ? <TimeCapsules minutes={balance.minutes} /> : null}
       </Card>
 
       <Card style={styles.statsCard} elevation="none" background={colors.mintSoft}>
         <View style={styles.statRow}>
-          <Text variant="bodyStrong">Minos gagnés aujourd’hui</Text>
-          <MinutesBadge minutes={balance.earnedToday} tone="mint" unit="minos" />
+          <Text variant="bodyStrong">{unit === 'minos' ? 'Minos gagnés aujourd’hui' : 'Gagné aujourd’hui'}</Text>
+          <MinutesBadge minutes={balance.earnedToday} tone="mint" unit={unit} />
         </View>
         {balance.usedToday > 0 ? (
           <View style={styles.statRow}>
             <Text variant="body" color={colors.textMuted}>
-              Minos utilisés aujourd’hui
+              {unit === 'minos' ? 'Minos utilisés aujourd’hui' : 'Utilisé aujourd’hui'}
             </Text>
-            <MinutesBadge minutes={-balance.usedToday} tone="muted" unit="minos" />
+            <MinutesBadge minutes={-balance.usedToday} tone="muted" unit={unit} />
           </View>
         ) : null}
       </Card>
 
-      {running ? (
+      {requested ? (
+        // A supervised screen: the child asked, and nothing is billed until a
+        // parent actually starts the clock.
+        <Card style={styles.useCard} background={colors.yellowSoft} elevation="none">
+          <AnimatedMascot expression="motivated" size={110} />
+          <Text variant="cardTitle" center>
+            {`${targetFor(requested.target).icon}  Demande envoyée`}
+          </Text>
+          <Text variant="body" color={colors.textMuted} center>
+            {`${formatTime(requested.requestedMinutes, unit)} sur ${targetFor(requested.target).spoken}. Un parent lance le minuteur quand c’est bon.`}
+          </Text>
+        </Card>
+      ) : running ? (
         <Card style={styles.useCard} background={colors.blueSoft} elevation="none">
           <AnimatedMascot expression="delighted" size={110} />
           <Text variant="cardTitle" center>
@@ -86,10 +111,12 @@ export default function ChildTime() {
         <Card style={styles.useCard}>
           <AnimatedMascot expression="sad" size={120} />
           <Text variant="cardTitle" center>
-            Plus de minos…
+            {unit === 'minos' ? 'Plus de minos…' : 'Plus de temps…'}
           </Text>
           <Text variant="body" color={colors.textMuted} center>
-            Fais une mission pour gagner de nouveaux minos !
+            {unit === 'minos'
+              ? 'Fais une mission pour gagner de nouveaux minos !'
+              : 'Fais une mission pour en regagner.'}
           </Text>
           <Button label="VOIR MES MISSIONS" icon="📋" size="kid" onPress={() => router.push('/child/missions')} />
         </Card>
@@ -98,27 +125,56 @@ export default function ChildTime() {
           <Text variant="section" center>
             Utiliser mon temps
           </Text>
-          <Text variant="body" color={colors.textMuted} center>
-            Combien de minos veux-tu utiliser maintenant ?
+
+          <Text variant="label" color={colors.textMuted}>
+            SUR QUEL ÉCRAN ?
+          </Text>
+          <View style={styles.targets}>
+            {SCREEN_TARGETS.map((option) => {
+              const on = target === option.kind;
+              return (
+                <Pressable
+                  key={option.kind}
+                  onPress={() => setTarget(option.kind)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${option.label}. ${option.hint}`}
+                  accessibilityState={{ selected: on }}
+                  style={[styles.target, on && styles.targetOn]}
+                >
+                  <Text style={styles.targetIcon}>{option.icon}</Text>
+                  <Text variant="label" color={on ? colors.blueDark : colors.textMuted} center>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text variant="caption" color={colors.textSubtle} center>
+            {targetFor(target).hint}
+          </Text>
+
+          <Text variant="label" color={colors.textMuted}>
+            COMBIEN ?
           </Text>
           <View style={styles.durations}>
             {(options.length > 0 ? options : [balance.minutes]).map((value) => (
               <Chip
                 key={value}
-                label={formatMinos(value)}
+                label={formatTime(value, unit)}
                 selected={selected === value}
                 onPress={() => setSelected(value)}
               />
             ))}
           </View>
+
           {error ? (
             <Text variant="caption" color={colors.danger} center>
               {error}
             </Text>
           ) : null}
           <Button
-            label="COMMENCER"
-            icon="▶️"
+            label={supervised ? 'DEMANDER À MON PARENT' : 'COMMENCER'}
+            icon={supervised ? '🙋' : '▶️'}
             size="kid"
             variant="primary"
             disabled={!selected}
@@ -137,5 +193,18 @@ const styles = StyleSheet.create({
   statsCard: { gap: spacing.md },
   statRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   useCard: { alignItems: 'center', gap: spacing.md },
+  targets: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center' },
+  target: {
+    width: 86,
+    gap: spacing.xs,
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  targetOn: { borderColor: colors.blue, backgroundColor: colors.blueSoft },
+  targetIcon: { fontSize: 26 },
   durations: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', justifyContent: 'center' },
 });

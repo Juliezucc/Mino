@@ -1,5 +1,6 @@
 import { createId } from './id';
 import { balanceOf } from './ledger';
+import { ScreenTargetKind, isSupervised } from './screens';
 import {
   AvatarKey,
   Child,
@@ -271,29 +272,89 @@ export function markCelebrated(
 
 export function startSession(
   data: FamilyData,
-  params: { childId: ID; minutes: number },
+  params: { childId: ID; minutes: number; target?: ScreenTargetKind },
   now: Date = new Date(),
 ): { data: FamilyData; session: ScreenTimeSession } {
   const available = balanceOf(data.transactions, params.childId);
   if (params.minutes <= 0) throw new DomainError('Choisis une durée.');
-  if (params.minutes > available) throw new DomainError("Tu n'as pas assez de minutes.");
+  if (params.minutes > available) throw new DomainError("Tu n'as pas assez de temps.");
 
-  const running = data.sessions.find(
-    (s) => s.childId === params.childId && s.status === 'running',
+  const busy = data.sessions.find(
+    (s) => s.childId === params.childId && (s.status === 'running' || s.status === 'requested'),
   );
-  if (running) throw new DomainError('Une session est déjà en cours.');
+  if (busy) {
+    throw new DomainError(
+      busy.status === 'running' ? 'Une session est déjà en cours.' : 'Une demande est déjà en attente.',
+    );
+  }
+
+  // On a screen Mino cannot drive, the clock only starts once a parent says so.
+  // Nothing is billed in the meantime: a request that is never answered must
+  // not cost the child anything.
+  const supervised = isSupervised(params.target);
 
   const session: ScreenTimeSession = {
     id: createId('ses'),
     familyId: data.family.id,
     childId: params.childId,
     requestedMinutes: params.minutes,
+    target: params.target ?? 'device',
     startedAt: iso(now),
     endsAt: new Date(now.getTime() + params.minutes * 60_000).toISOString(),
-    status: 'running',
+    status: supervised ? 'requested' : 'running',
+    ...(supervised ? { requestedAt: iso(now) } : {}),
   };
 
   return { data: { ...data, sessions: [...data.sessions, session] }, session };
+}
+
+/**
+ * A parent starts the requested session. The clock starts now, not when the
+ * child asked — otherwise a request answered twenty minutes later would eat
+ * twenty minutes the child never got to use.
+ */
+export function approveSession(
+  data: FamilyData,
+  params: { sessionId: ID },
+  now: Date = new Date(),
+): { data: FamilyData; session: ScreenTimeSession } {
+  const session = data.sessions.find((s) => s.id === params.sessionId);
+  if (!session) throw new DomainError('Demande introuvable.');
+  if (session.status !== 'requested') return { data, session };
+
+  const available = balanceOf(data.transactions, session.childId);
+  const minutes = Math.min(session.requestedMinutes, available);
+  if (minutes <= 0) throw new DomainError('Le compteur est vide.');
+
+  const started: ScreenTimeSession = {
+    ...session,
+    requestedMinutes: minutes,
+    startedAt: iso(now),
+    endsAt: new Date(now.getTime() + minutes * 60_000).toISOString(),
+    status: 'running',
+  };
+
+  return {
+    data: { ...data, sessions: data.sessions.map((s) => (s.id === started.id ? started : s)) },
+    session: started,
+  };
+}
+
+/** A parent declines. Nothing is billed — the request simply disappears. */
+export function refuseSession(
+  data: FamilyData,
+  params: { sessionId: ID },
+  now: Date = new Date(),
+): { data: FamilyData; session: ScreenTimeSession } {
+  const session = data.sessions.find((s) => s.id === params.sessionId);
+  if (!session) throw new DomainError('Demande introuvable.');
+  if (session.status !== 'requested') return { data, session };
+
+  const refused: ScreenTimeSession = { ...session, status: 'refused', endedAt: iso(now) };
+  return {
+    data: { ...data, sessions: data.sessions.map((s) => (s.id === refused.id ? refused : s)) },
+    session: refused,
+  };
 }
 
 /**

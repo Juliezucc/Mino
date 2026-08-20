@@ -11,20 +11,23 @@ import {
 describe('screen-time ledger', () => {
   it('derives the demo balances from transactions only', () => {
     const data = buildDemoFamily();
-    const [noah, elliott] = data.children;
+    const [noah, elliott, lea] = data.children;
 
     expect(balanceOf(data.transactions, noah.id)).toBe(35);
     expect(balanceOf(data.transactions, elliott.id)).toBe(20);
+    expect(balanceOf(data.transactions, lea.id)).toBe(55);
   });
 
   it('never leaks minutes between children', () => {
     const data = buildDemoFamily();
-    const [noah, elliott] = data.children;
     const total = data.transactions.reduce((sum, tx) => sum + tx.delta, 0);
-
-    expect(balanceOf(data.transactions, noah.id) + balanceOf(data.transactions, elliott.id)).toBe(
-      total,
+    // Every child in the family, so adding one cannot silently weaken this.
+    const summed = data.children.reduce(
+      (sum, child) => sum + balanceOf(data.transactions, child.id),
+      0,
     );
+
+    expect(summed).toBe(total);
   });
 
   it('splits earned and used minutes for today', () => {

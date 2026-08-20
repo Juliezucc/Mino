@@ -6,6 +6,8 @@
  * balance can never disagree.
  */
 
+import { ScreenTargetKind } from './screens';
+
 export type ID = string;
 /** ISO-8601 string. Stored as text so the model stays JSON/Postgres friendly. */
 export type ISODate = string;
@@ -127,7 +129,14 @@ export interface ScreenTimeBalance {
   updatedAt: ISODate;
 }
 
-export type SessionStatus = 'running' | 'finished' | 'stopped';
+export type SessionStatus =
+  /** Asked for on a screen Mino cannot drive; waiting for a parent to start it. */
+  | 'requested'
+  | 'running'
+  | 'finished'
+  | 'stopped'
+  /** The parent declined the request. Nothing is billed. */
+  | 'refused';
 
 /** A "use my time" session. Consumption is billed to the ledger when it ends. */
 export interface ScreenTimeSession {
@@ -135,9 +144,14 @@ export interface ScreenTimeSession {
   familyId: ID;
   childId: ID;
   requestedMinutes: number;
+  /** Which screen the time is for. Absent on sessions created before targets. */
+  target?: ScreenTargetKind;
+  /** When the clock actually started. Equal to `requestedAt` on this device. */
   startedAt: ISODate;
   endsAt: ISODate;
   status: SessionStatus;
+  /** When the child asked, on a supervised screen. */
+  requestedAt?: ISODate;
   endedAt?: ISODate;
   consumedMinutes?: number;
 }
