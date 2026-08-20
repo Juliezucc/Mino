@@ -47,6 +47,7 @@ la famille de démonstration est créée instantanément.
 | Julie   | parente, code PIN **1234**                                        |
 | Noah    | 8 ans, **35 minutes**, « Ranger ma chambre +15 » encore à faire    |
 | Elliott | 6 ans, **20 minutes**, une demande déjà en attente de validation   |
+| Léa     | 14 ans, **0 minute** — c'est là que Mino reste et discute          |
 
 Noah démarre donc exactement à 35 minutes avec la mission à +15 disponible : le
 parcours prioritaire est testable en quelques secondes, sans rien configurer.
@@ -71,6 +72,7 @@ npm run assets     # régénère icônes et écran de lancement
 | Tenir 10 000 familles, coûts | [`docs/ops/capacite.md`](docs/ops/capacite.md) |
 | MRR, churn, cohortes, LTV, CAC | [`docs/ops/analytics.md`](docs/ops/analytics.md) |
 | Les deux rails de paiement | [`docs/ops/paiements.md`](docs/ops/paiements.md) |
+| Mino qui parle : coût, sécurité, classement d'âge | [`docs/ops/compagnon.md`](docs/ops/compagnon.md) |
 | Propriété intellectuelle, comptes, accès | [`docs/ops/propriete-et-acces.md`](docs/ops/propriete-et-acces.md) |
 | Process marketing | [`docs/marketing/`](docs/marketing/) |
 | Blocage réel des écrans | [`docs/blocage-ecrans.md`](docs/blocage-ecrans.md) |
@@ -153,6 +155,7 @@ les quatre fichiers SQL **dans cet ordre** :
 | `supabase/support.sql` | signalements et file de traitement |
 | `supabase/analytics.sql` | journal de facturation et vues de pilotage |
 | `supabase/store.sql` | achats App Store et Play Store, revenu net par rail |
+| `supabase/companion.sql` | budget d'échanges, conversations, purge |
 
 Le temps réel passe par un **canal privé par famille** (`famille:<id>`), alimenté
 par un déclencheur : le parent valide sur son téléphone, la tablette de l'enfant

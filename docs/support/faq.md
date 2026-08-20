@@ -187,6 +187,18 @@ Mettez à jour le moyen de paiement là où vous vous êtes abonné : dans votre
 
 Depuis Réglages, « Supprimer le compte ». Tout est effacé sous trente jours : profils des enfants, missions, historique. Les factures sont conservées dix ans, comme la loi comptable l’exige, et elles ne contiennent aucune donnée d’enfant.
 
+### Mon enfant discute avec Mino : qu’est-ce que c’est ?
+
+Quand son temps d’écran est terminé, Mino reste et peut discuter avec lui — une vingtaine d’échanges par jour, puis il l’envoie jouer. Mino connaît ses missions du jour, propose des défis sans écran, et ne valide jamais une mission ni ne donne de minutes : cela n’appartient qu’à vous. Vous pouvez lire toutes leurs conversations, et votre enfant en est prévenu.
+
+### Je ne veux pas que mon enfant discute avec Mino
+
+Ouvrez sa fiche dans Enfants, puis « Parler à Mino » et choisissez Non. C’est immédiat, et l’écran « plus de temps » lui proposera simplement ses missions.
+
+### Que se passe-t-il si mon enfant confie quelque chose de grave à Mino ?
+
+Mino s’arrête. Il ne conseille pas et ne pose pas de questions : il invite votre enfant à en parler à un adulte de confiance et lui donne le 119, gratuit et confidentiel, avec un bouton pour appeler. Le message est signalé dans les conversations que vous pouvez lire. Mino n’est pas une ligne d’écoute et personne ne surveille ces échanges en temps réel.
+
 ### Quelles données collectez-vous sur mon enfant ?
 
 Son prénom, son âge et son avatar. Rien d’autre : pas d’adresse e-mail, pas de photo, pas de numéro. Mino ne sait pas quelles applications sont installées sur son appareil — le système ne les lui montre jamais.

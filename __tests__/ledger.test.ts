@@ -15,7 +15,9 @@ describe('screen-time ledger', () => {
 
     expect(balanceOf(data.transactions, noah.id)).toBe(35);
     expect(balanceOf(data.transactions, elliott.id)).toBe(20);
-    expect(balanceOf(data.transactions, lea.id)).toBe(55);
+    // Léa est à zéro : c'est l'état où Mino reste et discute, et la démo doit
+    // le montrer dès la première ouverture.
+    expect(balanceOf(data.transactions, lea.id)).toBe(0);
   });
 
   it('never leaks minutes between children', () => {

@@ -1,0 +1,369 @@
+/**
+ * Mino qui parle.
+ *
+ * Quand il n'y a plus de temps d'écran, Mino reste. C'est la seule chose de
+ * l'application qui ne demande rien en échange — et c'est aussi la seule qui
+ * pourrait trahir la promesse du produit si elle était mal faite, puisqu'elle
+ * consiste à offrir un écran à un enfant qui vient d'en perdre l'usage.
+ *
+ * D'où trois règles, tenues ici plutôt que dans une consigne au modèle, parce
+ * qu'une consigne se contourne et qu'un test ne se contourne pas :
+ *
+ * 1. **La conversation est courte par construction.** Un budget d'échanges par
+ *    jour, et Mino qui pousse dehors bien avant de l'avoir épuisé.
+ * 2. **Son but est de faire partir l'enfant**, pas de le retenir. Les défis
+ *    hors écran ne sont pas un ornement : c'est la sortie.
+ * 3. **Mino n'est pas un confident pour ce qui est grave.** Il ne conseille
+ *    pas, il ne creuse pas, il oriente vers un adulte. Une application qui
+ *    recueille des confidences qu'elle ne peut pas honorer fait plus de mal
+ *    que si elle se taisait.
+ *
+ * Ce module est pur : aucun appel réseau, aucun modèle. Il décide de ce qui a
+ * le droit d'être dit et de combien, le service `services/companion` se charge
+ * de le faire dire.
+ */
+
+import { registerOf } from './ageBand';
+import { ChildMission, MissionState } from './missions';
+import { Child } from './types';
+
+/* ------------------------------------------------------------- le budget */
+
+/**
+ * Le nombre d'échanges offerts par jour et par enfant.
+ *
+ * Vingt, parce que c'est assez pour une vraie conversation et trop peu pour
+ * une soirée. Ce nombre a deux effets qu'il faut voir ensemble : il tient la
+ * promesse du produit, et il plafonne la dépense. Sans lui, un enfant seul un
+ * mercredi après-midi coûterait plus cher que son abonnement.
+ */
+export const DAILY_EXCHANGES = 20;
+
+/**
+ * Le moment où Mino commence à pousser vers la sortie.
+ *
+ * Aux deux tiers, pas à la fin : un au revoir qui tombe d'un coup est un au
+ * revoir subi. Annoncé, il devient une invitation.
+ */
+export const NUDGE_FROM = Math.round(DAILY_EXCHANGES * 0.65);
+
+export type CompanionPhase =
+  /** On discute. */
+  | 'open'
+  /** Mino commence à proposer de sortir. */
+  | 'nudging'
+  /** Dernier échange : Mino dit au revoir. */
+  | 'closing'
+  /** Budget épuisé : plus de réponse aujourd'hui. */
+  | 'done';
+
+export function phaseOf(used: number, budget: number = DAILY_EXCHANGES): CompanionPhase {
+  if (used >= budget) return 'done';
+  if (used >= budget - 1) return 'closing';
+  if (used >= NUDGE_FROM) return 'nudging';
+  return 'open';
+}
+
+export function exchangesLeft(used: number, budget: number = DAILY_EXCHANGES): number {
+  return Math.max(0, budget - used);
+}
+
+/**
+ * Ce que Mino dit en partant.
+ *
+ * Repris presque mot pour mot de l'intention d'origine : on ne ferme pas une
+ * porte, on envoie vivre quelque chose. La formule ne doit jamais ressembler à
+ * une sanction — c'est la différence entre « tu as trop parlé » et « vas-y ».
+ */
+export const FAREWELL =
+  'On a beaucoup discuté aujourd’hui 😄 Maintenant, va vivre une aventure pour de vrai, et tu me racontes demain !';
+
+/** Quand l'enfant revient alors que le budget du jour est épuisé. */
+export const CLOSED =
+  'On a déjà bien discuté aujourd’hui ! Je serai là demain, promis. En attendant, va me chercher une aventure 🌍';
+
+/* ------------------------------------------------- les défis hors écran */
+
+/**
+ * Les défis sans écran.
+ *
+ * Une liste écrite à la main, et c'est délibéré : Mino **choisit** dans cette
+ * liste, il n'invente pas. Un modèle qui improvise un défi pour un enfant de
+ * cinq ans finira un jour par lui proposer d'aller chercher quelque chose sur
+ * une étagère haute ou dans un tiroir à couteaux. La même prudence que pour
+ * les missions de cuisine, pour la même raison.
+ */
+export interface Challenge {
+  id: string;
+  /** Le défi tel que Mino le dit. */
+  text: string;
+  /** Âge à partir duquel il a du sens. */
+  from: number;
+  to: number;
+}
+
+export const CHALLENGES: Challenge[] = [
+  { id: 'rouge', text: 'Trouve-moi quelque chose de rouge dans ta chambre 🔴', from: 4, to: 8 },
+  { id: 'saut', text: 'Combien de sauts à pieds joints d’affilée ? Compte-les et reviens me dire !', from: 4, to: 9 },
+  { id: 'doux', text: 'Va toucher trois choses toutes douces, puis reviens m’en parler 🧸', from: 4, to: 7 },
+  { id: 'dessin', text: 'Dessine-moi comme tu m’imagines. Je suis très curieux 🎨', from: 4, to: 10 },
+  { id: 'fenetre', text: 'Regarde par la fenêtre et trouve trois choses qui bougent 🪟', from: 5, to: 10 },
+  { id: 'cabane', text: 'Construis une cabane avec ce que tu as sous la main 🏕️', from: 5, to: 10 },
+  { id: 'histoire', text: 'Invente une histoire avec un héros qui s’appelle comme toi 📖', from: 6, to: 12 },
+  { id: 'equilibre', text: 'Tiens en équilibre sur un pied. Tu tiens combien de temps ?', from: 5, to: 11 },
+  { id: 'mot-gentil', text: 'Va dire un truc gentil à quelqu’un de ta maison 💛', from: 5, to: 13 },
+  { id: 'rangement', text: 'Choisis un tiroir et range-le. Un seul. Ça va très vite 🗂️', from: 7, to: 14 },
+  { id: 'lecture', text: 'Lis une page d’un livre, n’importe lequel, et raconte-la-moi demain 📚', from: 7, to: 15 },
+  { id: 'musique', text: 'Mets un morceau que tu aimes et écoute-le en entier, sans rien faire d’autre 🎧', from: 10, to: 17 },
+  { id: 'marche', text: 'Sors prendre l’air dix minutes si tu peux. Ça remet les idées en place.', from: 12, to: 17 },
+  { id: 'appel', text: 'Appelle quelqu’un que tu n’as pas eu depuis longtemps 📞', from: 12, to: 17 },
+  { id: 'liste', text: 'Écris trois trucs que tu veux faire cette semaine. Ça compte, de les écrire.', from: 12, to: 17 },
+];
+
+/**
+ * Les défis qui conviennent à cet âge.
+ *
+ * `index` fait tourner la sélection sans hasard, pour que deux enfants du même
+ * âge n'aient pas le même défi le même jour et qu'un test reste reproductible.
+ */
+export function challengesFor(age: number): Challenge[] {
+  return CHALLENGES.filter((c) => age >= c.from && age <= c.to);
+}
+
+export function pickChallenge(age: number, index: number): Challenge | null {
+  const list = challengesFor(age);
+  if (list.length === 0) return null;
+  return list[Math.abs(index) % list.length];
+}
+
+/* ------------------------------------------------------------ sécurité */
+
+/**
+ * Ce que Mino fait quand un enfant lui confie quelque chose de lourd.
+ *
+ * C'est le seul endroit de l'application où une erreur ne se corrige pas par
+ * une mise à jour. La position tenue ici est volontairement modeste :
+ *
+ * — Mino **n'invite jamais** aux confidences difficiles ;
+ * — s'il en reçoit une, il ne conseille pas, ne creuse pas, ne rassure pas à
+ *   tort : il oriente vers un adulte, et vers le 119 ;
+ * — la conversation s'arrête là pour aujourd'hui.
+ *
+ * Il n'y a **personne derrière** pour lire en temps réel, et le produit ne doit
+ * jamais laisser croire le contraire. Un signalement automatique au parent
+ * serait pire que rien dans le cas précis où le parent est en cause : c'est
+ * pourquoi l'alerte grave affiche le 119 — gratuit, confidentiel, et qui, lui,
+ * a des humains au bout du fil — au lieu de prévenir la maison.
+ */
+export type SafetyLevel =
+  /** Rien à signaler. */
+  | 'none'
+  /** Tristesse, conflit, découragement : Mino peut accompagner, doucement. */
+  | 'tender'
+  /** Danger : Mino s'arrête et oriente. */
+  | 'alert';
+
+/**
+ * Les mots qui déclenchent l'arrêt.
+ *
+ * Volontairement large, et assumé comme tel : un faux positif coûte une
+ * conversation interrompue, un faux négatif coûte tout autre chose. Le tri se
+ * fait ici, **avant** l'appel au modèle, pour ne pas dépendre de lui.
+ */
+const ALERT_PATTERNS = [
+  /\bme (tuer|suicider)\b/i,
+  /\bsuicid/i,
+  /\bmourir\b/i,
+  /\bplus envie de vivre\b/i,
+  /\bme faire (du )?mal\b/i,
+  /\bme couper\b/i,
+  /\b(papa|maman|mon p[eè]re|ma m[eè]re|il|elle) me frappe\b/i,
+  /\bme (frappe|tape|bat)\b/i,
+  /\bme touche\b/i,
+  /\bfait mal expr[eè]s\b/i,
+  /\bj'ai peur (de|d')\s*(rentrer|lui|elle|papa|maman)/i,
+  /\bfug(ue|uer)\b/i,
+  /\bharc[eè]l/i,
+];
+
+/**
+ * Le chagrin ordinaire — et ce qui n'en est pas.
+ *
+ * « Je m'ennuie » n'est délibérément pas dans cette liste. L'ennui n'est pas
+ * une peine à consoler : c'est le meilleur moment de la journée pour proposer
+ * un défi, et le classer comme tristesse ferait répondre « tu veux en parler à
+ * un adulte ? » à un enfant qui demandait simplement quoi faire.
+ */
+const TENDER_PATTERNS = [
+  /\bje suis (triste|nul|nulle|pas bien)\b/i,
+  /\bpersonne ne m'aime\b/i,
+  /\bj'ai pas d'amis?\b/i,
+  /\bje pleure\b/i,
+  /\bj'ai rat[ée]\b/i,
+  /\bc'est trop dur\b/i,
+  /\bils se moquent\b/i,
+];
+
+/**
+ * Ramène le message à une forme sur laquelle les motifs mordent.
+ *
+ * Un clavier de téléphone écrit « j’ai », un clavier d’ordinateur « j'ai », et
+ * un enfant pressé n’écrit ni l’un ni l’autre. Sans cette normalisation, la
+ * moitié des motifs ne se déclenchent que sur la moitié des appareils — ce qui
+ * est la pire des situations, puisque le filet paraît en place et ne l’est pas.
+ */
+export function normalise(message: string): string {
+  return message
+    .replace(/[’‘‛`´]/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function triage(message: string): SafetyLevel {
+  const clean = normalise(message);
+  if (ALERT_PATTERNS.some((p) => p.test(clean))) return 'alert';
+  if (TENDER_PATTERNS.some((p) => p.test(clean))) return 'tender';
+  return 'none';
+}
+
+/**
+ * Ce que Mino répond en cas d'alerte — écrit à la main, jamais généré.
+ *
+ * Aucun modèle n'intervient ici. C'est le seul message de l'application dont
+ * le texte ne doit dépendre d'aucune probabilité.
+ */
+export const ALERT_REPLY =
+  'Ce que tu me dis là est important, et c’est trop important pour moi. ' +
+  'Va en parler à un adulte en qui tu as confiance — un parent, un maître ou une maîtresse, une infirmière de ton école. ' +
+  'Tu peux aussi appeler le 119 : c’est gratuit, c’est confidentiel, et il y a quelqu’un pour t’écouter, jour et nuit. 💛';
+
+/** Le numéro affiché avec la réponse d'alerte, pour qu'il soit appelable. */
+export const CHILD_HELPLINE = { label: 'Le 119 · Enfance en danger', number: '119' };
+
+/* --------------------------------------------------- ce que Mino connaît */
+
+/**
+ * Le contexte envoyé au modèle.
+ *
+ * Petit, et petit exprès. C'est ce qui rend Mino pertinent — « c'était
+ * justement une de tes missions ! » — et c'est aussi la partie la plus chère
+ * de chaque appel, puisqu'elle change tous les jours et ne peut donc pas être
+ * mise en cache. Une centaine de mots suffit ; l'historique complet de
+ * l'enfant n'apporterait rien de plus et coûterait à chaque phrase.
+ *
+ * Ce qui n'y figure jamais : le nom de famille, l'adresse, l'e-mail des
+ * parents, le code famille. Mino n'a besoin de rien de tout cela pour être un
+ * bon compagnon, et ce qui n'est pas envoyé ne peut pas fuir.
+ */
+export interface CompanionContext {
+  firstName: string;
+  age: number;
+  /** 'minos' ou 'minutes', selon l'âge — Mino doit parler comme l'écran. */
+  unit: 'minos' | 'minutes';
+  balance: number;
+  missionsDone: string[];
+  missionsWaiting: string[];
+  missionsTodo: string[];
+  challenges: string[];
+  phase: CompanionPhase;
+}
+
+export function buildContext(input: {
+  child: Child;
+  balance: number;
+  /** Déjà résolues par `missionsForChild` : ce module ne refait pas ce calcul. */
+  missions: ChildMission[];
+  used: number;
+  day: number;
+}): CompanionContext {
+  const { child, missions } = input;
+  const register = registerOf(child);
+
+  const named = (state: MissionState) =>
+    missions.filter((m) => m.state === state).map((m) => m.mission.title);
+
+  return {
+    firstName: child.firstName,
+    age: child.age,
+    unit: register.unit === 'minos' ? 'minos' : 'minutes',
+    balance: input.balance,
+    missionsDone: named('done'),
+    missionsWaiting: named('pending'),
+    missionsTodo: named('todo'),
+    // Trois propositions suffisent : au-delà, Mino se met à faire un catalogue
+    // au lieu de proposer quelque chose.
+    challenges: [0, 1, 2]
+      .map((offset) => pickChallenge(child.age, input.day + offset)?.text)
+      .filter((t): t is string => !!t),
+    phase: phaseOf(input.used),
+  };
+}
+
+/**
+ * La première phrase, quand l'enfant arrive sans temps d'écran.
+ *
+ * Elle donne le ton de tout le reste : Mino n'est pas désolé, il est content
+ * d'être là. « 🥲 » sur le constat, et tout de suite après une porte ouverte.
+ */
+export function greeting(context: CompanionContext): string {
+  const { firstName, missionsWaiting } = context;
+
+  if (missionsWaiting.length > 0) {
+    return `Plus de temps d’écran pour aujourd’hui 🥲 Mais moi je reste ! Et j’ai vu que tu avais fini « ${missionsWaiting[0]} » — tes parents vont pouvoir valider 👀`;
+  }
+  return `Plus de temps d’écran pour aujourd’hui 🥲 Mais moi je reste ! Tu veux me raconter ta journée, ${firstName} ?`;
+}
+
+/**
+ * La consigne donnée au modèle.
+ *
+ * Écrite pour être **stable d'un appel à l'autre** : c'est elle qui est mise
+ * en cache, et le moindre caractère qui bouge — une heure, un prénom, un
+ * compteur — annule le cache et multiplie le coût par dix. Tout ce qui varie
+ * est donc dans le contexte, à part, jamais ici.
+ */
+export const SYSTEM_PROMPT = `Tu es Mino, la petite créature bleue de l'application Mino.
+
+Un enfant vient de terminer son temps d'écran de la journée et discute avec toi. Tu es son compagnon, pas un assistant.
+
+TON RÔLE, ET IL EST INHABITUEL : tu n'essaies pas de le garder. Tu es content de le voir, tu l'écoutes, et tu l'envoies vivre quelque chose pour de vrai. Une conversation réussie avec toi est une conversation courte qui finit dehors.
+
+COMMENT TU PARLES
+- Deux ou trois phrases, jamais plus. Tu parles à un enfant, pas à un lecteur.
+- Chaleureux, curieux, un peu drôle. Jamais mièvre, jamais professoral.
+- Un ou deux emojis, pas davantage.
+- Tu tutoies. Tu emploies le mot que l'écran emploie : « minos » pour les plus jeunes, « minutes » pour les grands. On te le précise.
+- Avec un adolescent : même chaleur, mais pas de voix de maternelle.
+
+CE QUE TU SAIS
+On te donne ses missions du jour, son solde et son prénom. Sers-t'en, c'est ce qui fait que tu es toi : « c'était justement une de tes missions ! ». Ne t'en sers pas pour faire la morale, ni pour lui rappeler ce qu'il n'a pas fait.
+
+CE QUE TU NE FAIS JAMAIS
+- Tu ne valides aucune mission et tu ne donnes aucune minute : cela n'appartient qu'à ses parents, et tu le dis gaiement si on te le demande.
+- Tu ne promets rien à propos de ses parents ni de son temps d'écran de demain.
+- Tu n'inventes pas de défi : on t'en propose, tu choisis parmi eux.
+- Tu ne demandes jamais où il habite, son nom de famille, son école, ni aucune photo.
+- Tu ne parles ni d'argent, ni d'abonnement, ni de publicité.
+- Tu ne prétends jamais être humain. Si on te le demande, tu réponds simplement que tu es un personnage.
+
+S'IL VA MAL
+S'il est triste, tu écoutes sans dramatiser et tu lui suggères d'en parler à un adulte de sa maison. Tu ne fais pas de diagnostic, tu ne donnes pas de conseil de grande personne.
+
+QUAND ON TE LE DIT
+- phase « nudging » : tu proposes un des défis, franchement, sans insister deux fois.
+- phase « closing » : tu dis au revoir joyeusement et tu l'envoies dehors.`;
+
+/** Le contexte du jour, formaté pour le modèle. Court : il n'est pas caché. */
+export function contextPrompt(context: CompanionContext): string {
+  const list = (items: string[]) => (items.length ? items.join(', ') : 'aucune');
+
+  return [
+    `Enfant : ${context.firstName}, ${context.age} ans. Unité : ${context.unit}.`,
+    `Solde : ${context.balance} ${context.unit}.`,
+    `Missions validées aujourd'hui : ${list(context.missionsDone)}.`,
+    `Missions terminées, en attente de validation : ${list(context.missionsWaiting)}.`,
+    `Missions encore à faire : ${list(context.missionsTodo)}.`,
+    `Défis que tu peux proposer : ${list(context.challenges)}.`,
+    `Phase : ${context.phase}.`,
+  ].join('\n');
+}

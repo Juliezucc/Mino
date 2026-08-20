@@ -115,16 +115,28 @@ export default function ChildTime() {
         </Card>
       ) : balance.minutes <= 0 ? (
         <Card style={styles.useCard}>
-          <AnimatedMascot expression="sad" size={120} />
+          {/* Plus de temps d'écran, mais Mino reste. C'est le seul endroit de
+              l'application où l'on n'est pas renvoyé à ce qu'il faut faire
+              pour mériter quelque chose. */}
+          <AnimatedMascot expression="happy" size={120} />
           <Text variant="cardTitle" center>
-            {unit === 'minos' ? 'Plus de minos…' : 'Plus de temps…'}
+            {unit === 'minos' ? 'Plus de minos pour aujourd’hui 🥲' : 'Plus de temps pour aujourd’hui 🥲'}
           </Text>
           <Text variant="body" color={colors.textMuted} center>
-            {unit === 'minos'
-              ? 'Fais une mission pour gagner de nouveaux minos !'
-              : 'Fais une mission pour en regagner.'}
+            {child.companionEnabled === false
+              ? 'Fais une mission pour en regagner !'
+              : 'Mais moi je reste ! Tu veux me raconter ta journée ?'}
           </Text>
-          <Button label="VOIR MES MISSIONS" icon="📋" size="kid" onPress={() => router.push('/child/missions')} />
+          {child.companionEnabled === false ? null : (
+            <Button label="PARLER À MINO" icon="💬" size="kid" onPress={() => router.push('/child/mino')} />
+          )}
+          <Button
+            label="VOIR MES MISSIONS"
+            icon="📋"
+            variant={child.companionEnabled === false ? 'primary' : 'secondary'}
+            size={child.companionEnabled === false ? 'kid' : undefined}
+            onPress={() => router.push('/child/missions')}
+          />
         </Card>
       ) : (
         <Card style={styles.useCard}>

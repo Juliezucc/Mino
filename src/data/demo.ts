@@ -177,7 +177,9 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     createdAt: at(now, 8, 5),
   });
 
-  // Léa: 25 earned + 30 initial = 55 minutes available.
+  // Léa : 25 gagnées + 30 initiales, puis 55 dépensées ce matin — elle est donc
+  // à zéro. C'est volontaire : c'est l'état où Mino reste et discute, et sans
+  // un enfant dans cet état la fonction serait invisible à la première ouverture.
   approved(homework, lea.id, 8, 30);
   transactions.push({
     id: createId('tx'),
@@ -187,6 +189,15 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     kind: 'initial_balance',
     reason: 'Bienvenue sur Mino',
     createdAt: at(now, 8, 5),
+  });
+  transactions.push({
+    id: createId('tx'),
+    familyId: family.id,
+    childId: lea.id,
+    delta: -55,
+    kind: 'screen_time_used',
+    reason: 'Temps d’écran utilisé',
+    createdAt: at(now, 10, 15),
   });
 
   // One request already waiting, so the parent side is never empty on first launch.

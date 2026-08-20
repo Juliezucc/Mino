@@ -418,6 +418,33 @@ export const FAQ: FaqEntry[] = [
     keywords: ['reclamation', 'litige', 'mediateur', 'mediation', 'pas content', 'desaccord', 'cm2c'],
   },
 
+  {
+    id: 'parler-a-mino',
+    question: 'Mon enfant discute avec Mino : qu’est-ce que c’est ?',
+    answer:
+      'Quand son temps d’écran est terminé, Mino reste et peut discuter avec lui — une vingtaine d’échanges par jour, puis il l’envoie jouer. Mino connaît ses missions du jour, propose des défis sans écran, et ne valide jamais une mission ni ne donne de minutes : cela n’appartient qu’à vous. Vous pouvez lire toutes leurs conversations, et votre enfant en est prévenu.',
+    category: 'confidentialite',
+    keywords: ['discuter', 'parler', 'chat', 'ia', 'intelligence artificielle', 'compagnon', 'personnage'],
+    route: '/parent/enfants',
+  },
+  {
+    id: 'desactiver-mino-parle',
+    question: 'Je ne veux pas que mon enfant discute avec Mino',
+    answer:
+      'Ouvrez sa fiche dans Enfants, puis « Parler à Mino » et choisissez Non. C’est immédiat, et l’écran « plus de temps » lui proposera simplement ses missions.',
+    category: 'confidentialite',
+    keywords: ['desactiver', 'couper', 'enlever chat', 'pas de discussion', 'interdire'],
+    route: '/parent/enfants',
+  },
+  {
+    id: 'mino-confidence-grave',
+    question: 'Que se passe-t-il si mon enfant confie quelque chose de grave à Mino ?',
+    answer:
+      'Mino s’arrête. Il ne conseille pas et ne pose pas de questions : il invite votre enfant à en parler à un adulte de confiance et lui donne le 119, gratuit et confidentiel, avec un bouton pour appeler. Le message est signalé dans les conversations que vous pouvez lire. Mino n’est pas une ligne d’écoute et personne ne surveille ces échanges en temps réel.',
+    category: 'confidentialite',
+    keywords: ['grave', 'inquiet', 'danger', '119', 'confidence', 'securite enfant'],
+  },
+
   /* ------------------------------------------------------ confidentialité */
   {
     id: 'donnees-enfant',

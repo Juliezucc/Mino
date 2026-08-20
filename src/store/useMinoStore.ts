@@ -68,7 +68,13 @@ interface MinoState {
   addChild: (input: actions.CreateChildInput) => Promise<ID>;
   editChild: (
     childId: ID,
-    patch: { firstName?: string; age?: number; avatarKey?: AvatarKey; requireApproval?: boolean },
+    patch: {
+      firstName?: string;
+      age?: number;
+      avatarKey?: AvatarKey;
+      requireApproval?: boolean;
+      companionEnabled?: boolean;
+    },
   ) => Promise<void>;
   deleteChild: (childId: ID) => Promise<void>;
 

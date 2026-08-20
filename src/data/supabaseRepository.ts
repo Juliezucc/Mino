@@ -84,6 +84,7 @@ const rowToChild = (r: any): Child => ({
   age: r.age,
   avatarKey: r.avatar_key,
   requireApproval: r.require_approval ?? undefined,
+  companionEnabled: r.companion_enabled ?? undefined,
   pin: r.pin ?? undefined,
   createdAt: r.created_at,
 });
@@ -94,6 +95,7 @@ const childToRow = (c: Child) => ({
   age: c.age,
   avatar_key: c.avatarKey,
   require_approval: c.requireApproval ?? false,
+  companion_enabled: c.companionEnabled ?? true,
   pin: c.pin ?? null,
   created_at: c.createdAt,
 });

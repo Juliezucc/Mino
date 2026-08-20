@@ -110,6 +110,37 @@ export default function ParentChildDetail() {
       </View>
 
       <View style={styles.section}>
+        <SectionHeader
+          title="Parler à Mino"
+          subtitle="Quand son temps d’écran est fini, Mino reste et discute avec lui"
+        />
+        <View style={styles.row}>
+          <Chip
+            label="Oui"
+            icon="💬"
+            selected={child.companionEnabled !== false}
+            onPress={() => editChild(child.id, { companionEnabled: true }).catch(() => undefined)}
+          />
+          <Chip
+            label="Non"
+            icon="🔇"
+            selected={child.companionEnabled === false}
+            onPress={() => editChild(child.id, { companionEnabled: false }).catch(() => undefined)}
+          />
+        </View>
+        <Text variant="caption" color={colors.textSubtle}>
+          Une vingtaine d’échanges par jour, puis Mino l’envoie jouer. Il ne valide aucune mission
+          et ne donne aucune minute.
+        </Text>
+        <Button
+          label="Lire leurs conversations"
+          icon="📖"
+          variant="secondary"
+          onPress={() => router.push({ pathname: '/parent/conversations', params: { childId: child.id } })}
+        />
+      </View>
+
+      <View style={styles.section}>
         <SectionHeader title="Ajustement" subtitle="Chaque ajustement est tracé dans l’historique" />
         <View style={styles.adjustRow}>
           <Button label="− 5 min" variant="secondary" full={false} style={styles.adjustButton} onPress={() => adjust(-5)} />

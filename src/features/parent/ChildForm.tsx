@@ -12,6 +12,8 @@ export interface ChildFormValue {
   avatarKey: AvatarKey;
   /** Ask a parent before every session, even on this device. */
   requireApproval: boolean;
+  /** Whether the child may talk to Mino once their time has run out. */
+  companionEnabled: boolean;
 }
 
 interface Props {
@@ -30,6 +32,7 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
   const [age, setAge] = useState(initial?.age ?? 8);
   const [avatarKey, setAvatarKey] = useState<AvatarKey>(initial?.avatarKey ?? 'fox');
   const [requireApproval, setRequireApproval] = useState(initial?.requireApproval ?? false);
+  const [companionEnabled, setCompanionEnabled] = useState(initial?.companionEnabled ?? true);
   const [error, setError] = useState<string | undefined>();
 
   const submit = () => {
@@ -38,7 +41,7 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
       return;
     }
     setError(undefined);
-    onSubmit({ firstName: firstName.trim(), age, avatarKey, requireApproval });
+    onSubmit({ firstName: firstName.trim(), age, avatarKey, requireApproval, companionEnabled });
   };
 
   return (
@@ -99,6 +102,34 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
           {requireApproval
             ? 'Même pour des minos déjà gagnés, chaque session attendra votre accord — y compris sur l’appareil où Mino est installé.'
             : 'Il ne peut lancer que des minos déjà gagnés et validés par vous, jamais plus que son compteur. Sur l’appareil où Mino est installé, il démarre lui-même ; console, télévision et ordinateur passent toujours par vous.'}
+        </Text>
+      </View>
+
+      <View style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
+          Parler à Mino
+        </Text>
+        <View style={styles.row}>
+          <Chip
+            label="Oui"
+            icon="💬"
+            selected={companionEnabled}
+            onPress={() => setCompanionEnabled(true)}
+          />
+          <Chip
+            label="Non"
+            icon="🔇"
+            selected={!companionEnabled}
+            onPress={() => setCompanionEnabled(false)}
+          />
+        </View>
+        {/* Une famille peut très bien ne pas vouloir que son enfant parle à un
+            personnage, et n'a aucune explication à donner. Ce qu'il faut dire
+            ici, c'est ce que Mino fait — et surtout ce qu'il ne fait pas. */}
+        <Text variant="caption" color={colors.textSubtle}>
+          {companionEnabled
+            ? 'Quand son temps d’écran est fini, il peut discuter avec Mino — une vingtaine d’échanges par jour, puis Mino l’envoie jouer. Mino ne valide aucune mission, ne donne aucune minute, et vous pouvez lire toutes leurs conversations.'
+            : 'Mino ne discutera pas avec lui. L’écran « plus de temps » proposera simplement ses missions.'}
         </Text>
       </View>
 

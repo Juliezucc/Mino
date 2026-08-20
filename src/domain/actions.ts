@@ -37,6 +37,7 @@ export interface CreateChildInput {
   startingMinutes?: number;
   /** Ask a parent before every session, even on the device Mino runs on. */
   requireApproval?: boolean;
+  companionEnabled?: boolean;
 }
 
 export function createChild(
@@ -52,6 +53,7 @@ export function createChild(
     avatarKey: input.avatarKey,
     pin: input.pin,
     requireApproval: input.requireApproval,
+    companionEnabled: input.companionEnabled,
     createdAt: iso(now),
   };
 

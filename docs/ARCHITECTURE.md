@@ -31,7 +31,7 @@ toujours le vrai solde (`__tests__/history.test.ts`).
 
 `src/domain/` ne contient que des fonctions `(données, entrée) → nouvelles
 données`. Aucun appel réseau, aucun accès au stockage, aucun composant. C'est ce
-qui rend les règles testables sans lancer l'application — 139 tests en 3
+qui rend les règles testables sans lancer l'application — 158 tests en 3
 secondes.
 
 Le store appelle une fonction pure, persiste le résultat, publie le nouvel état.
@@ -55,7 +55,7 @@ deux fonctions serveur y touchent.
 
 ### 4. Tout ce qui est extérieur passe par une couture
 
-Cinq services, chacun avec une implémentation locale et une réelle, choisies
+Six services, chacun avec une implémentation locale et une réelle, choisies
 dans un `index.ts`. La facturation en a deux réelles, et ce n'est pas un choix :
 Apple et Google exigent leur propre système dès qu'un paiement débloque une
 fonctionnalité dans l'application.
@@ -67,6 +67,7 @@ fonctionnalité dans l'application.
 | `services/screenTime` | minuteur | FamilyControls / UsageStats |
 | `services/notifications` | rien | expo-notifications |
 | `services/diagnostics` | file locale | table `support_reports` |
+| `services/companion` | réponses écrites | Claude Haiku 4.5 (fonction serveur) |
 
 Conséquence utile : l'application tourne entièrement sans backend, ce qui permet
 de la faire essayer sans rien installer, et de tester le parcours complet sans
@@ -100,12 +101,13 @@ supabase/
   scale.sql           index, temps réel, purges        ← puis celui-ci
   support.sql         signalements                     ← puis celui-ci
   analytics.sql       journal facturation et vues      ← puis celui-ci
-  store.sql           achats App Store et Play Store   ← et enfin celui-ci
+  store.sql           achats App Store et Play Store   ← puis celui-ci
+  companion.sql       budget et conversations de Mino  ← et enfin celui-ci
   functions/          fonctions serveur (Deno) : billing, stripe-webhook,
                       store-purchase, store-notifications
 docs/                 ce dossier
 scripts/              génération : visuels, guide, FAQ, licences
-__tests__/            139 tests
+__tests__/            158 tests
 ```
 
 ---
@@ -157,7 +159,7 @@ Couvert de bout en bout par `__tests__/journey.test.ts`.
 
 ```bash
 npm run typecheck   # TypeScript strict, zéro erreur attendue
-npm test            # 139 tests
+npm test            # 158 tests
 npm run licences    # aucune licence contaminante embarquée
 npm run faq         # régénère docs/support/ si la FAQ a changé
 ```

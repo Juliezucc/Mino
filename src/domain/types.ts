@@ -67,6 +67,12 @@ export interface Child {
    * switch between the two.
    */
   requireApproval?: boolean;
+  /**
+   * Si l'enfant peut discuter avec Mino une fois son temps d'écran terminé.
+   * Absent vaut oui : c'est le comportement par défaut, et une famille qui n'en
+   * veut pas l'éteint en une touche.
+   */
+  companionEnabled?: boolean;
   createdAt: ISODate;
 }
 
