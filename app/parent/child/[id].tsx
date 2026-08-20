@@ -6,6 +6,7 @@ import {
   Avatar,
   Button,
   Card,
+  Chip,
   MinutesBadge,
   Screen,
   ScreenHeader,
@@ -30,6 +31,7 @@ export default function ParentChildDetail() {
   const history = useHistory(id);
   const adjustBalance = useMinoStore((s) => s.adjustBalance);
   const deleteChild = useMinoStore((s) => s.deleteChild);
+  const editChild = useMinoStore((s) => s.editChild);
 
   if (!child || !data) return null;
 
@@ -84,6 +86,27 @@ export default function ParentChildDetail() {
       </Card>
 
       <View style={styles.section}>
+        <SectionHeader
+          title="Utiliser son temps"
+          subtitle="Sur les autres écrans, votre accord est toujours demandé"
+        />
+        <View style={styles.row}>
+          <Chip
+            label="Il se lance tout seul"
+            icon="▶️"
+            selected={!child.requireApproval}
+            onPress={() => editChild(child.id, { requireApproval: false }).catch(() => undefined)}
+          />
+          <Chip
+            label="Il me demande d’abord"
+            icon="🙋"
+            selected={child.requireApproval === true}
+            onPress={() => editChild(child.id, { requireApproval: true }).catch(() => undefined)}
+          />
+        </View>
+      </View>
+
+      <View style={styles.section}>
         <SectionHeader title="Ajustement" subtitle="Chaque ajustement est tracé dans l’historique" />
         <View style={styles.adjustRow}>
           <Button label="− 5 min" variant="secondary" full={false} style={styles.adjustButton} onPress={() => adjust(-5)} />
@@ -128,5 +151,6 @@ const styles = StyleSheet.create({
   badges: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   section: { gap: spacing.md },
   adjustRow: { flexDirection: 'row', gap: spacing.sm },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   adjustButton: { flex: 1 },
 });

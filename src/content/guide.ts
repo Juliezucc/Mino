@@ -204,16 +204,26 @@ export const GUIDE: GuideChapter[] = [
     duration: '2 minutes',
     steps: [
       {
-        title: 'Pourquoi ce n’est pas automatique',
+        title: 'Un seul écran est automatique',
         body: [
-          'Une Nintendo Switch, une PlayStation, une télévision ou l’ordinateur familial n’ouvrent leur temps de jeu à aucune application extérieure. Il n’existe aucun moyen, pour Mino, de démarrer ou d’arrêter une console à distance.',
-          'Plutôt que d’ignorer ces écrans — qui sont souvent les seuls chez les plus jeunes — Mino en fait un échange encadré : l’enfant demande, vous lancez le minuteur, et les deux écrans affichent le même compte à rebours.',
+          'Celui où Mino est installé. Là, votre enfant lance son temps lui-même et le minuteur démarre aussitôt — c’est le fonctionnement normal, celui du téléphone ou de la tablette.',
+          'Une Nintendo Switch, une PlayStation, une télévision ou l’ordinateur familial n’ouvrent leur temps de jeu à aucune application extérieure. Il n’existe aucun moyen, pour Mino, de démarrer ou d’arrêter une console. Plutôt que d’ignorer ces écrans — souvent les seuls chez les plus jeunes — Mino en fait un échange encadré.',
         ],
+      },
+      {
+        title: 'Déclarez vos appareils',
+        body: [
+          'Réglages → Appareils de la maison. Une console, une télé, un ordinateur : ajoutez-les en un geste depuis les suggestions, ou nommez les vôtres — « Switch de la chambre », « Télé du salon ».',
+          'Tant que vous n’avez rien déclaré, vos enfants ne peuvent utiliser leur temps que sur l’appareil où Mino est installé.',
+        ],
+        where: 'Espace parent → Réglages → Appareils de la maison',
+        screen: 'parentAppareils',
+        tip: 'Tous les appareils déclarés passent par vous, sans exception. C’est justement pour cela qu’ils sont déclarés : aucune surprise possible.',
       },
       {
         title: 'L’enfant demande',
         body: [
-          'Dans « Mon temps », il choisit l’écran — 🎮 Console, 📺 Télévision, 💻 Ordinateur — puis la durée, et appuie sur « Demander à mon parent ».',
+          'Dans « Mon temps », il choisit l’écran parmi ceux que vous avez déclarés, puis la durée, et appuie sur « Demander à mon parent ».',
           'Rien n’est décompté à ce moment-là. Une demande sans réponse ne coûte rien.',
         ],
         screen: 'enfantTemps',
@@ -234,6 +244,14 @@ export const GUIDE: GuideChapter[] = [
           'C’est là tout l’intérêt : « tu avais vingt minutes » cesse d’être une discussion sur la mémoire de chacun.',
         ],
         tip: 'La console reste sous votre contrôle : Mino tient le compte et vous prévient, il n’éteint rien tout seul.',
+      },
+      {
+        title: 'Et si vous voulez valider même sur son téléphone',
+        body: [
+          'Par défaut, sur l’appareil où Mino est installé, votre enfant démarre son temps tout seul : le compteur est à lui, il en dispose.',
+          'Si vous préférez que chaque session passe par vous, ouvrez sa fiche dans Enfants et choisissez « Il me demande d’abord ». Toutes ses sessions attendront alors votre accord, sur tous les écrans.',
+        ],
+        where: 'Espace parent → Enfants → l’enfant',
       },
     ],
   },

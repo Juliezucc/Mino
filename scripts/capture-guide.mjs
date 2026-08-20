@@ -154,6 +154,11 @@ await wait(1600);
 
 await tap('Parrainer une famille', 1800);
 await shot('parent-parrainage');
+await page.goBack();
+await wait(1600);
+
+await tap('Gérer les appareils', 1800);
+await shot('parent-appareils');
 
 // La célébration, une fois la demande validée.
 await open();

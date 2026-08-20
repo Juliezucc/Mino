@@ -1,6 +1,6 @@
 import { createId } from './id';
 import { balanceOf } from './ledger';
-import { ScreenTargetKind, isSupervised } from './screens';
+import { Device, DeviceKind } from './devices';
 import {
   AvatarKey,
   Child,
@@ -34,6 +34,8 @@ export interface CreateChildInput {
   avatarKey: AvatarKey;
   pin?: string;
   startingMinutes?: number;
+  /** Ask a parent before every session, even on the device Mino runs on. */
+  requireApproval?: boolean;
 }
 
 export function createChild(
@@ -48,6 +50,7 @@ export function createChild(
     age: input.age,
     avatarKey: input.avatarKey,
     pin: input.pin,
+    requireApproval: input.requireApproval,
     createdAt: iso(now),
   };
 
@@ -270,9 +273,39 @@ export function markCelebrated(
 
 /* ------------------------------------------------------------------ sessions */
 
+/** Declares one of the family's other screens. */
+export function addDevice(
+  data: FamilyData,
+  input: { label: string; kind: DeviceKind },
+  now: Date = new Date(),
+): { data: FamilyData; device: Device } {
+  const label = input.label.trim();
+  if (!label) throw new DomainError('Donne un nom à cet appareil.');
+
+  const device: Device = {
+    id: createId('dev'),
+    familyId: data.family.id,
+    label,
+    kind: input.kind,
+    createdAt: iso(now),
+  };
+  return { data: { ...data, devices: [...(data.devices ?? []), device] }, device };
+}
+
+/**
+ * Archived rather than deleted: past sessions refer to it, and an old session
+ * that suddenly says "un autre écran" reads as data loss.
+ */
+export function removeDevice(data: FamilyData, deviceId: ID): FamilyData {
+  return {
+    ...data,
+    devices: (data.devices ?? []).map((d) => (d.id === deviceId ? { ...d, archived: true } : d)),
+  };
+}
+
 export function startSession(
   data: FamilyData,
-  params: { childId: ID; minutes: number; target?: ScreenTargetKind },
+  params: { childId: ID; minutes: number; deviceId?: ID },
   now: Date = new Date(),
 ): { data: FamilyData; session: ScreenTimeSession } {
   const available = balanceOf(data.transactions, params.childId);
@@ -288,21 +321,23 @@ export function startSession(
     );
   }
 
-  // On a screen Mino cannot drive, the clock only starts once a parent says so.
-  // Nothing is billed in the meantime: a request that is never answered must
-  // not cost the child anything.
-  const supervised = isSupervised(params.target);
+  // Two reasons a session waits for a parent: the screen is one Mino cannot
+  // drive, or the family has asked for every session to be approved. Nothing is
+  // billed in the meantime — a request that is never answered must not cost the
+  // child anything.
+  const child = data.children.find((c) => c.id === params.childId);
+  const waits = params.deviceId !== undefined || child?.requireApproval === true;
 
   const session: ScreenTimeSession = {
     id: createId('ses'),
     familyId: data.family.id,
     childId: params.childId,
     requestedMinutes: params.minutes,
-    target: params.target ?? 'device',
+    ...(params.deviceId ? { deviceId: params.deviceId } : {}),
     startedAt: iso(now),
     endsAt: new Date(now.getTime() + params.minutes * 60_000).toISOString(),
-    status: supervised ? 'requested' : 'running',
-    ...(supervised ? { requestedAt: iso(now) } : {}),
+    status: waits ? 'requested' : 'running',
+    ...(waits ? { requestedAt: iso(now) } : {}),
   };
 
   return { data: { ...data, sessions: [...data.sessions, session] }, session };

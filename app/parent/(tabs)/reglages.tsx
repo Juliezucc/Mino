@@ -109,6 +109,22 @@ export default function ParentSettings() {
 
       <Card style={styles.block}>
         <Text variant="label" color={colors.textMuted}>
+          APPAREILS DE LA MAISON
+        </Text>
+        <Text variant="body" color={colors.textMuted}>
+          Console, télévision, ordinateur : déclarez-les pour que vos enfants puissent y échanger
+          leur temps. Seul l’appareil où Mino est installé fonctionne automatiquement.
+        </Text>
+        <Button
+          label="Gérer les appareils"
+          icon="🎮"
+          variant="secondary"
+          onPress={() => router.push('/parent/appareils')}
+        />
+      </Card>
+
+      <Card style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
           TEMPS D’ÉCRAN
         </Text>
         <Text variant="body">

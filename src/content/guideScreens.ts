@@ -21,6 +21,7 @@ export const SCREENS = {
   parentNouvelleMission: require('../../assets/guide/parent-nouvelle-mission.webp'),
   parentEnfants: require('../../assets/guide/parent-enfants.webp'),
   parentReglages: require('../../assets/guide/parent-reglages.webp'),
+  parentAppareils: require('../../assets/guide/parent-appareils.webp'),
   parentAbonnement: require('../../assets/guide/parent-abonnement.webp'),
   parentParrainage: require('../../assets/guide/parent-parrainage.webp'),
 } as const;

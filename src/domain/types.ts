@@ -6,7 +6,9 @@
  * balance can never disagree.
  */
 
-import { ScreenTargetKind } from './screens';
+import { Device } from './devices';
+
+export type { Device } from './devices';
 
 export type ID = string;
 /** ISO-8601 string. Stored as text so the model stays JSON/Postgres friendly. */
@@ -49,6 +51,12 @@ export interface Child {
   avatarKey: AvatarKey;
   /** Optional 4-digit PIN. Children never have an email account. */
   pin?: string;
+  /**
+   * When true, even a session on this very device waits for a parent. Some
+   * families want the counter to be a right, others a request; this is the
+   * switch between the two.
+   */
+  requireApproval?: boolean;
   createdAt: ISODate;
 }
 
@@ -144,8 +152,12 @@ export interface ScreenTimeSession {
   familyId: ID;
   childId: ID;
   requestedMinutes: number;
-  /** Which screen the time is for. Absent on sessions created before targets. */
-  target?: ScreenTargetKind;
+  /**
+   * Which screen the time is for. Absent means this very device — the only one
+   * Mino drives by itself. Anything else is a declared device (`domain/devices`)
+   * and therefore goes through a parent.
+   */
+  deviceId?: ID;
   /** When the clock actually started. Equal to `requestedAt` on this device. */
   startedAt: ISODate;
   endsAt: ISODate;
@@ -166,4 +178,6 @@ export interface FamilyData {
   completions: MissionCompletion[];
   transactions: ScreenTimeTransaction[];
   sessions: ScreenTimeSession[];
+  /** The family's other screens, declared by the parent. See `domain/devices`. */
+  devices: Device[];
 }

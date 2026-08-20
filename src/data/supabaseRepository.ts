@@ -12,6 +12,8 @@ import {
   ScreenTimeTransaction,
 } from '@/domain/types';
 
+import { Device } from '@/domain/devices';
+
 import { ChangeEvent, MinoRepository } from './repository';
 
 /**
@@ -37,6 +39,7 @@ const TABLES = {
   completions: 'mission_completions',
   transactions: 'screen_time_transactions',
   sessions: 'screen_time_sessions',
+  devices: 'devices',
 } as const;
 
 /* ----------------------------------------------------------------- mapping */
@@ -79,6 +82,7 @@ const rowToChild = (r: any): Child => ({
   firstName: r.first_name,
   age: r.age,
   avatarKey: r.avatar_key,
+  requireApproval: r.require_approval ?? undefined,
   pin: r.pin ?? undefined,
   createdAt: r.created_at,
 });
@@ -88,6 +92,7 @@ const childToRow = (c: Child) => ({
   first_name: c.firstName,
   age: c.age,
   avatar_key: c.avatarKey,
+  require_approval: c.requireApproval ?? false,
   pin: c.pin ?? null,
   created_at: c.createdAt,
 });
@@ -185,9 +190,11 @@ const rowToSession = (r: any): ScreenTimeSession => ({
   familyId: r.family_id,
   childId: r.child_id,
   requestedMinutes: r.requested_minutes,
+  deviceId: r.device_id ?? undefined,
   startedAt: r.started_at,
   endsAt: r.ends_at,
   status: r.status,
+  requestedAt: r.requested_at ?? undefined,
   endedAt: r.ended_at ?? undefined,
   consumedMinutes: r.consumed_minutes ?? undefined,
 });
@@ -196,11 +203,30 @@ const sessionToRow = (s: ScreenTimeSession) => ({
   family_id: s.familyId,
   child_id: s.childId,
   requested_minutes: s.requestedMinutes,
+  device_id: s.deviceId ?? null,
   started_at: s.startedAt,
   ends_at: s.endsAt,
   status: s.status,
+  requested_at: s.requestedAt ?? null,
   ended_at: s.endedAt ?? null,
   consumed_minutes: s.consumedMinutes ?? null,
+});
+
+const rowToDevice = (r: any): Device => ({
+  id: r.id,
+  familyId: r.family_id,
+  label: r.label,
+  kind: r.kind,
+  createdAt: r.created_at,
+  archived: r.archived ?? undefined,
+});
+const deviceToRow = (d: Device) => ({
+  id: d.id,
+  family_id: d.familyId,
+  label: d.label,
+  kind: d.kind,
+  created_at: d.createdAt,
+  archived: d.archived ?? false,
 });
 
 /* -------------------------------------------------------------- repository */
@@ -223,7 +249,7 @@ class SupabaseRepository implements MinoRepository {
       return res.data ?? [];
     };
 
-    const [parents, children, missions, assignments, completions, transactions, sessions] =
+    const [parents, children, missions, assignments, completions, transactions, sessions, devices] =
       await Promise.all([
         fetch(TABLES.parents),
         fetch(TABLES.children),
@@ -232,6 +258,7 @@ class SupabaseRepository implements MinoRepository {
         fetch(TABLES.completions),
         fetch(TABLES.transactions),
         fetch(TABLES.sessions),
+        fetch(TABLES.devices),
       ]);
 
     return {
@@ -243,6 +270,7 @@ class SupabaseRepository implements MinoRepository {
       completions: completions.map(rowToCompletion),
       transactions: transactions.map(rowToTransaction),
       sessions: sessions.map(rowToSession),
+      devices: devices.map(rowToDevice),
     };
   }
 
@@ -284,6 +312,7 @@ class SupabaseRepository implements MinoRepository {
     push(TABLES.completions, (data.completions ?? []).map(completionToRow));
     push(TABLES.transactions, (data.transactions ?? []).map(transactionToRow));
     push(TABLES.sessions, (data.sessions ?? []).map(sessionToRow));
+    push(TABLES.devices, (data.devices ?? []).map(deviceToRow));
 
     await Promise.all(jobs);
   }

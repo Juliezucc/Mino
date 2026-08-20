@@ -125,6 +125,7 @@ export default function ParentHome() {
                 key={session.id}
                 session={session}
                 child={child}
+                devices={data.devices}
                 onStop={() => endSession(session.id, 'stopped').catch(() => undefined)}
               />
             );
@@ -153,6 +154,7 @@ export default function ParentHome() {
                   key={session.id}
                   session={session}
                   child={child}
+                  devices={data.devices}
                   onApprove={() => approveSession(session.id).catch(() => undefined)}
                   onRefuse={() => refuseSession(session.id).catch(() => undefined)}
                 />

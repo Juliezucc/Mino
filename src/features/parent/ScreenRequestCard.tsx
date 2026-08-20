@@ -3,13 +3,15 @@ import { StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Text } from '@/components/ui';
 import { formatDuration } from '@/domain/ledger';
-import { targetFor } from '@/domain/screens';
-import { Child, ScreenTimeSession } from '@/domain/types';
+import { deviceById, deviceIcon, describeDevice } from '@/domain/devices';
+import { Child, Device, ScreenTimeSession } from '@/domain/types';
 import { colors, spacing } from '@/theme';
 
 interface Props {
   session: ScreenTimeSession;
   child: Child;
+  /** The family's declared screens, to name the one this session is for. */
+  devices?: Device[];
   onApprove?: () => void;
   onRefuse?: () => void;
   onStop?: () => void;
@@ -26,8 +28,10 @@ function secondsLeft(endsAt: string): number {
  * countdown — which is the whole point. Without it, "you had twenty minutes"
  * becomes an argument about who remembers what, every single evening.
  */
-export function ScreenRequestCard({ session, child, onApprove, onRefuse, onStop }: Props) {
-  const target = targetFor(session.target);
+export function ScreenRequestCard({ session, child, devices, onApprove, onRefuse, onStop }: Props) {
+  const device = deviceById(devices, session.deviceId);
+  const icon = device ? deviceIcon(device.kind) : '📱';
+  const name = describeDevice(devices, session.deviceId);
   const running = session.status === 'running';
 
   const [remaining, setRemaining] = useState(() => (running ? secondsLeft(session.endsAt) : 0));
@@ -46,7 +50,7 @@ export function ScreenRequestCard({ session, child, onApprove, onRefuse, onStop 
         <View style={styles.texts}>
           <Text variant="bodyStrong">{child.firstName}</Text>
           <Text variant="caption" color={colors.textMuted}>
-            {`${target.icon}  ${target.label} · ${session.requestedMinutes} min`}
+            {`${icon}  ${name} · ${session.requestedMinutes} min`}
           </Text>
         </View>
         {running ? (

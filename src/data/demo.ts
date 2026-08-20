@@ -213,6 +213,23 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     completions,
     transactions,
     sessions: [],
+    // Declared up front so the console flow is testable straight from the demo.
+    devices: [
+      {
+        id: createId('dev'),
+        familyId: family.id,
+        label: 'Nintendo Switch',
+        kind: 'console',
+        createdAt: at(now, 8),
+      },
+      {
+        id: createId('dev'),
+        familyId: family.id,
+        label: 'Télé du salon',
+        kind: 'tv',
+        createdAt: at(now, 8),
+      },
+    ],
   };
 }
 
@@ -245,5 +262,6 @@ export function buildEmptyFamily(
     completions: [],
     transactions: [],
     sessions: [],
+    devices: [],
   };
 }

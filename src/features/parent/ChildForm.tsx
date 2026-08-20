@@ -10,6 +10,8 @@ export interface ChildFormValue {
   firstName: string;
   age: number;
   avatarKey: AvatarKey;
+  /** Ask a parent before every session, even on this device. */
+  requireApproval: boolean;
 }
 
 interface Props {
@@ -27,6 +29,7 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
   const [firstName, setFirstName] = useState(initial?.firstName ?? '');
   const [age, setAge] = useState(initial?.age ?? 8);
   const [avatarKey, setAvatarKey] = useState<AvatarKey>(initial?.avatarKey ?? 'blue');
+  const [requireApproval, setRequireApproval] = useState(initial?.requireApproval ?? false);
   const [error, setError] = useState<string | undefined>();
 
   const submit = () => {
@@ -35,7 +38,7 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
       return;
     }
     setError(undefined);
-    onSubmit({ firstName: firstName.trim(), age, avatarKey });
+    onSubmit({ firstName: firstName.trim(), age, avatarKey, requireApproval });
   };
 
   return (
@@ -67,6 +70,31 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
           {bandForAge(age) === 'ado'
             ? 'À partir de 13 ans, Mino passe en version ado : minutes plutôt que minos, ton sobre, missions adaptées.'
             : 'Mino parle en minos et adapte les missions proposées à cet âge.'}
+        </Text>
+      </View>
+
+      <View style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
+          Utiliser son temps
+        </Text>
+        <View style={styles.row}>
+          <Chip
+            label="Il se lance tout seul"
+            icon="▶️"
+            selected={!requireApproval}
+            onPress={() => setRequireApproval(false)}
+          />
+          <Chip
+            label="Il me demande d’abord"
+            icon="🙋"
+            selected={requireApproval}
+            onPress={() => setRequireApproval(true)}
+          />
+        </View>
+        <Text variant="caption" color={colors.textSubtle}>
+          {requireApproval
+            ? 'Chaque session attendra votre accord, y compris sur l’appareil où Mino est installé.'
+            : 'Sur l’appareil où Mino est installé, votre enfant démarre son temps lui-même. Les autres écrans passent toujours par vous.'}
         </Text>
       </View>
 

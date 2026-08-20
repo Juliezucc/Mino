@@ -30,7 +30,7 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 do $$ begin
-  create type session_status as enum ('running', 'finished', 'stopped');
+  create type session_status as enum ('requested', 'running', 'finished', 'stopped', 'refused');
 exception when duplicate_object then null; end $$;
 
 -- ----------------------------------------------------------------- tables
@@ -57,12 +57,26 @@ create table if not exists parents (
 );
 
 create table if not exists children (
+  id               text primary key,
+  family_id        text not null references families (id) on delete cascade,
+  first_name       text not null,
+  age              int  not null check (age between 0 and 21),
+  avatar_key       text not null,
+  pin              text,
+  -- Ask a parent before every session, even on the device Mino runs on.
+  require_approval boolean not null default false,
+  created_at       timestamptz not null default now()
+);
+
+-- The family's other screens: a console, a television, the family computer.
+-- None of them can be driven by Mino, so every session on one waits for a
+-- parent. Archived rather than deleted, so past sessions still name them.
+create table if not exists devices (
   id         text primary key,
   family_id  text not null references families (id) on delete cascade,
-  first_name text not null,
-  age        int  not null check (age between 0 and 21),
-  avatar_key text not null,
-  pin        text,
+  label      text not null,
+  kind       text not null check (kind in ('console','tv','computer','tablet','other')),
+  archived   boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -120,9 +134,12 @@ create table if not exists screen_time_sessions (
   family_id         text not null references families (id) on delete cascade,
   child_id          text not null references children (id) on delete cascade,
   requested_minutes int not null check (requested_minutes > 0),
+  -- Null means the device Mino runs on, the only screen it drives by itself.
+  device_id         text references devices (id) on delete set null,
   started_at        timestamptz not null default now(),
   ends_at           timestamptz not null,
   status            session_status not null default 'running',
+  requested_at      timestamptz,
   ended_at          timestamptz,
   consumed_minutes  int
 );
@@ -130,6 +147,7 @@ create table if not exists screen_time_sessions (
 -- ---------------------------------------------------------------- indexes
 
 create index if not exists idx_children_family        on children (family_id);
+create index if not exists idx_devices_family         on devices (family_id);
 create index if not exists idx_missions_family        on missions (family_id) where archived = false;
 create index if not exists idx_assignments_child      on mission_assignments (child_id) where active = true;
 create index if not exists idx_completions_family     on mission_completions (family_id, status);
@@ -171,6 +189,7 @@ alter table mission_assignments     enable row level security;
 alter table mission_completions     enable row level security;
 alter table screen_time_transactions enable row level security;
 alter table screen_time_sessions    enable row level security;
+alter table devices                 enable row level security;
 
 -- families -------------------------------------------------------------
 drop policy if exists families_select on families;
@@ -213,6 +232,7 @@ declare
 begin
   foreach t in array array[
     'children',
+    'devices',
     'missions',
     'mission_completions',
     'screen_time_transactions',
@@ -255,6 +275,8 @@ alter publication supabase_realtime add table screen_time_transactions;
 alter publication supabase_realtime add table missions;
 alter publication supabase_realtime add table mission_assignments;
 alter publication supabase_realtime add table children;
+-- A console request has to reach the parent's phone the moment it is made.
+alter publication supabase_realtime add table screen_time_sessions;
 
 -- ------------------------------------------------------------- abonnements
 

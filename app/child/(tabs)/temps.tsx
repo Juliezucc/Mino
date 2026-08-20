@@ -6,11 +6,12 @@ import { AnimatedMascot } from '@/components/mascot';
 import { Button, Card, Chip, MinutesBadge, Screen, Text, TimeCapsules, TimeRing } from '@/components/ui';
 import { unitOf } from '@/domain/ageBand';
 import { formatTime } from '@/domain/minos';
-import { SCREEN_TARGETS, ScreenTargetKind, isSupervised, targetFor } from '@/domain/screens';
+import { activeDevices, deviceIcon, describeDevice } from '@/domain/devices';
 import { getScreenTimeService } from '@/services/screenTime';
 import {
   useActiveChild,
   useBalanceDetail,
+  useFamily,
   useRequestedSession,
   useRunningSession,
 } from '@/store/selectors';
@@ -23,12 +24,14 @@ const DURATIONS = [10, 20, 30];
 export default function ChildTime() {
   const router = useRouter();
   const child = useActiveChild();
+  const family = useFamily();
   const balance = useBalanceDetail(child?.id);
   const running = useRunningSession(child?.id);
   const requested = useRequestedSession(child?.id);
   const startSession = useMinoStore((s) => s.startSession);
 
-  const [target, setTarget] = useState<ScreenTargetKind>('device');
+  // `null` means this very device, the only screen Mino drives by itself.
+  const [deviceId, setDeviceId] = useState<string | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,13 +40,16 @@ export default function ChildTime() {
 
   const unit = unitOf(child);
   const options = DURATIONS.filter((d) => d <= balance.minutes);
-  const supervised = isSupervised(target);
+  const devices = activeDevices(family?.devices);
+  // Every declared device is a screen a parent has to start, and so is any
+  // session at all when the family asked for approval.
+  const supervised = deviceId !== null || child.requireApproval === true;
 
   const begin = async () => {
     if (!selected) return;
     setLoading(true);
     try {
-      const sessionId = await startSession(child.id, selected, target);
+      const sessionId = await startSession(child.id, selected, deviceId ?? undefined);
       setError(null);
       if (supervised) return; // The screen switches to "waiting" on its own.
 
@@ -87,10 +93,10 @@ export default function ChildTime() {
         <Card style={styles.useCard} background={colors.yellowSoft} elevation="none">
           <AnimatedMascot expression="motivated" size={110} />
           <Text variant="cardTitle" center>
-            {`${targetFor(requested.target).icon}  Demande envoyée`}
+            Demande envoyée
           </Text>
           <Text variant="body" color={colors.textMuted} center>
-            {`${formatTime(requested.requestedMinutes, unit)} sur ${targetFor(requested.target).spoken}. Un parent lance le minuteur quand c’est bon.`}
+            {`${formatTime(requested.requestedMinutes, unit)} sur ${describeDevice(family?.devices, requested.deviceId)}. Un parent lance le minuteur quand c’est bon.`}
           </Text>
         </Card>
       ) : running ? (
@@ -126,32 +132,60 @@ export default function ChildTime() {
             Utiliser mon temps
           </Text>
 
-          <Text variant="label" color={colors.textMuted}>
-            SUR QUEL ÉCRAN ?
-          </Text>
-          <View style={styles.targets}>
-            {SCREEN_TARGETS.map((option) => {
-              const on = target === option.kind;
-              return (
+          {devices.length > 0 ? (
+            <>
+              <Text variant="label" color={colors.textMuted}>
+                SUR QUEL ÉCRAN ?
+              </Text>
+              <View style={styles.targets}>
                 <Pressable
-                  key={option.kind}
-                  onPress={() => setTarget(option.kind)}
+                  onPress={() => setDeviceId(null)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${option.label}. ${option.hint}`}
-                  accessibilityState={{ selected: on }}
-                  style={[styles.target, on && styles.targetOn]}
+                  accessibilityLabel="Cet appareil"
+                  accessibilityState={{ selected: deviceId === null }}
+                  style={[styles.target, deviceId === null && styles.targetOn]}
                 >
-                  <Text style={styles.targetIcon}>{option.icon}</Text>
-                  <Text variant="label" color={on ? colors.blueDark : colors.textMuted} center>
-                    {option.label}
+                  <Text style={styles.targetIcon}>📱</Text>
+                  <Text
+                    variant="label"
+                    color={deviceId === null ? colors.blueDark : colors.textMuted}
+                    center
+                  >
+                    Cet appareil
                   </Text>
                 </Pressable>
-              );
-            })}
-          </View>
-          <Text variant="caption" color={colors.textSubtle} center>
-            {targetFor(target).hint}
-          </Text>
+
+                {devices.map((device) => {
+                  const on = deviceId === device.id;
+                  return (
+                    <Pressable
+                      key={device.id}
+                      onPress={() => setDeviceId(device.id)}
+                      accessibilityRole="button"
+                      accessibilityLabel={device.label}
+                      accessibilityState={{ selected: on }}
+                      style={[styles.target, on && styles.targetOn]}
+                    >
+                      <Text style={styles.targetIcon}>{deviceIcon(device.kind)}</Text>
+                      <Text
+                        variant="label"
+                        color={on ? colors.blueDark : colors.textMuted}
+                        center
+                        numberOfLines={2}
+                      >
+                        {device.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text variant="caption" color={colors.textSubtle} center>
+                {supervised
+                  ? 'Un parent doit lancer le minuteur.'
+                  : 'Le minuteur démarre tout de suite.'}
+              </Text>
+            </>
+          ) : null}
 
           <Text variant="label" color={colors.textMuted}>
             COMBIEN ?

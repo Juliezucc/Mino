@@ -6,7 +6,7 @@ import { ChangeEvent, MinoRepository } from '@/data/repository';
 import { createSupabaseRepository } from '@/data/supabaseRepository';
 import * as actions from '@/domain/actions';
 import { Plan, Referral, Subscription } from '@/domain/billing';
-import { ScreenTargetKind } from '@/domain/screens';
+import { DeviceKind } from '@/domain/devices';
 import { AvatarKey, FamilyData, ID, RepeatRule } from '@/domain/types';
 import { getBillingService } from '@/services/billing';
 
@@ -55,7 +55,10 @@ interface MinoState {
   lockParent: () => void;
 
   addChild: (input: actions.CreateChildInput) => Promise<ID>;
-  editChild: (childId: ID, patch: { firstName?: string; age?: number; avatarKey?: AvatarKey }) => Promise<void>;
+  editChild: (
+    childId: ID,
+    patch: { firstName?: string; age?: number; avatarKey?: AvatarKey; requireApproval?: boolean },
+  ) => Promise<void>;
   deleteChild: (childId: ID) => Promise<void>;
 
   addMission: (input: {
@@ -72,7 +75,10 @@ interface MinoState {
   rejectCompletion: (completionId: ID) => Promise<void>;
   markCelebrated: (completionId: ID) => Promise<void>;
 
-  startSession: (childId: ID, minutes: number, target?: ScreenTargetKind) => Promise<ID>;
+  addDevice: (input: { label: string; kind: DeviceKind }) => Promise<ID>;
+  removeDevice: (deviceId: ID) => Promise<void>;
+
+  startSession: (childId: ID, minutes: number, deviceId?: ID) => Promise<ID>;
   approveSession: (sessionId: ID) => Promise<void>;
   refuseSession: (sessionId: ID) => Promise<void>;
   endSession: (sessionId: ID, status?: 'finished' | 'stopped') => Promise<void>;
@@ -257,9 +263,25 @@ export const useMinoStore = create<MinoState>((set, get) => {
       });
     },
 
-    async startSession(childId, minutes, target) {
+    async addDevice(input) {
+      const id = await commit<ID>('family.updated', (data) => {
+        const out = actions.addDevice(data, input);
+        return { data: out.data, result: out.device.id, upsert: { devices: [out.device] } };
+      });
+      return id!;
+    },
+
+    async removeDevice(deviceId) {
+      await commit('family.updated', (data) => {
+        const next = actions.removeDevice(data, deviceId);
+        const device = next.devices.find((d) => d.id === deviceId);
+        return { data: next, upsert: device ? { devices: [device] } : undefined };
+      });
+    },
+
+    async startSession(childId, minutes, deviceId) {
       const id = await commit<ID>('session.started', (data) => {
-        const out = actions.startSession(data, { childId, minutes, target });
+        const out = actions.startSession(data, { childId, minutes, deviceId });
         return { data: out.data, result: out.session.id, upsert: { sessions: [out.session] } };
       });
       return id!;
