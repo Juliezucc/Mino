@@ -120,18 +120,25 @@ aucune utilité et beaucoup d'inconvénients.
 
 ---
 
-## Le risque qu'il faut regarder en face : le classement d'âge
+## Le classement d'âge, et ce qu'il faut vraiment vérifier
 
-**C'est le vrai danger de cette fonctionnalité, et il est commercial, pas
-technique.**
+> **Correction.** Une version antérieure de ce document présentait le
+> classement d'âge comme le danger principal, en évoquant un risque de 18+.
+> C'était trop alarmiste. Le nouveau système d'Apple comporte bien une
+> déclaration « Messaging and Chat », mais elle peut coexister avec un
+> classement 4+ ; elle vise d'ailleurs la communication **entre utilisateurs**,
+> ce qu'un dialogue enfant ↔ personnage n'est pas. Apple reconnaît par ailleurs
+> explicitement le cas d'un personnage dont les dialogues sont générés par IA.
+> **La présence d'un personnage IA n'entraîne donc pas un classement élevé
+> automatique.**
 
-Apple et Google ont durci leurs règles sur les applications qui embarquent une
-IA conversationnelle. Le questionnaire de classement d'âge d'Apple demande
-désormais explicitement si l'application contient un « chatbot », et une IA
-générative libre y pousse le classement très haut — jusqu'à 18+ dans les cas
-non filtrés. **Une application pour enfants classée 18+ n'existe plus.**
+Le sujet reste à traiter, mais il se déplace : la question n'est pas « une IA
+va-t-elle nous faire classer 18+ ? », c'est **« Mino doit-il être soumis en
+catégorie Enfants, et le transfert des conversations à un sous-traitant est-il
+conforme ? »**
 
-Ce qui joue en notre faveur, et qu'il faudra savoir présenter :
+Ce qui joue en notre faveur dans le questionnaire, et qu'il faudra savoir
+présenter :
 
 - ce n'est **pas un chatbot généraliste** : le personnage a un rôle unique,
   borné par une consigne, sans navigation web, sans génération d'images, sans
@@ -148,16 +155,36 @@ Ce qui joue en notre faveur, et qu'il faudra savoir présenter :
 1. **Répondre honnêtement au questionnaire de classement** en décrivant le
    filtrage et le contrôle parental. Mentir y est le plus court chemin vers un
    retrait.
-2. **Décider si Mino entre dans la catégorie Enfants d'Apple.** Elle impose des
-   contraintes supplémentaires, et une IA conversationnelle y est mal vue. Une
-   application familiale hors catégorie Enfants est probablement plus sûre —
-   c'est une décision à prendre avec quelqu'un qui connaît la revue Apple.
-3. **Faire relire le tout par l'avocat qui reprend les CGV**, en même temps que
-   le reste. Le règlement européen sur l'IA impose de dire à l'utilisateur qu'il
-   parle à une machine : c'est écrit sous la conversation, il faut vérifier que
-   la formulation suffit.
 
-**Si le classement d'âge devait bloquer la sortie, la fonctionnalité peut être
+2. **Trancher la catégorie Enfants.** C'est la vraie décision. Elle impose des
+   contraintes fortes sur les données personnelles, les services tiers et les
+   liens externes — et les conversations d'un mineur y sont explicitement des
+   données personnelles. Une application familiale hors catégorie Enfants est
+   probablement plus simple à tenir, mais c'est un arbitrage commercial autant
+   que réglementaire : à prendre avec quelqu'un qui connaît la revue Apple.
+
+3. **Le point le plus concret : le transfert des conversations à Anthropic.**
+   Les messages d'un enfant partent chez un sous-traitant pour être traités.
+   Cela demande, au minimum : la mention explicite du sous-traitant dans la
+   politique de confidentialité, un accord de traitement signé, la vérification
+   que les données ne servent pas à entraîner de modèle, et une position claire
+   sur le lieu de traitement. **C'est ce qui doit être vérifié avant
+   publication**, plus encore que le classement lui-même.
+
+4. **Faire valider le parcours de crise par un professionnel.** Le
+   fonctionnement décrit plus haut — arrêt, orientation vers un adulte, 119 — a
+   été conçu ici, sans expertise en protection de l'enfance. Le raisonnement
+   tient, mais **ni le déclenchement ni les formulations ne devraient partir en
+   production sans avoir été relus par quelqu'un dont c'est le métier.** Pour
+   une fonctionnalité qui s'adresse à des enfants de cinq ans, c'est un
+   prérequis, pas une amélioration.
+
+5. **Faire relire le reste par l'avocat qui reprend les CGV.** Le règlement
+   européen sur l'IA impose de dire à l'utilisateur qu'il parle à une machine :
+   c'est écrit sous la conversation, il faut vérifier que la formulation suffit
+   pour un enfant.
+
+**Si l'un de ces points devait bloquer la sortie, la fonctionnalité peut être
 désactivée sans toucher au reste** : l'interrupteur existe déjà par enfant, et
 un réglage global le rendrait inerte. Rien d'autre dans l'application n'en
 dépend.
@@ -242,11 +269,45 @@ certainement retoucher la consigne après l'avoir lu.
 2. **Faire tester par de vrais enfants de cinq, huit et quatorze ans.** Le
    registre adolescent est le plus fragile : la limite entre chaleureux et
    infantilisant ne se calcule pas.
-3. **Trancher le classement d'âge** avec quelqu'un qui connaît la revue Apple,
-   avant la soumission et non après.
+3. **Trancher la catégorie Enfants et le transfert des conversations** avant la
+   soumission, et faire valider le parcours de crise par un professionnel de la
+   protection de l'enfance — voir la section ci-dessus.
 4. **Planifier `purge_companion_messages()`** avec pg_cron. Une politique de
    conservation qui n'existe que dans un document n'est pas une politique de
    conservation.
 5. **Compléter les CGV et la politique de confidentialité** : ce que Mino est,
    ce qu'il conserve, ce qu'il fait d'une confidence grave, et le fait qu'il
    n'est pas une ligne d'écoute.
+
+---
+
+## À qui appartient l'appareil
+
+Une question posée en même temps que le compagnon, et qui touche au même
+endroit : **un enfant ne doit pas pouvoir prendre le profil d'un autre.** Les
+minos d'un frère sont à une touche, et il suffit de les lancer.
+
+Le réglage vit **sur l'appareil**, pas dans le compte (`data/deviceProfile.ts`,
+AsyncStorage) : la tablette du salon et le téléphone de Noah appartiennent à la
+même famille et ne doivent pas se comporter pareil.
+
+| Mode | Ouverture | Changer de profil |
+|---|---|---|
+| **Partagé** (défaut) | sur le dernier profil utilisé | libre |
+| **Réservé à un enfant** | toujours sur lui | demande le code parent |
+
+Dans les deux cas, **on ne repasse plus par « Qui utilise Mino ? » à chaque
+lancement.** C'était une friction quotidienne sans aucune justification sur un
+téléphone personnel.
+
+Un point dit franchement dans les réglages plutôt que caché : **sur un appareil
+partagé, les enfants se voient.** C'est inhérent à un appareil partagé, et le
+parent le choisit en connaissance de cause.
+
+Deux garde-fous qui n'ont l'air de rien :
+
+- un verrou qui pointe vers un enfant supprimé **ne se rabat pas en douce** sur
+  le dernier profil utilisé — le parent avait demandé un appareil réservé ;
+- la croix de l'écran de code, sur un appareil réservé, **ramène à l'enfant et
+  non au sélecteur** : une barrière qu'un bouton « retour » contourne n'est pas
+  une barrière.

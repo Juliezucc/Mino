@@ -6,6 +6,7 @@ import { Mascot } from '@/components/mascot';
 import { AVATARS, Avatar, Button, Card, MinutesBadge, Screen, SectionHeader, Text } from '@/components/ui';
 import { unitOf } from '@/domain/ageBand';
 import { HistoryList } from '@/features/history/HistoryList';
+import { canSwitchFreely } from '@/data/deviceProfile';
 import { useActiveChild, useBalanceDetail, useFamily, useHistory } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing, tabBarSpace } from '@/theme';
@@ -27,10 +28,12 @@ export default function ChildProfile() {
   const balance = useBalanceDetail(child?.id);
   const history = useHistory(child?.id);
   const editChild = useMinoStore((s) => s.editChild);
+  const device = useMinoStore((s) => s.device);
 
   if (!child || !balance || !data) return null;
 
   const unit = unitOf(child);
+  const locked = !canSwitchFreely(device);
 
   const approved = data.completions.filter(
     (c) => c.childId === child.id && c.status === 'approved',
@@ -116,7 +119,19 @@ export default function ChildProfile() {
         <HistoryList transactions={history} limit={12} unit={unit} />
       </View>
 
-      <Button label="Changer de profil" variant="secondary" onPress={() => router.replace('/who')} />
+      {/* Sur un appareil réservé à un enfant, changer de profil passe par le
+          code parent. C'est tout l'intérêt du réglage : les minos d'un frère
+          sont à une touche, et « je me suis trompé de profil » est une phrase
+          qu'on n'a pas envie d'arbitrer tous les soirs. */}
+      <Button
+        label={locked ? '🔒 Changer de profil' : 'Changer de profil'}
+        variant="secondary"
+        onPress={() =>
+          locked
+            ? router.push({ pathname: '/parent-pin', params: { then: '/who' } })
+            : router.replace('/who')
+        }
+      />
     </Screen>
   );
 }

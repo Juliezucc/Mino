@@ -135,6 +135,14 @@ Changez-le depuis Réglages, sur votre téléphone. Le code n’est jamais stock
 
 Depuis Réglages, section Compte. Une confirmation part sur la nouvelle adresse : le changement n’est effectif qu’une fois le lien ouvert.
 
+### Mon enfant peut changer de profil et prendre celui de son frère
+
+Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> ». Mino s’ouvrira toujours sur son profil, et il faudra votre code parent pour en changer. Laissez « Partagé » pour une tablette familiale : chacun retrouve alors le dernier profil utilisé, et peut en changer librement.
+
+### Mon enfant doit rechoisir son profil à chaque ouverture
+
+Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appareil est celui d’un seul enfant, réservez-le-lui dans Réglages → « Cet appareil » : il ouvrira toujours directement sur lui.
+
 ## 💳 Abonnement
 
 ### Combien coûte Mino ?

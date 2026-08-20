@@ -445,6 +445,25 @@ export const FAQ: FaqEntry[] = [
     keywords: ['grave', 'inquiet', 'danger', '119', 'confidence', 'securite enfant'],
   },
 
+  {
+    id: 'appareil-partage-profils',
+    question: 'Mon enfant peut changer de profil et prendre celui de son frère',
+    answer:
+      'Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> ». Mino s’ouvrira toujours sur son profil, et il faudra votre code parent pour en changer. Laissez « Partagé » pour une tablette familiale : chacun retrouve alors le dernier profil utilisé, et peut en changer librement.',
+    category: 'compte',
+    keywords: ['changer de profil', 'profil', 'frere', 'soeur', 'tablette partagee', 'verrouiller', 'prendre les minos'],
+    route: '/parent/(tabs)/reglages',
+  },
+  {
+    id: 'reconnexion-a-chaque-fois',
+    question: 'Mon enfant doit rechoisir son profil à chaque ouverture',
+    answer:
+      'Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appareil est celui d’un seul enfant, réservez-le-lui dans Réglages → « Cet appareil » : il ouvrira toujours directement sur lui.',
+    category: 'compte',
+    keywords: ['reconnexion', 'rechoisir', 'profil a chaque fois', 'se reconnecter', 'redemande'],
+    route: '/parent/(tabs)/reglages',
+  },
+
   /* ------------------------------------------------------ confidentialité */
   {
     id: 'donnees-enfant',

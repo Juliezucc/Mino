@@ -3,6 +3,14 @@ import { create } from 'zustand';
 import { DEMO_PARENT_PIN, buildDemoFamily, buildEmptyFamily } from '@/data/demo';
 import { LocalRepository } from '@/data/localRepository';
 import { ChangeEvent, MinoRepository } from '@/data/repository';
+import {
+  DeviceProfile,
+  NO_DEVICE_PROFILE,
+  canSwitchFreely,
+  profileToOpen,
+  readDeviceProfile,
+  writeDeviceProfile,
+} from '@/data/deviceProfile';
 import { createSupabaseRepository } from '@/data/supabaseRepository';
 import * as actions from '@/domain/actions';
 import { Plan, Referral, Subscription } from '@/domain/billing';
@@ -60,6 +68,17 @@ interface MinoState {
   /** From the child's device: attach to a family with the family code. */
   joinFamily: (input: { code: string }) => Promise<boolean>;
   resetAll: () => Promise<void>;
+
+  /**
+   * À qui appartient cet appareil : réservé à un enfant, ou partagé. Vit sur
+   * l'appareil et non dans le document familial — la tablette du salon et le
+   * téléphone de Noah ne doivent pas se comporter pareil.
+   */
+  device: DeviceProfile;
+  /** Le profil sur lequel rouvrir, s'il en existe un qui soit encore valable. */
+  resumeChildId: () => ID | null;
+  /** Réserve cet appareil à un enfant, ou le rend partagé avec `null`. */
+  lockDeviceTo: (childId: ID | null) => Promise<void>;
 
   selectChild: (childId: ID | null) => void;
   unlockParent: (pin: string) => Promise<AuthResult>;
@@ -238,6 +257,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     lastError: null,
     subscription: null,
     referrals: [],
+    device: NO_DEVICE_PROFILE,
     notifications: notify.DEFAULT_PREFERENCES,
 
     setNotificationPreferences(patch) {
@@ -245,8 +265,12 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async bootstrap() {
+      // Lu avant de publier : l'écran d'entrée décide où aller dès le premier
+      // rendu, et un profil qui arrive une frame trop tard fait clignoter
+      // « Qui utilise Mino ? » avant de l'escamoter.
+      const device = await readDeviceProfile();
       const data = await migrateLegacyPin(await get().repository.load(), get().repository);
-      publish(data, { status: 'ready' });
+      publish(data, { status: 'ready', device });
       if (data) await get().loadBilling();
     },
 
@@ -305,17 +329,45 @@ export const useMinoStore = create<MinoState>((set, get) => {
 
     async resetAll() {
       await get().repository.clear();
+      // Un appareil réservé à un enfant qui n'existe plus rouvrirait sur le
+      // vide : le réglage part avec les données qu'il désignait.
+      await writeDeviceProfile({ lockedChildId: null, lastChildId: null }).catch(() => undefined);
       publish(null, {
         activeChildId: null,
         parentUnlocked: false,
         status: 'ready',
         subscription: null,
         referrals: [],
+        device: NO_DEVICE_PROFILE,
       });
     },
 
     selectChild(childId) {
       set({ activeChildId: childId });
+      // Se souvenir, pour que l'enfant ne repasse pas par « Qui utilise Mino ? »
+      // à chaque lancement. Un appareil qui oublie qui s'en sert est un appareil
+      // qui demande la même chose tous les jours.
+      if (childId) {
+        writeDeviceProfile({ lastChildId: childId })
+          .then((device) => set({ device }))
+          .catch(() => undefined);
+      }
+    },
+
+    resumeChildId() {
+      const data = get().data;
+      if (!data) return null;
+      return profileToOpen(get().device, data.children);
+    },
+
+    async lockDeviceTo(childId) {
+      // Réserver l'appareil, c'est aussi le rouvrir dessus : les deux réglages
+      // se contrediraient sinon au prochain lancement.
+      const device = await writeDeviceProfile({
+        lockedChildId: childId,
+        ...(childId ? { lastChildId: childId } : {}),
+      });
+      set({ device });
     },
 
     /**

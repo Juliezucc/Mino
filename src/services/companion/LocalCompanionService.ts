@@ -82,10 +82,14 @@ export class LocalCompanionService implements CompanionService {
     context: Parameters<CompanionService['say']>[0]['context'];
   }): string {
     const { message, safety, nudge, context } = input;
-    // Même normalisation que le tri : un clavier de téléphone écrit « j'ai ».
-    // Sans elle, « j'ai rangé ma chambre ! » tapé sur un vrai téléphone ne
-    // déclenche pas la seule réponse qui donne son intérêt au personnage.
-    const said = normalise(message).toLowerCase();
+    // Même normalisation que le tri — un clavier de téléphone écrit « j'ai » —
+    // plus les accents retirés. Un enfant de sept ans écrit « ca va » aussi
+    // souvent que « ça va », et une reconnaissance qui dépend d'une cédille
+    // n'en reconnaît que la moitié.
+    const said = normalise(message)
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '');
     const challenge = context.challenges[0];
 
     if (safety === 'tender') {
@@ -102,14 +106,41 @@ export class LocalCompanionService implements CompanionService {
       return `Dis, on se lance un défi sans écran ? ${challenge}`;
     }
 
-    if (/ennuie|rien à faire|rien a faire/i.test(said) && challenge) {
+    if (/ennuie|rien a faire|quoi faire|je fais quoi/i.test(said) && challenge) {
       return `Alors j’ai ce qu’il te faut ! ${challenge}`;
     }
 
-    if (/\?$/.test(message.trim())) {
-      return `Bonne question ! Je n’ai pas toutes les réponses, moi 😄 Raconte-moi plutôt ta journée.`;
+    // Dire bonjour à quelqu'un qui dit bonjour. C'est la première chose qu'un
+    // enfant tape, et y répondre « Ah ouais ? Raconte-moi » donne aussitôt
+    // l'impression d'un personnage qui n'écoute pas.
+    if (/^(coucou|salut|bonjour|hello|hey|yo)\b/i.test(said)) {
+      return `Coucou ${context.firstName} ! 👋 Alors, cette journée ?`;
     }
 
-    return `Ah ouais ? Raconte-moi 👀`;
+    if (/\bca va\b|tu vas bien|comment (tu vas|ca va)/i.test(said)) {
+      return `Moi ça va très bien, merci d’avoir demandé 😄 Et toi, c’était comment aujourd’hui ?`;
+    }
+
+    if (/\b(t'es|tu es|es-tu|c'est quoi)\b.*(robot|vrai|humain|reel|mino|qui)|qui (es-tu|t'es|tu es)/i.test(said)) {
+      // Jamais d'ambiguïté là-dessus, même hors ligne.
+      return `Je suis Mino, ton personnage ! Pas une vraie personne — mais je suis là quand même 💙`;
+    }
+
+    if (/mission|minos?\b|gagner|combien/i.test(said)) {
+      const todo = context.missionsTodo[0];
+      return todo
+        ? `Il te reste « ${todo} » aujourd’hui. C’est tes parents qui valident, moi je ne fais qu’applaudir 👏`
+        : `Tes missions, c’est dans l’onglet Missions ! Moi je ne donne pas de ${context.unit}, ça c’est tes parents 😄`;
+    }
+
+    // Faute de mieux : relancer, mais pas toujours avec la même phrase. Une
+    // doublure qui répète mot pour mot se démasque au troisième message.
+    const relances = [
+      `Ah bon ? Raconte-moi 👀`,
+      `Et alors, il s’est passé quoi ?`,
+      `Ça m’intéresse, ça. Tu me racontes la suite ?`,
+      challenge ? `Tiens, et si on faisait ça : ${challenge}` : `Dis-m’en plus !`,
+    ];
+    return relances[said.length % relances.length];
   }
 }

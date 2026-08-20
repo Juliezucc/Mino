@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -14,6 +14,15 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
 /** Keeps the parent area out of reach of a curious child. */
 export default function ParentPin() {
   const router = useRouter();
+  /**
+   * Où aller une fois le code accepté.
+   *
+   * Par défaut l'espace parent, mais l'écran sert aussi de barrière ailleurs :
+   * sur un appareil réservé à un enfant, changer de profil demande le code, et
+   * mène alors au sélecteur et non aux réglages.
+   */
+  const { then } = useLocalSearchParams<{ then?: string }>();
+  const destination = then === '/who' ? '/who' : '/parent';
   const parent = useParent();
   const unlockParent = useMinoStore((s) => s.unlockParent);
 
@@ -63,7 +72,7 @@ export default function ParentPin() {
       setHasPin(true);
       await unlockParent(value);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-      router.replace('/parent');
+      router.replace(destination);
       return;
     }
 
@@ -73,7 +82,7 @@ export default function ParentPin() {
 
     if (result.ok) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-      router.replace('/parent');
+      router.replace(destination);
       return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
@@ -83,7 +92,9 @@ export default function ParentPin() {
 
   return (
     <Screen scroll={false} contentStyle={styles.content}>
-      <ScreenHeader closeIcon onBack={() => router.replace('/who')} />
+      {/* Revenir en arrière ne doit jamais contourner la barrière : sur un
+          appareil réservé, la croix ramène à l'enfant, pas au sélecteur. */}
+      <ScreenHeader closeIcon onBack={() => router.replace(then === '/who' ? '/child' : '/who')} />
 
       <View style={styles.head}>
         <Text variant="title" center>

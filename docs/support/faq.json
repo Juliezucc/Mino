@@ -635,6 +635,34 @@
       ]
     },
     {
+      "id": "appareil-partage-profils",
+      "title": "Mon enfant peut changer de profil et prendre celui de son frère",
+      "body": "Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> ». Mino s’ouvrira toujours sur son profil, et il faudra votre code parent pour en changer. Laissez « Partagé » pour une tablette familiale : chacun retrouve alors le dernier profil utilisé, et peut en changer librement.",
+      "category": "Compte et code parent",
+      "keywords": [
+        "changer de profil",
+        "profil",
+        "frere",
+        "soeur",
+        "tablette partagee",
+        "verrouiller",
+        "prendre les minos"
+      ]
+    },
+    {
+      "id": "reconnexion-a-chaque-fois",
+      "title": "Mon enfant doit rechoisir son profil à chaque ouverture",
+      "body": "Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appareil est celui d’un seul enfant, réservez-le-lui dans Réglages → « Cet appareil » : il ouvrira toujours directement sur lui.",
+      "category": "Compte et code parent",
+      "keywords": [
+        "reconnexion",
+        "rechoisir",
+        "profil a chaque fois",
+        "se reconnecter",
+        "redemande"
+      ]
+    },
+    {
       "id": "donnees-enfant",
       "title": "Quelles données collectez-vous sur mon enfant ?",
       "body": "Son prénom, son âge et son avatar. Rien d’autre : pas d’adresse e-mail, pas de photo, pas de numéro. Mino ne sait pas quelles applications sont installées sur son appareil — le système ne les lui montre jamais.",

@@ -21,6 +21,8 @@ export default function ParentSettings() {
   const startDemo = useMinoStore((s) => s.startDemo);
   const subscription = useMinoStore((s) => s.subscription);
   const notifications = useMinoStore((s) => s.notifications);
+  const device = useMinoStore((s) => s.device);
+  const lockDeviceTo = useMinoStore((s) => s.lockDeviceTo);
   const setNotifications = useMinoStore((s) => s.setNotificationPreferences);
   const notifier = getNotificationService();
 
@@ -157,6 +159,42 @@ export default function ParentSettings() {
         )}
       </Card>
 
+      {/* Cet appareil-ci, pas les écrans de la maison.
+          Le réglage vit sur le téléphone et non dans le compte : la tablette du
+          salon et le téléphone de Noah appartiennent à la même famille et ne
+          doivent pas se comporter pareil. */}
+      <Card style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
+          CET APPAREIL
+        </Text>
+        <Text variant="body" color={colors.textMuted}>
+          {device.lockedChildId
+            ? `Réservé à ${(data?.children ?? []).find((c) => c.id === device.lockedChildId)?.firstName ?? 'un enfant'} : Mino s’ouvre directement sur son profil, et il faut votre code pour en changer.`
+            : 'Partagé : Mino rouvre sur le dernier profil utilisé, et vos enfants peuvent en changer librement.'}
+        </Text>
+        <View style={styles.chips}>
+          <Chip
+            label="Partagé"
+            icon="👨‍👩‍👧"
+            selected={!device.lockedChildId}
+            onPress={() => lockDeviceTo(null).catch(() => undefined)}
+          />
+          {(data?.children ?? []).map((child) => (
+            <Chip
+              key={child.id}
+              label={`À ${child.firstName}`}
+              icon="🔒"
+              selected={device.lockedChildId === child.id}
+              onPress={() => lockDeviceTo(child.id).catch(() => undefined)}
+            />
+          ))}
+        </View>
+        <Text variant="caption" color={colors.textSubtle}>
+          Sur un appareil partagé, chacun voit les profils des autres et peut lancer leur temps
+          d’écran. Réservez-le à un enfant si c’est son téléphone à lui.
+        </Text>
+      </Card>
+
       <Card style={styles.block}>
         <Text variant="label" color={colors.textMuted}>
           APPAREILS DE LA MAISON
@@ -245,6 +283,7 @@ export default function ParentSettings() {
 const styles = StyleSheet.create({
   content: { paddingTop: spacing.lg, paddingBottom: tabBarSpace, gap: spacing.lg },
   block: { gap: spacing.sm },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   divider: {
     height: 1,
     backgroundColor: colors.border,
