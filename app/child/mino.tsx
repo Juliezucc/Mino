@@ -11,13 +11,16 @@ import {
   View,
 } from 'react-native';
 
-import { Mascot } from '@/components/mascot';
+import { AnimatedMascot } from '@/components/mascot';
 import { Button, Card, EmptyState, Screen, ScreenHeader, Text } from '@/components/ui';
 import {
   CHILD_HELPLINE,
   CompanionContext,
+  SafetyLevel,
   buildContext,
+  expressionFor,
   greeting,
+  phaseOf,
 } from '@/domain/companion';
 import { CompanionTurn, getCompanionService } from '@/services/companion';
 import { SpeechStatus, getSpeechService, initSpeechService } from '@/services/speech';
@@ -52,6 +55,10 @@ export default function CompanionScreen() {
   const [thinking, setThinking] = useState(false);
   const [alerted, setAlerted] = useState(false);
   const [listening, setListening] = useState(false);
+  /** Ce que l'enfant vient de dire et ce que Mino vient de répondre : de quoi
+      choisir son visage sans rien demander au modèle. */
+  const [lastSafety, setLastSafety] = useState<SafetyLevel>('none');
+  const [typing, setTyping] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
   const [speech, setSpeech] = useState(getSpeechService());
   const scroller = useRef<ScrollView>(null);
@@ -116,6 +123,16 @@ export default function CompanionScreen() {
   }
 
   const closed = left !== null && left <= 0;
+  const used = left === null ? 0 : Math.max(0, 20 - left);
+
+  const expression = expressionFor({
+    phase: phaseOf(used),
+    safety: lastSafety,
+    childMessage: [...turns].reverse().find((t) => t.role === 'child')?.text,
+    minoReply: turns[turns.length - 1]?.role === 'mino' ? turns[turns.length - 1].text : undefined,
+    challenges: context.challenges,
+    thinking,
+  });
 
   /**
    * Parler plutôt qu'écrire.
@@ -176,6 +193,7 @@ export default function CompanionScreen() {
       });
       setTurns((t) => [...t, { role: 'mino', text: reply.text }]);
       setLeft(reply.left);
+      setLastSafety(reply.safety);
       if (reply.safety === 'alert') setAlerted(true);
     } finally {
       setThinking(false);
@@ -191,6 +209,20 @@ export default function CompanionScreen() {
         style={styles.fill}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        {/* Mino en grand, au-dessus de la conversation.
+            Son visage suit ce qui se dit — l'expression est déduite du dernier
+            échange, sans rien coûter de plus. Il rétrécit dès que l'enfant
+            écrit : sur un petit téléphone, clavier ouvert, une mascotte de
+            140 px mangerait tout le fil. */}
+        <View style={styles.stage}>
+          <AnimatedMascot
+            key={expression}
+            expression={expression}
+            size={typing ? 76 : 132}
+            animation="enter"
+          />
+        </View>
+
         <ScrollView
           ref={scroller}
           contentContainerStyle={styles.thread}
@@ -201,7 +233,6 @@ export default function CompanionScreen() {
               key={index}
               style={[styles.row, turn.role === 'child' ? styles.rowChild : styles.rowMino]}
             >
-              {turn.role === 'mino' ? <Mascot expression="happy" size={44} /> : null}
               <View style={[styles.bubble, turn.role === 'child' ? styles.fromChild : styles.fromMino]}>
                 <Text variant="body" color={turn.role === 'child' ? colors.onBrand : colors.text}>
                   {turn.text}
@@ -212,7 +243,6 @@ export default function CompanionScreen() {
 
           {thinking ? (
             <View style={[styles.row, styles.rowMino]}>
-              <Mascot expression="motivated" size={44} />
               <View style={[styles.bubble, styles.fromMino]}>
                 <Text variant="body" color={colors.textMuted}>
                   …
@@ -272,6 +302,8 @@ export default function CompanionScreen() {
               style={styles.input}
               multiline
               maxLength={300}
+              onFocus={() => setTyping(true)}
+              onBlur={() => setTyping(false)}
               onSubmitEditing={send}
               accessibilityLabel="Écrire un message à Mino"
             />
@@ -313,11 +345,12 @@ export default function CompanionScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingBottom: spacing.md },
   fill: { flex: 1 },
+  stage: { alignItems: 'center', paddingTop: spacing.xs, paddingBottom: spacing.sm },
   thread: { gap: spacing.md, paddingVertical: spacing.md },
   row: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
   rowMino: { justifyContent: 'flex-start' },
   rowChild: { justifyContent: 'flex-end' },
-  bubble: { maxWidth: '78%', padding: spacing.md, borderRadius: radii.lg },
+  bubble: { maxWidth: '82%', padding: spacing.md, borderRadius: radii.lg },
   fromMino: { backgroundColor: colors.surfaceSunken, borderBottomLeftRadius: radii.sm },
   fromChild: { backgroundColor: colors.blue, borderBottomRightRadius: radii.sm },
   helpline: { gap: spacing.sm, marginTop: spacing.md },

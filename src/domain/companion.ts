@@ -23,6 +23,10 @@
  * de le faire dire.
  */
 
+// Type seul, depuis un fichier sans aucune dépendance : le domaine ne tire ici
+// aucun composant, seulement le vocabulaire des expressions de la mascotte.
+import { MascotExpression } from '@/components/mascot/types';
+
 import { registerOf } from './ageBand';
 import { ChildMission, MissionState } from './missions';
 import { Child } from './types';
@@ -366,4 +370,60 @@ export function contextPrompt(context: CompanionContext): string {
     `Défis que tu peux proposer : ${list(context.challenges)}.`,
     `Phase : ${context.phase}.`,
   ].join('\n');
+}
+
+/* ------------------------------------------------ le visage de Mino */
+
+/**
+ * L'expression que Mino porte pendant la conversation.
+ *
+ * **Déduite, jamais demandée au modèle.** On pourrait lui faire annoncer son
+ * humeur en fin de réponse ; cela coûterait quelques jetons à chaque phrase,
+ * ajouterait un format à analyser, et donc une façon de plus de se tromper.
+ * Tout ce qu'il faut est déjà là : ce que l'enfant vient de dire, où en est la
+ * conversation, et ce que Mino vient de répondre. C'est gratuit, déterministe,
+ * et testable — ce qu'une humeur tirée au sort ne serait pas.
+ *
+ * L'ordre des cas est la règle elle-même : ce qui touche à l'enfant passe
+ * avant ce qui touche à la mécanique du produit.
+ */
+export function expressionFor(input: {
+  phase: CompanionPhase;
+  safety: SafetyLevel;
+  /** Le dernier message de l'enfant, s'il y en a un. */
+  childMessage?: string;
+  /** La dernière réponse de Mino. */
+  minoReply?: string;
+  /** Les défis proposés ce jour-là, pour reconnaître Mino qui en propose un. */
+  challenges?: string[];
+  thinking?: boolean;
+}): MascotExpression {
+  const { phase, safety, thinking } = input;
+  const child = normalise(input.childMessage ?? '').toLowerCase();
+  const reply = input.minoReply ?? '';
+
+  // Une confidence grave : Mino est inquiet, pas triste. La tristesse
+  // ressemblerait à du reproche au moment précis où il ne faut surtout pas.
+  if (safety === 'alert') return 'worried';
+  // Un chagrin ordinaire : là, Mino accompagne. Un ami qui a l'air touché est
+  // un ami qui a entendu.
+  if (safety === 'tender') return 'sad';
+
+  if (thinking) return 'motivated';
+
+  // Au revoir joyeux : on ne ferme pas une porte, on envoie vivre quelque chose.
+  if (phase === 'closing' || phase === 'done') return 'happy';
+
+  // Mino propose un défi — les défis sont les nôtres, donc reconnaissables.
+  if ((input.challenges ?? []).some((c) => c && reply.includes(c))) return 'motivated';
+
+  // « J'ai rangé ma chambre ! » : l'étonnement ravi, exactement le 😮 voulu.
+  if (/j'?ai (fait|fini|rang|termin|reussi|gagn)/i.test(child)) return 'surprised';
+
+  if (/bravo|trop bien|super|genial|felicitation|fiere?|fier/i.test(reply.toLowerCase())) {
+    return 'proud';
+  }
+
+  if (phase === 'nudging') return 'motivated';
+  return 'happy';
 }

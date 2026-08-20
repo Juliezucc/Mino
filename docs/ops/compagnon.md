@@ -314,6 +314,40 @@ Deux garde-fous qui n'ont l'air de rien :
 
 ---
 
+## Le visage de Mino
+
+Mino est affiché en grand au-dessus de la conversation, et **son expression
+suit ce qui se dit**. C'est ce qui fait la différence entre un fil de messages
+et un personnage.
+
+**Cela ne coûte rien, et c'est un choix.** On pourrait demander au modèle
+d'annoncer son humeur en fin de réponse : quelques jetons à chaque phrase, un
+format de plus à analyser, et donc une façon de plus de se tromper. Tout ce
+qu'il faut est déjà là — ce que l'enfant vient de dire, où en est la
+conversation, ce que Mino vient de répondre. La règle est donc **déduite**
+(`expressionFor`, dans le domaine), gratuite, déterministe et couverte par huit
+tests.
+
+L'ordre des cas *est* la règle : ce qui touche à l'enfant passe avant ce qui
+touche à la mécanique du produit.
+
+| Ce qui se passe | Visage | Pourquoi |
+|---|---|---|
+| Confidence grave | `worried` | Inquiet, pas triste : la tristesse ressemblerait à du reproche au pire moment |
+| Chagrin ordinaire | `sad` | Un ami qui a l'air touché est un ami qui a entendu |
+| « J'ai rangé ma chambre ! » | `surprised` | L'étonnement ravi — exactement le 😮 voulu |
+| Mino propose un défi | `motivated` | Les défis sont les nôtres, donc reconnaissables dans sa réponse |
+| Mino félicite | `proud` | |
+| Fin du budget | `happy` | Un au revoir triste ferait de la limite une punition |
+| Le reste | `happy` | |
+
+La mascotte rétrécit de 132 à 76 px dès que l'enfant écrit : clavier ouvert sur
+un petit téléphone, elle mangerait tout le fil. Et les petites mascottes qui
+accompagnaient chaque bulle ont disparu — deux Mino à deux tailles sur le même
+écran font du bruit, pas de la présence.
+
+---
+
 ## Le microphone
 
 Un enfant de huit ans écrit lentement, et l'attente entre deux phrases suffit à

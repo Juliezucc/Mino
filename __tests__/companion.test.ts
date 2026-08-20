@@ -8,6 +8,7 @@ import {
   challengesFor,
   contextPrompt,
   exchangesLeft,
+  expressionFor,
   greeting,
   phaseOf,
   pickChallenge,
@@ -241,5 +242,68 @@ describe('la première phrase', () => {
     });
 
     expect(greeting(ctx)).toContain('Ranger ma chambre');
+  });
+});
+
+/**
+ * Le visage de Mino.
+ *
+ * Déduit de la conversation, jamais demandé au modèle : gratuit, déterministe,
+ * et donc testable. L'ordre des cas est la règle elle-même — ce qui touche à
+ * l'enfant passe avant ce qui touche à la mécanique du produit.
+ */
+describe('l’expression de Mino', () => {
+  const base = { phase: 'open' as const, safety: 'none' as const };
+
+  it('est inquiet, pas triste, sur une confidence grave', () => {
+    // La tristesse ressemblerait à du reproche au moment précis où il ne faut
+    // surtout pas.
+    expect(expressionFor({ ...base, safety: 'alert' })).toBe('worried');
+  });
+
+  it('accompagne un chagrin ordinaire', () => {
+    expect(expressionFor({ ...base, safety: 'tender' })).toBe('sad');
+  });
+
+  it('fait passer l’enfant avant la mécanique', () => {
+    // Même en fin de budget, même en train de proposer un défi : ce que
+    // l'enfant vient de dire l'emporte.
+    expect(
+      expressionFor({
+        phase: 'closing',
+        safety: 'alert',
+        minoReply: 'Trouve-moi quelque chose de rouge',
+        challenges: ['Trouve-moi quelque chose de rouge'],
+      }),
+    ).toBe('worried');
+  });
+
+  it('s’étonne quand l’enfant annonce avoir fait quelque chose', () => {
+    // Exactement le « Trop bien 😮 » voulu.
+    expect(expressionFor({ ...base, childMessage: 'j’ai rangé ma chambre !' })).toBe('surprised');
+    expect(expressionFor({ ...base, childMessage: "j'ai fini mes devoirs" })).toBe('surprised');
+  });
+
+  it('s’anime quand il propose un défi', () => {
+    const defi = 'Construis une cabane avec ce que tu as sous la main 🏕️';
+    expect(
+      expressionFor({ ...base, minoReply: `Dis, on se lance un défi ? ${defi}`, challenges: [defi] }),
+    ).toBe('motivated');
+  });
+
+  it('est fier quand il félicite', () => {
+    expect(expressionFor({ ...base, minoReply: 'Bravo, c’est super ça !' })).toBe('proud');
+  });
+
+  it('dit au revoir joyeusement, jamais tristement', () => {
+    // Un au revoir triste transformerait la fin du budget en punition.
+    expect(expressionFor({ ...base, phase: 'closing' })).toBe('happy');
+    expect(expressionFor({ ...base, phase: 'done' })).toBe('happy');
+  });
+
+  it('a un visage par défaut, et c’est le bon', () => {
+    expect(expressionFor(base)).toBe('happy');
+    expect(expressionFor({ ...base, phase: 'nudging' })).toBe('motivated');
+    expect(expressionFor({ ...base, thinking: true })).toBe('motivated');
   });
 });
