@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
+import { DEMO_PARENT_PIN, buildDemoFamily, buildEmptyFamily } from '@/data/demo';
 import { LocalRepository } from '@/data/localRepository';
 import { ChangeEvent, MinoRepository } from '@/data/repository';
 import { createSupabaseRepository } from '@/data/supabaseRepository';
@@ -8,6 +8,7 @@ import * as actions from '@/domain/actions';
 import { Plan, Referral, Subscription } from '@/domain/billing';
 import { DeviceKind } from '@/domain/devices';
 import { AvatarKey, FamilyData, ID, RepeatRule } from '@/domain/types';
+import { AuthResult, getAuthService } from '@/services/auth';
 import { getBillingService } from '@/services/billing';
 
 /**
@@ -45,15 +46,18 @@ interface MinoState {
   createAccount: (input: {
     parentName: string;
     email: string;
+    password: string;
     pin: string;
     familyName?: string;
-  }) => Promise<void>;
+  }) => Promise<AuthResult>;
+  signIn: (input: { email: string; password: string }) => Promise<AuthResult>;
+  signOut: () => Promise<void>;
   /** From the child's device: attach to a family with the family code. */
   joinFamily: (input: { code: string }) => Promise<boolean>;
   resetAll: () => Promise<void>;
 
   selectChild: (childId: ID | null) => void;
-  unlockParent: (pin: string) => boolean;
+  unlockParent: (pin: string) => Promise<AuthResult>;
   lockParent: () => void;
 
   addChild: (input: actions.CreateChildInput) => Promise<ID>;
@@ -131,21 +135,46 @@ export const useMinoStore = create<MinoState>((set, get) => {
 
     async startDemo() {
       const data = buildDemoFamily();
+      // The demo's PIN lives where every PIN lives — in the auth service,
+      // never in the family document.
+      await getAuthService().setParentPin(DEMO_PARENT_PIN);
       set({ data, status: 'ready', activeChildId: null, parentUnlocked: false });
       await get().repository.persist(data, { kind: 'bootstrap' });
       await get().loadBilling();
     },
 
-    async createAccount({ parentName, email, pin, familyName }) {
+    async createAccount({ parentName, email, password, pin, familyName }) {
+      // The account first: without an identity there is nothing to attach a
+      // family to, and every row the backend stores is scoped by it.
+      const signUp = await getAuthService().signUp({ email, password });
+      if (!signUp.ok) return signUp;
+
+      const pinSet = await getAuthService().setParentPin(pin);
+      if (!pinSet.ok) return pinSet;
+
       const data = buildEmptyFamily({
         parentName,
         email,
-        pin,
         familyName: familyName?.trim() || `Famille de ${parentName}`,
       });
       set({ data, status: 'ready', activeChildId: null, parentUnlocked: true });
       await get().repository.persist(data, { kind: 'bootstrap' });
       await get().loadBilling();
+      return { ok: true };
+    },
+
+    async signIn(input) {
+      const result = await getAuthService().signIn(input);
+      if (!result.ok) return result;
+      const data = await get().repository.load();
+      set({ data, status: 'ready', activeChildId: null, parentUnlocked: true });
+      if (data) await get().loadBilling();
+      return { ok: true };
+    },
+
+    async signOut() {
+      await getAuthService().signOut();
+      set({ parentUnlocked: false, activeChildId: null });
     },
 
     async joinFamily(input) {
@@ -173,11 +202,15 @@ export const useMinoStore = create<MinoState>((set, get) => {
       set({ activeChildId: childId });
     },
 
-    unlockParent(pin) {
-      const parent = get().data?.parents[0];
-      const ok = !!parent && parent.pin === pin;
-      if (ok) set({ parentUnlocked: true, activeChildId: null });
-      return ok;
+    /**
+     * Asynchronous now, and deliberately so: the PIN is checked by the auth
+     * service, which rate-limits it. Four digits is ten thousand guesses, and a
+     * comparison done here would be a comparison a child's device could skip.
+     */
+    async unlockParent(pin) {
+      const result = await getAuthService().verifyParentPin(pin);
+      if (result.ok) set({ parentUnlocked: true, activeChildId: null });
+      return result;
     },
 
     lockParent() {

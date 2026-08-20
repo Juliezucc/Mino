@@ -55,11 +55,17 @@ create table if not exists parents (
   id           text primary key,
   family_id    text not null references families (id) on delete cascade,
   user_id      uuid unique default auth.uid() references auth.users (id) on delete cascade,
+  -- No `pin` column, on purpose. This row is readable by every device in the
+  -- family, the child's tablet included — it has to be. A four-digit code that
+  -- unlocks the parent area cannot live somewhere a child can read. See
+  -- `parent_secrets` at the end of this file.
   display_name text not null,
   email        text not null,
-  pin          text not null,
   created_at   timestamptz not null default now()
 );
+
+-- Existing installations: the column has to go, not just stop being written.
+alter table parents drop column if exists pin;
 
 create table if not exists children (
   id               text primary key,
@@ -521,3 +527,128 @@ create policy missions_write on missions
   for all
   using (family_id in (select auth_family_ids()) and auth_is_parent())
   with check (family_id in (select auth_family_ids()) and auth_is_parent());
+
+
+-- ------------------------------------------------------------ code parent
+
+/**
+ * The parent PIN, where nothing can read it.
+ *
+ * Deliberately NOT a column on `parents`: that row is visible to every device
+ * in the family, and a child's tablet is one of them. Here there is no select
+ * policy at all — with RLS enabled and no policy, every read is denied,
+ * including the parent's own. The only way in is through the two functions
+ * below.
+ *
+ * Four digits is ten thousand guesses, so hashing alone would settle nothing.
+ * What protects it is that the hash never leaves the server and that attempts
+ * are counted.
+ */
+create table if not exists parent_secrets (
+  user_id       uuid primary key references auth.users (id) on delete cascade,
+  pin_hash      text not null,
+  failed_count  int not null default 0,
+  locked_until  timestamptz,
+  updated_at    timestamptz not null default now()
+);
+
+alter table parent_secrets enable row level security;
+-- No policy is declared. That is the point.
+
+create extension if not exists pgcrypto;
+
+create or replace function set_parent_pin(p_pin text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null or p_pin !~ '^[0-9]{4}$' then
+    return false;
+  end if;
+
+  insert into parent_secrets (user_id, pin_hash, failed_count, locked_until, updated_at)
+  values (auth.uid(), crypt(p_pin, gen_salt('bf', 10)), 0, null, now())
+  on conflict (user_id) do update
+    set pin_hash = excluded.pin_hash,
+        failed_count = 0,
+        locked_until = null,
+        updated_at = now();
+
+  return true;
+end;
+$$;
+
+/**
+ * Checks the PIN. Five wrong tries lock it for five minutes.
+ *
+ * The lockout is per account, not per device: locking only the tablet a child
+ * is holding would be a lock they walk around by picking up another one.
+ */
+create or replace function verify_parent_pin(p_pin text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_secret parent_secrets%rowtype;
+begin
+  if auth.uid() is null then
+    return false;
+  end if;
+
+  select * into v_secret from parent_secrets where user_id = auth.uid();
+  if not found then
+    return false;
+  end if;
+
+  if v_secret.locked_until is not null and v_secret.locked_until > now() then
+    return false;
+  end if;
+
+  if v_secret.pin_hash = crypt(p_pin, v_secret.pin_hash) then
+    update parent_secrets
+      set failed_count = 0, locked_until = null
+      where user_id = auth.uid();
+    return true;
+  end if;
+
+  update parent_secrets
+    set failed_count = failed_count + 1,
+        locked_until = case
+          when failed_count + 1 >= 5 then now() + interval '5 minutes'
+          else null
+        end
+    where user_id = auth.uid();
+
+  return false;
+end;
+$$;
+
+/**
+ * How long the lock still has to run, so the app can say "in 4 minutes"
+ * instead of repeating "wrong code" at someone typing the right one.
+ *
+ * Separate from the check on purpose: this is not a secret, and folding it into
+ * the answer above would make a wrong code and a locked account distinguishable
+ * in the same call.
+ */
+create or replace function parent_pin_locked_seconds()
+returns int
+language sql
+security definer
+set search_path = public
+as $$
+  select greatest(0, extract(epoch from (locked_until - now()))::int)
+  from parent_secrets
+  where user_id = auth.uid() and locked_until is not null
+$$;
+
+revoke all on function set_parent_pin(text) from public;
+revoke all on function verify_parent_pin(text) from public;
+revoke all on function parent_pin_locked_seconds() from public;
+grant execute on function set_parent_pin(text) to authenticated;
+grant execute on function verify_parent_pin(text) to authenticated;
+grant execute on function parent_pin_locked_seconds() to authenticated;

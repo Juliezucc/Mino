@@ -63,6 +63,7 @@ export default function Welcome() {
           variant="secondary"
           onPress={() => router.push('/onboarding/account')}
         />
+        <Button label="J’ai déjà un compte" variant="ghost" onPress={() => router.push('/login')} />
         {/* The child's own device starts here, and nowhere else: joining is
             what an eight-year-old does on the phone they were just handed. */}
         <Button

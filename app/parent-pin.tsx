@@ -17,11 +17,12 @@ export default function ParentPin() {
   const unlockParent = useMinoStore((s) => s.unlockParent);
 
   const [pin, setPin] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
 
   const press = (key: string) => {
-    if (key === '') return;
-    setError(false);
+    if (key === '' || checking) return;
+    setError(null);
 
     if (key === '⌫') {
       setPin((p) => p.slice(0, -1));
@@ -31,17 +32,23 @@ export default function ParentPin() {
 
     const next = pin + key;
     setPin(next);
+    if (next.length === 4) void submit(next);
+  };
 
-    if (next.length === 4) {
-      if (unlockParent(next)) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
-        router.replace('/parent');
-      } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
-        setError(true);
-        setTimeout(() => setPin(''), 220);
-      }
+  const submit = async (value: string) => {
+    setChecking(true);
+    // Verified by the auth service, which rate-limits it — never compared here.
+    const result = await unlockParent(value);
+    setChecking(false);
+
+    if (result.ok) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+      router.replace('/parent');
+      return;
     }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => undefined);
+    setError(result.reason ?? 'Code incorrect.');
+    setTimeout(() => setPin(''), 220);
   };
 
   return (
@@ -72,7 +79,7 @@ export default function ParentPin() {
 
       {error ? (
         <Text variant="label" color={colors.danger} center>
-          Code incorrect
+          {error}
         </Text>
       ) : (
         <View style={styles.errorSpacer} />

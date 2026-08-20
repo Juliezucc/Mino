@@ -38,7 +38,6 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     familyId: family.id,
     displayName: 'Julie',
     email: 'julie@mino.app',
-    pin: DEMO_PARENT_PIN,
     createdAt: at(now, 8),
   };
 
@@ -235,7 +234,7 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
 
 /** Empty family used by the real onboarding flow. */
 export function buildEmptyFamily(
-  input: { familyName: string; parentName: string; email: string; pin: string },
+  input: { familyName: string; parentName: string; email: string },
   now: Date = new Date(),
 ): FamilyData {
   const family = {
@@ -250,7 +249,6 @@ export function buildEmptyFamily(
     familyId: family.id,
     displayName: input.parentName,
     email: input.email,
-    pin: input.pin,
     createdAt: now.toISOString(),
   };
   return {

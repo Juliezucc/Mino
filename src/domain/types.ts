@@ -32,9 +32,15 @@ export interface Parent {
   familyId: ID;
   displayName: string;
   email: string;
-  /** 4-digit PIN guarding the parent area. Never a child-readable field. */
-  pin: string;
   createdAt: ISODate;
+  /**
+   * The PIN guarding the parent area is deliberately NOT here.
+   *
+   * This document is readable by every device in the family, the child's
+   * tablet included — it has to be, for the missions and the counter. A short
+   * code that unlocks the parent area cannot live in something a child can
+   * read. It is held by `services/auth`, hashed, behind a rate-limited check.
+   */
 }
 
 /**

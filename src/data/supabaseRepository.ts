@@ -64,7 +64,6 @@ const rowToParent = (r: any): Parent => ({
   familyId: r.family_id,
   displayName: r.display_name,
   email: r.email,
-  pin: r.pin,
   createdAt: r.created_at,
 });
 const parentToRow = (p: Parent) => ({
@@ -72,7 +71,6 @@ const parentToRow = (p: Parent) => ({
   family_id: p.familyId,
   display_name: p.displayName,
   email: p.email,
-  pin: p.pin,
   created_at: p.createdAt,
 });
 
