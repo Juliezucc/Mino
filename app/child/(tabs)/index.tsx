@@ -1,12 +1,14 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot, MascotAnimation } from '@/components/mascot';
 import { MascotExpression } from '@/components/mascot/types';
 import { Button, Card, MinutesBadge, Screen, Text, TimeRing } from '@/components/ui';
 import { unitOf } from '@/domain/ageBand';
-import { useBalanceDetail, useChildMissions, useActiveChild } from '@/store/selectors';
+import { pendingBonus } from '@/domain/bonus';
+import { lastSeenBonus } from '@/data/seenBonus';
+import { useBalanceDetail, useChildMissions, useActiveChild, useFamily } from '@/store/selectors';
 import { colors, spacing, tabBarSpace } from '@/theme';
 
 /** Child home: who I am, how much time I have, and one obvious thing to do. */
@@ -15,6 +17,42 @@ export default function ChildHome() {
   const child = useActiveChild();
   const balance = useBalanceDetail(child?.id);
   const missions = useChildMissions(child?.id);
+  const data = useFamily();
+
+  /**
+   * Un bonus reçu se fête ici.
+   *
+   * L'accueil est le seul écran où l'enfant passe forcément, et le déclencheur
+   * ne peut pas vivre dans les données : le registre ne se modifie jamais, donc
+   * ce qui a déjà été fêté est retenu sur l'appareil (voir `domain/bonus`).
+   *
+   * Le calcul se refait à chaque changement du registre, et pas seulement au
+   * montage : le cas le plus fréquent est justement celui où le parent offre
+   * les minutes **pendant** que la tablette de l'enfant est ouverte sur cet
+   * écran. Un déclencheur qui ne regarde qu'au démarrage raterait précisément
+   * le moment qu'on cherche à célébrer.
+   */
+  // `undefined` tant que l'appareil n'a pas dit ce qu'il avait déjà fêté :
+  // sans cette distinction, le premier rendu croirait n'avoir rien vu et
+  // ressortirait un cadeau déjà montré.
+  const [seen, setSeen] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!child) return;
+    lastSeenBonus(child.id).then(setSeen).catch(() => setSeen(null));
+  }, [child?.id]);
+
+  const bonus =
+    child && data && seen !== undefined ? pendingBonus(data.transactions, child.id, seen) : null;
+
+  useEffect(() => {
+    if (!bonus) return;
+    // Retenu ici aussi, tout de suite : l'écran de fête l'écrit sur le disque,
+    // mais l'attendre laisserait le temps à un rendu de relancer la navigation.
+    setSeen(bonus.id);
+    router.push({ pathname: '/child/bonus', params: { transactionId: bonus.id } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bonus?.id]);
 
   if (!child || !balance) return null;
 

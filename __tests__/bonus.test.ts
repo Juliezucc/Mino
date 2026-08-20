@@ -1,51 +1,74 @@
-import { buildDemoFamily } from '@/data/demo';
-import { adjustBalance, grantBonus } from '@/domain/actions';
-import { balanceOf } from '@/domain/ledger';
+import { BONUS_WINDOW_HOURS, bonusHeadline, pendingBonus } from '@/domain/bonus';
+import { ScreenTimeTransaction } from '@/domain/types';
 
 const NOW = new Date('2026-08-20T18:00:00.000Z');
+const hoursAgo = (n: number) => new Date(NOW.getTime() - n * 3600_000).toISOString();
 
-function demo() {
-  const data = buildDemoFamily(NOW);
-  return { data, childId: data.children[0].id };
-}
+const tx = (over: Partial<ScreenTimeTransaction> = {}): ScreenTimeTransaction => ({
+  id: 'b1',
+  familyId: 'f1',
+  childId: 'c1',
+  delta: 15,
+  kind: 'bonus',
+  reason: 'Belle journée',
+  createdAt: hoursAgo(1),
+  ...over,
+});
 
-describe('bonus', () => {
-  it('adds time and says why, in its own category', () => {
-    const { data, childId } = demo();
-    const before = balanceOf(data.transactions, childId);
-
-    const next = grantBonus(data, { childId, minutes: 15, reason: 'Coup de main spontané' }, NOW);
-    const tx = next.transactions.at(-1)!;
-
-    expect(balanceOf(next.transactions, childId)).toBe(before + 15);
-    expect(tx.kind).toBe('bonus');
-    expect(tx.reason).toBe('Coup de main spontané');
+/**
+ * Un cadeau qu'on ne voit pas arriver n'est pas un cadeau.
+ *
+ * Et il ne se fête qu'une fois : ce qui a déjà été montré est retenu sur
+ * l'appareil, parce que le registre, lui, ne se modifie jamais.
+ */
+describe('le bonus à fêter', () => {
+  it('trouve le bonus qui vient d’arriver', () => {
+    expect(pendingBonus([tx()], 'c1', null, NOW)?.id).toBe('b1');
   });
 
-  it('can never take time away', () => {
-    const { data, childId } = demo();
-    expect(() => grantBonus(data, { childId, minutes: -10, reason: 'Punition' }, NOW)).toThrow();
-    expect(() => grantBonus(data, { childId, minutes: 0, reason: 'Rien' }, NOW)).toThrow();
+  it('ne fête pas deux fois le même', () => {
+    expect(pendingBonus([tx()], 'c1', 'b1', NOW)).toBeNull();
   });
 
-  it('stays distinct from a correction', () => {
-    const { data, childId } = demo();
-    const corrected = adjustBalance(data, { childId, delta: -5, reason: 'Validé par erreur' }, NOW);
-
-    // Both move the balance; only one is a gift, and the history says which.
-    expect(corrected.transactions.at(-1)!.kind).toBe('parent_adjustment');
-    expect(grantBonus(data, { childId, minutes: 5, reason: 'Bravo' }, NOW).transactions.at(-1)!.kind).toBe(
-      'bonus',
-    );
+  it('ne ressort pas un cadeau oublié', () => {
+    // Une réinstallation, ou un enfant qui n'a pas ouvert l'application de la
+    // semaine, ne doit pas déclencher une fête pour un geste qu'il ne
+    // rattache plus à rien.
+    expect(pendingBonus([tx({ createdAt: hoursAgo(BONUS_WINDOW_HOURS + 1) })], 'c1', null, NOW))
+      .toBeNull();
+    expect(pendingBonus([tx({ createdAt: hoursAgo(BONUS_WINDOW_HOURS - 1) })], 'c1', null, NOW))
+      .not.toBeNull();
   });
 
-  it('is just another line in the ledger, so the balance still derives', () => {
-    const { data, childId } = demo();
-    const next = grantBonus(data, { childId, minutes: 20, reason: 'Belle journée' }, NOW);
+  it('prend le plus récent quand il y en a plusieurs', () => {
+    const list = [
+      tx({ id: 'vieux', createdAt: hoursAgo(6) }),
+      tx({ id: 'recent', createdAt: hoursAgo(1) }),
+    ];
+    expect(pendingBonus(list, 'c1', null, NOW)?.id).toBe('recent');
+  });
 
-    const summed = next.transactions
-      .filter((t) => t.childId === childId)
-      .reduce((sum, t) => sum + t.delta, 0);
-    expect(balanceOf(next.transactions, childId)).toBe(summed);
+  it('ne confond jamais deux enfants', () => {
+    // Le cadeau d'un frère ne s'affiche pas sur l'écran de l'autre.
+    expect(pendingBonus([tx({ childId: 'c2' })], 'c1', null, NOW)).toBeNull();
+  });
+
+  it('ignore ce qui n’est pas un bonus', () => {
+    expect(pendingBonus([tx({ kind: 'mission_reward' })], 'c1', null, NOW)).toBeNull();
+    expect(pendingBonus([tx({ kind: 'screen_time_used', delta: -20 })], 'c1', null, NOW)).toBeNull();
+  });
+
+  it('ignore un ajustement négatif, qui n’a rien d’un cadeau', () => {
+    expect(pendingBonus([tx({ delta: -10 })], 'c1', null, NOW)).toBeNull();
+  });
+});
+
+describe('ce que Mino dit en l’apportant', () => {
+  it('reprend les mots du parent, qui valent mieux que les nôtres', () => {
+    expect(bonusHeadline('Pour ton exposé')).toBe('Pour ton exposé');
+  });
+
+  it('a quelque chose à dire même sans raison écrite', () => {
+    expect(bonusHeadline('   ')).toBe('Juste comme ça 💙');
   });
 });

@@ -22,6 +22,11 @@ contredire, et le jour où cela arrive, c'est devant un enfant qui a perdu des
 minutes qu'il avait gagnées. C'est la seule dispute que le produit ne peut pas se
 permettre.
 
+Deuxième corollaire : rien de ce qui relève de l'affichage ne s'écrit dans le
+registre. La célébration d'un bonus, par exemple, ne pose pas de marque « déjà
+fêté » sur la transaction — elle se souvient sur l'appareil (`data/seenBonus`),
+parce que fêter est un événement d'écran et non un fait comptable.
+
 Corollaire pratique : l'appareil ne télécharge que 120 jours d'historique, et le
 reste est replié en **une ligne d'ouverture** calculée à partir du vrai total
 renvoyé par le serveur. Après repliement, la somme des lignes détenues égale
@@ -31,7 +36,7 @@ toujours le vrai solde (`__tests__/history.test.ts`).
 
 `src/domain/` ne contient que des fonctions `(données, entrée) → nouvelles
 données`. Aucun appel réseau, aucun accès au stockage, aucun composant. C'est ce
-qui rend les règles testables sans lancer l'application — 158 tests en 3
+qui rend les règles testables sans lancer l'application — 184 tests en 3
 secondes.
 
 Le store appelle une fonction pure, persiste le résultat, publie le nouvel état.
@@ -108,7 +113,7 @@ supabase/
                       store-purchase, store-notifications
 docs/                 ce dossier
 scripts/              génération : visuels, guide, FAQ, licences
-__tests__/            158 tests
+__tests__/            184 tests
 ```
 
 ---
@@ -160,7 +165,7 @@ Couvert de bout en bout par `__tests__/journey.test.ts`.
 
 ```bash
 npm run typecheck   # TypeScript strict, zéro erreur attendue
-npm test            # 158 tests
+npm test            # 184 tests
 npm run licences    # aucune licence contaminante embarquée
 npm run faq         # régénère docs/support/ si la FAQ a changé
 ```
