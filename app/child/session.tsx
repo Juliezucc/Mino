@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
@@ -7,6 +7,7 @@ import { MascotExpression } from '@/components/mascot/types';
 import { Button, Card, Screen, ScreenHeader, Text } from '@/components/ui';
 import { formatDuration } from '@/domain/ledger';
 import { unitOf } from '@/domain/ageBand';
+import { ID } from '@/domain/types';
 import { formatTime } from '@/domain/minos';
 import { getScreenTimeService } from '@/services/screenTime';
 import { useActiveChild, useRunningSession } from '@/store/selectors';
@@ -65,6 +66,23 @@ export default function SessionScreen() {
     if (session && remaining === 0 && !closing) finish('finished');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remaining, session]);
+
+  // The session can also end from the parent's phone. The store tells this
+  // screen, but the shield lives on THIS device: without this, a parent
+  // stopping a session remotely would leave the apps unlocked here.
+  const wasRunning = useRef<ID | null>(null);
+  useEffect(() => {
+    if (session) {
+      wasRunning.current = session.id;
+      return;
+    }
+    const ended = wasRunning.current;
+    if (!ended) return;
+    wasRunning.current = null;
+    getScreenTimeService()
+      .revoke(ended)
+      .catch(() => undefined);
+  }, [session]);
 
   if (!child || !session) {
     return (

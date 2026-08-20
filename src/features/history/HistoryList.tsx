@@ -18,7 +18,8 @@ const KIND_ICON: Record<ScreenTimeTransaction['kind'], string> = {
   mission_reward: '⭐',
   screen_time_used: '🎮',
   parent_adjustment: '✏️',
-  initial_balance: '🎁',
+  bonus: '🎁',
+  initial_balance: '👋',
 };
 
 function dayLabel(date: Date, now: Date): string {

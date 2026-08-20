@@ -67,7 +67,14 @@ export default function ParentHome() {
       </View>
 
       <View style={styles.section}>
-        <SectionHeader title="Vue d’ensemble" />
+        <SectionHeader
+          title="Vue d’ensemble"
+          action={
+            children.length > 0
+              ? { label: '🎁 Bonus', onPress: () => router.push('/parent/bonus') }
+              : undefined
+          }
+        />
         {children.length === 0 ? (
           <Card style={styles.emptyChildren}>
             <Text variant="body" color={colors.textMuted} center>
@@ -127,6 +134,9 @@ export default function ParentHome() {
                 child={child}
                 devices={data.devices}
                 onStop={() => endSession(session.id, 'stopped').catch(() => undefined)}
+                onBonus={() =>
+                  router.push({ pathname: '/parent/bonus', params: { childId: session.childId } })
+                }
               />
             );
           })}

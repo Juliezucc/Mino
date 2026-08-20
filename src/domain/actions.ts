@@ -12,6 +12,7 @@ import {
   RepeatRule,
   ScreenTimeSession,
   ScreenTimeTransaction,
+  TransactionKind,
 } from './types';
 
 /**
@@ -441,7 +442,7 @@ export function endSession(
 /** Manual correction by a parent (bonus or penalty) — still a ledger entry. */
 export function adjustBalance(
   data: FamilyData,
-  params: { childId: ID; delta: number; reason: string },
+  params: { childId: ID; delta: number; reason: string; kind?: TransactionKind },
   now: Date = new Date(),
 ): FamilyData {
   if (params.delta === 0) return data;
@@ -450,9 +451,26 @@ export function adjustBalance(
     familyId: data.family.id,
     childId: params.childId,
     delta: params.delta,
-    kind: 'parent_adjustment',
+    kind: params.kind ?? 'parent_adjustment',
     reason: params.reason,
     createdAt: iso(now),
   };
   return { ...data, transactions: [...data.transactions, transaction] };
+}
+
+/**
+ * A gift, outside of any mission. Always positive: a bonus that could take time
+ * away would be a punishment wearing a nicer name, and Mino never takes back.
+ */
+export function grantBonus(
+  data: FamilyData,
+  params: { childId: ID; minutes: number; reason: string },
+  now: Date = new Date(),
+): FamilyData {
+  if (params.minutes <= 0) throw new DomainError('Un bonus est toujours positif.');
+  return adjustBalance(
+    data,
+    { childId: params.childId, delta: params.minutes, reason: params.reason, kind: 'bonus' },
+    now,
+  );
 }

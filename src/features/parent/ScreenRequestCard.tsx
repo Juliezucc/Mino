@@ -15,6 +15,7 @@ interface Props {
   onApprove?: () => void;
   onRefuse?: () => void;
   onStop?: () => void;
+  onBonus?: () => void;
 }
 
 function secondsLeft(endsAt: string): number {
@@ -28,7 +29,15 @@ function secondsLeft(endsAt: string): number {
  * countdown — which is the whole point. Without it, "you had twenty minutes"
  * becomes an argument about who remembers what, every single evening.
  */
-export function ScreenRequestCard({ session, child, devices, onApprove, onRefuse, onStop }: Props) {
+export function ScreenRequestCard({
+  session,
+  child,
+  devices,
+  onApprove,
+  onRefuse,
+  onStop,
+  onBonus,
+}: Props) {
   const device = deviceById(devices, session.deviceId);
   const icon = device ? deviceIcon(device.kind) : '📱';
   const name = describeDevice(devices, session.deviceId);
@@ -61,11 +70,16 @@ export function ScreenRequestCard({ session, child, devices, onApprove, onRefuse
       </View>
 
       {running ? (
-        <Button
-          label={remaining > 0 ? 'ARRÊTER MAINTENANT' : 'TEMPS ÉCOULÉ · CLÔTURER'}
-          variant={remaining > 0 ? 'secondary' : 'primary'}
-          onPress={() => onStop?.()}
-        />
+        <View style={styles.actions}>
+          <Button
+            label={remaining > 0 ? 'ARRÊTER MAINTENANT' : 'TEMPS ÉCOULÉ · CLÔTURER'}
+            variant={remaining > 0 ? 'secondary' : 'primary'}
+            onPress={() => onStop?.()}
+          />
+          {onBonus ? (
+            <Button label="OFFRIR DU TEMPS" icon="🎁" variant="ghost" onPress={() => onBonus()} />
+          ) : null}
+        </View>
       ) : (
         <View style={styles.actions}>
           <Button label="REFUSER" variant="ghost" onPress={() => onRefuse?.()} />

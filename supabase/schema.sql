@@ -29,6 +29,11 @@ do $$ begin
   );
 exception when duplicate_object then null; end $$;
 
+-- A gift, kept apart from a correction so the history stays readable.
+do $$ begin
+  alter type transaction_kind add value if not exists 'bonus';
+exception when duplicate_object then null; end $$;
+
 do $$ begin
   create type session_status as enum ('requested', 'running', 'finished', 'stopped', 'refused');
 exception when duplicate_object then null; end $$;

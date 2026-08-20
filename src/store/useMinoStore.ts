@@ -83,6 +83,7 @@ interface MinoState {
   refuseSession: (sessionId: ID) => Promise<void>;
   endSession: (sessionId: ID, status?: 'finished' | 'stopped') => Promise<void>;
   adjustBalance: (childId: ID, delta: number, reason: string) => Promise<void>;
+  grantBonus: (childId: ID, minutes: number, reason: string) => Promise<void>;
 
   loadBilling: () => Promise<void>;
   choosePlan: (plan: Plan) => Promise<{ url: string }>;
@@ -317,6 +318,13 @@ export const useMinoStore = create<MinoState>((set, get) => {
     async adjustBalance(childId, delta, reason) {
       await commit('balance.adjusted', (data) => {
         const next = actions.adjustBalance(data, { childId, delta, reason });
+        return { data: next, upsert: { transactions: next.transactions.slice(-1) } };
+      });
+    },
+
+    async grantBonus(childId, minutes, reason) {
+      await commit('balance.adjusted', (data) => {
+        const next = actions.grantBonus(data, { childId, minutes, reason });
         return { data: next, upsert: { transactions: next.transactions.slice(-1) } };
       });
     },

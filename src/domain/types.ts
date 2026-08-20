@@ -112,7 +112,11 @@ export interface MissionCompletion {
 export type TransactionKind =
   | 'mission_reward'
   | 'screen_time_used'
+  /** A correction: the parent fixing a mistake, in either direction. */
   | 'parent_adjustment'
+  /** A gift, always positive. Kept apart from a correction so the history
+   *  answers "why did they get 15 more?" without anyone having to remember. */
+  | 'bonus'
   | 'initial_balance';
 
 export interface ScreenTimeTransaction {
