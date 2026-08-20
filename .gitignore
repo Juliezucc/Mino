@@ -42,3 +42,8 @@ yarn-error.*
 
 # Regenerable from docs/mascot-tests/ with scripts/video-to-sequence.mjs
 assets/mascot/sequence/*-frames/
+
+# Visuels des fiches App Store et Play : régénérés par `npm run captures`.
+# Versionner vingt-six PNG lourds ferait grossir le dépôt à chaque retouche de
+# légende, pour des fichiers que le script refait en deux minutes.
+/store/

@@ -228,7 +228,11 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
       {
         id: createId('dev'),
         familyId: family.id,
-        label: 'Nintendo Switch',
+        // Volontairement neutre : cet écran finit dans les captures de la fiche
+        // App Store, où faire figurer une marque tierce demanderait des droits
+        // qu'on n'a pas (règle Apple 2.3.9). Dans l'application, un parent
+        // nomme ses appareils comme il veut.
+        label: 'Console du salon',
         kind: 'console',
         createdAt: at(now, 8),
       },

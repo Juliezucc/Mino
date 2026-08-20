@@ -110,12 +110,23 @@ ensuite, la preuve après, le prix à la fin.
 
 ## Les captures d'écran
 
-Elles sont vues **avant** la description, et souvent à la place. Cinq suffisent,
-dans cet ordre — chacune avec une phrase en haut, lisible sans zoomer :
+Elles sont vues **avant** la description, et souvent à la place. Chacune porte
+une phrase en haut, lisible sans zoomer.
+
+**Elles sont générées** : `node scripts/capture-store.mjs`, légendes dans
+`scripts/store-screens.json`. Contraintes de format, pièges de conformité et
+justification de chaque légende : `docs/ops/captures-stores.md`.
+
+L'ordre retenu ci-dessous est celui d'origine ; celui qui est réellement produit
+compte huit visuels et figure dans le fichier de légendes.
 
 1. **« Le temps d'écran se gagne. »** — l'écran enfant, compteur bien visible.
 2. **« Vous validez, les minutes arrivent. »** — la demande côté parent.
 3. **« Un vrai blocage, pas un compteur. »** — le moment où le temps se termine.
+   ⚠️ **À ne pas employer tant que le blocage n'est pas dans le binaire soumis.**
+   Le service par défaut est `timer-only` : promettre un blocage qu'il ne fait
+   pas est le motif de retrait le plus direct (Apple 2.3.1). Voir
+   `docs/ops/captures-stores.md`.
 4. **« Console, télé, ordinateur : tout compte. »** — l'écran Appareils.
 5. **« Aucune pub. Aucune donnée revendue. »** — la promesse de confidentialité.
 

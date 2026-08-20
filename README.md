@@ -60,6 +60,7 @@ npm run typecheck  # TypeScript strict
 npm run faq        # régénère docs/support/ depuis src/content/faq.ts
 npm run licences   # recense les licences des dépendances
 npm run assets     # régénère icônes et écran de lancement
+npm run captures   # régénère les visuels des fiches App Store et Play
 ```
 
 ---
@@ -74,6 +75,7 @@ npm run assets     # régénère icônes et écran de lancement
 | Les deux rails de paiement | [`docs/ops/paiements.md`](docs/ops/paiements.md) |
 | Mino qui parle : coût, sécurité, classement d'âge | [`docs/ops/compagnon.md`](docs/ops/compagnon.md) |
 | Propriété intellectuelle, comptes, accès | [`docs/ops/propriete-et-acces.md`](docs/ops/propriete-et-acces.md) |
+| Captures des fiches App Store et Play | [`docs/ops/captures-stores.md`](docs/ops/captures-stores.md) |
 | Process marketing | [`docs/marketing/`](docs/marketing/) |
 | Blocage réel des écrans | [`docs/blocage-ecrans.md`](docs/blocage-ecrans.md) |
 | Habilitation Apple | [`docs/apple-family-controls.md`](docs/apple-family-controls.md) |

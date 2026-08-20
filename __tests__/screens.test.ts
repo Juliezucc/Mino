@@ -55,7 +55,7 @@ describe('declared devices', () => {
 
     expect(activeDevices(next.devices)).toHaveLength(1);
     // The row survives, so a past session can still be named.
-    expect(describeDevice(next.devices, consoleId)).toBe('Nintendo Switch');
+    expect(describeDevice(next.devices, consoleId)).toBe('Console du salon');
   });
 
   it('falls back gracefully for a device that no longer exists', () => {

@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "faq": "node --experimental-strip-types --no-warnings scripts/export-faq.mjs",
     "licences": "node scripts/licences.mjs",
-    "assets": "node scripts/make-launch-assets.mjs"
+    "assets": "node scripts/make-launch-assets.mjs",
+    "captures": "node scripts/capture-store.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.1",
