@@ -75,11 +75,11 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
 
       <View style={styles.block}>
         <Text variant="label" color={colors.textMuted}>
-          Utiliser son temps
+          Une fois qu’il a gagné des minos
         </Text>
         <View style={styles.row}>
           <Chip
-            label="Il se lance tout seul"
+            label="Il s’en sert quand il veut"
             icon="▶️"
             selected={!requireApproval}
             onPress={() => setRequireApproval(false)}
@@ -91,10 +91,14 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
             onPress={() => setRequireApproval(true)}
           />
         </View>
+        {/* A parent adding their first child is discovering the app. The thing
+            they need to hear is the guarantee, not the setting: a child can
+            never start time they have not already earned and you have not
+            already validated. */}
         <Text variant="caption" color={colors.textSubtle}>
           {requireApproval
-            ? 'Chaque session attendra votre accord, y compris sur l’appareil où Mino est installé.'
-            : 'Sur l’appareil où Mino est installé, votre enfant démarre son temps lui-même. Les autres écrans passent toujours par vous.'}
+            ? 'Même pour des minos déjà gagnés, chaque session attendra votre accord — y compris sur l’appareil où Mino est installé.'
+            : 'Il ne peut lancer que des minos déjà gagnés et validés par vous, jamais plus que son compteur. Sur l’appareil où Mino est installé, il démarre lui-même ; console, télévision et ordinateur passent toujours par vous.'}
         </Text>
       </View>
 

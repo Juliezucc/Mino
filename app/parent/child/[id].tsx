@@ -87,12 +87,12 @@ export default function ParentChildDetail() {
 
       <View style={styles.section}>
         <SectionHeader
-          title="Utiliser son temps"
-          subtitle="Sur les autres écrans, votre accord est toujours demandé"
+          title="Une fois qu’il a gagné des minos"
+          subtitle="Il ne peut jamais lancer plus que son compteur, ni du temps que vous n’avez pas validé"
         />
         <View style={styles.row}>
           <Chip
-            label="Il se lance tout seul"
+            label="Il s’en sert quand il veut"
             icon="▶️"
             selected={!child.requireApproval}
             onPress={() => editChild(child.id, { requireApproval: false }).catch(() => undefined)}
@@ -104,6 +104,9 @@ export default function ParentChildDetail() {
             onPress={() => editChild(child.id, { requireApproval: true }).catch(() => undefined)}
           />
         </View>
+        <Text variant="caption" color={colors.textSubtle}>
+          Console, télévision et ordinateur passent toujours par vous, quel que soit ce réglage.
+        </Text>
       </View>
 
       <View style={styles.section}>

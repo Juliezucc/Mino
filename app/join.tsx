@@ -18,10 +18,14 @@ type Step = 'code' | 'profile' | 'shield';
  * family, say whose device it is, then hand the phone to a parent for the one
  * thing only a parent may authorise.
  *
- * The code alone is not enough to join. Four characters get read aloud across a
- * kitchen and written on a fridge; guessing one would put a stranger inside a
- * family with children in it. The parent's e-mail is asked for as a second
- * secret, and a mismatch never says which half was wrong.
+ * The child is asked for the family code and nothing else. At eight years old
+ * every extra field is a wall, and an e-mail typed on a phone is the tallest of
+ * them. Proving that an adult is present happens at the third step, where the
+ * system's own screen-time authorisation asks for the parent's account — far
+ * better than a form could.
+ *
+ * The code therefore carries the whole weight of the pairing, which is why it
+ * is six characters and why the backend rate-limits attempts.
  */
 export default function JoinFamily() {
   const router = useRouter();
@@ -32,7 +36,6 @@ export default function JoinFamily() {
 
   const [step, setStep] = useState<Step>('code');
   const [code, setCode] = useState('');
-  const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [shield, setShield] = useState<ScreenTimeAuthorization | null>(null);
@@ -41,11 +44,9 @@ export default function JoinFamily() {
     setLoading(true);
     setError(null);
     try {
-      const ok = await joinFamily({ code, parentEmail: email });
+      const ok = await joinFamily({ code });
       if (!ok) {
-        // Deliberately vague: naming which half is wrong turns the pair into
-        // two separate things to guess.
-        setError('Le code et l’e-mail ne correspondent à aucune famille.');
+        setError('Ce code ne correspond à aucune famille. Redemande-le à ton parent.');
         return;
       }
       setStep('profile');
@@ -96,27 +97,17 @@ export default function JoinFamily() {
                 Rejoindre ma famille
               </Text>
               <Text variant="body" color={colors.textMuted} center>
-                Demande les deux informations à ton parent. Elles sont dans son application, dans
-                Réglages.
+                Demande le code à ton parent. Il est dans son application, dans Réglages.
               </Text>
             </View>
 
             <Field
               label="Code famille"
-              placeholder="MINO-7K2Q"
+              placeholder="MINO-7K2QX9"
               autoCapitalize="characters"
               autoCorrect={false}
               value={code}
-              onChangeText={(v) => setCode(v.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 9))}
-            />
-            <Field
-              label="E-mail du parent"
-              placeholder="parent@exemple.fr"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
+              onChangeText={(v) => setCode(v.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 11))}
               error={error ?? undefined}
             />
 
@@ -125,13 +116,12 @@ export default function JoinFamily() {
               size="kid"
               onPress={join}
               loading={loading}
-              disabled={code.length < 5 || !email.includes('@')}
+              disabled={code.replace(/[^A-Z0-9]/g, '').length < 10}
             />
 
             <Card elevation="none" background={colors.surfaceMuted}>
               <Text variant="caption" color={colors.textMuted}>
-                L’e-mail sert uniquement à vérifier que cet appareil rejoint la bonne famille. Ton
-                parent reste le seul à avoir un compte.
+                Tu n’as ni compte, ni mot de passe, ni adresse e-mail à donner. Ce code suffit.
               </Text>
             </Card>
           </>

@@ -48,8 +48,8 @@ interface MinoState {
     pin: string;
     familyName?: string;
   }) => Promise<void>;
-  /** From the child's device: attach to a family with the code + parent e-mail. */
-  joinFamily: (input: { code: string; parentEmail: string }) => Promise<boolean>;
+  /** From the child's device: attach to a family with the family code. */
+  joinFamily: (input: { code: string }) => Promise<boolean>;
   resetAll: () => Promise<void>;
 
   selectChild: (childId: ID | null) => void;

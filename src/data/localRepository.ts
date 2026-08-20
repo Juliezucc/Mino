@@ -57,7 +57,7 @@ export class LocalRepository implements MinoRepository {
    * That stands in for the server just well enough to run and judge the whole
    * setup flow offline; `SupabaseRepository` does the real thing.
    */
-  async joinFamily(input: { code: string; parentEmail: string }): Promise<FamilyData | null> {
+  async joinFamily(input: { code: string }): Promise<FamilyData | null> {
     const known = (await this.load()) ?? (await readDirectory());
     if (!known) return null;
     if (!matchesFamily(known, input)) return null;
@@ -67,15 +67,8 @@ export class LocalRepository implements MinoRepository {
   }
 }
 
-/** Case- and spacing-insensitive, because both are typed by hand. */
-export function matchesFamily(
-  data: FamilyData,
-  input: { code: string; parentEmail: string },
-): boolean {
+/** Case- and spacing-insensitive, because it is typed by hand, by a child. */
+export function matchesFamily(data: FamilyData, input: { code: string }): boolean {
   const code = input.code.trim().toUpperCase().replace(/\s/g, '');
-  const email = input.parentEmail.trim().toLowerCase();
-  return (
-    data.family.code.toUpperCase() === code &&
-    data.parents.some((p) => p.email.toLowerCase() === email)
-  );
+  return code.length > 0 && data.family.code.toUpperCase() === code;
 }

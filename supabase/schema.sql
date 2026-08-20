@@ -386,21 +386,30 @@ as $$
   select exists (select 1 from parents where user_id = auth.uid())
 $$;
 
+-- Failed pairing attempts, so a script cannot walk the code space.
+create table if not exists join_attempts (
+  id         bigserial primary key,
+  user_id    uuid not null references auth.users (id) on delete cascade,
+  attempted_at timestamptz not null default now()
+);
+
+create index if not exists idx_join_attempts_user on join_attempts (user_id, attempted_at desc);
+
 -- A child's device attaching itself to a family.
 --
 -- RLS deliberately hides a family from anyone outside it, so the client cannot
 -- look one up to check a code — which is exactly right, and exactly why this
 -- has to be a SECURITY DEFINER function instead.
 --
--- Two secrets are required, never one. The family code is four characters, gets
--- read aloud across a kitchen and written on a fridge; on its own it is
--- guessable, and guessing it would drop a stranger inside a family with
--- children in it. The parent's e-mail has to match as well.
+-- The family code is the only thing asked of a child: at eight years old every
+-- extra field is a wall. Proving that an adult is present happens afterwards,
+-- when the system's own screen-time authorisation asks for the parent's
+-- account — far better than a form could.
 --
--- Returns the family id on success and null otherwise, without ever saying
--- which half was wrong: naming it would turn one secret into two separate
--- things to guess.
-create or replace function join_family(p_code text, p_email text)
+-- Which puts the whole weight of the pairing on this one code. Two things carry
+-- it: six characters (32^6, about a billion), and the attempt limit below.
+-- Ten tries an hour turns a billion combinations into millennia.
+create or replace function join_family(p_code text)
 returns text
 language plpgsql
 security definer
@@ -408,19 +417,28 @@ set search_path = public
 as $$
 declare
   v_family_id text;
+  v_recent    int;
 begin
   if auth.uid() is null then
     return null;
   end if;
 
+  select count(*) into v_recent
+  from join_attempts
+  where user_id = auth.uid()
+    and attempted_at > now() - interval '1 hour';
+
+  if v_recent >= 10 then
+    return null;
+  end if;
+
   select f.id into v_family_id
   from families f
-  join parents p on p.family_id = f.id
   where upper(f.code) = upper(trim(p_code))
-    and lower(p.email) = lower(trim(p_email))
   limit 1;
 
   if v_family_id is null then
+    insert into join_attempts (user_id) values (auth.uid());
     -- Roughly the cost of a success, so timing alone says nothing.
     perform pg_sleep(0.15);
     return null;
@@ -430,12 +448,16 @@ begin
   values (gen_random_uuid()::text, v_family_id, auth.uid(), now())
   on conflict (user_id) do update set family_id = excluded.family_id;
 
+  -- A success clears the slate: a child mistyping their own code four times
+  -- should not be locked out of their own family.
+  delete from join_attempts where user_id = auth.uid();
+
   return v_family_id;
 end;
 $$;
 
-revoke all on function join_family(text, text) from public;
-grant execute on function join_family(text, text) to authenticated;
+revoke all on function join_family(text) from public;
+grant execute on function join_family(text) to authenticated;
 
 -- ------------------------------------------- ce qu'un appareil enfant peut faire
 

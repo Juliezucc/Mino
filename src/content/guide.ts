@@ -79,12 +79,12 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Reliez l’appareil à votre famille',
         body: [
-          'Sur l’appareil de l’enfant, à l’ouverture de Mino, touchez « J’ai un code famille ». Deux informations sont demandées : le code famille et votre adresse e-mail.',
-          'Vous trouvez le code dans Réglages, sur votre propre téléphone. Il ressemble à MINO-6BVJ.',
+          'Sur l’appareil de l’enfant, à l’ouverture de Mino, touchez « J’ai un code famille » et saisissez le code. C’est tout ce qui est demandé : votre enfant n’a ni compte, ni mot de passe, ni adresse e-mail à donner.',
+          'Vous trouvez le code dans Réglages, sur votre propre téléphone. Il ressemble à MINO-6BVJK4.',
         ],
         where: 'Espace parent → Réglages → Code famille',
         screen: 'rejoindre',
-        tip: 'Pourquoi l’e-mail en plus du code ? Parce qu’un code de quatre caractères se lit à voix haute et finit sur le frigo. À lui seul, il se devine — et le deviner ferait entrer un inconnu dans une famille où il y a des enfants. Les deux ensemble, non.',
+        tip: 'Ce code est la seule chose qui protège l’accès à votre famille : ne le publiez nulle part. Il est distinct de votre code de parrainage, qui lui se partage sans risque.',
       },
       {
         title: 'Dites de qui est l’appareil',
@@ -98,6 +98,7 @@ export const GUIDE: GuideChapter[] = [
         title: 'Reprenez le téléphone pour la dernière étape',
         body: [
           'Mino demande alors de passer l’appareil à un adulte : c’est vous qui autorisez le verrouillage des applications, et personne d’autre. C’est à faire une seule fois.',
+          'C’est le système lui-même qui vérifie qu’un adulte est bien là : iOS et Android demandent votre compte ou votre code parental à ce moment précis. C’est aussi pour cela que Mino n’a pas besoin de le demander plus tôt.',
           'Si vous préférez le faire plus tard, l’étape se retrouve à tout moment dans Réglages → Blocage des applications.',
         ],
         where: 'Sur l’appareil de l’enfant',
@@ -109,7 +110,7 @@ export const GUIDE: GuideChapter[] = [
           'Vérifiez aussi qu’il voit bien son compteur et ses missions à lui, et pas ceux de son frère ou de sa sœur.',
         ],
         screen: 'enfantAccueil',
-        tip: 'Même si quelqu’un devinait votre code, l’appareil d’un enfant ne peut techniquement pas valider une mission ni s’ajouter du temps : la base de données le lui refuse.',
+        tip: 'Quoi qu’il arrive, l’appareil d’un enfant ne peut techniquement pas valider une mission ni s’ajouter du temps : la base de données le lui refuse.',
       },
     ],
   },

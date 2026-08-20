@@ -43,13 +43,13 @@ export interface MinoRepository {
   /**
    * Attaches this device to a family, from the child's side.
    *
-   * Two secrets, not one: the family code AND the parent's e-mail. The code is
-   * four characters and gets read aloud across a kitchen; on its own it is
-   * guessable, and guessing it would drop a stranger inside a family with
-   * children in it. Requiring the e-mail as well makes that attack pointless.
+   * The family code is all a child is asked for: at eight years old, every
+   * extra field is a wall. Proving that an adult is present happens later and
+   * elsewhere — the system's own screen-time authorisation asks for the
+   * parent's account, and it does it far better than a form could.
    *
-   * Returns null when the pair does not match — deliberately without saying
-   * which half was wrong.
+   * The code therefore carries the whole weight of the pairing, which is why it
+   * is six characters and why the backend rate-limits attempts.
    */
-  joinFamily(input: { code: string; parentEmail: string }): Promise<FamilyData | null>;
+  joinFamily(input: { code: string }): Promise<FamilyData | null>;
 }

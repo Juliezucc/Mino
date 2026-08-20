@@ -27,9 +27,16 @@ function code(length: number): string {
   return out;
 }
 
-/** Family code shown to a parent so a child device can join: e.g. "MINO-7K2Q". */
+/**
+ * Family code shown to a parent so a child device can join: e.g. "MINO-7K2QX9".
+ *
+ * Six characters, not four. This code is the only thing standing between a
+ * stranger and a family with children in it, so it has to be out of reach of an
+ * exhaustive search: 32^6 is about a billion combinations, against a million
+ * for four. Two extra characters to type, once, in exchange for that.
+ */
 export function createFamilyCode(): string {
-  return `MINO-${code(4)}`;
+  return `MINO-${code(6)}`;
 }
 
 /**
