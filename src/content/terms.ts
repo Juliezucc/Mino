@@ -29,7 +29,7 @@ export const TERMS: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: `Mino est édité par ${OPERATOR.legalName}, ${OPERATOR.legalForm}, siège social ${OPERATOR.address}, immatriculée sous le numéro ${OPERATOR.siret}, TVA intracommunautaire ${OPERATOR.vatNumber}. Directeur de la publication : ${OPERATOR.publisher}. Hébergement : ${OPERATOR.host}. Contact : ${OPERATOR.email}.`,
+          text: `Mino est édité par ${OPERATOR.legalName}, ${OPERATOR.legalForm}, dont le siège social est situé ${OPERATOR.address}, immatriculée sous le numéro ${OPERATOR.rcs}, TVA intracommunautaire ${OPERATOR.vatNumber}. Directrice de la publication : ${OPERATOR.publisher}. Hébergement : ${OPERATOR.host}. Contact : ${OPERATOR.email}.`,
         },
       ],
     },
@@ -104,7 +104,7 @@ export const TERMS: LegalDocument = {
           items: [
             `La personne parrainée bénéficie d’une période d’essai portée à ${REFERRAL.refereeTrialDays} jours au lieu de ${TRIAL_DAYS}.`,
             `Le parrain reçoit ${REFERRAL.referrerFreeMonths} mois d’abonnement offert lorsque son filleul devient abonné payant, c’est-à-dire à l’issue de son premier paiement effectif.`,
-            'Les mois offerts se cumulent et repoussent d’autant la prochaine échéance de paiement.',
+            'Chaque mois offert est déduit de votre prochaine facture. Si vous êtes encore en période d’essai, il en repousse le terme d’autant. Les mois offerts se cumulent.',
             `Un même parrain peut recevoir au maximum ${REFERRAL.maxFreeMonthsPerYear} mois offerts par période de douze mois.`,
             'Un code ne peut pas être utilisé par un foyer déjà client, ni sur un compte utilisant un moyen de paiement déjà associé à un autre compte.',
             'Les mois offerts n’ont aucune valeur monétaire : ils ne peuvent être ni échangés, ni remboursés, ni transférés.',
@@ -207,7 +207,7 @@ export const TERMS: LegalDocument = {
         },
         {
           kind: 'p',
-          text: 'À défaut de règlement, vous pouvez recourir gratuitement au médiateur de la consommation dont nous relevons — [Nom et coordonnées du médiateur] — ou utiliser la plateforme européenne de règlement en ligne des litiges accessible à l’adresse ec.europa.eu/consumers/odr.',
+          text: `À défaut de règlement, vous pouvez recourir gratuitement au médiateur de la consommation dont nous relevons — ${OPERATOR.mediator} — ou utiliser la plateforme européenne de règlement en ligne des litiges accessible à l’adresse ec.europa.eu/consumers/odr.`,
         },
       ],
     },

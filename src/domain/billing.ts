@@ -1,5 +1,3 @@
-import { ID, ISODate } from './types';
-
 /**
  * Subscription and referral rules.
  *
@@ -10,7 +8,17 @@ import { ID, ISODate } from './types';
  *
  * The constants below are imported by the terms of sale, so the contract and
  * the code cannot drift apart.
+ *
+ * IMPORTANT: this file must stay free of imports. The Supabase Edge Function
+ * that credits referrals imports it directly, so that the rule enforced on the
+ * server is literally the same code as the rule shown in the app — and Deno
+ * cannot follow the app's module aliases. The two aliases below are the reason
+ * it does not import `domain/types`.
  */
+
+/** Same as `domain/types`, redeclared so this module keeps no dependency. */
+type ID = string;
+type ISODate = string;
 
 export const MONTHLY_PRICE_EUR = 9.9;
 export const ANNUAL_PRICE_EUR = 79;

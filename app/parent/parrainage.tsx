@@ -77,7 +77,7 @@ export default function ReferralScreen() {
           {[
             `La famille que vous parrainez démarre avec ${REFERRAL.refereeTrialDays} jours d’essai au lieu de ${TRIAL_DAYS}.`,
             `Dès qu’elle devient abonnée, vous recevez ${REFERRAL.referrerFreeMonths} mois offert.`,
-            'Les mois offerts se cumulent et repoussent votre prochain paiement.',
+            'Chaque mois offert est déduit de votre prochaine facture. Ils se cumulent.',
             `Maximum ${REFERRAL.maxFreeMonthsPerYear} mois offerts par an.`,
           ].map((step, index) => (
             <View key={step} style={styles.step}>

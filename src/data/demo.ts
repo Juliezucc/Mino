@@ -47,7 +47,7 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     familyId: family.id,
     firstName: 'Noah',
     age: 8,
-    avatarKey: 'fox',
+    avatarKey: 'blue',
     createdAt: at(now, 8),
   };
 
@@ -56,7 +56,7 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     familyId: family.id,
     firstName: 'Elliott',
     age: 6,
-    avatarKey: 'panda',
+    avatarKey: 'green',
     createdAt: at(now, 8),
   };
 

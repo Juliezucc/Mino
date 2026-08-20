@@ -24,7 +24,7 @@ const AGES = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
   const [firstName, setFirstName] = useState(initial?.firstName ?? '');
   const [age, setAge] = useState(initial?.age ?? 8);
-  const [avatarKey, setAvatarKey] = useState<AvatarKey>(initial?.avatarKey ?? 'fox');
+  const [avatarKey, setAvatarKey] = useState<AvatarKey>(initial?.avatarKey ?? 'blue');
   const [error, setError] = useState<string | undefined>();
 
   const submit = () => {

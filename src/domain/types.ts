@@ -33,7 +33,11 @@ export interface Parent {
   createdAt: ISODate;
 }
 
-export type AvatarKey = 'fox' | 'cat' | 'panda' | 'rabbit' | 'bear' | 'owl';
+/**
+ * Which creature a child picked. Keyed by colour: it is how a child who cannot
+ * read yet recognises their own profile, and it survives being drawn at 26px.
+ */
+export type AvatarKey = 'blue' | 'green' | 'pink' | 'yellow' | 'purple' | 'teal';
 
 export interface Child {
   id: ID;

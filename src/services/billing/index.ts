@@ -1,3 +1,5 @@
+import { getAccessToken } from '@/data/supabaseRepository';
+
 import { BillingService } from './BillingService';
 import { LocalBillingService } from './LocalBillingService';
 import { StripeWebBillingService } from './StripeWebBillingService';
@@ -17,7 +19,7 @@ let instance: BillingService | null = null;
 export function getBillingService(): BillingService {
   if (!instance) {
     instance = API_URL
-      ? new StripeWebBillingService(API_URL, async () => null)
+      ? new StripeWebBillingService(API_URL, getAccessToken)
       : new LocalBillingService();
   }
   return instance;

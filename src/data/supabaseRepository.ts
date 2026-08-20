@@ -325,16 +325,34 @@ const emptyPartial: Partial<FamilyData> = {
 };
 
 let cached: SupabaseRepository | null = null;
+let client: SupabaseClient | null = null;
+
+/**
+ * The one Supabase client. Shared with the billing service, which needs the
+ * parent's access token to authenticate against the Edge Functions.
+ */
+export function getSupabaseClient(): SupabaseClient | null {
+  if (!isSupabaseConfigured) return null;
+  if (!client) {
+    client = createClient(URL!, ANON_KEY!, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+    });
+  }
+  return client;
+}
+
+/** The parent's access token, or null when signed out. */
+export async function getAccessToken(): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
+}
 
 /** Returns null when Supabase is not configured — the app then runs locally. */
 export function createSupabaseRepository(): MinoRepository | null {
-  if (!isSupabaseConfigured) return null;
-  if (!cached) {
-    cached = new SupabaseRepository(
-      createClient(URL!, ANON_KEY!, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
-      }),
-    );
-  }
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  if (!cached) cached = new SupabaseRepository(supabase);
   return cached;
 }

@@ -13,7 +13,7 @@ const child = (over: Partial<Child> = {}): Child => ({
   familyId: 'f1',
   firstName: 'Noah',
   age: 8,
-  avatarKey: 'fox',
+  avatarKey: 'blue',
   createdAt: '2026-01-01T00:00:00.000Z',
   ...over,
 });

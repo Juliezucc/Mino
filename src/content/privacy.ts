@@ -31,7 +31,7 @@ export const PRIVACY: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: `Le responsable du traitement est ${OPERATOR.legalName}, ${OPERATOR.legalForm}, dont le siège social est situé ${OPERATOR.address}, immatriculée sous le numéro ${OPERATOR.siret}.`,
+          text: `Le responsable du traitement est ${OPERATOR.legalName}, ${OPERATOR.legalForm}, dont le siège social est situé ${OPERATOR.address}, immatriculée au registre du commerce et des sociétés sous le numéro ${OPERATOR.rcs}.`,
         },
         {
           kind: 'p',

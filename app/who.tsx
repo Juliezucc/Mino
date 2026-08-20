@@ -6,6 +6,7 @@ import { Icon } from '@/components/icons/Icon';
 import { Mascot } from '@/components/mascot';
 import { Avatar, Card, Logo, Screen, Text, TimeCapsules } from '@/components/ui';
 import { balanceOf } from '@/domain/ledger';
+import { formatMinos } from '@/domain/minos';
 import { useFamily } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, shadows, spacing } from '@/theme';
@@ -51,7 +52,7 @@ export default function Who() {
               <Avatar avatarKey={child.avatarKey} size={84} />
               <Text variant="cardTitle">{child.firstName}</Text>
               <Text variant="label" color={colors.blue}>
-                {`${minutes} min`}
+                {formatMinos(minutes)}
               </Text>
               <TimeCapsules minutes={minutes} compact maxCapsules={8} />
             </Card>

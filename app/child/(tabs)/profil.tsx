@@ -1,10 +1,11 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Avatar, Button, Card, MinutesBadge, Screen, SectionHeader, Text } from '@/components/ui';
+import { AVATARS, Avatar, Button, Card, MinutesBadge, Screen, SectionHeader, Text } from '@/components/ui';
 import { HistoryList } from '@/features/history/HistoryList';
 import { useActiveChild, useBalanceDetail, useFamily, useHistory } from '@/store/selectors';
+import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing, tabBarSpace } from '@/theme';
 
 /** Badges are recognition only — no levels, no currency, nothing to manage. */
@@ -23,6 +24,7 @@ export default function ChildProfile() {
   const data = useFamily();
   const balance = useBalanceDetail(child?.id);
   const history = useHistory(child?.id);
+  const editChild = useMinoStore((s) => s.editChild);
 
   if (!child || !balance || !data) return null;
 
@@ -46,6 +48,23 @@ export default function ChildProfile() {
           {`${approved} mission${approved > 1 ? 's' : ''} validée${approved > 1 ? 's' : ''} au total`}
         </Text>
       </Card>
+
+      <View style={styles.section}>
+        <SectionHeader title="Mon personnage" subtitle="Touche pour en changer" />
+        <View style={styles.avatars}>
+          {AVATARS.map((item) => (
+            <Pressable
+              key={item.key}
+              onPress={() => editChild(child.id, { avatarKey: item.key }).catch(() => undefined)}
+              accessibilityRole="button"
+              accessibilityLabel={item.label}
+              accessibilityState={{ selected: child.avatarKey === item.key }}
+            >
+              <Avatar avatarKey={item.key} size={64} selected={child.avatarKey === item.key} />
+            </Pressable>
+          ))}
+        </View>
+      </View>
 
       <View style={styles.section}>
         <SectionHeader title="Mes badges" />
@@ -79,6 +98,7 @@ const styles = StyleSheet.create({
   identity: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl },
   identityStats: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   section: { gap: spacing.md },
+  avatars: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   badge: {
     width: '30%',

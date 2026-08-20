@@ -30,18 +30,33 @@ export interface LegalDocument {
 }
 
 /**
- * Placeholders the operator has to fill before publishing. They are deliberately
- * loud: shipping a policy that still says [Raison sociale] is better than
- * shipping one that quietly names the wrong company.
+ * The company behind Mino, from the Kbis of 3 April 2026.
+ *
+ * Two fields still carry a placeholder, on purpose — publishing a document that
+ * visibly says [à compléter] is far better than one that quietly states
+ * something wrong:
+ *
+ *  - `vatNumber` is the number computed from the SIREN by the standard French
+ *    key formula. It is almost always the one the tax authority assigns, but it
+ *    is not proof: check it against the VAT certificate before publishing, and
+ *    if the company is under the franchise en base de TVA, replace this line
+ *    with the "TVA non applicable, article 293 B du CGI" wording instead.
+ *  - `mediator` has to be an actual subscription to a consumer mediator, which
+ *    is mandatory before selling to consumers in France.
+ *
+ * The president's home address appears on the Kbis and is deliberately NOT
+ * reproduced here: the registered office is the only address a legal notice
+ * needs.
  */
 export const OPERATOR = {
-  legalName: '[Raison sociale]',
-  legalForm: '[Forme juridique]',
-  address: '[Adresse du siège social]',
-  siret: '[SIRET]',
-  vatNumber: '[N° TVA intracommunautaire]',
-  publisher: '[Nom du directeur de la publication]',
+  legalName: 'Agence Wheb',
+  legalForm: 'société par actions simplifiée à associé unique au capital de 500 €',
+  address: '47 rue Vivienne, 75002 Paris',
+  rcs: '103 231 460 R.C.S. Paris',
+  vatNumber: 'FR67103231460',
+  publisher: 'Julie Zucherman',
   email: 'contact@mino.app',
   privacyEmail: 'privacy@mino.app',
   host: 'Supabase (hébergement et base de données, région européenne)',
+  mediator: '[Nom et coordonnées du médiateur de la consommation]',
 };
