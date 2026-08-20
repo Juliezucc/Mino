@@ -93,6 +93,19 @@ export interface Mission {
   icon: string;
   minutes: number;
   repeat: RepeatRule;
+  /**
+   * La mission se compte d'elle-même : l'enfant appuie sur « J'ai terminé » et
+   * les minutes arrivent, sans que personne n'ait à confirmer.
+   *
+   * Absent vaut non, et c'est le bon défaut : la confirmation par un parent est
+   * ce qui donne sa valeur au système. Mais tout ne mérite pas d'être vérifié
+   * — se brosser les dents, faire son lit — et un parent qui confirme dix fois
+   * par jour finit par confirmer sans regarder, ce qui revient au même en pire.
+   *
+   * C'est une décision prise mission par mission, donc une confiance accordée
+   * mission par mission.
+   */
+  autoApprove?: boolean;
   createdBy: ID;
   archived: boolean;
   createdAt: ISODate;

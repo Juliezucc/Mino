@@ -21,6 +21,8 @@ export type NotificationAudience = 'parents' | 'child';
 export type NotificationKind =
   /** A child says a mission is done and is waiting on a parent. */
   | 'mission.completed'
+  /** A mission that counts itself: the parent is told, not asked. */
+  | 'mission.counted'
   /** A child asks for time on a screen a parent has to start. */
   | 'session.requested'
   /** The parent said yes: the minutes have landed. */
@@ -104,6 +106,28 @@ export function missionCompleted(child: Child, mission: Mission): NotificationPa
     childId: child.id,
     title: `${child.firstName} a terminé une mission`,
     body: `${mission.icon} ${mission.title} · ${mission.minutes} min si c’est fait`,
+    route: '/parent',
+  };
+}
+
+/**
+ * Une mission qui s'est comptée toute seule.
+ *
+ * Le parent est prévenu, mais rien ne l'attend : il a décidé d'avance de faire
+ * confiance sur cette mission-là. La différence de ton n'est pas cosmétique —
+ * une notification qui ressemble à une demande et n'en est pas apprend au
+ * parent à ne plus les ouvrir, et c'est alors la vraie demande qu'il ratera.
+ */
+export function missionCountedItself(child: Child, mission: Mission): NotificationPayload {
+  // L'unité vient de l'enfant, comme partout ailleurs : le parent lit toujours
+  // des minutes, mais la formule est la même fonction pour ne pas diverger.
+  const unit = unitOf(child);
+  return {
+    kind: 'mission.counted',
+    audience: 'parents',
+    childId: child.id,
+    title: `${child.firstName} a fait « ${mission.title} »`,
+    body: `${mission.icon} ${formatTime(mission.minutes, unit, { signed: true })} · comptée sans confirmation, comme vous l’aviez choisi.`,
     route: '/parent',
   };
 }

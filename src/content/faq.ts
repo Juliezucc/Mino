@@ -464,6 +464,16 @@ export const FAQ: FaqEntry[] = [
     route: '/parent/(tabs)/reglages',
   },
 
+  {
+    id: 'mission-sans-confirmation',
+    question: 'Puis-je éviter de confirmer certaines missions ?',
+    answer:
+      'Oui. À la création d’une mission, choisissez « Ça compte tout seul » : les minutes arriveront dès que votre enfant appuiera sur « J’ai terminé », et vous serez prévenu sans avoir rien à faire. C’est fait pour ce que vous constatez de toute façon — se brosser les dents, faire son lit. Le réglage se change mission par mission, à tout moment.',
+    category: 'missions',
+    keywords: ['sans confirmation', 'automatique', 'valider automatiquement', 'pas confirmer', 'gagner du temps', 'auto'],
+    route: '/parent/mission-new',
+  },
+
   /* ------------------------------------------------------ confidentialité */
   {
     id: 'donnees-enfant',

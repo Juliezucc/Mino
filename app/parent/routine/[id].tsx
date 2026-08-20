@@ -69,6 +69,10 @@ export default function RoutineDetail() {
           minutes: item.suggestion.minutes,
           repeat: routine.repeat,
           childIds: selectedChildren,
+          // Une routine crée plusieurs missions d'un coup : les laisser toutes
+          // se compter seules serait un choix pris à la place du parent. Il les
+          // ouvrira une par une s'il veut leur faire confiance.
+          autoApprove: false,
         });
       }
       router.back();

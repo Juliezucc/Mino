@@ -75,6 +75,7 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     icon: string,
     minutes: number,
     childIds: string[],
+    autoApprove = false,
   ): { mission: Mission; assignments: MissionAssignment[] } => {
     const m: Mission = {
       id: createId('mission'),
@@ -83,6 +84,7 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
       icon,
       minutes,
       repeat: { kind: 'daily' },
+      autoApprove,
       createdBy: julie.id,
       archived: false,
       createdAt: at(now, 8),
@@ -102,13 +104,20 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
   const bed = mission('Faire mon lit', '🛏️', 5, [noah.id, elliott.id]);
   const room = mission('Ranger ma chambre', '🧸', 15, [noah.id]);
   const table = mission('Débarrasser la table', '🍽️', 10, [noah.id]);
-  const teeth = mission('Me brosser les dents', '🪥', 5, [noah.id, elliott.id]);
+  // Sans confirmation : c'est l'exemple type — un parent le voit de toute
+  // façon, et confirmer chaque matin userait sa vigilance pour rien.
+  const teeth = mission('Me brosser les dents', '🪥', 5, [noah.id, elliott.id], true);
   const bag = mission('Préparer mon cartable', '🎒', 10, [elliott.id]);
+  // Encore à faire, et sans confirmation : c'est ce qui rend la fonctionnalité
+  // visible dès l'ouverture de la démo. Assignée à Elliott et non à Noah, pour
+  // que le parcours de référence de Noah — une seule mission à faire, 35 → 50 —
+  // reste exactement ce qu'il est.
+  const shoes = mission('Ranger mes chaussures', '👟', 5, [elliott.id], true);
   const homework = mission('Faire mes devoirs sans qu’on me le demande', '📝', 25, [lea.id]);
   const laundry = mission('Lancer et étendre une lessive', '🧺', 20, [lea.id]);
   const offline = mission('Une heure sans téléphone', '🌙', 20, [lea.id]);
 
-  const missions = [bed, room, table, teeth, bag, homework, laundry, offline];
+  const missions = [bed, room, table, teeth, bag, shoes, homework, laundry, offline];
 
   const completions: MissionCompletion[] = [];
   const transactions: ScreenTimeTransaction[] = [];

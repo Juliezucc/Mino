@@ -1,4 +1,6 @@
-import { pendingCompletions, uncelebratedCompletions } from '@/domain/ledger';
+import * as actions from '@/domain/actions';
+import { buildDemoFamily } from '@/data/demo';
+import { balanceOf, pendingCompletions, uncelebratedCompletions } from '@/domain/ledger';
 import { missionsForChild } from '@/domain/missions';
 import { useMinoStore } from '@/store/useMinoStore';
 
@@ -156,5 +158,104 @@ describe('mission → validation → minutes', () => {
     expect(after.transactions.reduce((s, t) => (t.childId === elliott.id ? s + t.delta : s), 0)).toBe(
       30,
     );
+  });
+});
+
+/**
+ * Une mission qui se compte d'elle-même.
+ *
+ * Le parent a décidé d'avance de faire confiance sur cette mission-là : se
+ * brosser les dents ne mérite pas une confirmation quotidienne, et un parent qui
+ * confirme dix fois par jour finit par confirmer sans regarder — ce qui revient
+ * au même, en pire.
+ *
+ * La règle d'or ne bouge pas pour autant : aucune minute n'arrive sans une ligne
+ * au registre, écrite dans la même opération.
+ */
+describe('les missions sans confirmation', () => {
+  const famille = () => {
+    const base = buildDemoFamily(new Date('2026-08-20T09:00:00.000Z'));
+    const noah = base.children[0];
+    const { data, mission } = actions.createMission(
+      base,
+      {
+        title: 'Me brosser les dents',
+        icon: '🪥',
+        minutes: 5,
+        repeat: { kind: 'daily' },
+        childIds: [noah.id],
+        autoApprove: true,
+        createdBy: base.parents[0].id,
+      },
+      new Date('2026-08-20T09:00:00.000Z'),
+    );
+    return { data, mission, noah };
+  };
+
+  it('crédite les minutes tout de suite, avec sa ligne au registre', () => {
+    const { data, mission, noah } = famille();
+    const avant = balanceOf(data.transactions, noah.id);
+
+    const out = actions.completeMission(data, { childId: noah.id, missionId: mission.id });
+
+    expect(out.completion.status).toBe('approved');
+    expect(out.completion.minutesAwarded).toBe(5);
+    expect(out.transaction).toBeDefined();
+    expect(out.transaction!.delta).toBe(5);
+    expect(out.transaction!.refId).toBe(out.completion.id);
+    expect(balanceOf(out.data.transactions, noah.id)).toBe(avant + 5);
+  });
+
+  it('ne fait signer aucun parent qui n’a rien signé', () => {
+    // L'historique ne doit pas laisser croire qu'un adulte a relu.
+    const { data, mission, noah } = famille();
+    const out = actions.completeMission(data, { childId: noah.id, missionId: mission.id });
+    expect(out.completion.reviewedBy).toBeUndefined();
+  });
+
+  it('n’apparaît jamais dans les demandes du parent', () => {
+    const { data, mission, noah } = famille();
+    const out = actions.completeMission(data, { childId: noah.id, missionId: mission.id });
+    const enAttente = out.data.completions.filter((c) => c.status === 'pending');
+    expect(enAttente.some((c) => c.missionId === mission.id)).toBe(false);
+  });
+
+  it('ne se compte pas deux fois le même jour', () => {
+    // Sans ce garde-fou, dix appuis valent dix fois les minutes : c'est le seul
+    // vrai risque qu'ouvre la confiance accordée à une mission.
+    const { data, mission, noah } = famille();
+    const une = actions.completeMission(data, { childId: noah.id, missionId: mission.id });
+
+    expect(() =>
+      actions.completeMission(une.data, { childId: noah.id, missionId: mission.id }),
+    ).toThrow(actions.DomainError);
+  });
+
+  it('laisse les autres missions attendre une confirmation', () => {
+    // La confiance est accordée mission par mission, jamais en bloc.
+    const { data, noah } = famille();
+    const chambre = data.missions.find((m) => m.title === 'Ranger ma chambre')!;
+
+    const out = actions.completeMission(data, { childId: noah.id, missionId: chambre.id });
+    expect(out.completion.status).toBe('pending');
+    expect(out.completion.minutesAwarded).toBe(0);
+    expect(out.transaction).toBeUndefined();
+  });
+
+  it('reste facultative : une mission créée sans rien dire se confirme', () => {
+    const base = buildDemoFamily(new Date('2026-08-20T09:00:00.000Z'));
+    const { mission } = actions.createMission(
+      base,
+      {
+        title: 'Sortir le chien',
+        icon: '🐕',
+        minutes: 10,
+        repeat: { kind: 'daily' },
+        childIds: [base.children[0].id],
+        createdBy: base.parents[0].id,
+      },
+      new Date('2026-08-20T09:00:00.000Z'),
+    );
+    expect(mission.autoApprove).toBe(false);
   });
 });

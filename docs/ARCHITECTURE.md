@@ -36,7 +36,7 @@ toujours le vrai solde (`__tests__/history.test.ts`).
 
 `src/domain/` ne contient que des fonctions `(données, entrée) → nouvelles
 données`. Aucun appel réseau, aucun accès au stockage, aucun composant. C'est ce
-qui rend les règles testables sans lancer l'application — 184 tests en 3
+qui rend les règles testables sans lancer l'application — 186 tests en 3
 secondes.
 
 Le store appelle une fonction pure, persiste le résultat, publie le nouvel état.
@@ -51,8 +51,15 @@ client modifié, même à quelqu'un qui connaîtrait un identifiant.
 Deux niveaux : `auth_family_ids()` dit à quelle famille on appartient,
 `auth_is_parent()` distingue le téléphone du parent de la tablette de l'enfant.
 Un appareil enfant peut dire « j'ai terminé » et dépenser du temps ; il ne peut
-ni valider une mission, ni ajouter des minutes. Ce n'est pas l'interface qui
+ni confirmer une mission, ni ajouter des minutes. Ce n'est pas l'interface qui
 l'empêche, c'est le `with check` de la politique.
+
+Une seule exception, et elle est verrouillée de trois façons : sur une mission
+que le parent a explicitement ouverte (`auto_approve`, une colonne qu'aucun
+appareil enfant ne peut écrire), l'enfant peut inscrire sa propre complétion et
+la transaction qui va avec — mais seulement pour cette mission-là, seulement
+pour le montant exact qu'elle vaut, et seulement une fois par jour. La politique
+lit ces trois faits dans des lignes que le client ne contrôle pas.
 
 Le code parent, lui, n'est nulle part lisible : `parent_secrets` a RLS activé et
 **aucune politique**, ce qui refuse toute lecture, y compris au parent. Seules
@@ -113,7 +120,7 @@ supabase/
                       store-purchase, store-notifications
 docs/                 ce dossier
 scripts/              génération : visuels, guide, FAQ, licences
-__tests__/            184 tests
+__tests__/            186 tests
 ```
 
 ---
@@ -165,7 +172,7 @@ Couvert de bout en bout par `__tests__/journey.test.ts`.
 
 ```bash
 npm run typecheck   # TypeScript strict, zéro erreur attendue
-npm test            # 184 tests
+npm test            # 186 tests
 npm run licences    # aucune licence contaminante embarquée
 npm run faq         # régénère docs/support/ si la FAQ a changé
 ```

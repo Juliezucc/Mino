@@ -103,6 +103,8 @@ interface MinoState {
     minutes: number;
     repeat: RepeatRule;
     childIds: ID[];
+    /** La mission se compte d'elle-même. Voir `Mission.autoApprove`. */
+    autoApprove?: boolean;
   }) => Promise<ID>;
   archiveMission: (missionId: ID) => Promise<void>;
 
@@ -438,20 +440,35 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async completeMission(childId, missionId) {
-      const id = await commit<ID>('completion.created', (data) => {
-        const out = actions.completeMission(data, { childId, missionId });
+      const out = await commit<{ id: ID; counted: boolean }>('completion.created', (data) => {
+        const next = actions.completeMission(data, { childId, missionId });
         return {
-          data: out.data,
-          result: out.completion.id,
-          upsert: { completions: [out.completion] },
+          data: next.data,
+          result: { id: next.completion.id, counted: !!next.transaction },
+          upsert: {
+            completions: [next.completion],
+            // La transaction part avec la complétion : les deux écritures
+            // décrivent le même événement et ne doivent pas pouvoir se séparer.
+            ...(next.transaction ? { transactions: [next.transaction] } : {}),
+          },
         };
       });
 
       const data = get().data;
       const child = notify.childOf(data, childId);
       const mission = data?.missions.find((m) => m.id === missionId);
-      if (child && mission) await announce(notify.missionCompleted(child, mission));
-      return id!;
+
+      // Deux notifications différentes pour deux situations différentes : l'une
+      // appelle une décision, l'autre informe. Les confondre apprend au parent
+      // à ne plus les ouvrir.
+      if (child && mission) {
+        await announce(
+          out?.counted
+            ? notify.missionCountedItself(child, mission)
+            : notify.missionCompleted(child, mission),
+        );
+      }
+      return out!.id;
     },
 
     async approveCompletion(completionId) {

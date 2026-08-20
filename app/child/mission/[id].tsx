@@ -36,9 +36,16 @@ export default function MissionDetail() {
   const onFinish = async () => {
     setLoading(true);
     try {
-      await completeMission(child.id, item.mission.id);
+      const completionId = await completeMission(child.id, item.mission.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       setError(null);
+
+      // Une mission qui se compte d'elle-même a déjà crédité les minutes : on
+      // enchaîne sur la célébration, sans passer par un écran d'attente qui
+      // n'attendrait rien.
+      if (item.mission.autoApprove) {
+        router.replace({ pathname: '/child/celebration', params: { completionId } });
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible d’envoyer la demande.');
     } finally {

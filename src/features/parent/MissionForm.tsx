@@ -13,6 +13,8 @@ export interface MissionFormValue {
   minutes: number;
   repeat: RepeatRule;
   childIds: ID[];
+  /** La mission se compte d'elle-même. Voir `Mission.autoApprove`. */
+  autoApprove: boolean;
 }
 
 interface Props {
@@ -42,6 +44,9 @@ export function MissionForm({ initialChildIds = [], submitLabel = 'CRÉER LA MIS
   const [minutes, setMinutes] = useState(15);
   const [customMinutes, setCustomMinutes] = useState('');
   const [repeatKind, setRepeatKind] = useState<RepeatKind>('daily');
+  // Non par défaut : la confirmation est ce qui donne sa valeur au système, et
+  // s'en passer doit rester un choix explicite, mission par mission.
+  const [autoApprove, setAutoApprove] = useState(false);
   const [days, setDays] = useState<Weekday[]>([1, 2, 3, 4, 5]);
   const [childIds, setChildIds] = useState<ID[]>(initialChildIds);
   const [error, setError] = useState<string | undefined>();
@@ -75,6 +80,7 @@ export function MissionForm({ initialChildIds = [], submitLabel = 'CRÉER LA MIS
       minutes,
       childIds,
       repeat: repeatKind === 'weekdays' ? { kind: 'weekdays', days } : { kind: repeatKind },
+      autoApprove,
     });
   };
 
@@ -188,6 +194,34 @@ export function MissionForm({ initialChildIds = [], submitLabel = 'CRÉER LA MIS
             })}
           </View>
         )}
+      </View>
+
+      {/* Qui confirme.
+          Placé après le temps gagné et avant la répétition : c'est la troisième
+          question qu'un parent se pose, une fois qu'il sait quoi et combien. */}
+      <View style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
+          Quand il aura terminé
+        </Text>
+        <View style={styles.row}>
+          <Chip
+            label="Je confirme"
+            icon="✓"
+            selected={!autoApprove}
+            onPress={() => setAutoApprove(false)}
+          />
+          <Chip
+            label="Ça compte tout seul"
+            icon="⚡"
+            selected={autoApprove}
+            onPress={() => setAutoApprove(true)}
+          />
+        </View>
+        <Text variant="caption" color={colors.textSubtle}>
+          {autoApprove
+            ? 'Les minutes arriveront dès qu’il appuie sur « J’ai terminé ». Vous serez prévenu, sans avoir rien à faire — pratique pour ce que vous voyez de toute façon, comme se brosser les dents.'
+            : 'La demande arrivera sur votre accueil, et les minutes n’arriveront qu’après votre confirmation.'}
+        </Text>
       </View>
 
       <View style={styles.block}>

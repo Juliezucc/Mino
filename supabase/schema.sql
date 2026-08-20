@@ -98,10 +98,34 @@ create table if not exists missions (
   icon       text not null,
   minutes    int  not null check (minutes > 0),
   repeat     jsonb not null default '{"kind":"daily"}'::jsonb,
+  -- Set by a parent, read by the RLS policies below: it is what lets a child's
+  -- device write an approved completion for this mission and nothing else.
+  -- A device can never write this column — see missions_* policies.
+  auto_approve boolean not null default false,
   created_by text not null,
   archived   boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- Existing installs.
+alter table missions add column if not exists auto_approve boolean not null default false;
+
+/**
+ * Une mission qui se compte d'elle-même ne se compte qu'une fois par jour.
+ *
+ * Sans cela, un client modifié rejouerait la même déclaration en boucle : la
+ * règle est tenue côté application, mais une règle qui n'existe que dans le
+ * client n'est pas une règle. L'index la grave dans la base.
+ *
+ * Réserve assumée : la journée est comptée en UTC. Une mission déclarée deux
+ * fois dans l'heure qui suit minuit heure de Paris passerait donc deux fois.
+ * C'est une fenêtre d'une heure, la nuit, sur une fonctionnalité qu'un parent
+ * a explicitement ouverte — le remède (stocker le fuseau de la famille et
+ * l'appliquer ici) coûte plus cher que le mal.
+ */
+create unique index if not exists uniq_completion_approved_per_day
+  on mission_completions (mission_id, child_id, (completed_at at time zone 'UTC')::date)
+  where status = 'approved';
 
 create table if not exists mission_assignments (
   id         text primary key,
@@ -481,9 +505,27 @@ drop policy if exists mission_completions_insert on mission_completions;
 create policy mission_completions_insert on mission_completions
   for insert with check (
     family_id in (select auth_family_ids())
-    -- A device may only ever create a request. Approving one's own mission is
-    -- the single most obvious thing a child would try.
-    and (auth_is_parent() or (status = 'pending' and minutes_awarded = 0))
+    and (
+      auth_is_parent()
+      -- A device may only ever create a request. Approving one's own mission is
+      -- the single most obvious thing a child would try.
+      or (status = 'pending' and minutes_awarded = 0)
+      -- …unless the PARENT decided this particular mission counts itself. The
+      -- permission is read from the mission row, which no device can write, and
+      -- the amount must match it exactly: a modified client may claim a mission,
+      -- never invent the reward, and never claim one it was not granted.
+      or (
+        status = 'approved'
+        and exists (
+          select 1 from missions m
+          where m.id = mission_completions.mission_id
+            and m.family_id = mission_completions.family_id
+            and m.auto_approve
+            and not m.archived
+            and m.minutes = mission_completions.minutes_awarded
+        )
+      )
+    )
   );
 
 drop policy if exists mission_completions_update on mission_completions;
@@ -504,8 +546,27 @@ create policy screen_time_transactions_insert on screen_time_transactions
     family_id in (select auth_family_ids())
     and (
       auth_is_parent()
-      -- The only line a device may write: time coming off, for time used.
+      -- The only line a device may write on its own: time coming off.
       or (delta < 0 and kind = 'screen_time_used')
+      -- And the reward for a mission the parent allowed to count itself. Every
+      -- part is checked against rows a device cannot write: the completion it
+      -- points at must exist, be approved, belong to this child, and the amount
+      -- must equal the mission's own reward. Without the join on `ref_id` a
+      -- device could write any number it liked and call it a mission.
+      or (
+        kind = 'mission_reward'
+        and exists (
+          select 1
+          from mission_completions c
+          join missions m on m.id = c.mission_id
+          where c.id = screen_time_transactions.ref_id
+            and c.child_id = screen_time_transactions.child_id
+            and c.family_id = screen_time_transactions.family_id
+            and c.status = 'approved'
+            and m.auto_approve
+            and m.minutes = screen_time_transactions.delta
+        )
+      )
     )
   );
 

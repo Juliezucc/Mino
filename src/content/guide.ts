@@ -183,6 +183,7 @@ export const GUIDE: GuideChapter[] = [
         title: 'Vous confirmez, ou la mission repart',
         body: [
           'Les demandes apparaissent sur votre accueil. Vous n’approuvez pas la mission : vous confirmez qu’elle est faite. Appuyez sur « C’est fait », et les minutes arrivent instantanément sur son compteur.',
+          'À la création d’une mission, vous choisissez si elle passe par vous ou si elle se compte toute seule. Se brosser les dents, faire son lit : vous le voyez de toute façon, et confirmer chaque matin finit par user votre attention — gardez-la pour ce qui la mérite. La confiance se donne mission par mission, et se retire de la même façon.',
           'Si ce n’est pas fait, appuyez sur « À refaire » : la mission repasse simplement en « à faire », sans pénalité. Expliquez-lui de vive voix — c’est plus efficace que n’importe quel message dans une application.',
         ],
         where: 'Espace parent → Accueil',

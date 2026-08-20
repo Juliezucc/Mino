@@ -117,6 +117,10 @@ C’est exactement pour cela que vous confirmez chaque mission : rien n’arrive
 
 Chaque enfant a son profil, ses missions et son compteur — rien n’est commun. Une même mission peut être attribuée à plusieurs enfants d’un coup, et certaines suggestions parlent explicitement du frère ou de la sœur.
 
+### Puis-je éviter de confirmer certaines missions ?
+
+Oui. À la création d’une mission, choisissez « Ça compte tout seul » : les minutes arriveront dès que votre enfant appuiera sur « J’ai terminé », et vous serez prévenu sans avoir rien à faire. C’est fait pour ce que vous constatez de toute façon — se brosser les dents, faire son lit. Le réglage se change mission par mission, à tout moment.
+
 ## 🔐 Compte et code parent
 
 ### J’ai oublié mon code parent

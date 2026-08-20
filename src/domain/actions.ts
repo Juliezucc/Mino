@@ -1,5 +1,6 @@
 import { createId } from './id';
 import { balanceOf } from './ledger';
+import { missionsForChild } from './missions';
 import { Device, DeviceKind } from './devices';
 import {
   AvatarKey,
@@ -99,6 +100,8 @@ export interface CreateMissionInput {
   minutes: number;
   repeat: RepeatRule;
   childIds: ID[];
+  /** La mission se compte d'elle-même. Voir `Mission.autoApprove`. */
+  autoApprove?: boolean;
   createdBy: ID;
 }
 
@@ -118,6 +121,7 @@ export function createMission(
     icon: input.icon,
     minutes: input.minutes,
     repeat: input.repeat,
+    autoApprove: input.autoApprove ?? false,
     createdBy: input.createdBy,
     archived: false,
     createdAt: iso(now),
@@ -153,12 +157,19 @@ export function archiveMission(data: FamilyData, missionId: ID): FamilyData {
 
 /* --------------------------------------------------------------- completions */
 
-/** Child taps "J'AI TERMINÉ" → the mission waits for the parent. No minutes yet. */
+/**
+ * L'enfant appuie sur « J'AI TERMINÉ ».
+ *
+ * Deux issues selon ce que le parent a décidé pour cette mission-là : la
+ * demande part en attente, ou bien elle se compte immédiatement et les minutes
+ * arrivent. Dans les deux cas la même règle tient — aucune minute n'est
+ * créditée sans une ligne au registre écrite dans la même opération.
+ */
 export function completeMission(
   data: FamilyData,
   params: { childId: ID; missionId: ID },
   now: Date = new Date(),
-): { data: FamilyData; completion: MissionCompletion } {
+): { data: FamilyData; completion: MissionCompletion; transaction?: ScreenTimeTransaction } {
   const mission = data.missions.find((m) => m.id === params.missionId);
   if (!mission) throw new DomainError('Mission introuvable.');
 
@@ -167,10 +178,27 @@ export function completeMission(
   );
   if (!assignment) throw new DomainError("Cette mission n'est pas assignée à cet enfant.");
 
-  const alreadyPending = data.completions.some(
-    (c) => c.missionId === mission.id && c.childId === params.childId && c.status === 'pending',
-  );
-  if (alreadyPending) throw new DomainError('Cette mission attend déjà une validation.');
+  /**
+   * Une mission déjà faite ne se refait pas aujourd'hui.
+   *
+   * Le garde-fou existait pour l'attente d'une confirmation. Il ne suffit plus :
+   * une mission qui se compte d'elle-même n'attend rien, et sans cette
+   * vérification un enfant appuierait dix fois pour dix fois les minutes. On
+   * s'appuie sur `missionsForChild`, qui sait déjà quand une mission se
+   * réinitialise — une seconde règle de planification finirait par diverger de
+   * la première.
+   */
+  const state = missionsForChild(data, params.childId, now).find(
+    (m) => m.mission.id === mission.id,
+  )?.state;
+  if (state === 'pending') throw new DomainError('Cette mission attend déjà une confirmation.');
+  if (state === 'done') throw new DomainError('Cette mission est déjà faite aujourd’hui.');
+
+  // Sans confirmation, la mission est approuvée à l'instant où l'enfant la
+  // déclare — et la transaction est écrite dans la même opération, comme pour
+  // une validation par un parent. Il n'existe aucun chemin qui crédite des
+  // minutes sans laisser de ligne au registre.
+  const auto = mission.autoApprove === true;
 
   const completion: MissionCompletion = {
     id: createId('cmp'),
@@ -178,13 +206,39 @@ export function completeMission(
     assignmentId: assignment.id,
     missionId: mission.id,
     childId: params.childId,
-    status: 'pending',
+    status: auto ? 'approved' : 'pending',
     minutesRequested: mission.minutes,
-    minutesAwarded: 0,
+    minutesAwarded: auto ? mission.minutes : 0,
     completedAt: iso(now),
+    // `reviewedBy` reste vide : personne n'a relu, et l'historique ne doit pas
+    // laisser croire qu'un parent l'a fait.
+    ...(auto ? { reviewedAt: iso(now) } : {}),
   };
 
-  return { data: { ...data, completions: [...data.completions, completion] }, completion };
+  if (!auto) {
+    return { data: { ...data, completions: [...data.completions, completion] }, completion };
+  }
+
+  const transaction: ScreenTimeTransaction = {
+    id: createId('tx'),
+    familyId: data.family.id,
+    childId: params.childId,
+    delta: mission.minutes,
+    kind: 'mission_reward',
+    reason: mission.title,
+    refId: completion.id,
+    createdAt: iso(now),
+  };
+
+  return {
+    data: {
+      ...data,
+      completions: [...data.completions, completion],
+      transactions: [...data.transactions, transaction],
+    },
+    completion,
+    transaction,
+  };
 }
 
 /**
