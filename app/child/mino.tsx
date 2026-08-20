@@ -20,6 +20,7 @@ import {
   greeting,
 } from '@/domain/companion';
 import { CompanionTurn, getCompanionService } from '@/services/companion';
+import { SpeechStatus, getSpeechService, initSpeechService } from '@/services/speech';
 import { useActiveChild, useBalance, useChildMissions } from '@/store/selectors';
 import { colors, radii, spacing } from '@/theme';
 
@@ -50,6 +51,9 @@ export default function CompanionScreen() {
   const [left, setLeft] = useState<number | null>(null);
   const [thinking, setThinking] = useState(false);
   const [alerted, setAlerted] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [micError, setMicError] = useState<string | null>(null);
+  const [speech, setSpeech] = useState(getSpeechService());
   const scroller = useRef<ScrollView>(null);
 
   const companion = getCompanionService();
@@ -81,6 +85,18 @@ export default function CompanionScreen() {
     companion.remaining(child.id).then(setLeft).catch(() => setLeft(null));
   }, [child, companion]);
 
+  // Savoir si l'appareil sait transcrire hors ligne demande de l'interroger :
+  // le bouton n'apparaît donc qu'une fois la réponse connue, jamais avant.
+  useEffect(() => {
+    initSpeechService().then(setSpeech).catch(() => undefined);
+    return () => {
+      // Quitter l'écran coupe le micro. Un micro qui reste ouvert parce qu'on
+      // a changé d'écran est exactement ce qu'on ne veut pas dans une
+      // application pour enfants.
+      getSpeechService().stop().catch(() => undefined);
+    };
+  }, []);
+
   if (!child || !context) return null;
 
   // Le parent a éteint le compagnon. Cacher le bouton ne suffit pas : une
@@ -101,9 +117,51 @@ export default function CompanionScreen() {
 
   const closed = left !== null && left <= 0;
 
+  /**
+   * Parler plutôt qu'écrire.
+   *
+   * Le texte arrive dans le champ à mesure, et n'est pas envoyé tout seul :
+   * l'enfant relit et appuie. Une dictée qui s'envoie seule transforme le
+   * moindre bruit de la pièce en message à Mino.
+   */
+  const dictate = async () => {
+    setMicError(null);
+
+    if (listening) {
+      await speech.stop();
+      setListening(false);
+      return;
+    }
+
+    const allowed = await speech.requestPermission();
+    if (!allowed) {
+      setMicError('Mino n’a pas le droit d’écouter. Un parent peut l’autoriser dans les réglages du téléphone.');
+      return;
+    }
+
+    const onStatus = (status: SpeechStatus) => {
+      setListening(status === 'listening');
+      if (status === 'denied') {
+        setMicError('Mino n’a pas le droit d’écouter. Un parent peut l’autoriser dans les réglages du téléphone.');
+      }
+      if (status === 'error') setMicError('Je n’ai pas bien entendu. Tu peux réessayer, ou écrire !');
+    };
+
+    await speech
+      .start({ onText: (text) => setDraft(text), onStatus })
+      .catch(() => onStatus('error'));
+  };
+
   const send = async () => {
     const message = draft.trim();
     if (!message || thinking || closed) return;
+
+    // Envoyer coupe le micro : sans cela, la dictée continue de remplir un
+    // champ que l'on vient de vider.
+    if (listening) {
+      await speech.stop().catch(() => undefined);
+      setListening(false);
+    }
 
     setDraft('');
     setTurns((t) => [...t, { role: 'child', text: message }]);
@@ -191,10 +249,25 @@ export default function CompanionScreen() {
           </Card>
         ) : (
           <View style={styles.composer}>
+            {/* Le micro d'abord, à gauche et gros : c'est la voie principale
+                pour un enfant qui écrit encore lentement. Il n'apparaît que si
+                l'appareil sait transcrire tout seul — voir services/speech. */}
+            {speech.available ? (
+              <Pressable
+                onPress={dictate}
+                accessibilityRole="button"
+                accessibilityLabel={listening ? 'Arrêter de parler' : 'Parler à Mino'}
+                accessibilityState={{ selected: listening }}
+                style={[styles.mic, listening && styles.micOn]}
+              >
+                <Text style={styles.micIcon}>{listening ? '⏹' : '🎤'}</Text>
+              </Pressable>
+            ) : null}
+
             <TextInput
               value={draft}
               onChangeText={setDraft}
-              placeholder="Écris à Mino…"
+              placeholder={speech.available ? 'Parle ou écris à Mino…' : 'Écris à Mino…'}
               placeholderTextColor={colors.textSubtle}
               style={styles.input}
               multiline
@@ -214,12 +287,23 @@ export default function CompanionScreen() {
           </View>
         )}
 
+        {micError ? (
+          <Text variant="caption" color={colors.danger} center style={styles.footer}>
+            {micError}
+          </Text>
+        ) : null}
+
         {/* Dit franchement, parce qu'un enfant a le droit de le savoir — et
-            parce que le règlement européen sur l'IA le demande. */}
+            parce que le règlement européen sur l'IA le demande. Quand la
+            dictée ne se fait pas sur l'appareil, on le dit aussi : c'est le
+            cas dans un navigateur, jamais sur le téléphone d'un enfant. */}
         <Text variant="caption" color={colors.textSubtle} center style={styles.footer}>
           {companion.capability === 'model'
             ? 'Mino est un personnage, pas une vraie personne. Tes parents peuvent lire vos conversations.'
             : 'Mino répond ici sans connexion : ses réponses sont écrites à l’avance.'}
+          {speech.available && !speech.onDevice
+            ? ' Dans ce navigateur, la dictée passe par le service de reconnaissance vocale du navigateur.'
+            : ''}
         </Text>
       </KeyboardAvoidingView>
     </Screen>
@@ -239,6 +323,17 @@ const styles = StyleSheet.create({
   helpline: { gap: spacing.sm, marginTop: spacing.md },
   closed: { gap: spacing.md, alignItems: 'center' },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
+  mic: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.mintSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Rouge et net pendant l'écoute : un micro ouvert doit se voir de loin.
+  micOn: { backgroundColor: colors.danger },
+  micIcon: { fontSize: 22 },
   input: {
     flex: 1,
     minHeight: 52,

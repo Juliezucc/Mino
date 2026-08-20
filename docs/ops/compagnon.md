@@ -311,3 +311,59 @@ Deux garde-fous qui n'ont l'air de rien :
 - la croix de l'écran de code, sur un appareil réservé, **ramène à l'enfant et
   non au sélecteur** : une barrière qu'un bouton « retour » contourne n'est pas
   une barrière.
+
+---
+
+## Le microphone
+
+Un enfant de huit ans écrit lentement, et l'attente entre deux phrases suffit à
+faire abandonner la conversation. Parler change complètement l'usage.
+
+**La règle, et elle ne se négocie pas : aucun son ne quitte l'appareil, aucun
+son n'est conservé.** La transcription se fait sur le téléphone ; seul le texte
+part, exactement comme s'il avait été tapé.
+
+Ce n'est pas de la prudence excessive. Envoyer l'enregistrement d'une voix
+d'enfant à un service tiers ferait basculer Mino dans une tout autre catégorie :
+donnée proche du biométrique, dossier autrement plus lourd auprès d'Apple, et
+une politique de confidentialité impossible à tenir. Le gain d'usage ne vaut pas
+ce risque-là.
+
+**Conséquence assumée :** là où l'appareil ne sait pas transcrire seul, **le
+bouton n'apparaît pas**. Pas de repli en ligne, pas de « juste pour cette
+fois ». L'enfant se sert alors du microphone de son clavier — qui relève des
+conditions d'Apple ou de Google, pas des nôtres, et **qui fonctionne déjà
+aujourd'hui sans que nous ayons rien à faire**.
+
+| Où | Moteur | Bouton micro |
+|---|---|---|
+| iPhone / iPad | `requiresOnDeviceRecognition: true` | seulement si le français est transcriptible hors ligne |
+| Android | `EXTRA_PREFER_OFFLINE` | seulement si le pack de langue est installé |
+| Navigateur | celui de l'éditeur du navigateur | oui, **et l'écran le dit** |
+
+La ligne « navigateur » est la seule entorse, et elle est bornée : c'est
+l'aperçu web, destiné à un parent qui essaie l'application, jamais le téléphone
+d'un enfant. L'écran l'annonce en toutes lettres sous la conversation.
+
+Quatre détails d'usage qui comptent plus qu'ils n'en ont l'air :
+
+- **la dictée ne s'envoie jamais toute seule.** Le texte arrive dans le champ,
+  l'enfant relit et appuie. Sinon le moindre bruit de la pièce part chez Mino ;
+- **quitter l'écran coupe le micro.** Un micro qui reste ouvert parce qu'on a
+  changé d'écran est exactement ce qu'on ne veut pas dans une application pour
+  enfants ;
+- **envoyer coupe le micro**, sans quoi la dictée continue de remplir un champ
+  qu'on vient de vider ;
+- **le bouton devient rouge pendant l'écoute.** Un micro ouvert doit se voir de
+  loin, y compris par le parent qui passe dans la pièce.
+
+Un refus d'autorisation est expliqué, pas réessayé en boucle : « Mino n'a pas
+le droit d'écouter. Un parent peut l'autoriser dans les réglages du téléphone. »
+
+**Non vérifié :** l'implémentation native n'existe pas encore. Le contrat est
+écrit (`services/speech/native.ts`) et attend `expo-speech-recognition` avec un
+plugin de configuration — impossible à compiler ni à tester ici, faute
+d'appareil. **Le point à valider en premier sur un vrai téléphone est
+`isOnDeviceAvailable('fr-FR')` :** si la réponse est non sur les appareils
+courants, la dictée intégrée n'existera pas et il faudra assumer le micro du
+clavier comme seule voie.

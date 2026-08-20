@@ -44,7 +44,7 @@ export const PRIVACY: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: 'Elles se répartissent en quatre catégories, et la liste ci-dessous est exhaustive.',
+          text: 'Elles se répartissent en cinq catégories, et la liste ci-dessous est exhaustive.',
         },
         {
           kind: 'rows',
@@ -55,7 +55,7 @@ export const PRIVACY: LegalDocument = {
             },
             {
               label: 'Profil enfant',
-              value: 'Prénom, âge, avatar illustré choisi dans une liste, et un code PIN facultatif. Aucune adresse e-mail, aucun nom de famille, aucune photo, aucun numéro de téléphone, aucune donnée de localisation.',
+              value: 'Prénom, âge et avatar illustré choisi dans une liste. Aucune adresse e-mail, aucun mot de passe, aucun nom de famille, aucune photo, aucun numéro de téléphone, aucune donnée de localisation.',
             },
             {
               label: 'Utilisation',
@@ -65,11 +65,15 @@ export const PRIVACY: LegalDocument = {
               label: 'Abonnement',
               value: 'Statut de l’abonnement, dates, codes de parrainage. Les coordonnées bancaires ne transitent jamais par Mino : elles sont saisies et conservées directement par notre prestataire de paiement.',
             },
+            {
+              label: 'Conversations avec Mino',
+              value: 'Le texte des messages échangés entre l’enfant et le personnage, lorsque cette fonctionnalité est activée. Aucun enregistrement sonore, même lorsque l’enfant dicte son message. Voir les sections 5 et 6.',
+            },
           ],
         },
         {
           kind: 'note',
-          text: 'Nous ne collectons aucune donnée sensible au sens du RGPD : ni origine, ni opinions, ni santé, ni biométrie. Nous ne demandons jamais le nom de famille d’un enfant.',
+          text: 'Nous ne collectons aucune donnée sensible au sens du RGPD : ni origine, ni opinions, ni santé, ni biométrie. Nous ne conservons aucun enregistrement de la voix d’un enfant, et nous ne demandons jamais son nom de famille.',
         },
       ],
     },
@@ -94,6 +98,10 @@ export const PRIVACY: LegalDocument = {
             {
               label: 'Support',
               value: 'Répondre à vos messages. Base légale : exécution du contrat et intérêt légitime.',
+            },
+            {
+              label: 'Conversations avec Mino',
+              value: 'Faire fonctionner le personnage et repérer les messages qui appellent l’attention d’un adulte. Base légale : exécution du contrat, sur autorisation du titulaire de l’autorité parentale, qui peut désactiver la fonctionnalité à tout moment.',
             },
           ],
         },
@@ -125,12 +133,68 @@ export const PRIVACY: LegalDocument = {
             'Un profil enfant n’est visible que par les membres de sa propre famille. Les règles de sécurité de notre base de données l’empêchent techniquement, pas seulement contractuellement.',
             'Aucune publicité, aucune mesure d’audience marketing et aucun traceur tiers ne sont présents dans l’expérience enfant.',
             'Le parent peut supprimer un profil enfant à tout moment ; ses données sont alors effacées.',
+            'Les conversations avec le personnage Mino et l’usage du microphone font l’objet des sections 5 et 6 : elles se désactivent séparément, enfant par enfant.',
           ],
         },
       ],
     },
     {
-      title: '5. Qui a accès à vos données',
+      title: '5. Les conversations avec Mino',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Lorsque son temps d’écran est terminé, votre enfant peut discuter avec Mino, le personnage de l’application. Cette fonctionnalité est activée par défaut et se désactive à tout moment, enfant par enfant, depuis sa fiche dans l’espace parent.',
+        },
+        {
+          kind: 'note',
+          text: 'Mino est un personnage animé par un programme, et non une personne. Il n’est ni un service d’écoute, ni un soutien psychologique. Aucune personne ne lit ces conversations en temps réel.',
+        },
+        {
+          kind: 'p',
+          text: 'Pour que Mino puisse répondre, le message de l’enfant est transmis à notre prestataire d’intelligence artificielle, accompagné du strict minimum de contexte : son prénom, son âge, son solde de temps et l’intitulé de ses missions du jour. Ni son nom de famille, ni l’adresse de la famille, ni l’adresse e-mail du parent, ni le code famille ne sont transmis.',
+        },
+        {
+          kind: 'rows',
+          rows: [
+            {
+              label: 'Prestataire',
+              value: 'Anthropic, pour la génération des réponses du personnage. Les données transmises ne sont pas utilisées pour entraîner de modèle, et le transfert est encadré par les clauses contractuelles types de la Commission européenne.',
+            },
+            {
+              label: 'Conservation',
+              value: '30 jours, puis effacement automatique. Les conversations sont lisibles à tout moment par le parent depuis la fiche de l’enfant.',
+            },
+          ],
+        },
+        {
+          kind: 'p',
+          text: 'L’enfant est informé, sous chaque conversation, que Mino est un personnage et que ses parents peuvent lire ce qu’il écrit. Nous ne présentons jamais cet espace comme privé.',
+        },
+        {
+          kind: 'p',
+          text: 'Certains messages sont repérés automatiquement, avant même d’être transmis, lorsqu’ils évoquent une situation grave pour l’enfant. Mino cesse alors la conversation et oriente l’enfant vers un adulte de confiance et vers le 119, numéro national gratuit et confidentiel. Ces messages sont signalés dans les conversations que le parent peut consulter. Ce repérage est automatique : il n’est ni exhaustif, ni surveillé par une personne, et ne se substitue en aucun cas à la vigilance de l’adulte responsable.',
+        },
+      ],
+    },
+    {
+      title: '6. Le microphone',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Un enfant qui écrit encore lentement peut dicter son message à Mino plutôt que de le taper. Cette possibilité n’est offerte que si vous y avez consenti au moment où le système vous le demande, et elle reste facultative : le clavier fonctionne toujours.',
+        },
+        {
+          kind: 'note',
+          text: 'Aucun enregistrement sonore n’est transmis à Mino ni conservé par nous. La reconnaissance vocale est effectuée par l’appareil lui-même ; seul le texte obtenu est envoyé, exactement comme s’il avait été tapé.',
+        },
+        {
+          kind: 'p',
+          text: 'Si l’appareil ne sait pas transcrire la parole sans passer par un service en ligne, la dictée n’est pas proposée : l’enfant utilise alors le microphone de son clavier, qui relève des conditions d’Apple ou de Google et non des nôtres. Le microphone n’est jamais actif en dehors des instants où votre enfant appuie volontairement sur le bouton, et un témoin visible indique qu’il écoute.',
+        },
+      ],
+    },
+    {
+      title: '7. Qui a accès à vos données',
       blocks: [
         {
           kind: 'p',
@@ -141,6 +205,7 @@ export const PRIVACY: LegalDocument = {
           rows: [
             { label: 'Supabase', value: 'Hébergement de la base de données et authentification, en région européenne.' },
             { label: 'Stripe', value: 'Traitement des paiements et facturation. Stripe est responsable de traitement pour les données bancaires, que nous ne voyons jamais.' },
+            { label: 'Anthropic', value: 'Génération des réponses du personnage Mino, lorsque cette fonctionnalité est activée. Voir la section 5.' },
           ],
         },
         {
@@ -150,13 +215,14 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
-      title: '6. Combien de temps nous les gardons',
+      title: '8. Combien de temps nous les gardons',
       blocks: [
         {
           kind: 'rows',
           rows: [
             { label: 'Compte et contenu familial', value: 'Pendant toute la durée de l’abonnement, puis 3 ans après la dernière activité — ou immédiatement, si vous demandez la suppression.' },
             { label: 'Factures', value: '10 ans, conformément aux obligations comptables françaises.' },
+            { label: 'Conversations avec Mino', value: '30 jours, puis effacement automatique.' },
             { label: 'Journaux techniques', value: '12 mois au maximum.' },
           ],
         },
@@ -167,7 +233,7 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
-      title: '7. Vos droits',
+      title: '9. Vos droits',
       blocks: [
         {
           kind: 'p',
@@ -191,7 +257,7 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
-      title: '8. Sécurité',
+      title: '10. Sécurité',
       blocks: [
         {
           kind: 'bullets',
@@ -205,7 +271,7 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
-      title: '9. Cookies',
+      title: '11. Cookies',
       blocks: [
         {
           kind: 'p',
@@ -214,7 +280,7 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
-      title: '10. Modification de cette politique',
+      title: '12. Modification de cette politique',
       blocks: [
         {
           kind: 'p',

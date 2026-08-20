@@ -55,7 +55,7 @@ deux fonctions serveur y touchent.
 
 ### 4. Tout ce qui est extérieur passe par une couture
 
-Six services, chacun avec une implémentation locale et une réelle, choisies
+Sept services, chacun avec une implémentation locale et une réelle, choisies
 dans un `index.ts`. La facturation en a deux réelles, et ce n'est pas un choix :
 Apple et Google exigent leur propre système dès qu'un paiement débloque une
 fonctionnalité dans l'application.
@@ -68,6 +68,7 @@ fonctionnalité dans l'application.
 | `services/notifications` | rien | expo-notifications |
 | `services/diagnostics` | file locale | table `support_reports` |
 | `services/companion` | réponses écrites | Claude Haiku 4.5 (fonction serveur) |
+| `services/speech` | rien | reconnaissance vocale du système, **sur l'appareil** |
 
 Conséquence utile : l'application tourne entièrement sans backend, ce qui permet
 de la faire essayer sans rien installer, et de tester le parcours complet sans
