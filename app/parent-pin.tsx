@@ -1,9 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Screen, ScreenHeader, Text } from '@/components/ui';
+import { getAuthService } from '@/services/auth';
 import { useParent } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, shadows, spacing } from '@/theme';
@@ -19,6 +20,19 @@ export default function ParentPin() {
   const [pin, setPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
+  /**
+   * Null while we are asking. A family with no PIN at all — an account that
+   * never set one — must be able to define it here rather than meet "wrong
+   * code" forever.
+   */
+  const [hasPin, setHasPin] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    getAuthService()
+      .hasParentPin()
+      .then(setHasPin)
+      .catch(() => setHasPin(true));
+  }, []);
 
   const press = (key: string) => {
     if (key === '' || checking) return;
@@ -37,6 +51,22 @@ export default function ParentPin() {
 
   const submit = async (value: string) => {
     setChecking(true);
+
+    if (hasPin === false) {
+      const created = await getAuthService().setParentPin(value);
+      setChecking(false);
+      if (!created.ok) {
+        setError(created.reason ?? 'Code refusé.');
+        setTimeout(() => setPin(''), 220);
+        return;
+      }
+      setHasPin(true);
+      await unlockParent(value);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+      router.replace('/parent');
+      return;
+    }
+
     // Verified by the auth service, which rate-limits it — never compared here.
     const result = await unlockParent(value);
     setChecking(false);
@@ -57,10 +87,14 @@ export default function ParentPin() {
 
       <View style={styles.head}>
         <Text variant="title" center>
-          Code parent
+          {hasPin === false ? 'Choisir un code parent' : 'Code parent'}
         </Text>
         <Text variant="body" color={colors.textMuted} center>
-          {parent ? `Bonjour ${parent.displayName}, entre ton code à 4 chiffres.` : 'Entre ton code à 4 chiffres.'}
+          {hasPin === false
+            ? 'Aucun code n’est encore défini. Choisissez-en un que votre enfant ne devinera pas.'
+            : parent
+              ? `Bonjour ${parent.displayName}, entre ton code à 4 chiffres.`
+              : 'Entre ton code à 4 chiffres.'}
         </Text>
       </View>
 

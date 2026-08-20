@@ -47,6 +47,13 @@ export interface AuthService {
   /** Sets the parent PIN. The clear value is never stored anywhere. */
   setParentPin(pin: string): Promise<AuthResult>;
   /**
+   * Whether a PIN exists at all.
+   *
+   * Without this the parent area can become permanently unreachable — an
+   * account with no PIN would answer "wrong code" to every code there is.
+   */
+  hasParentPin(): Promise<boolean>;
+  /**
    * Checks the PIN without the caller ever holding it or its hash.
    * Rate-limited, because four digits is ten thousand guesses.
    */

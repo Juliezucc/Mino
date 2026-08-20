@@ -103,6 +103,39 @@ interface MinoState {
   redeemReferral: (code: string) => Promise<{ ok: boolean; reason?: string }>;
 }
 
+/**
+ * Documents written before the PIN moved out of the family carry it on the
+ * parent row. Left alone, those installs answer "wrong code" to every code
+ * there is and the parent area becomes unreachable for good — so the PIN is
+ * moved into the auth service on the first launch, and erased from the
+ * document, which is the whole point of having moved it.
+ */
+async function migrateLegacyPin(
+  data: FamilyData | null,
+  repository: MinoRepository,
+): Promise<FamilyData | null> {
+  if (!data) return data;
+
+  const legacy = data.parents.find((p) => typeof (p as { pin?: string }).pin === 'string');
+  if (!legacy) return data;
+
+  const pin = (legacy as { pin?: string }).pin!;
+  const cleaned: FamilyData = {
+    ...data,
+    parents: data.parents.map(({ ...parent }) => {
+      delete (parent as { pin?: string }).pin;
+      return parent;
+    }),
+  };
+
+  // Only drop it from the document once it is safely somewhere else.
+  const stored = await getAuthService().setParentPin(pin);
+  if (!stored.ok) return data;
+
+  await repository.persist(cleaned, { kind: 'family.updated' }).catch(() => undefined);
+  return cleaned;
+}
+
 export const useMinoStore = create<MinoState>((set, get) => {
   /** Runs a pure domain transition, persists it, publishes it. */
   async function commit<T>(
@@ -154,7 +187,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async bootstrap() {
-      const data = await get().repository.load();
+      const data = await migrateLegacyPin(await get().repository.load(), get().repository);
       set({ data, status: 'ready' });
       if (data) await get().loadBilling();
     },

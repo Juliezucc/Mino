@@ -72,6 +72,10 @@ export class LocalAuthService implements AuthService {
     return { ok: true };
   }
 
+  async hasParentPin(): Promise<boolean> {
+    return (await AsyncStorage.getItem(PIN_KEY)) !== null;
+  }
+
   async verifyParentPin(pin: string): Promise<AuthResult> {
     const locked = await this.lockedFor();
     if (locked > 0) {

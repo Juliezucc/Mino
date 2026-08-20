@@ -80,6 +80,11 @@ export class SupabaseAuthService implements AuthService {
     return { ok: true };
   }
 
+  async hasParentPin(): Promise<boolean> {
+    const { data } = await this.client.rpc('has_parent_pin');
+    return data === true;
+  }
+
   async verifyParentPin(pin: string): Promise<AuthResult> {
     const { data, error } = await this.client.rpc('verify_parent_pin', { p_pin: pin });
     if (error) return { ok: false, reason: 'Vérification impossible. Réessayez.' };

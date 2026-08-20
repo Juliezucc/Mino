@@ -646,6 +646,22 @@ as $$
   where user_id = auth.uid() and locked_until is not null
 $$;
 
+/**
+ * Whether a PIN exists at all — no secret, and the only thing standing between
+ * an account that never set one and a parent area nobody can ever open.
+ */
+create or replace function has_parent_pin()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from parent_secrets where user_id = auth.uid())
+$$;
+
+revoke all on function has_parent_pin() from public;
+grant execute on function has_parent_pin() to authenticated;
+
 revoke all on function set_parent_pin(text) from public;
 revoke all on function verify_parent_pin(text) from public;
 revoke all on function parent_pin_locked_seconds() from public;
