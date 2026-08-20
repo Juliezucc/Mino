@@ -133,7 +133,7 @@ export default function ParentSettings() {
       </Card>
 
       <View style={styles.links}>
-        <Button label="Aide et mode d’emploi" icon="💡" variant="secondary" onPress={() => router.push('/aide')} />
+        <Button label="Guide de démarrage" icon="💡" variant="secondary" onPress={() => router.push('/aide')} />
         <Button
           label="Politique de confidentialité"
           variant="ghost"
