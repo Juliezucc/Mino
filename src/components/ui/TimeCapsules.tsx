@@ -49,7 +49,7 @@ export function TimeCapsules({ minutes, maxCapsules = 12, compact }: Props) {
       </View>
       {!compact ? (
         <Text variant="caption" color={colors.textSubtle}>
-          {`1 capsule = ${MINUTES_PER_CAPSULE} minutes`}
+          {`1 capsule = ${MINUTES_PER_CAPSULE} minos`}
         </Text>
       ) : null}
     </View>

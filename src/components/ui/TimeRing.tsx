@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 
+import { formatMinos, minoUnit } from '@/domain/minos';
 import { useCountUp } from '@/hooks/useCountUp';
 import { colors, spacing } from '@/theme';
 
@@ -16,6 +17,12 @@ interface Props {
   label?: string;
   /** Animate digits and ring when the value changes (the 35 → 50 moment). */
   animate?: boolean;
+  /**
+   * Children read minos, parents read minutes (see `domain/minos`). The parent
+   * ring keeps the clock face — it is a time budget they are handing out. The
+   * child ring drops it: minos are a thing you own and count, not a clock.
+   */
+  unit?: 'minutes' | 'minos';
 }
 
 /**
@@ -26,9 +33,11 @@ export function TimeRing({
   minutes,
   max = 60,
   size = 240,
-  label = 'min disponibles',
+  label,
   animate = true,
+  unit = 'minutes',
 }: Props) {
+  const minos = unit === 'minos';
   // Unique gradient id: two rings can be mounted at once (celebration screen).
   const gradientId = `ring-${React.useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const animated = useCountUp(minutes, { enabled: animate });
@@ -75,12 +84,14 @@ export function TimeRing({
           variant="display"
           color={colors.blue}
           style={{ fontSize: size * 0.24, lineHeight: size * 0.28 }}
-          accessibilityLabel={`${shown} minutes disponibles`}
+          accessibilityLabel={
+            minos ? `${formatMinos(shown)} disponibles` : `${shown} minutes disponibles`
+          }
         >
-          {`${shown}:00`}
+          {minos ? `${shown}` : `${shown}:00`}
         </Text>
         <Text variant="label" color={colors.textMuted} center>
-          {label}
+          {label ?? (minos ? `${minoUnit(shown)} disponibles` : 'min disponibles')}
         </Text>
       </View>
     </View>

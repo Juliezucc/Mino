@@ -25,9 +25,9 @@ export default function ChildHome() {
 
   const message =
     balance.minutes === 0
-      ? 'Plus de temps… fais une mission pour en gagner !'
+      ? 'Plus de minos… fais une mission pour en gagner !'
       : balance.minutes < 10
-        ? 'Presque plus de temps ! Une mission et hop.'
+        ? 'Presque plus de minos ! Une mission et hop.'
         : todo.length > 0
           ? `Tu as ${todo.length} mission${todo.length > 1 ? 's' : ''} à faire aujourd’hui.`
           : 'Toutes tes missions sont faites. Bravo !';
@@ -50,13 +50,13 @@ export default function ChildHome() {
       </View>
 
       <Card style={styles.ringCard} elevation="soft">
-        <TimeRing minutes={balance.minutes} />
+        <TimeRing minutes={balance.minutes} unit="minos" />
         {balance.earnedToday > 0 ? (
           <View style={styles.earned}>
             <Text variant="label" color={colors.textMuted}>
               Gagné aujourd’hui
             </Text>
-            <MinutesBadge minutes={balance.earnedToday} tone="mint" />
+            <MinutesBadge minutes={balance.earnedToday} tone="mint" unit="minos" />
           </View>
         ) : null}
       </Card>
@@ -79,7 +79,7 @@ export default function ChildHome() {
                   : '1 mission en attente'}
               </Text>
               <Text variant="caption" color={colors.textMuted}>
-                {`Ton parent doit valider pour ajouter tes minutes.`}
+                {`Ton parent doit valider pour ajouter tes minos.`}
               </Text>
             </View>
           </View>

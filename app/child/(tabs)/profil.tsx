@@ -39,8 +39,8 @@ export default function ChildProfile() {
           {`${child.age} ans`}
         </Text>
         <View style={styles.identityStats}>
-          <MinutesBadge minutes={balance.minutes} tone="blue" signed={false} />
-          <MinutesBadge minutes={balance.earnedToday} tone="mint" />
+          <MinutesBadge minutes={balance.minutes} tone="blue" signed={false} unit="minos" />
+          <MinutesBadge minutes={balance.earnedToday} tone="mint" unit="minos" />
         </View>
         <Text variant="caption" color={colors.textSubtle} center>
           {`${approved} mission${approved > 1 ? 's' : ''} validée${approved > 1 ? 's' : ''} au total`}
@@ -65,8 +65,8 @@ export default function ChildProfile() {
       </View>
 
       <View style={styles.section}>
-        <SectionHeader title="Mon historique" subtitle="Chaque minute gagnée ou utilisée" />
-        <HistoryList transactions={history} limit={12} />
+        <SectionHeader title="Mon historique" subtitle="Chaque mino gagné ou utilisé" />
+        <HistoryList transactions={history} limit={12} unit="minos" />
       </View>
 
       <Button label="Changer de profil" variant="secondary" onPress={() => router.replace('/who')} />

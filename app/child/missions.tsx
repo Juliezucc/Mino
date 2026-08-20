@@ -7,7 +7,18 @@ import { MissionCard } from '@/features/child/MissionCard';
 import { useActiveChild, useBalance, useChildMissions } from '@/store/selectors';
 import { colors, spacing } from '@/theme';
 
-/** "Mes missions" — the list of today's missions, still-to-do ones first. */
+/**
+ * "Mes missions" — what is left to do, and nothing else.
+ *
+ * Validated missions are deliberately NOT listed. A child scanning this screen
+ * is answering one question — what do I do now? — and a column of grey ticks
+ * buries the answer under things that no longer need them. The day's work still
+ * shows, but as a reward rather than a checklist: the minos earned today, on
+ * the home screen and in "Mon temps".
+ *
+ * Missions waiting on a parent DO stay, because that is a live state the child
+ * has to be able to make sense of ("I did it, so where are my minos?").
+ */
 export default function ChildMissions() {
   const router = useRouter();
   const child = useActiveChild();
@@ -17,12 +28,14 @@ export default function ChildMissions() {
   if (!child) return null;
 
   const todo = missions.filter((m) => m.state === 'todo');
+  const open = missions.filter((m) => m.state !== 'done');
+  const allDone = missions.length > 0 && open.length === 0;
 
   return (
     <Screen contentStyle={styles.content}>
       <ScreenHeader
         onBack={() => router.back()}
-        right={<MinutesBadge minutes={balance} tone="blue" signed={false} />}
+        right={<MinutesBadge minutes={balance} tone="blue" signed={false} unit="minos" />}
       />
 
       <View style={styles.head}>
@@ -30,7 +43,9 @@ export default function ChildMissions() {
         <Text variant="body" color={colors.textMuted}>
           {todo.length > 0
             ? `${todo.length} mission${todo.length > 1 ? 's' : ''} à faire · touche une carte pour commencer`
-            : 'Tout est fait pour aujourd’hui !'}
+            : open.length > 0
+              ? 'Ton parent doit valider · tes minos arrivent après'
+              : 'Tout est fait pour aujourd’hui !'}
         </Text>
       </View>
 
@@ -40,9 +55,16 @@ export default function ChildMissions() {
           message="Ton parent va bientôt t’en proposer une."
           expression="motivated"
         />
+      ) : allDone ? (
+        <EmptyState
+          title="Tout est fait ! 🎉"
+          message="Plus rien à faire aujourd’hui. Va profiter de tes minos !"
+          expression="proud"
+          action={{ label: 'MON TEMPS', icon: '⏱️', onPress: () => router.push('/child/temps') }}
+        />
       ) : (
         <View style={styles.list}>
-          {missions.map((item) => (
+          {open.map((item) => (
             <MissionCard
               key={item.mission.id}
               item={item}

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
+import { formatMinos } from '@/domain/minos';
 import { Button, Card, Chip, MinutesBadge, Screen, Text, TimeCapsules, TimeRing } from '@/components/ui';
 import { getScreenTimeService } from '@/services/screenTime';
 import { useActiveChild, useBalanceDetail, useRunningSession } from '@/store/selectors';
@@ -48,21 +49,21 @@ export default function ChildTime() {
       <Text variant="hero">Mon temps</Text>
 
       <Card style={styles.ringCard}>
-        <TimeRing minutes={balance.minutes} label="minutes disponibles" />
+        <TimeRing minutes={balance.minutes} unit="minos" />
         <TimeCapsules minutes={balance.minutes} />
       </Card>
 
       <Card style={styles.statsCard} elevation="none" background={colors.mintSoft}>
         <View style={styles.statRow}>
-          <Text variant="bodyStrong">Temps gagné aujourd’hui</Text>
-          <MinutesBadge minutes={balance.earnedToday} tone="mint" />
+          <Text variant="bodyStrong">Minos gagnés aujourd’hui</Text>
+          <MinutesBadge minutes={balance.earnedToday} tone="mint" unit="minos" />
         </View>
         {balance.usedToday > 0 ? (
           <View style={styles.statRow}>
             <Text variant="body" color={colors.textMuted}>
-              Temps utilisé aujourd’hui
+              Minos utilisés aujourd’hui
             </Text>
-            <MinutesBadge minutes={-balance.usedToday} tone="muted" />
+            <MinutesBadge minutes={-balance.usedToday} tone="muted" unit="minos" />
           </View>
         ) : null}
       </Card>
@@ -85,10 +86,10 @@ export default function ChildTime() {
         <Card style={styles.useCard}>
           <AnimatedMascot expression="sad" size={120} />
           <Text variant="cardTitle" center>
-            Plus de temps…
+            Plus de minos…
           </Text>
           <Text variant="body" color={colors.textMuted} center>
-            Fais une mission pour gagner de nouvelles minutes !
+            Fais une mission pour gagner de nouveaux minos !
           </Text>
           <Button label="VOIR MES MISSIONS" icon="📋" size="kid" onPress={() => router.push('/child/missions')} />
         </Card>
@@ -98,13 +99,13 @@ export default function ChildTime() {
             Utiliser mon temps
           </Text>
           <Text variant="body" color={colors.textMuted} center>
-            Combien de minutes veux-tu utiliser maintenant ?
+            Combien de minos veux-tu utiliser maintenant ?
           </Text>
           <View style={styles.durations}>
             {(options.length > 0 ? options : [balance.minutes]).map((value) => (
               <Chip
                 key={value}
-                label={`${value} min`}
+                label={formatMinos(value)}
                 selected={selected === value}
                 onPress={() => setSelected(value)}
               />

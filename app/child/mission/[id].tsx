@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
 import { Button, Card, Screen, ScreenHeader, StatusPill, Text } from '@/components/ui';
+import { formatMinos, minoUnit } from '@/domain/minos';
 import { accentFor, colors, radii, spacing } from '@/theme';
 import { useActiveChild, useChildMissions } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -84,7 +85,7 @@ export default function MissionDetail() {
             Bien joué !
           </Text>
           <Text variant="body" color={colors.textMuted} center>
-            Demande envoyée à ton parent. Tes minutes arrivent dès qu’il valide.
+            Demande envoyée à ton parent. Tes minos arrivent dès qu’il valide.
           </Text>
         </Card>
       ) : done ? (
@@ -94,7 +95,7 @@ export default function MissionDetail() {
             Mission validée !
           </Text>
           <Text variant="body" color={colors.textMuted} center>
-            {`Tu as gagné ${item.completion?.minutesAwarded ?? item.mission.minutes} minutes.`}
+            {`Tu as gagné ${formatMinos(item.completion?.minutesAwarded ?? item.mission.minutes)}.`}
           </Text>
         </Card>
       ) : (
@@ -106,7 +107,7 @@ export default function MissionDetail() {
             {`+${item.mission.minutes}`}
           </Text>
           <Text variant="section" color={colors.blue}>
-            MINUTES
+            {minoUnit(item.mission.minutes).toUpperCase()}
           </Text>
           <AnimatedMascot expression="happy" size={140} />
           <Text variant="body" color={colors.textMuted} center>

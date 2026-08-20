@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { MascotClip } from '@/components/mascot';
 import { Button, Confetti, Screen, Text, TimeRing } from '@/components/ui';
+import { minoUnit } from '@/domain/minos';
 import { MissionCompletion } from '@/domain/types';
 import { useActiveChild, useBalance, useFamily } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -78,14 +79,14 @@ export default function Celebration() {
         {`+${minutes}`}
       </Text>
       <Text variant="title" color={colors.blue} center>
-        MINUTES
+        {minoUnit(minutes).toUpperCase()}
       </Text>
 
       <Text variant="section" center>
         {`Bravo ${child.firstName} !`}
       </Text>
 
-      <TimeRing minutes={ringValue} size={190} label="min disponibles" />
+      <TimeRing minutes={ringValue} size={190} unit="minos" />
 
       <Button label="SUPER !" icon="🎉" size="kid" onPress={close} />
 

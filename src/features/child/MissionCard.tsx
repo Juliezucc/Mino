@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icons/Icon';
 import { Card, MinutesBadge, StatusPill, Text } from '@/components/ui';
+import { formatMinos } from '@/domain/minos';
 import { ChildMission } from '@/domain/missions';
 import { accentFor, colors, radii, spacing } from '@/theme';
 
@@ -19,7 +20,7 @@ export function MissionCard({ item, onPress }: Props) {
   return (
     <Card
       onPress={onPress}
-      accessibilityLabel={`${item.mission.title}, ${item.mission.minutes} minutes`}
+      accessibilityLabel={`${item.mission.title}, ${formatMinos(item.mission.minutes)}`}
       style={[styles.card, done && styles.done]}
     >
       <View style={styles.row}>
@@ -32,7 +33,12 @@ export function MissionCard({ item, onPress }: Props) {
             {item.mission.title}
           </Text>
           <View style={styles.metaRow}>
-            <MinutesBadge minutes={item.mission.minutes} tone={done ? 'muted' : 'blue'} size="sm" />
+            <MinutesBadge
+              minutes={item.mission.minutes}
+              tone={done ? 'muted' : 'blue'}
+              size="sm"
+              unit="minos"
+            />
             <StatusPill state={item.state} />
           </View>
         </View>

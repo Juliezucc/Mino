@@ -3,12 +3,15 @@ import { StyleSheet, View } from 'react-native';
 
 import { Card, Text } from '@/components/ui';
 import { isSameDay } from '@/domain/ledger';
+import { formatMinos } from '@/domain/minos';
 import { ScreenTimeTransaction } from '@/domain/types';
 import { colors, radii, spacing } from '@/theme';
 
 interface Props {
   transactions: ScreenTimeTransaction[];
   limit?: number;
+  /** Children read minos, parents read minutes (see `domain/minos`). */
+  unit?: 'minutes' | 'minos';
 }
 
 const KIND_ICON: Record<ScreenTimeTransaction['kind'], string> = {
@@ -34,7 +37,7 @@ function timeLabel(date: Date): string {
  * The ledger, read by a human. Every line is one transaction — the balance is
  * literally the sum of what is displayed here.
  */
-export function HistoryList({ transactions, limit }: Props) {
+export function HistoryList({ transactions, limit, unit = 'minutes' }: Props) {
   const now = new Date();
   const shown = limit ? transactions.slice(0, limit) : transactions;
 
@@ -84,7 +87,9 @@ export function HistoryList({ transactions, limit }: Props) {
                     </Text>
                   </View>
                   <Text variant="bodyStrong" color={positive ? colors.mint : colors.textMuted}>
-                    {`${positive ? '+' : ''}${tx.delta} min`}
+                    {unit === 'minos'
+                      ? formatMinos(tx.delta, { signed: true })
+                      : `${positive ? '+' : ''}${tx.delta} min`}
                   </Text>
                 </View>
               );

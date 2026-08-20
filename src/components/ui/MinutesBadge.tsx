@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 
+import { formatMinos } from '@/domain/minos';
 import { colors, radii, spacing } from '@/theme';
 
 import { Text } from './Text';
@@ -12,6 +13,11 @@ interface Props {
   style?: StyleProp<ViewStyle>;
   /** Show a sign in front of the value (+15 / -20). */
   signed?: boolean;
+  /**
+   * Whose words to use. Children read minos, parents read minutes; the number
+   * is the same either way (see `domain/minos`).
+   */
+  unit?: 'minutes' | 'minos';
 }
 
 const tones = {
@@ -21,10 +27,20 @@ const tones = {
   muted: { bg: colors.surfaceSunken, fg: colors.textMuted },
 } as const;
 
-/** The reward pill: "+15 min". Always the same shape everywhere in the app. */
-export function MinutesBadge({ minutes, tone = 'blue', size = 'md', style, signed = true }: Props) {
+/** The reward pill: "+15 min" for a parent, "+15 minos" for a child. */
+export function MinutesBadge({
+  minutes,
+  tone = 'blue',
+  size = 'md',
+  style,
+  signed = true,
+  unit = 'minutes',
+}: Props) {
   const t = tones[tone];
-  const value = signed && minutes > 0 ? `+${minutes}` : `${minutes}`;
+  const label =
+    unit === 'minos'
+      ? formatMinos(minutes, { signed })
+      : `${signed && minutes > 0 ? '+' : ''}${minutes} min`;
 
   return (
     <View
@@ -40,7 +56,7 @@ export function MinutesBadge({ minutes, tone = 'blue', size = 'md', style, signe
         variant={size === 'lg' ? 'section' : size === 'sm' ? 'caption' : 'label'}
         color={t.fg}
       >
-        {`${value} min`}
+        {label}
       </Text>
     </View>
   );
