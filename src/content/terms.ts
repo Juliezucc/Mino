@@ -42,7 +42,7 @@ export const TERMS: LegalDocument = {
         },
         {
           kind: 'note',
-          text: 'Dans sa version actuelle, Mino mesure le temps d’écran au moyen d’un minuteur intégré. Il ne bloque pas lui-même l’accès aux autres applications de l’appareil. Pour un blocage effectif, utilisez les outils du système : Temps d’écran sur iOS, Family Link sur Android.',
+          text: 'Dans sa version actuelle, Mino calcule et décompte le temps accordé, mais n’empêche pas lui-même l’ouverture des autres applications de l’appareil : cette restriction relève du contrôle parental du système d’exploitation, qu’il vous appartient de configurer (Temps d’écran sur iOS, Family Link sur Android). Le guide intégré détaille la marche à suivre.',
         },
         {
           kind: 'p',

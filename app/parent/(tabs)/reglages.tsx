@@ -113,8 +113,8 @@ export default function ParentSettings() {
         </Text>
         <Text variant="body">
           {capability === 'timer-only'
-            ? 'Cette version mesure le temps avec un minuteur dans l’application. Le blocage réel des applications arrivera via les APIs de contrôle parental iOS et Android.'
-            : 'Le blocage des applications est géré par le système.'}
+            ? 'Mino compte les minos gagnés et les décompte pendant chaque session. Le blocage des autres applications est assuré par le contrôle parental de l’appareil — le guide explique comment le régler en cinq minutes.'
+            : 'Mino verrouille lui-même les applications et lève le verrou le temps gagné.'}
         </Text>
       </Card>
 

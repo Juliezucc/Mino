@@ -41,7 +41,7 @@ export const GUIDE: GuideChapter[] = [
     id: 'installer',
     title: 'Configurer sur l’appareil de mon enfant',
     icon: '📲',
-    summary: 'De rien du tout à un enfant qui ouvre Mino tout seul.',
+    summary: 'Installer Mino chez vous, puis sur l’appareil de votre enfant.',
     duration: '10 minutes',
     steps: [
       {
@@ -94,7 +94,7 @@ export const GUIDE: GuideChapter[] = [
         screen: 'qui',
       },
       {
-        title: 'Vérifiez que la porte est bien fermée',
+        title: 'Vérifiez que l’espace parent est bien protégé',
         body: [
           'Depuis l’appareil de l’enfant, essayez d’entrer dans « Espace parent ». Le code doit vous être demandé.',
           'Vérifiez aussi qu’il voit bien son compteur et ses missions à lui, et pas ceux de son frère ou de sa sœur.',
@@ -189,24 +189,26 @@ export const GUIDE: GuideChapter[] = [
 
   {
     id: 'blocage',
-    title: 'Bloquer vraiment les écrans',
+    title: 'Faire respecter le temps gagné',
     icon: '🔒',
-    summary: 'Ce que Mino ne fait pas, et comment le compléter en 5 minutes.',
+    summary: 'Mino compte le temps ; le système de l’appareil le fait respecter.',
     duration: '5 minutes',
     steps: [
       {
-        title: 'Ce que Mino fait, et ce qu’il ne fait pas',
+        title: 'Qui fait quoi',
         body: [
-          'Mino tient le compte du temps gagné et le décompte pendant les sessions. Dans sa version actuelle, il ne bloque pas lui-même l’accès aux autres applications de l’appareil.',
-          'Autrement dit : Mino décide combien de temps est accordé, le système d’exploitation le fait respecter. Les deux se complètent très bien.',
+          'Mino, installé sur l’appareil de votre enfant, tient le compte des minos gagnés et les décompte pendant chaque session.',
+          'Empêcher une application de s’ouvrir est en revanche un pouvoir que seuls iOS et Android accordent, et seulement à travers leur contrôle parental. Pour l’instant, c’est donc lui qui applique la limite que Mino a calculée.',
+          'La bonne façon de le voir : Mino décide combien de temps est accordé et pourquoi, le système fait respecter ce total.',
         ],
-        tip: 'Mieux vaut le savoir maintenant qu’au coucher. Un parent qui croit que l’app bloque YouTube et le découvre le soir arrête de faire confiance à l’app.',
+        tip: 'Sans ce réglage, rien n’empêche votre enfant d’ouvrir YouTube sans passer par Mino. C’est cinq minutes, une seule fois, et tout tient ensuite.',
       },
       {
         title: 'Sur iPhone et iPad',
         body: [
-          'Réglages → Temps d’écran → Limites d’app. Ajoutez une limite quotidienne sur les applications concernées, à la hauteur de ce que votre enfant peut raisonnablement gagner.',
-          'Activez ensuite « Utiliser un code pour le Temps d’écran », avec un code différent de celui qui déverrouille l’appareil.',
+          'Réglages → Temps d’écran → Limites d’app. Ajoutez une limite quotidienne sur les applications concernées, à la hauteur de ce que votre enfant peut raisonnablement gagner dans la journée.',
+          'Activez ensuite « Utiliser un code pour le Temps d’écran », avec un code différent de celui qui déverrouille l’appareil — sinon votre enfant lèvera la limite lui-même.',
+          'Excluez Mino de la limite, pour qu’il puisse toujours ouvrir ses missions.',
         ],
         outside: true,
       },
@@ -214,9 +216,16 @@ export const GUIDE: GuideChapter[] = [
         title: 'Sur Android',
         body: [
           'Application Family Link → votre enfant → Contrôles → Limites de temps par application.',
-          'Family Link demande un compte Google pour l’enfant. Si vous préférez ne pas en créer, réglez les limites directement sur l’appareil via Bien-être numérique.',
+          'Family Link demande un compte Google pour l’enfant. Si vous préférez ne pas en créer, les mêmes limites existent directement sur l’appareil, dans Bien-être numérique et contrôle parental.',
         ],
         outside: true,
+      },
+      {
+        title: 'Ce qui change bientôt',
+        body: [
+          'Ce réglage manuel est une étape, pas la destination. Mino est construit pour prendre la main lui-même : verrouiller les applications par défaut, et lever le verrou exactement le temps que votre enfant a gagné — plus de limite quotidienne à estimer à l’avance.',
+          'Sur iPhone, cela passe par les autorisations de contrôle parental d’Apple, qui doivent nous être accordées ; sur Android, par les permissions équivalentes. Vous n’aurez rien à refaire : la configuration ci-dessus reste valable en attendant.',
+        ],
       },
     ],
   },

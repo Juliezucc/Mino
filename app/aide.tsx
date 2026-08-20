@@ -56,7 +56,7 @@ export default function GuideIndex() {
           Guide de démarrage
         </Text>
         <Text variant="body" color={colors.textMuted} center>
-          Six étapes, dans l’ordre. Commencez par la première, le reste peut attendre demain.
+          Suivez-les dans l’ordre. La première suffit pour que votre enfant puisse démarrer.
         </Text>
       </View>
 
