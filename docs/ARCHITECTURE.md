@@ -27,10 +27,20 @@ registre. La célébration d'un bonus, par exemple, ne pose pas de marque « dé
 fêté » sur la transaction — elle se souvient sur l'appareil (`data/seenBonus`),
 parce que fêter est un événement d'écran et non un fait comptable.
 
-Corollaire pratique : l'appareil ne télécharge que 120 jours d'historique, et le
+Corollaire pratique : l'appareil ne télécharge que 90 jours d'historique, et le
 reste est replié en **une ligne d'ouverture** calculée à partir du vrai total
 renvoyé par le serveur. Après repliement, la somme des lignes détenues égale
 toujours le vrai solde (`__tests__/history.test.ts`).
+
+La base fait désormais la même chose de son côté, et la règle n'en souffre pas :
+passé 90 jours, `compact_ledger()` (`supabase/retention.sql`) remplace les
+lignes anciennes d'un enfant par **leur somme exacte**, écrite comme une
+transaction de plus. Aucune ligne n'est modifiée — un paquet de lignes est
+remplacé par sa valeur, ce qui laisse `sum(delta)` rigoureusement identique.
+`supabase/test/retention.sql` compare les totaux enfant par enfant avant et
+après, et tombe si l'un d'eux bouge d'une minute. Pourquoi cesser de tout
+garder : trois ans du détail des journées d'un enfant sont exactement le dossier
+que Mino promet de ne pas constituer, et aucun écran ne les affiche.
 
 ### 2. Le domaine est pur
 

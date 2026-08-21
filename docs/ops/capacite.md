@@ -2,7 +2,7 @@
 
 Ce document répond à une question précise : ce qui est construit tient-il
 10 000 familles payantes ? La réponse courte est **oui, et le coût
-d'infrastructure reste marginal devant le chiffre d'affaires** — mais quatre
+d'infrastructure reste marginal devant le chiffre d'affaires** — mais cinq
 choses ne tenaient pas et ont été corrigées.
 
 Les durées et les volumes du §3 sont **mesurés** : `npm run test:charge` monte
@@ -64,8 +64,8 @@ dizaines d'octets au lieu d'une ligne complète multipliée par les appareils.
 
 Qui a le droit d'écouter est décidé par la base (politique RLS sur
 `realtime.messages`), pas par l'application — même fonction
-`auth_family_ids_array()` que tout le reste. Une famille ne peut pas s'abonner au canal d'une autre, même
-en devinant son identifiant.
+`auth_family_ids_array()` que tout le reste. Une famille ne peut pas s'abonner
+au canal d'une autre, même en devinant son identifiant.
 
 > Au passage : `subscribe()` n'était **appelé nulle part**. Le temps réel était
 > du code mort — la tablette de l'enfant ne se mettait pas à jour toute seule.
@@ -90,9 +90,12 @@ par mois** en troisième année — quelques centaines d'euros mensuels, et surt
 une application qui met plusieurs secondes à s'ouvrir chez les familles les plus
 fidèles. La punition frappe exactement les meilleurs clients.
 
-**Corrigé** : l'appareil ne charge que 120 jours, plafonnés à 400 lignes par
-table — soit **~150 à 400 Ko par ouverture**, stable, quelle que soit
-l'ancienneté de la famille. Environ **360 Go/mois** pour toute la plateforme.
+**Corrigé** : l'appareil ne charge que 90 jours, plafonnés à 400 lignes par
+table — c'est le plafond qui borne vraiment, soit **~150 à 400 Ko par
+ouverture**, stable quelle que soit l'ancienneté de la famille. Environ
+**360 Go/mois** pour toute la plateforme. (Depuis le §2.6, la base elle-même ne
+garde plus le détail au-delà de ces 90 jours : les deux nombres sont le même,
+et se changent ensemble.)
 
 Deux précautions, parce qu'une troncature naïve casserait le produit :
 
@@ -134,7 +137,7 @@ Une politique écrite ainsi :
 using (family_id in (select auth_family_ids()))
 ```
 
-**est juste** — aucune famille n'a jamais pu voir une autre, les 96
+**est juste** — aucune famille n'a jamais pu voir une autre, les 113
 vérifications de `npm run test:sql` le tiennent ligne à ligne. Mais
 PostgreSQL n'en fait pas une condition d'index : il en fait un *hashed SubPlan*,
 c'est-à-dire un filtre appliqué **après** avoir lu la ligne. La colonne de tête
@@ -188,11 +191,62 @@ la plateforme, 6 ms par ouverture. Et `parents` n'avait aucun index sur
 Les deux se planifient avec `pg_cron` ; les lignes sont prêtes, en commentaire,
 dans `scale.sql` (à activer une seule fois, sinon elles s'exécutent deux fois).
 
+### 2.6 Un historique gardé pour toujours
+
+La base conservait tout, indéfiniment. Ce n'était une décision de personne :
+c'est ce qui arrive quand on n'en prend pas.
+
+Trois raisons d'en prendre une, dans l'ordre d'importance — et la première n'a
+rien à voir avec la technique.
+
+**Ce que le produit promet.** « Ne collecter aucune donnée enfant inutile. »
+Trois ans de « Léa a rangé sa chambre le 12 mars » forment exactement le
+dossier que Mino dit ne pas constituer. Et aucun écran ne les montre : le
+tableau de bord affiche six lignes, la fiche d'un enfant trente, son profil
+douze. Passé un trimestre, ces lignes n'existent que dans la base.
+
+**Le RGPD**, qui dit la même chose en droit : pas de conservation au-delà de
+ce qui sert.
+
+**Le coût**, qui suit sans commander : le grand livre d'une famille cesse de
+grandir, et avec lui la seule requête dont le prix grandissait avec
+l'ancienneté.
+
+**Décidé** : 90 jours de détail (`mino_history_days()` dans
+`supabase/retention.sql`). Au-delà, `compact_ledger()` remplace les lignes
+d'un enfant par **leur somme exacte**, écrite comme une transaction de plus,
+et `purge_history()` efface les missions faites et les sessions terminées.
+
+Ce qui ne change pas, et qui est la seule chose qui ne se négocie pas ici :
+
+- **Le solde, à la minute près.** La règle du projet — le solde est une somme
+  de transactions, jamais un compteur qu'on modifie — reste entière : aucune
+  ligne n'est modifiée, un paquet de lignes est remplacé par sa somme.
+  `supabase/test/retention.sql` compare enfant par enfant avant et après, et
+  le test tombe si un seul total bouge (vérifié en le faussant d'une minute).
+  C'est exactement ce que l'application fait déjà de son côté
+  (`withOpeningBalances`).
+- **Ce qui attend quelqu'un ne s'efface jamais.** Une mission déclarée et
+  jamais relue survit, quel que soit son âge : l'effacer reviendrait à
+  répondre « non » à la place du parent, six mois plus tard. Idem pour une
+  session restée en cours.
+- **Aucun appareil n'y touche.** Les deux fonctions sont fermées à `anon` et
+  à `authenticated` ; seul le planificateur les appelle.
+
+Descendre à 30 jours, ou à 7, ne demande que de changer ce nombre — et
+`HISTORY_DAYS` côté application, qui le suit. 90 a été choisi pour qu'un
+parent rentrant de vacances retrouve ce qui s'est passé, et que « le mois
+dernier ? » ait une réponse.
+
+La politique de confidentialité et la FAQ disent désormais ce délai. C'était
+d'ailleurs la seule ligne du dossier qui promettait plus que nécessaire :
+« pendant toute la durée de l'abonnement ».
+
 ---
 
 ## 3. Ce que ça donne, mesuré
 
-`npm run test:charge` monte un PostgreSQL jetable, y applique les six fichiers
+`npm run test:charge` monte un PostgreSQL jetable, y applique les sept fichiers
 SQL du projet dans l'ordre de `db:push`, y écrit l'hypothèse du §1 — une année
 d'usage pour 10 000 familles, plus quelques familles de trois ans d'ancienneté
 — puis rejoue vingt-cinq fois chacune des requêtes de `load()`, **sous le rôle
@@ -289,16 +343,52 @@ minutes**, reconstruire les index **2 min 15**, l'analyse **20 s**. Une
 restauration de sauvegarde à 10 000 familles se compte donc en dizaines de
 minutes, pas en heures.
 
+### 3.5 Ce que la conservation change
+
+La même base, une fois `compact_ledger()` et `purge_history()` passés (§2.6) :
+
+| | avant | après |
+|---|---|---|
+| Lignes de journal | 66,1 M | **16,2 M** |
+| Grand livre replié | — | 24 917 100 lignes en **90 s** |
+| Missions faites et sessions effacées | — | 24 917 100 lignes en **106 s** |
+| Solde exact (famille de trois ans) | 13,33 ms | **8,44 ms** |
+| Ouverture complète | 18,2 ms | **14,0 ms** |
+
+Trois remarques, dont deux qui tempèrent le tableau.
+
+**Le gain immédiat est modeste, et c'est normal.** Un `VACUUM` ordinaire rend
+l'espace réutilisable ; il ne le rend pas au disque et ne resserre pas les
+lignes survivantes. Sur une base qui a *déjà* grossi à 20 Go, les 810 lignes
+restantes d'une famille restent éparpillées sur 810 pages. Le vrai bénéfice
+n'est pas dans cette colonne « après » : il est dans les colonnes qu'on ne
+verra jamais, celles de l'année 2 et de l'année 3.
+
+**Ce qui compte, c'est que ça cesse de monter.** Sans fenêtre, le grand livre
+d'une famille grandit indéfiniment et `family_balances()` avec lui — c'était la
+seule requête dont le prix suivait l'ancienneté. Avec, il se stabilise à
+90 jours : une famille de cinq ans coûtera ce que coûte une famille de trois
+mois. Le stockage suit la même bascule, **d'environ 20 Go par an sans fin à
+~5 Go en régime permanent.**
+
+**Le premier passage n'est pas comme les autres.** 90 secondes ici, pour rattraper
+275 jours de retard d'un coup. Chaque nuit, il n'y aura qu'une journée à
+replier — quelques secondes. Sur une base déjà ancienne, `retention.sql`
+explique comment y aller par fenêtres décroissantes plutôt qu'en une seule
+transaction.
+
 ---
 
 ## 4. Ce que ça coûte à 10 000 familles
 
 ### Base de données
 
-**20 Go par an**, mesurés (§3.1) et non plus estimés — le calcul disait 26.
-Après trois ans, ~60 Go. C'est le poste qui grossit, et il reste petit : chez
-Supabase, le stockage au-delà du quota inclus se facture aux alentours de
-0,10–0,15 €/Go/mois, soit **moins de dix euros par mois en troisième année**.
+**~5 Go en régime permanent**, et non plus 20 Go par an sans fin : la fenêtre
+de conservation du §2.6 arrête la croissance au bout de 90 jours. Sans elle,
+c'était 20 Go la première année (mesuré §3.1, contre 26 annoncés par le calcul)
+et ~60 Go après trois ans. Chez Supabase, le stockage au-delà du quota inclus
+se facture aux alentours de 0,10–0,15 €/Go/mois : ce poste ne dépassera pas
+**quelques euros par mois**, quelle que soit l'ancienneté du parc.
 
 ### Trafic sortant
 
@@ -346,9 +436,10 @@ reste de ce dossier.
 
 Rien de bloquant, mais quatre points à traiter dans l'ordre :
 
-1. **Appliquer les six fichiers SQL** sur le projet Supabase
-   (`SUPABASE_DB_URL=… npm run db:push`), et activer `pg_cron` pour les deux
-   purges. Sans cela, les corrections ci-dessus n'existent que dans le dépôt —
+1. **Appliquer les sept fichiers SQL** sur le projet Supabase
+   (`SUPABASE_DB_URL=… npm run db:push`), et activer `pg_cron` pour les
+   quatre travaux de nuit — les deux purges et les deux fonctions de
+   conservation. Sans cela, les corrections ci-dessus n'existent que dans le dépôt —
    et celle du §2.4 touche les politiques elles-mêmes, pas seulement les index :
    tant qu'elle n'est pas appliquée, c'est l'ancienne forme qui tourne.
 2. **Point de bascule ~1 000 familles** : activer les sauvegardes quotidiennes
@@ -369,9 +460,10 @@ Rien de bloquant, mais quatre points à traiter dans l'ordre :
 
 **Vérifié** : la borne d'historique et la reconstitution du solde sont couvertes
 par des tests automatisés ; l'ensemble compile et les tests passent. Le schéma
-entier s'applique et se réapplique sur un PostgreSQL nu, et les 96
-vérifications de `npm run test:sql` tiennent la frontière entre familles ainsi
-que le chemin d'accès (`plans.sql`).
+entier s'applique et se réapplique sur un PostgreSQL nu, et les 113
+vérifications de `npm run test:sql` tiennent la frontière entre familles
+(`rls.sql`), le chemin d'accès (`plans.sql`) et l'exactitude du solde après
+repli (`retention.sql`).
 
 **Mesuré** : §3, sur une base réellement remplie. C'est ce qui a mis au jour le
 défaut du §2.4, qu'aucune relecture n'avait vu.

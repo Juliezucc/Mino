@@ -246,8 +246,12 @@ const deviceToRow = (d: Device) => ({
  * What is *not* bounded: anything still waiting on someone. A mission completed
  * four months ago and never reviewed has to arrive, or it disappears from the
  * parent's screen without ever having been answered.
+ *
+ * Le même nombre que `mino_history_days()` dans `supabase/retention.sql` : la
+ * base ne garde plus le détail au-delà, il n'y aurait donc rien à demander de
+ * plus. Les deux se changent ensemble.
  */
-const HISTORY_DAYS = 120;
+const HISTORY_DAYS = 90;
 const HISTORY_MAX = 400;
 
 const since = (days: number) => new Date(Date.now() - days * 86_400_000).toISOString();

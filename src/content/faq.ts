@@ -326,6 +326,15 @@ export const FAQ: FaqEntry[] = [
     keywords: ['changer email', 'adresse mail', 'nouvelle adresse'],
   },
   {
+    id: 'duree-historique',
+    question: 'Combien de temps gardez-vous l’historique de mon enfant ?',
+    answer:
+      'Quatre-vingt-dix jours. Passé ce délai, le détail est effacé — quelle mission, quel jour, quel écran — et il ne reste que le total des minutes. Le compteur de votre enfant reste donc exact, mais nous ne conservons pas la trace de ce qu’il a fait il y a six mois. Nous n’en avons pas besoin, et un enfant n’a pas à traîner un dossier derrière lui.',
+    category: 'confidentialite',
+    keywords: ['historique', 'combien de temps', 'conservation', 'duree', 'garder', 'effacer', 'rgpd'],
+    route: '/legal/confidentialite',
+  },
+  {
     id: 'supprimer-compte',
     question: 'Comment supprimer mon compte et nos données ?',
     answer:

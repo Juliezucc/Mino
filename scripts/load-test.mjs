@@ -244,4 +244,45 @@ const sansIndex = fail(
 );
 console.log(sansIndex.stdout);
 
+// ------------------------------------------ 5. la fenêtre de conservation
+
+// Les index remis : la suite se mesure sur la base telle qu'elle tourne.
+await chrono('index remis', async () =>
+  fail('index remis', pg.query(indexes.filter((d) => SCALE.some((i) => d.includes(i))).join('; '))),
+);
+
+const fenetre = fail('fenêtre', pg.query('select mino_history_days()')).stdout.trim();
+console.log(`\n5. La même base, une fois l’historique replié à ${fenetre} jours.`);
+
+const efface = await chrono('repli du grand livre', async () =>
+  fail('repli', pg.query('select compact_ledger()')).stdout.trim(),
+);
+const purge = await chrono('effacement des missions faites et des sessions', async () =>
+  fail('purge', pg.query('select purge_history()')).stdout.trim(),
+);
+fail('analyze', pg.query('vacuum analyze'));
+
+const restant = fail(
+  'lignes restantes',
+  pg.query(`select sum(n_live_tup)::bigint from pg_stat_user_tables
+            where relname in ('screen_time_transactions','mission_completions','screen_time_sessions')`),
+).stdout.trim();
+
+console.log(`   lignes de grand livre repliées : ${Number(efface).toLocaleString('fr-FR')}`);
+console.log(`   missions faites et sessions effacées : ${Number(purge).toLocaleString('fr-FR')}`);
+console.log(`   lignes de journal restantes : ${Number(restant).toLocaleString('fr-FR')}`);
+// `pg_database_size` ne bougera pas, et c'est normal : un VACUUM ordinaire rend
+// l'espace réutilisable, il ne le rend pas au disque. Ce qui compte est le
+// régime permanent — la base cesse de grandir, elle ne rétrécit pas d'un coup.
+console.log(
+  '   base sur le disque, inchangée (l’espace est libéré pour la suite, pas rendu) : ' +
+    fail('taille', pg.query("select pg_size_pretty(pg_database_size('mino'))")).stdout.trim(),
+);
+
+const apresRepli = fail(
+  'mesures après repli',
+  pg.file('supabase/test/bench.sql', { famille: 1, runs, rang_min: 0, rang_max: 99 }),
+);
+console.log(apresRepli.stdout);
+
 pg.stop();

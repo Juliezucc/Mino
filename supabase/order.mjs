@@ -16,4 +16,5 @@ export const SQL_FILES = [
   ['analytics.sql', 'journal de facturation et vues'],
   ['store.sql', 'achats App Store et Play Store'],
   ['companion.sql', 'budget et conversations de Mino'],
+  ['retention.sql', 'ce qu’on garde, et combien de temps'],
 ];

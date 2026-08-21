@@ -63,13 +63,15 @@ try {
   // `plans.sql` doit venir après `rls.sql` : il se sert de la famille que
   // celui-ci a créée, et lui emprunte son parent.
   const plans = pg.file('supabase/test/plans.sql');
-  const lines = `${out.stderr}${companion.stderr}${realtime.stderr}${plans.stderr}`
+  // `retention.sql` emprunte `assert` et `refuses` à `rls.sql`, comme les autres.
+  const retention = pg.file('supabase/test/retention.sql');
+  const lines = `${out.stderr}${companion.stderr}${realtime.stderr}${plans.stderr}${retention.stderr}`
     .split('\n')
     .filter((l) => l.includes('ok ·') || l.includes('ÉCHEC'))
     .map((l) => l.replace(/^.*NOTICE:\s+/, '').replace(/^.*ERROR:\s+/, '❌ '));
   console.log(lines.join('\n'));
 
-  if (out.status !== 0 || companion.status !== 0 || realtime.status !== 0 || plans.status !== 0) {
+  if (out.status !== 0 || companion.status !== 0 || realtime.status !== 0 || plans.status !== 0 || retention.status !== 0) {
     console.error('\nUne tentative est passée. Voir ci-dessus.');
     process.exit(1);
   }

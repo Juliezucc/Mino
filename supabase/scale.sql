@@ -132,6 +132,24 @@ declare
   v_row    record;
   v_family text;
 begin
+  /**
+   * Le ménage ne réveille personne.
+   *
+   * Ce déclencheur émet un message par ligne écrite — c'est ce qu'il doit
+   * faire quand un enfant termine une mission. Mais `compact_ledger()` efface
+   * des millions de lignes anciennes d'un coup : sans cette porte, la purge
+   * nocturne enverrait des millions de messages et réveillerait les appareils
+   * de toutes les familles pour leur annoncer que leur historique d'il y a un
+   * an a été rangé. Personne n'a besoin de le savoir, et surtout pas à trois
+   * heures du matin.
+   *
+   * `set local` : la porte ne vaut que pour la transaction qui la pose. Une
+   * écriture ordinaire d'un parent, au même instant, diffuse normalement.
+   */
+  if current_setting('mino.silence', true) = 'on' then
+    if tg_op = 'DELETE' then return old; else return new; end if;
+  end if;
+
   if tg_op = 'DELETE' then v_row := old; else v_row := new; end if;
 
   if tg_table_name = 'mission_assignments' then

@@ -220,7 +220,8 @@ export const PRIVACY: LegalDocument = {
         {
           kind: 'rows',
           rows: [
-            { label: 'Compte et contenu familial', value: 'Pendant toute la durée de l’abonnement, puis 3 ans après la dernière activité — ou immédiatement, si vous demandez la suppression.' },
+            { label: 'Compte, enfants, missions', value: 'Pendant toute la durée de l’abonnement, puis 3 ans après la dernière activité — ou immédiatement, si vous demandez la suppression.' },
+            { label: 'Historique détaillé (missions faites, minutes dépensées)', value: '90 jours. Au-delà, le détail est effacé et seul le total des minutes est conservé : le compteur de votre enfant reste juste, mais nous ne gardons pas la trace de ce qu’il a fait il y a six mois.' },
             { label: 'Factures', value: '10 ans, conformément aux obligations comptables françaises.' },
             { label: 'Conversations avec Mino', value: '30 jours, puis effacement automatique.' },
             { label: 'Journaux techniques', value: '12 mois au maximum.' },
