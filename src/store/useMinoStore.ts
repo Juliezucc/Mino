@@ -45,6 +45,17 @@ interface MinoState {
   lastError: string | null;
 
   /**
+   * Le serveur n'a pas répondu au démarrage.
+   *
+   * À distinguer absolument de « cette famille n'existe pas » : sans cette
+   * nuance, un parent dont le réseau a hoqueté retomberait sur « Créer mon
+   * compte », c'est-à-dire sur l'écran qui lui annonce que sa famille a
+   * disparu. Voir `app/hors-ligne.tsx`.
+   */
+  offline: boolean;
+  retry: () => Promise<void>;
+
+  /**
    * Billing lives outside the family document on purpose: it belongs to the
    * payment provider, not to the family's own content, and the app only ever
    * mirrors what the provider says.
@@ -247,6 +258,20 @@ export const useMinoStore = create<MinoState>((set, get) => {
         upsert: outcome.upsert,
         deleteChildId: outcome.deleteChildId,
       });
+    } catch (error) {
+      // Le serveur n'a pas pris l'écriture : on remet exactement l'état
+      // d'avant. Sans cela l'enfant voit son compteur monter de quinze
+      // minutes qui n'existent nulle part, et qui disparaîtront à la première
+      // lecture réussie — c'est la dispute que tout ce produit existe pour
+      // éviter. Mieux vaut ne rien promettre que promettre puis reprendre.
+      set({
+        data: current,
+        lastError:
+          error instanceof actions.DomainError
+            ? error.message
+            : 'Impossible de joindre Mino. Rien n’a été enregistré — réessayez dans un instant.',
+      });
+      throw error;
     } finally {
       writing -= 1;
     }
@@ -285,6 +310,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     activeChildId: null,
     parentUnlocked: false,
     lastError: null,
+    offline: false,
     subscription: null,
     referrals: [],
     device: NO_DEVICE_PROFILE,
@@ -299,9 +325,27 @@ export const useMinoStore = create<MinoState>((set, get) => {
       // rendu, et un profil qui arrive une frame trop tard fait clignoter
       // « Qui utilise Mino ? » avant de l'escamoter.
       const device = await readDeviceProfile();
-      const data = await migrateLegacyPin(await get().repository.load(), get().repository);
-      publish(data, { status: 'ready', device });
+
+      // Le réseau tombe pour les raisons les plus banales : un ascenseur, un
+      // sous-sol, une voiture. Laisser la promesse rejeter laissait
+      // l'application sur son écran de démarrage, pour toujours et sans un
+      // mot — `app/_layout.tsx` attend `status === 'ready'` pour l'escamoter.
+      let data: FamilyData | null = null;
+      let offline = false;
+      try {
+        data = await migrateLegacyPin(await get().repository.load(), get().repository);
+      } catch {
+        offline = true;
+      }
+
+      publish(data, { status: 'ready', device, offline });
       if (data) await get().loadBilling();
+    },
+
+    /** Réessayer après une coupure, sans redémarrer l'application. */
+    async retry() {
+      set({ status: 'loading', lastError: null });
+      await get().bootstrap();
     },
 
     async startDemo() {

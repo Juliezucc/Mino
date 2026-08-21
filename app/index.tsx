@@ -6,8 +6,11 @@ import { useMinoStore } from '@/store/useMinoStore';
 /**
  * Où l'on arrive en ouvrant Mino.
  *
- * Trois cas, dans cet ordre :
+ * Quatre cas, dans cet ordre :
  *
+ *   0. le serveur n'a pas répondu → l'écran hors ligne, et surtout PAS
+ *      l'accueil : proposer « Créer mon compte » à quelqu'un qui en a déjà un
+ *      lui annonce que sa famille a disparu ;
  *   1. pas de famille → l'accueil ;
  *   2. un profil à reprendre → directement dedans. C'est le cas courant, et
  *      celui qui compte le plus : un enfant qui rouvre son application n'a
@@ -21,6 +24,7 @@ import { useMinoStore } from '@/store/useMinoStore';
 export default function Index() {
   const status = useMinoStore((s) => s.status);
   const data = useMinoStore((s) => s.data);
+  const offline = useMinoStore((s) => s.offline);
   const activeChildId = useMinoStore((s) => s.activeChildId);
   const resumeChildId = useMinoStore((s) => s.resumeChildId);
   const selectChild = useMinoStore((s) => s.selectChild);
@@ -38,6 +42,10 @@ export default function Index() {
   // trop tôt ferait apparaître le sélecteur une fraction de seconde avant de
   // l'escamoter.
   if (status !== 'ready') return null;
+  // L'ordre de ces deux lignes est tout : « pas de réseau » d'abord, « pas de
+  // famille » ensuite. Inversés, un parent hors ligne se voit proposer de
+  // créer le compte qu'il a déjà.
+  if (offline) return <Redirect href="/hors-ligne" />;
   if (!data) return <Redirect href="/welcome" />;
 
   if (resume) return activeChildId === resume ? <Redirect href="/child" /> : null;
