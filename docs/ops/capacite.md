@@ -91,11 +91,12 @@ une application qui met plusieurs secondes à s'ouvrir chez les familles les plu
 fidèles. La punition frappe exactement les meilleurs clients.
 
 **Corrigé** : l'appareil ne charge que 90 jours, plafonnés à 400 lignes par
-table — c'est le plafond qui borne vraiment, soit **~150 à 400 Ko par
-ouverture**, stable quelle que soit l'ancienneté de la famille. Environ
-**360 Go/mois** pour toute la plateforme. (Depuis le §2.6, la base elle-même ne
-garde plus le détail au-delà de ces 90 jours : les deux nombres sont le même,
-et se changent ensemble.)
+table — c'est le plafond qui borne vraiment. Mesuré au §3.6 : **326,7 Ko de
+JSON, 10,5 Ko une fois compressés**, stable quelle que soit l'ancienneté de la
+famille. Environ **20 Go/mois** pour toute la plateforme, et non les 360 que
+ce document annonçait avant de les mesurer. (Depuis le §2.6, la base elle-même
+ne garde plus le détail au-delà de ces 90 jours : les deux nombres sont le
+même, et se changent ensemble.)
 
 Deux précautions, parce qu'une troncature naïve casserait le produit :
 
@@ -343,6 +344,43 @@ minutes**, reconstruire les index **2 min 15**, l'analyse **20 s**. Une
 restauration de sauvegarde à 10 000 familles se compte donc en dizaines de
 minutes, pas en heures.
 
+### 3.6 Ce qui part vraiment sur le fil
+
+Le trafic sortant était le dernier chiffre du dossier à n'être qu'une
+estimation — et c'est celui qui décide du plan Supabase. Mesuré : les onze
+requêtes de `load()` pour une famille de trois ans, sérialisées en JSON comme
+le fait PostgREST, puis compressées comme le fait tout serveur HTTP.
+
+| | Octets |
+|---|---|
+| JSON brut, une ouverture | **326,7 Ko** |
+| gzip | **10,5 Ko** — 31× |
+| brotli | 5,4 Ko — 61× |
+
+**Trente et une fois.** Un journal de missions est le cas idéal pour un
+compresseur : quatre cents lignes qui répètent les mêmes noms de colonnes, les
+mêmes identifiants de famille, les mêmes libellés, les mêmes montants. Le
+dossier annonçait « ~150 à 400 Ko par ouverture » — c'est vrai avant
+compression, et faux sur le fil.
+
+Ce qui suit change donc d'un ordre de grandeur :
+
+| | annoncé | mesuré |
+|---|---|---|
+| Par famille et par mois | — | **2,0 Mo** |
+| 10 000 familles | ~360 Go/mois | **~20 Go/mois** |
+
+La famille observée est la plus lourde possible : trois ans d'ancienneté, les
+trois fenêtres au plafond de 400 lignes. Une famille jeune pèse moins.
+
+**Réserve, et elle est de taille** : ce calcul suppose que la réponse voyage
+compressée. C'est le cas en pratique — les piles réseau d'iOS et d'Android
+annoncent `gzip` d'elles-mêmes et décompressent sans que l'application le
+sache — mais si pour une raison quelconque la compression ne s'appliquait pas,
+il faudrait relire 326,7 Ko et non 10,5, et multiplier la facture par trente.
+C'est la première chose à vérifier sur le vrai projet : l'en-tête
+`content-encoding` d'une réponse réelle.
+
 ### 3.5 Ce que la conservation change
 
 La même base, une fois `compact_ledger()` et `purge_history()` passés (§2.6) :
@@ -392,8 +430,10 @@ se facture aux alentours de 0,10–0,15 €/Go/mois : ce poste ne dépassera pas
 
 ### Trafic sortant
 
-~360 Go/mois après correction. Le quota inclus de l'offre Pro en couvre une
-bonne partie ; le dépassement est de l'ordre de **10 à 20 €/mois**.
+**~20 Go/mois**, mesurés (§3.6) — le dossier annonçait 360 avant de compter la
+compression. C'est **à l'intérieur du quota inclus de l'offre Pro**, donc un
+poste à **zéro euro** tant que le parc ne dépasse pas très largement les
+10 000 familles.
 
 *Sans la correction 2.2, ce même poste dépassait 400 €/mois en troisième
 année.*

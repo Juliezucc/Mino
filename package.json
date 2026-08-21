@@ -10,6 +10,7 @@
     "test": "jest",
     "test:sql": "node scripts/test-sql.mjs",
     "test:charge": "node scripts/load-test.mjs",
+    "test:trafic": "node scripts/egress.mjs",
     "db:push": "node scripts/db-push.mjs",
     "db:bundle": "node scripts/db-bundle.mjs",
     "audit:a11y": "node scripts/audit-a11y.mjs",
