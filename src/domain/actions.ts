@@ -193,7 +193,19 @@ export function archiveMission(data: FamilyData, missionId: ID): FamilyData {
  */
 export function completeMission(
   data: FamilyData,
-  params: { childId: ID; missionId: ID },
+  params: {
+    childId: ID;
+    missionId: ID;
+    /**
+     * À faux, une mission qui se compte d'elle-même redevient une mission
+     * ordinaire, en attente de confirmation.
+     *
+     * C'est ce que fait l'abonnement expiré (`domain/access`) : l'enfant ne
+     * rencontre pas de mur, il voit « ton parent confirme », une phrase qu'il
+     * connaît déjà. Les minutes l'attendent chez son parent.
+     */
+    autoApproveAllowed?: boolean;
+  },
   now: Date = new Date(),
 ): { data: FamilyData; completion: MissionCompletion; transaction?: ScreenTimeTransaction } {
   const mission = data.missions.find((m) => m.id === params.missionId);
@@ -224,7 +236,7 @@ export function completeMission(
   // déclare — et la transaction est écrite dans la même opération, comme pour
   // une validation par un parent. Il n'existe aucun chemin qui crédite des
   // minutes sans laisser de ligne au registre.
-  const auto = mission.autoApprove === true;
+  const auto = mission.autoApprove === true && params.autoApproveAllowed !== false;
 
   const completion: MissionCompletion = {
     id: createId('cmp'),

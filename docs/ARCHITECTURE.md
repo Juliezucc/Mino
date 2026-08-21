@@ -6,7 +6,7 @@ choses qui ne doivent pas être cassées.
 
 ---
 
-## Les cinq règles
+## Les six règles
 
 Elles ne sont pas des préférences de style. Chacune protège quelque chose, et
 chacune est vérifiée par des tests.
@@ -36,7 +36,7 @@ toujours le vrai solde (`__tests__/history.test.ts`).
 
 `src/domain/` ne contient que des fonctions `(données, entrée) → nouvelles
 données`. Aucun appel réseau, aucun accès au stockage, aucun composant. C'est ce
-qui rend les règles testables sans lancer l'application — 197 tests en 3
+qui rend les règles testables sans lancer l'application — 204 tests en 3
 secondes.
 
 Le store appelle une fonction pure, persiste le résultat, publie le nouvel état.
@@ -86,7 +86,25 @@ Conséquence utile : l'application tourne entièrement sans backend, ce qui perm
 de la faire essayer sans rien installer, et de tester le parcours complet sans
 compte Stripe.
 
-### 5. Le temps de l'enfant ne se voit pas en minutes
+### 5. La pression tombe sur l'adulte, jamais sur l'enfant
+
+Quand l'abonnement se termine, ce qui s'arrête est **la main du parent** :
+confirmer, créer une mission, offrir des minutes, lancer un autre écran.
+C'est-à-dire exactement ce pour quoi il paie.
+
+Ce qui ne s'arrête jamais : les minutes déjà gagnées, que l'enfant continue de
+dépenser, et sa capacité à déclarer ses missions — elles s'empilent en attente,
+et le jour où le parent reprend, elles sont toutes là. Une mission qui se
+comptait toute seule redevient simplement une mission ordinaire : l'enfant voit
+« ton parent confirme », une phrase qu'il connaît déjà, pas une pancarte
+d'abonnement. Un enfant n'a pas choisi le moyen de paiement de ses parents.
+
+Le verrou ne se ferme que sur un **fait connu** : un abonnement inconnu — la
+facturation n'a pas répondu, ou pas encore — laisse tout passer. Quelques jours
+offerts par erreur coûtent moins qu'un parent qui paie et se retrouve dehors
+parce que son train est passé sous un tunnel. Voir `domain/access`.
+
+### 6. Le temps de l'enfant ne se voit pas en minutes
 
 Jusqu'à 13 ans, l'unité affichée est le **mino** — une minute, toujours, jamais
 achetable. Au-delà, ce sont des minutes. Tout passe par `formatTime(minutes,
@@ -121,7 +139,7 @@ supabase/
                       store-purchase, store-notifications
 docs/                 ce dossier
 scripts/              génération : visuels, guide, FAQ, licences
-__tests__/            197 tests
+__tests__/            204 tests
 ```
 
 ---
@@ -190,7 +208,7 @@ minutes**, et il tient à quatre garde-fous côté base, tous vérifiés par
 
 ```bash
 npm run typecheck   # TypeScript strict, zéro erreur attendue
-npm test            # 197 tests
+npm test            # 204 tests
 npm run test:sql    # applique le schéma sur un PostgreSQL jetable et l'attaque
 npm run audit:a11y  # mesure surfaces tactiles et contrastes sur le rendu réel
 npm run licences    # aucune licence contaminante embarquée

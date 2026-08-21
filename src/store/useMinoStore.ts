@@ -13,6 +13,7 @@ import {
 } from '@/data/deviceProfile';
 import { createSupabaseRepository } from '@/data/supabaseRepository';
 import * as actions from '@/domain/actions';
+import { GatedAction, LOCKED_MESSAGE, isLocked } from '@/domain/access';
 import { Plan, Referral, Subscription } from '@/domain/billing';
 import { DeviceKind } from '@/domain/devices';
 import { AvatarKey, FamilyData, ID, RepeatRule } from '@/domain/types';
@@ -112,7 +113,16 @@ interface MinoState {
   ) => Promise<void>;
   archiveMission: (missionId: ID) => Promise<void>;
 
-  completeMission: (childId: ID, missionId: ID) => Promise<ID>;
+  /**
+   * Renvoie ce qui s'est réellement passé, pas ce qui était prévu.
+   *
+   * `counted` dit si les minutes sont arrivées tout de suite. L'écran s'appuyait
+   * jusqu'ici sur `mission.autoApprove`, c'est-à-dire sur le réglage — et le
+   * jour où le réglage et le résultat ont divergé (abonnement terminé, la
+   * mission redevient ordinaire), il a félicité un enfant pour « +0 MINO »,
+   * confettis compris.
+   */
+  completeMission: (childId: ID, missionId: ID) => Promise<{ id: ID; counted: boolean }>;
   approveCompletion: (completionId: ID) => Promise<void>;
   rejectCompletion: (completionId: ID) => Promise<void>;
   markCelebrated: (completionId: ID) => Promise<void>;
@@ -203,6 +213,20 @@ export const useMinoStore = create<MinoState>((set, get) => {
   function publish(data: FamilyData | null, rest: Partial<MinoState> = {}) {
     set({ data, ...rest } as Partial<MinoState>);
     watch(data);
+  }
+
+  /**
+   * Ce que l'abonnement autorise encore.
+   *
+   * Posé ici et pas dans les écrans : le store est le seul chemin d'écriture,
+   * donc le seul endroit où un verrou ne peut pas être contourné en appelant
+   * la fonction d'à côté. Voir `domain/access` pour ce qui est verrouillé, et
+   * surtout pour ce qui ne l'est jamais.
+   */
+  function requireAccess(action: GatedAction) {
+    if (isLocked(get().subscription, action)) {
+      throw new actions.DomainError(LOCKED_MESSAGE);
+    }
   }
 
   /** Runs a pure domain transition, persists it, publishes it. */
@@ -396,6 +420,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async addChild(input) {
+      requireAccess('child.write');
       const id = await commit<ID>('child.created', (data) => {
         const out = actions.createChild(data, input);
         return { data: out.data, result: out.child.id, upsert: { children: [out.child] } };
@@ -404,6 +429,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async editChild(childId, patch) {
+      requireAccess('child.write');
       await commit('child.updated', (data) => {
         const next = actions.updateChild(data, childId, patch);
         const child = next.children.find((c) => c.id === childId);
@@ -420,6 +446,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async addMission(input) {
+      requireAccess('mission.write');
       const parentId = get().data?.parents[0]?.id ?? 'unknown';
       const id = await commit<ID>('mission.created', (data) => {
         const out = actions.createMission(data, { ...input, createdBy: parentId });
@@ -434,6 +461,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async editMission(missionId, patch) {
+      requireAccess('mission.write');
       await commit('mission.updated', (data) => {
         const next = actions.updateMission(data, missionId, patch);
         const mission = next.missions.find((m) => m.id === missionId);
@@ -442,6 +470,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async archiveMission(missionId) {
+      requireAccess('mission.write');
       await commit('mission.archived', (data) => {
         const next = actions.archiveMission(data, missionId);
         const mission = next.missions.find((m) => m.id === missionId);
@@ -456,8 +485,12 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async completeMission(childId, missionId) {
+      // Volontairement sans `requireAccess` : un enfant déclare toujours ce
+      // qu'il a fait. Seul le crédit immédiat s'arrête — la mission attend
+      // alors une confirmation, comme n'importe quelle autre.
+      const autoApproveAllowed = !isLocked(get().subscription, 'confirm');
       const out = await commit<{ id: ID; counted: boolean }>('completion.created', (data) => {
-        const next = actions.completeMission(data, { childId, missionId });
+        const next = actions.completeMission(data, { childId, missionId, autoApproveAllowed });
         return {
           data: next.data,
           result: { id: next.completion.id, counted: !!next.transaction },
@@ -484,10 +517,11 @@ export const useMinoStore = create<MinoState>((set, get) => {
             : notify.missionCompleted(child, mission),
         );
       }
-      return out!.id;
+      return { id: out!.id, counted: !!out?.counted };
     },
 
     async approveCompletion(completionId) {
+      requireAccess('confirm');
       const parentId = get().data?.parents[0]?.id ?? 'unknown';
       await commit('completion.approved', (data) => {
         const out = actions.approveCompletion(data, { completionId, parentId });
@@ -563,6 +597,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async approveSession(sessionId) {
+      requireAccess('other-screen');
       await commit('session.started', (data) => {
         const out = actions.approveSession(data, { sessionId });
         return { data: out.data, upsert: { sessions: [out.session] } };
@@ -600,6 +635,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async adjustBalance(childId, delta, reason) {
+      requireAccess('grant');
       await commit('balance.adjusted', (data) => {
         const next = actions.adjustBalance(data, { childId, delta, reason });
         return { data: next, upsert: { transactions: next.transactions.slice(-1) } };
@@ -607,6 +643,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async grantBonus(childId, minutes, reason) {
+      requireAccess('grant');
       await commit('balance.adjusted', (data) => {
         const next = actions.grantBonus(data, { childId, minutes, reason });
         return { data: next, upsert: { transactions: next.transactions.slice(-1) } };

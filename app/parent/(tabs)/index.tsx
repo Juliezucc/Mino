@@ -16,6 +16,8 @@ import {
 } from '@/components/ui';
 import { balanceDetail } from '@/domain/ledger';
 import { isFirstRun } from '@/domain/firstRun';
+import { accessOf } from '@/domain/billing';
+import { AccessBanner } from '@/features/parent/AccessBanner';
 import { FirstStepCard } from '@/features/parent/FirstStepCard';
 import { RequestCard } from '@/features/parent/RequestCard';
 import { ScreenRequestCard } from '@/features/parent/ScreenRequestCard';
@@ -43,6 +45,7 @@ export default function ParentHome() {
   const approveSession = useMinoStore((s) => s.approveSession);
   const refuseSession = useMinoStore((s) => s.refuseSession);
   const endSession = useMinoStore((s) => s.endSession);
+  const subscription = useMinoStore((s) => s.subscription);
 
   if (!data) return null;
 
@@ -55,6 +58,7 @@ export default function ParentHome() {
     .slice(0, 6);
 
   const firstStep = isFirstRun(data);
+  const access = accessOf(subscription);
 
   return (
     <Screen contentStyle={styles.content}>
@@ -73,6 +77,10 @@ export default function ParentHome() {
         </View>
         <Mascot expression={waiting > 0 ? 'motivated' : 'happy'} size={72} />
       </View>
+
+      {/* Un verrou qu'on découvre en appuyant sur un bouton met en colère :
+          celui-là s'annonce ici, avant de gêner. */}
+      <AccessBanner access={access} />
 
       {/* Avant la première minute gagnée, la seule chose utile à dire est ce
           qui vient après. Voir `FirstStepCard`. */}

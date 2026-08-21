@@ -1,5 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { REFERRAL, Plan, Referral, Subscription, addMonths, startTrial } from '@/domain/billing';
 import { ID } from '@/domain/types';
+
+const STORAGE_KEY = 'mino.billing.local.v1';
 
 import { BillingService, CheckoutOutcome } from './BillingService';
 
@@ -17,14 +21,50 @@ export class LocalBillingService implements BillingService {
 
   private readonly subscriptions = new Map<ID, Subscription>();
   private readonly referrals: Referral[] = [];
+  private loaded = false;
 
   /** Seeds a family's state, for the demo and for tests. */
   set(sub: Subscription) {
     this.subscriptions.set(sub.familyId, sub);
+    void this.save();
+  }
+
+  /**
+   * L'abonnement survit à la fermeture de l'application.
+   *
+   * Il ne survivait pas : la carte vivait en mémoire, donc l'essai repartait à
+   * trente jours à chaque ouverture, et **un essai terminé était impossible à
+   * voir hors ligne**. Autrement dit, le seul état où l'abonnement change
+   * quelque chose était le seul qu'on ne pouvait pas éprouver — exactement le
+   * genre d'angle mort qui envoie une régression en production.
+   */
+  private async load(): Promise<void> {
+    if (this.loaded) return;
+    this.loaded = true;
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      for (const sub of JSON.parse(raw) as Subscription[]) {
+        this.subscriptions.set(sub.familyId, sub);
+      }
+    } catch {
+      /* un état corrompu ne doit pas empêcher l'application de démarrer */
+    }
+  }
+
+  private async save(): Promise<void> {
+    await AsyncStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([...this.subscriptions.values()]),
+    ).catch(() => undefined);
   }
 
   async getSubscription(familyId: ID): Promise<Subscription | null> {
-    if (!this.subscriptions.has(familyId)) this.subscriptions.set(familyId, startTrial(familyId));
+    await this.load();
+    if (!this.subscriptions.has(familyId)) {
+      this.subscriptions.set(familyId, startTrial(familyId));
+      await this.save();
+    }
     return this.subscriptions.get(familyId) ?? null;
   }
 
@@ -43,6 +83,7 @@ export class LocalBillingService implements BillingService {
       creditMonths: 0,
       cancelAtPeriodEnd: false,
     });
+    await this.save();
     return { kind: 'done' };
   }
 
@@ -54,6 +95,7 @@ export class LocalBillingService implements BillingService {
     const current = (await this.getSubscription(familyId))!;
     const next = { ...current, cancelAtPeriodEnd: true };
     this.subscriptions.set(familyId, next);
+    await this.save();
     return next;
   }
 
@@ -61,6 +103,7 @@ export class LocalBillingService implements BillingService {
     const current = (await this.getSubscription(familyId))!;
     const next = { ...current, cancelAtPeriodEnd: false };
     this.subscriptions.set(familyId, next);
+    await this.save();
     return next;
   }
 
@@ -87,6 +130,7 @@ export class LocalBillingService implements BillingService {
       ).toISOString(),
     };
     this.subscriptions.set(familyId, next);
+    await this.save();
     return { ok: true, subscription: next };
   }
 }

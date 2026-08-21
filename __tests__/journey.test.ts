@@ -50,7 +50,7 @@ describe('mission → validation → minutes', () => {
     expect(mine!.state).toBe('todo');
 
     // 3. Noah taps "J'ai terminé" — no minutes yet, just a request.
-    const completionId = await store().completeMission(noah.id, missionId);
+    const { id: completionId } = await store().completeMission(noah.id, missionId);
     expect(balance()).toBe(35);
     expect(
       missionsForChild(useMinoStore.getState().data!, noah.id).find(
@@ -98,7 +98,7 @@ describe('mission → validation → minutes', () => {
       childIds: [noah.id],
     });
 
-    const completionId = await store().completeMission(noah.id, missionId);
+    const { id: completionId } = await store().completeMission(noah.id, missionId);
     await store().rejectCompletion(completionId);
 
     const data = useMinoStore.getState().data!;
@@ -122,7 +122,7 @@ describe('mission → validation → minutes', () => {
       repeat: { kind: 'daily' },
       childIds: [noah.id],
     });
-    const completionId = await store().completeMission(noah.id, missionId);
+    const { id: completionId } = await store().completeMission(noah.id, missionId);
 
     await store().approveCompletion(completionId);
     await expect(store().approveCompletion(completionId)).rejects.toThrow();
@@ -404,5 +404,37 @@ describe('le code parent, selon l’appareil', () => {
   it('demande simplement le code dès qu’il existe, où que l’on soit', () => {
     expect(parentGate({ hasPin: true, onChildDevice: true })).toBe('enter');
     expect(parentGate({ hasPin: true, onChildDevice: false })).toBe('enter');
+  });
+});
+
+describe('ce que l’enfant voit quand l’abonnement est fini', () => {
+  /**
+   * Trouvé en conduisant : l'écran de mission décidait de fêter d'après
+   * `mission.autoApprove`, c'est-à-dire d'après le réglage. Le jour où le
+   * réglage et le résultat divergent — abonnement terminé, la mission redevient
+   * ordinaire — un enfant a été félicité pour « +0 MINO », confettis compris.
+   */
+  it('rend « counted » faux quand rien n’a été crédité', () => {
+    const base = buildDemoFamily(new Date('2026-08-20T09:00:00.000Z'));
+    const auto = base.missions.find((m) => m.autoApprove)!;
+    const enfant = base.assignments.find((a) => a.missionId === auto.id)!.childId;
+    const demain = new Date('2026-08-21T09:00:00.000Z');
+
+    const credite = actions.completeMission(
+      base,
+      { childId: enfant, missionId: auto.id, autoApproveAllowed: true },
+      demain,
+    );
+    const enAttente = actions.completeMission(
+      base,
+      { childId: enfant, missionId: auto.id, autoApproveAllowed: false },
+      demain,
+    );
+
+    // C'est exactement ce booléen que l'écran doit regarder pour fêter, et pas
+    // le réglage de la mission.
+    expect(!!credite.transaction).toBe(true);
+    expect(!!enAttente.transaction).toBe(false);
+    expect(enAttente.completion.minutesAwarded).toBe(0);
   });
 });

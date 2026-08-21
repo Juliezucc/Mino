@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Avatar, Card, Text } from '@/components/ui';
 import { MissionCompletion } from '@/domain/types';
 import { useChild, useFamily } from '@/store/selectors';
+import { isLocked } from '@/domain/access';
 import { useMinoStore } from '@/store/useMinoStore';
 import { accentFor, colors, radii, spacing } from '@/theme';
 
@@ -56,6 +57,10 @@ export function RequestCard({ completion }: Props) {
   const child = useChild(completion.childId);
   const approve = useMinoStore((s) => s.approveCompletion);
   const reject = useMinoStore((s) => s.rejectCompletion);
+  // Un bouton qui refuse est pire qu'un bouton éteint : on le voit, on appuie,
+  // et l'application dit non. La bannière en haut de l'écran porte déjà
+  // l'explication et le bouton qui la résout.
+  const locked = useMinoStore((s) => isLocked(s.subscription, 'confirm'));
   const [busy, setBusy] = useState<'approve' | 'reject' | null>(null);
 
   const mission = data?.missions.find((m) => m.id === completion.missionId);
@@ -69,6 +74,11 @@ export function RequestCard({ completion }: Props) {
     try {
       if (action === 'approve') await approve(completion.id);
       else await reject(completion.id);
+    } catch {
+      // Le refus d'un abonnement fini remonte jusqu'ici. Il est déjà expliqué
+      // par la bannière, en haut de l'écran, et les boutons sont désactivés :
+      // rien de plus à dire, mais surtout rien à laisser passer en erreur
+      // technique.
     } finally {
       setBusy(null);
     }
@@ -107,7 +117,7 @@ export function RequestCard({ completion }: Props) {
       <View style={styles.actions}>
         <Pressable
           onPress={() => run('reject')}
-          disabled={busy !== null}
+          disabled={busy !== null || locked}
           accessibilityRole="button"
           accessibilityLabel={`${child.firstName} : « ${mission.title} » n’est pas faite, la mission repart dans sa liste et aucune minute n’est ajoutée.`}
           style={({ pressed }) => [
@@ -130,7 +140,7 @@ export function RequestCard({ completion }: Props) {
             carte — hésitation qui se paie en missions validées sans regarder. */}
         <Pressable
           onPress={() => run('approve')}
-          disabled={busy !== null}
+          disabled={busy !== null || locked}
           accessibilityRole="button"
           accessibilityLabel={`Oui, ${child.firstName} a fait « ${mission.title} » : lui ajouter ${minutes} minutes.`}
           style={({ pressed }) => [

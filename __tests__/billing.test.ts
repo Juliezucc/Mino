@@ -17,6 +17,10 @@ import {
   sellerOf,
   startTrial,
 } from '@/domain/billing';
+import * as actions from '@/domain/actions';
+import { isLocked } from '@/domain/access';
+import { buildDemoFamily } from '@/data/demo';
+import { balanceOf } from '@/domain/ledger';
 
 const NOW = new Date('2026-08-20T10:00:00.000Z');
 const days = (n: number) => new Date(NOW.getTime() + n * 24 * 60 * 60 * 1000).toISOString();
@@ -229,5 +233,74 @@ describe('achat natif et achat web', () => {
     // L'essai est accordé par nous, pas par une boutique : c'est ce qui permet
     // aux 60 jours du parrainage d'exister sans dépendre d'Apple.
     expect(startTrial('f1').source).toBeUndefined();
+  });
+});
+
+describe('ce qui s’arrête quand plus personne ne paie', () => {
+  const jour = 24 * 60 * 60 * 1000;
+  const maintenant = new Date('2026-08-20T09:00:00.000Z');
+
+  const essai = (joursRestants: number): Subscription => ({
+    ...startTrial('fam-1', maintenant),
+    trialEndsAt: new Date(maintenant.getTime() + joursRestants * jour).toISOString(),
+  });
+
+  it('ne verrouille rien pendant l’essai', () => {
+    expect(isLocked(essai(3), 'confirm', maintenant)).toBe(false);
+  });
+
+  it('verrouille la main du parent une fois l’essai fini', () => {
+    const fini = essai(-1);
+    for (const action of ['confirm', 'mission.write', 'child.write', 'grant', 'other-screen'] as const) {
+      expect(isLocked(fini, action, maintenant)).toBe(true);
+    }
+  });
+
+  it('ne verrouille pas un prélèvement qui a échoué', () => {
+    // Une carte expirée n'est pas une famille qui part : couper au premier
+    // échec ferait perdre des familles qui voulaient rester.
+    const impaye: Subscription = { ...essai(-1), status: 'past_due' };
+    expect(isLocked(impaye, 'confirm', maintenant)).toBe(false);
+  });
+
+  it('ne verrouille pas quand l’abonnement est inconnu', () => {
+    // `null`, c'est « la facturation n'a pas encore répondu » aussi bien que
+    // « elle ne répond pas ». Verrouiller sur cette ignorance met dehors une
+    // famille qui paie parce que son train est passé sous un tunnel.
+    expect(isLocked(null, 'confirm', maintenant)).toBe(false);
+  });
+
+  it('laisse une mission déclarée par l’enfant attendre au lieu de se compter', () => {
+    // L'enfant ne rencontre jamais de mur : la mission qui se comptait toute
+    // seule redevient une mission ordinaire, et les minutes l'attendent.
+    const base = buildDemoFamily(maintenant);
+    const auto = base.missions.find((m) => m.autoApprove)!;
+    const enfant = base.assignments.find((a) => a.missionId === auto.id)!.childId;
+
+    const ouvert = actions.completeMission(
+      base,
+      { childId: enfant, missionId: auto.id, autoApproveAllowed: true },
+      new Date('2026-08-21T09:00:00.000Z'),
+    );
+    expect(ouvert.completion.status).toBe('approved');
+    expect(ouvert.transaction).toBeDefined();
+
+    const ferme = actions.completeMission(
+      base,
+      { childId: enfant, missionId: auto.id, autoApproveAllowed: false },
+      new Date('2026-08-21T09:00:00.000Z'),
+    );
+    expect(ferme.completion.status).toBe('pending');
+    expect(ferme.transaction).toBeUndefined();
+    expect(ferme.completion.minutesAwarded).toBe(0);
+  });
+
+  it('ne touche jamais aux minutes déjà gagnées', () => {
+    const base = buildDemoFamily(maintenant);
+    const noah = base.children[0];
+    const avant = balanceOf(base.transactions, noah.id);
+    // Rien dans le verrou n'écrit au registre : c'est une règle de lecture.
+    expect(isLocked(essai(-1), 'confirm', maintenant)).toBe(true);
+    expect(balanceOf(base.transactions, noah.id)).toBe(avant);
   });
 });

@@ -36,15 +36,19 @@ export default function MissionDetail() {
   const onFinish = async () => {
     setLoading(true);
     try {
-      const completionId = await completeMission(child.id, item.mission.id);
+      const outcome = await completeMission(child.id, item.mission.id);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
       setError(null);
 
-      // Une mission qui se compte d'elle-même a déjà crédité les minutes : on
-      // enchaîne sur la célébration, sans passer par un écran d'attente qui
-      // n'attendrait rien.
-      if (item.mission.autoApprove) {
-        router.replace({ pathname: '/child/celebration', params: { completionId } });
+      // On fête ce qui a été crédité, pas ce qui était réglé. `mission.autoApprove`
+      // dit l'intention ; `counted` dit le résultat. Les deux divergent dès que
+      // l'abonnement est terminé — et cet écran a félicité un enfant pour
+      // « +0 MINO », confettis compris, avant qu'on ne le regarde.
+      if (outcome.counted) {
+        router.replace({
+          pathname: '/child/celebration',
+          params: { completionId: outcome.id },
+        });
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible d’envoyer la demande.');
