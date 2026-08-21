@@ -445,11 +445,16 @@ mensuels**, largement dans le quota inclus de l'offre Pro.
 
 ### Connexions temps réel simultanées
 
-**C'est le poste à surveiller, et le seul qui puisse imposer un changement
-d'offre.** En pointe (18 h – 20 h), tabler sur 10 à 15 % du parc connecté :
-**2 000 à 3 000 connexions simultanées**. Le quota inclus dans l'offre Pro est
-inférieur ; il faudra soit le complément payant, soit l'offre supérieure.
-À vérifier au moment venu — c'est la ligne de facture qui bougera le plus.
+**C'est le poste à surveiller, et le seul qui dépasse vraiment.** Le quota
+inclus au Pro est de 500 connexions simultanées ; il en faut 1 400 à 3 300 à
+10 000 familles, soit 20 à 30 $/mois de supplément (§5.3). C'est aussi la seule
+grandeur de tout ce document qui n'a pas été mesurée : elle dépend du nombre
+d'appareils ayant l'application ouverte au même instant, et le tableau de bord
+Supabase la donne. **À relever dès les premières dizaines de familles.**
+
+Levier connu si elle devient chère : l'application ne ferme pas son canal quand
+elle passe en arrière-plan. iOS le fait pour elle en suspendant la connexion,
+Android est plus variable ; le fermer explicitement réduirait la pointe.
 
 ### Stripe
 
@@ -461,18 +466,103 @@ très loin devant l'infrastructure.
 
 | Poste | Par mois à 10 000 familles |
 |---|---|
-| Supabase (offre + dépassements + temps réel) | 150 – 400 € |
+| Supabase (offre + dépassements + machine) | 55 – 105 € — voir §5.3 |
 | Stripe | ~4 000 € |
-| **Total** | **~4 500 €** |
+| **Total** | **~4 100 €** |
 | Chiffre d'affaires correspondant | ~99 000 € |
 
-**L'infrastructure représente moins de 0,5 % du chiffre d'affaires.** Elle
+**L'infrastructure représente environ un dixième de pour cent du chiffre
+d'affaires** — les frais de paiement, eux, en prennent quatre pour cent. Elle
 n'est pas le sujet. Le sujet, ce sont les frais de paiement et le SAV — d'où le
 reste de ce dossier.
 
 ---
 
-## 5. Ce qui reste à faire avant d'y arriver
+## 5. Quel plan Supabase, et à partir de quand
+
+Limites relevées le 21 août 2026 dans `packages/shared-data/pricing.ts` du
+dépôt `supabase/supabase` — **la source qui génère la page tarifaire**, la page
+elle-même étant inaccessible depuis cette machine. Recoupées par recherche.
+Elles bougent : à revérifier avant tout engagement.
+
+### 5.1 Où le plan gratuit casse
+
+Chaque limite du plan gratuit, divisée par ce que Mino consomme réellement :
+
+| Limite du gratuit | Familles avant le mur |
+|---|---|
+| **200 connexions temps réel simultanées** | **600 à 1 400** |
+| **500 Mo de base de données** | **~980** |
+| 5 Go de trafic sortant | ~2 600 |
+| 500 000 appels de fonction Edge | ~5 200 |
+| 2 M de messages temps réel | ~7 400 (~3 400 si un message est compté par appareil) |
+| 50 000 utilisateurs actifs | ~22 700 |
+
+**Le plan gratuit tient donc jusqu'à 600–1 000 familles environ**, et ce sont
+les connexions temps réel et la taille de la base qui cèdent les premières,
+quasiment à égalité.
+
+Deux remarques sur ce tableau.
+
+La fourchette large sur les connexions vient de la seule grandeur qu'on n'a pas
+mesurée : combien d'appareils ont l'application ouverte **au même instant** en
+pointe. Le document supposait 10 à 15 % du parc ; le calcul par la durée
+(3 ouvertures de ~3 minutes concentrées sur une pointe de deux heures) donne
+plutôt 7 à 10 %. On garde les deux. **C'est le premier chiffre à mesurer sur le
+vrai projet** — le tableau de bord Supabase l'affiche.
+
+Sans la fenêtre de conservation du §2.6, la base aurait touché les 500 Mo vers
+**244 familles**. Elle a donc quadruplé la portée du plan gratuit, en passant.
+
+### 5.2 Ce que le gratuit ne dit pas dans ses quotas
+
+Trois choses qui ne sont pas des limites de volume et qui pèsent plus lourd que
+tout ce qui précède :
+
+- **Aucune sauvegarde.** Rien, pas une. Faire tourner de vraies familles
+  là-dessus n'est pas un risque technique, c'est un risque d'entreprise.
+- **Le projet est mis en pause après une semaine d'inactivité.** Sans
+  conséquence une fois lancé, pénible pendant le développement.
+- **Deux projets actifs au maximum**, et les journaux ne sont gardés qu'un jour
+  — de quoi ne rien pouvoir diagnostiquer d'un incident de la veille.
+
+### 5.3 Le plan Pro à 10 000 familles
+
+À 25 $/mois, tout sauf une ligne tient dans les quotas inclus :
+
+| Poste | Besoin | Inclus au Pro | |
+|---|---|---|---|
+| Base de données | 5 Go | 8 Go | ✓ |
+| Trafic sortant | 20 Go | 250 Go | ✓ |
+| Utilisateurs actifs | 22 000 | 100 000 | ✓ |
+| Messages temps réel | 2,7 M | 5 M | ✓ |
+| Appels de fonction Edge | 960 000 | 2 M | ✓ |
+| **Connexions simultanées** | **1 400 à 3 300** | **500** | **+20 à 30 $/mois** |
+
+Reste **la puissance de la machine**, que ce tableau ne couvre pas : les 25 $
+incluent 10 $ de crédit, de quoi payer une instance *Micro* — 1 Go de mémoire.
+Nos mesures ont tourné avec 2 Go de cache. À 10 000 familles et 5 Go de base,
+il faudra vraisemblablement passer à *Small* ou *Medium*, soit **15 à 60 $ de
+plus par mois**.
+
+**Ordre de grandeur : 60 à 115 $ par mois**, soit 55 à 105 €, pour 10 000
+familles — contre 99 000 € de chiffre d'affaires mensuel. Le serveur pèse
+**environ un dixième de pour cent du revenu**. Le document annonçait 150 à
+400 € ; c'était déjà marginal, et c'était trop haut.
+
+### 5.4 La recommandation
+
+**Gratuit** pendant le développement et les premiers essais. C'est fait pour
+ça, et rien dans nos volumes ne l'inquiète avant plusieurs centaines de
+familles.
+
+**Pro dès la première famille qui paie** — et pour l'absence de sauvegarde, pas
+pour un quota. À 25 $ le mois contre 9,90 € l'abonnement, **trois familles
+payantes couvrent le serveur**. C'est le meilleur rapport de toute cette page.
+
+---
+
+## 6. Ce qui reste à faire avant d'y arriver
 
 Rien de bloquant, mais quatre points à traiter dans l'ordre :
 
@@ -482,13 +572,13 @@ Rien de bloquant, mais quatre points à traiter dans l'ordre :
    conservation. Sans cela, les corrections ci-dessus n'existent que dans le dépôt —
    et celle du §2.4 touche les politiques elles-mêmes, pas seulement les index :
    tant qu'elle n'est pas appliquée, c'est l'ancienne forme qui tourne.
-2. **Point de bascule ~1 000 familles** : activer les sauvegardes quotidiennes
-   avec restauration à l'instant (PITR), et les alertes de dépassement de quota.
-   Une base sans sauvegarde à 1 000 familles est un risque d'entreprise, pas un
-   risque technique.
-3. **Point de bascule ~3 000 familles** : mesurer les connexions temps réel
-   réelles en pointe et arbitrer l'offre. C'est là que la facture change de
-   forme.
+2. **Passer au plan Pro dès la première famille qui paie** — pour l'absence
+   totale de sauvegarde sur le gratuit, pas pour un quota (§5.2). Trois
+   abonnements couvrent les 25 $ mensuels. Le gratuit tiendrait jusqu'à 600 ou
+   1 000 familles côté volumes, mais pas une nuit côté responsabilité.
+3. **Relever les connexions temps réel en pointe dès les premières dizaines de
+   familles** : c'est la seule grandeur de ce dossier qui n'a pas été mesurée,
+   et c'est le seul poste qui dépasse vraiment au Pro (§5.3).
 4. **Une seule région.** Le projet Supabase doit être en Europe (Francfort ou
    Paris) — pour la latence, et parce que les données de familles françaises
    n'ont pas à quitter l'UE. À vérifier : c'est un choix qui se fait à la
@@ -496,7 +586,7 @@ Rien de bloquant, mais quatre points à traiter dans l'ordre :
 
 ---
 
-## 6. Ce qui a été vérifié, et ce qui ne l'a pas été
+## 7. Ce qui a été vérifié, et ce qui ne l'a pas été
 
 **Vérifié** : la borne d'historique et la reconstitution du solde sont couvertes
 par des tests automatisés ; l'ensemble compile et les tests passent. Le schéma
