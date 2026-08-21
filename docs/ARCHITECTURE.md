@@ -193,8 +193,11 @@ minutes**, et il tient à quatre garde-fous côté base, tous vérifiés par
   l'habilitation Apple. Voir `docs/apple-family-controls.md`.
 - **Les fichiers SQL s'appliquent, mais sur un PostgreSQL nu.** `npm run
   test:sql` les joue tous les six dans l'ordre, sur une base jetable, et
-  attaque la RLS depuis une session d'appareil. Ce qui reste hors de portée :
-  le vrai `realtime` de Supabase — le canal privé n'est donc pas éprouvé — et
+  attaque la RLS depuis une session d'appareil — 86 vérifications, dont le
+  budget du compagnon, le secret des conversations et le canal temps réel.
+  Ce qui reste hors de portée : le **transport** temps réel de Supabase
+  (`realtime.send` est ici une doublure qui écrit dans une table, donc le
+  déclencheur et la politique du canal sont éprouvés, pas la diffusion), et
   les déclencheurs branchés sur de vrais webhooks de facturation.
 - **L'achat natif n'a pas de module natif branché.** `services/billing/native.ts`
   décrit le contrat ; il reste à choisir la bibliothèque et à faire un achat de

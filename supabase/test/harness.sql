@@ -79,9 +79,14 @@ $$;
 
 create or replace function realtime.send(
   payload jsonb, event text, topic text, private boolean default true
-) returns void language sql as $$
+) returns void language sql security definer as $$
   insert into realtime.messages (topic, event, payload) values (topic, event, payload);
 $$;
+
+-- Chez Supabase, `realtime.messages` est protégée par RLS : c'est ce qui rend
+-- un canal « privé » privé, et c'est donc la moitié du test qui compte.
+alter table realtime.messages enable row level security;
+grant select on realtime.messages to anon, authenticated;
 
 grant usage on schema public, realtime to anon, authenticated, service_role;
 alter default privileges in schema public

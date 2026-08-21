@@ -114,13 +114,14 @@ try {
 
   const out = psql('supabase/test/rls.sql');
   const companion = psql('supabase/test/companion.sql');
-  const lines = `${out.stderr}${companion.stderr}`
+  const realtime = psql('supabase/test/realtime.sql');
+  const lines = `${out.stderr}${companion.stderr}${realtime.stderr}`
     .split('\n')
     .filter((l) => l.includes('ok ·') || l.includes('ÉCHEC'))
     .map((l) => l.replace(/^.*NOTICE:\s+/, '').replace(/^.*ERROR:\s+/, '❌ '));
   console.log(lines.join('\n'));
 
-  if (out.status !== 0 || companion.status !== 0) {
+  if (out.status !== 0 || companion.status !== 0 || realtime.status !== 0) {
     console.error('\nUne tentative est passée. Voir ci-dessus.');
     process.exit(1);
   }
