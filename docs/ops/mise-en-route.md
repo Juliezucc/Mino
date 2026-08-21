@@ -215,10 +215,30 @@ C'est le moment que la partie A ne permettait pas :
 Si le compteur ne bouge pas tout seul, c'est le temps réel qu'il faut regarder,
 et il faut me le dire.
 
-### B6. Les quatre travaux de nuit
+### B6. Les sauvegardes, avant tout le reste
 
-Ils ne sont pas indispensables au premier jour, mais ils évitent qu'une base
-grossisse pour rien. Dans Supabase : **Database** → **Extensions**, activer
+**Avant la première vraie famille, et avant l'étape suivante.** L'ordre compte :
+l'étape B7 met en place des travaux de nuit qui **suppriment** des lignes — du
+grand livre, et des comptes d'appareils. Les activer sur une base sans
+sauvegarde, c'est se priver de filet le jour où l'un d'eux se trompe.
+
+Le plan gratuit n'a **aucune sauvegarde**. Pas une. C'est la vraie raison de
+passer au plan Pro, bien avant les quotas : il apporte des sauvegardes
+quotidiennes conservées sept jours, et la restauration à l'instant (PITR) en
+option. À 25 $ le mois contre 9,90 € l'abonnement, **trois familles payantes le
+couvrent**.
+
+Une base de familles sans sauvegarde n'est pas un risque technique, c'est un
+risque d'entreprise.
+
+### B7. Les quatre travaux de nuit
+
+À faire **après B6, jamais avant** : deux de ces quatre travaux suppriment des
+lignes, et on ne lance pas une suppression automatique sur une base qu'on ne
+sait pas restaurer. Ils ne sont pas indispensables au premier jour ; ils évitent
+qu'une base grossisse pour rien.
+
+Dans Supabase : **Database** → **Extensions**, activer
 **`pg_cron`**. Puis dans le SQL Editor, une seule fois :
 
 ```sql
@@ -234,13 +254,6 @@ select cron.schedule('mino-purge-history', '15 3 * * *',
 
 À ne lancer **qu'une fois** : une planification créée deux fois s'exécute deux
 fois. Pour vérifier ce qui est en place : `select * from cron.job;`
-
-### B7. Sauvegardes
-
-Dès que de vraies familles arrivent — disons au-delà de la centaine — activer
-les sauvegardes quotidiennes et la restauration à l'instant (PITR) dans les
-réglages du projet. Une base de familles sans sauvegarde n'est pas un risque
-technique, c'est un risque d'entreprise.
 
 ---
 

@@ -331,10 +331,28 @@ class SupabaseRepository implements MinoRepository {
     return res.data ?? [];
   }
 
-  /** The true balance of every child, summed over the whole ledger by the server. */
+  /**
+   * The true balance of every child, summed over the whole ledger by the server.
+   *
+   * Cette fonction NE DOIT PAS avaler son erreur, et c'est tout sauf un détail
+   * de style. L'appareil ne télécharge que 90 jours ; tout ce qui précède est
+   * reconstitué à partir de ce seul appel, en une ligne d'ouverture. Un
+   * dictionnaire vide ne veut pas dire « tout le monde à zéro » — il veut dire
+   * « je ne sais pas ». Rendu tel quel, `withOpeningBalances` n'écrit aucune
+   * ligne d'ouverture et l'enfant se retrouve avec le solde de ses trois
+   * derniers mois : ses minutes anciennes ont disparu de son compteur, sans un
+   * message, sans une trace.
+   *
+   * Mieux vaut donc que l'ouverture échoue franchement — l'écran hors ligne
+   * dira la vérité — que de montrer un compteur faux. C'est la seule promesse
+   * que ce produit ne peut pas se permettre de casser.
+   */
   private async balances(): Promise<Record<string, number>> {
     const { data, error } = await this.client.rpc('family_balances');
-    if (error || !Array.isArray(data)) return {};
+    if (error) throw error;
+    if (!Array.isArray(data)) {
+      throw new Error('family_balances n’a rien renvoyé : solde inconnu, rien ne sera affiché.');
+    }
     const out: Record<string, number> = {};
     for (const row of data) out[row.child_id] = row.minutes;
     return out;
