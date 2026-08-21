@@ -139,7 +139,7 @@ export default function SessionScreen() {
         <Text variant="label" color={colors.textMuted}>
           TEMPS RESTANT
         </Text>
-        <Text variant="display" color={colors.blue}>
+        <Text variant="display" color={colors.blueInk}>
           {formatDuration(remaining)}
         </Text>
         <View style={styles.track}>

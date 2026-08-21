@@ -62,10 +62,10 @@ export default function ReferralScreen() {
       <ScreenHeader onBack={() => router.back()} title="Parrainage" />
 
       <Card style={styles.codeCard} background={colors.blueSoft} elevation="none">
-        <Text variant="label" color={colors.blueDark}>
+        <Text variant="label" color={colors.blueInk}>
           MON CODE
         </Text>
-        <Text variant="display" color={colors.blueDark} style={styles.code}>
+        <Text variant="display" color={colors.blueInk} style={styles.code}>
           {myCode}
         </Text>
         <Button label="Partager mon code" icon="🎁" onPress={share} />
@@ -139,7 +139,7 @@ export default function ReferralScreen() {
             onChangeText={(v) => setCode(v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
           />
           {message ? (
-            <Text variant="caption" color={message.ok ? colors.mint : colors.danger}>
+            <Text variant="caption" color={message.ok ? colors.mintInk : colors.dangerInk}>
               {message.text}
             </Text>
           ) : null}

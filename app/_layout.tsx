@@ -66,7 +66,7 @@ export default function RootLayout() {
             />
           ) : (
             <View style={styles.loading}>
-              <ActivityIndicator color={colors.blue} size="large" />
+              <ActivityIndicator color={colors.blueInk} size="large" />
             </View>
           )}
         </ErrorBoundary>

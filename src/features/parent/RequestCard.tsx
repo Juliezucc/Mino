@@ -98,7 +98,7 @@ export function RequestCard({ completion }: Props) {
           </Text>
           {/* Le gain reste ici, en évidence : c'est ce que le parent accorde, et
               il doit le lire avant de décider, pas après. */}
-          <Text variant="label" color={colors.blue}>
+          <Text variant="label" color={colors.blueInk}>
             {`+${minutes} min`}
           </Text>
         </View>

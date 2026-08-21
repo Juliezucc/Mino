@@ -44,7 +44,7 @@ const palette: Record<ButtonVariant, { bg: string; fg: string; shadow: keyof typ
   success: { bg: colors.mint, fg: colors.onBrand, shadow: 'soft' },
   secondary: { bg: colors.surface, fg: colors.text, shadow: 'soft' },
   ghost: { bg: 'transparent', fg: colors.textMuted, shadow: 'none' },
-  danger: { bg: colors.dangerSoft, fg: colors.danger, shadow: 'none' },
+  danger: { bg: colors.dangerSoft, fg: colors.dangerInk, shadow: 'none' },
 };
 
 export function Button({
@@ -80,7 +80,8 @@ export function Button({
         styles.base,
         {
           backgroundColor: tone.bg,
-          minHeight: isKid ? hitSize.kid : size === 'small' ? 40 : hitSize.parent,
+          // 44 est le plancher d'Apple : un bouton « small » reste un bouton.
+          minHeight: isKid ? hitSize.kid : size === 'small' ? 44 : hitSize.parent,
           paddingHorizontal: isKid ? spacing.xl : spacing.lg,
           alignSelf: full ? 'stretch' : 'flex-start',
         },

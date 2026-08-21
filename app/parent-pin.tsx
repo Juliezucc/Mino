@@ -163,7 +163,7 @@ export default function ParentPin() {
       )}
 
       {error ? (
-        <Text variant="label" color={colors.danger} center>
+        <Text variant="label" color={colors.dangerInk} center>
           {error}
         </Text>
       ) : (

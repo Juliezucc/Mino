@@ -72,7 +72,7 @@ export default function ParentChildDetail() {
         <Text variant="body" color={colors.textMuted}>
           {`${child.age} ans`}
         </Text>
-        <Text variant="display" color={colors.blue}>
+        <Text variant="display" color={colors.blueInk}>
           {`${balance.minutes}:00`}
         </Text>
         <Text variant="label" color={colors.textMuted}>

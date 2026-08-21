@@ -37,7 +37,7 @@ function BlockView({ block }: { block: Block }) {
     case 'note':
       return (
         <Card background={colors.blueSoft} elevation="none">
-          <Text variant="bodyStrong" color={colors.blueDark}>
+          <Text variant="bodyStrong" color={colors.blueInk}>
             {block.text}
           </Text>
         </Card>

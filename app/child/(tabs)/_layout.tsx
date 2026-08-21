@@ -21,7 +21,7 @@ export default function ChildTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.blue,
+        tabBarActiveTintColor: colors.blueInk,
         tabBarInactiveTintColor: colors.textSubtle,
         tabBarStyle: styles.bar,
         tabBarLabelStyle: styles.label,
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     bottom: Platform.OS === 'ios' ? 24 : 16,
-    height: 74,
+    height: 82,
     paddingBottom: 0,
     paddingTop: 8,
     borderRadius: radii.xl,
@@ -55,5 +55,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
   },
-  item: { paddingVertical: 6 },
+  // Mesuré à 54 px de haut. Le minimum d'Apple est 44 et celui de Google 48 :
+  // les deux visent un adulte. Pour un doigt de cinq ans qui vise en marchant,
+  // la barre est le seul repère permanent de l'application — elle a le droit
+  // d'être franche.
+  item: { paddingVertical: 6, minHeight: 62 },
 });

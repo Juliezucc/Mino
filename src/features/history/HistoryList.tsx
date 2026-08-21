@@ -100,7 +100,7 @@ export function HistoryList({ transactions, limit, unit = 'minutes', attributeTo
                       {[timeLabel(date), nameOf(tx.childId)].filter(Boolean).join(' · ')}
                     </Text>
                   </View>
-                  <Text variant="bodyStrong" color={positive ? colors.mint : colors.textMuted}>
+                  <Text variant="bodyStrong" color={positive ? colors.mintInk : colors.textMuted}>
                     {unit === 'minos'
                       ? formatMinos(tx.delta, { signed: true })
                       : `${positive ? '+' : ''}${tx.delta} min`}

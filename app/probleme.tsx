@@ -133,7 +133,7 @@ export default function SignalerUnProbleme() {
           </Text>
           {suggestions.map(({ entry }) => (
             <Card key={entry.id} background={colors.blueSoft} elevation="none" style={styles.suggestion}>
-              <Text variant="bodyStrong" color={colors.blueDark}>
+              <Text variant="bodyStrong" color={colors.blueInk}>
                 {entry.question}
               </Text>
               <Text variant="body" color={colors.textMuted}>

@@ -34,7 +34,7 @@ export function Field({ label, hint, error, containerStyle, style, ...rest }: Pr
         {...rest}
       />
       {error ? (
-        <Text variant="caption" color={colors.danger}>
+        <Text variant="caption" color={colors.dangerInk}>
           {error}
         </Text>
       ) : hint ? (

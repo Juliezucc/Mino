@@ -14,7 +14,7 @@ export default function ParentTabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.purple,
+        tabBarActiveTintColor: colors.purpleInk,
         tabBarInactiveTintColor: colors.textSubtle,
         tabBarStyle: styles.bar,
         tabBarLabelStyle: styles.label,

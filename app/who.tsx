@@ -52,7 +52,7 @@ export default function Who() {
             >
               <Avatar avatarKey={child.avatarKey} size={84} />
               <Text variant="cardTitle">{child.firstName}</Text>
-              <Text variant="label" color={colors.blue}>
+              <Text variant="label" color={colors.blueInk}>
                 {formatTime(minutes, unitOf(child))}
               </Text>
               <TimeCapsules minutes={minutes} compact maxCapsules={8} />
@@ -80,7 +80,7 @@ export default function Who() {
         style={({ pressed }) => [styles.parentRow, pressed && styles.pressed]}
       >
         <View style={styles.lock}>
-          <Icon name="lock" color={colors.purple} size={22} />
+          <Icon name="lock" color={colors.purpleInk} size={22} />
         </View>
         <View style={styles.parentTexts}>
           <Text variant="bodyStrong">Espace parent</Text>

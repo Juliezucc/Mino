@@ -61,7 +61,7 @@ export default function GuideChapterScreen() {
 
             {step.where ? (
               <View style={styles.where}>
-                <Text variant="caption" color={colors.blueDark}>
+                <Text variant="caption" color={colors.blueInk}>
                   {step.where}
                 </Text>
               </View>

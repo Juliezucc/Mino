@@ -214,7 +214,7 @@ export default function ChildTime() {
           </View>
 
           {error ? (
-            <Text variant="caption" color={colors.danger} center>
+            <Text variant="caption" color={colors.dangerInk} center>
               {error}
             </Text>
           ) : null}

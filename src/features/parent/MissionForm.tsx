@@ -264,7 +264,7 @@ export function MissionForm({ initialChildIds = [], submitLabel = 'CRÉER LA MIS
       </View>
 
       {error ? (
-        <Text variant="caption" color={colors.danger}>
+        <Text variant="caption" color={colors.dangerInk}>
           {error}
         </Text>
       ) : null}

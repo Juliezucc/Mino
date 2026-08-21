@@ -86,7 +86,7 @@ export default function ParentSettings() {
         <Text variant="label" color={colors.textMuted}>
           CODE FAMILLE
         </Text>
-        <Text variant="section" color={colors.blue}>
+        <Text variant="section" color={colors.blueInk}>
           {data?.family.code}
         </Text>
         <Text variant="caption" color={colors.textSubtle}>

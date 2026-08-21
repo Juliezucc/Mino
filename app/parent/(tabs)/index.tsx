@@ -114,7 +114,7 @@ export default function ParentHome() {
                   <Avatar avatarKey={child.avatarKey} size={54} />
                   <View style={styles.childTexts}>
                     <Text variant="cardTitle">{child.firstName}</Text>
-                    <Text variant="title" color={colors.blue}>
+                    <Text variant="title" color={colors.blueInk}>
                       {`${balance.minutes}:00`}
                     </Text>
                     <Text variant="caption" color={colors.textMuted}>

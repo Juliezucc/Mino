@@ -48,7 +48,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: radii.pill,
     borderWidth: 1.5,
-    minHeight: 46,
+    // 46 mesuré, et c'est un enfant qui choisit ici combien de minos dépenser.
+    minHeight: 60,
     justifyContent: 'center',
   },
   idle: {

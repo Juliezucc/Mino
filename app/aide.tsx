@@ -118,7 +118,7 @@ export default function Aide() {
           </View>
 
           <Card background={colors.blueSoft} elevation="none" style={styles.contact}>
-            <Text variant="bodyStrong" color={colors.blueDark}>
+            <Text variant="bodyStrong" color={colors.blueInk}>
               Toujours bloqué ?
             </Text>
             <Text variant="body" color={colors.textMuted}>

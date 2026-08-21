@@ -72,7 +72,7 @@ export default function DevicesScreen() {
       <ScreenHeader onBack={() => router.back()} title="Appareils de la maison" />
 
       <Card background={colors.blueSoft} elevation="none" style={styles.intro}>
-        <Text variant="bodyStrong" color={colors.blueDark}>
+        <Text variant="bodyStrong" color={colors.blueInk}>
           Un seul écran est automatique : le téléphone ou la tablette où Mino est installé.
         </Text>
         <Text variant="body" color={colors.textMuted}>

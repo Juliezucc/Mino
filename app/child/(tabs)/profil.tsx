@@ -73,7 +73,7 @@ export default function ChildProfile() {
           </View>
           <Button
             label="DISCUTER"
-            size="small"
+            size="kid"
             full={false}
             onPress={() => router.push('/child/mino')}
           />
@@ -125,6 +125,7 @@ export default function ChildProfile() {
           qu'on n'a pas envie d'arbitrer tous les soirs. */}
       <Button
         label={locked ? '🔒 Changer de profil' : 'Changer de profil'}
+        size="kid"
         variant="secondary"
         onPress={() =>
           locked

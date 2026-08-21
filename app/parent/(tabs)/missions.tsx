@@ -127,7 +127,7 @@ export default function ParentMissions() {
                   }
                   style={[styles.auto, mission.autoApprove && styles.autoOn]}
                 >
-                  <Text variant="caption" color={mission.autoApprove ? colors.mint : colors.textMuted}>
+                  <Text variant="caption" color={mission.autoApprove ? colors.mintInk : colors.textMuted}>
                     {mission.autoApprove ? '⚡  Se compte toute seule' : '✓  Vous confirmez'}
                   </Text>
                 </Pressable>
@@ -183,6 +183,10 @@ const styles = StyleSheet.create({
   card: { gap: spacing.md },
   auto: {
     alignSelf: 'flex-start',
+    // 44 px de haut : mesuré à 30, et c'est un bouton qu'un parent touche en
+    // tenant son téléphone d'une main.
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: 6,
     paddingHorizontal: spacing.md,
     borderRadius: radii.pill,
@@ -207,7 +211,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     paddingTop: spacing.md,
   },
-  remove: { paddingVertical: spacing.xs, paddingLeft: spacing.md },
+  // Discret à l'œil, mais pas petit sous le doigt : mesuré à 26 px de haut.
+  remove: { minHeight: 44, justifyContent: 'center', paddingLeft: spacing.md },
   avatars: { flexDirection: 'row', gap: spacing.md, flexWrap: 'wrap', flex: 1 },
   assignee: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
 });

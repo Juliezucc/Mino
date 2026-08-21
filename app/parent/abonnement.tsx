@@ -244,7 +244,7 @@ export default function SubscriptionScreen() {
                       </View>
                     ) : null}
                   </View>
-                  <Text variant="section" color={colors.blue}>
+                  <Text variant="section" color={colors.blueInk}>
                     {describePlan(option.plan)}
                   </Text>
                   <Text variant="caption" color={colors.textMuted}>
@@ -271,7 +271,7 @@ export default function SubscriptionScreen() {
       )}
 
       {error ? (
-        <Text variant="caption" color={colors.danger} center>
+        <Text variant="caption" color={colors.dangerInk} center>
           {error}
         </Text>
       ) : null}

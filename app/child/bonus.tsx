@@ -71,7 +71,7 @@ export default function BonusReceived() {
   return (
     <Screen background={colors.surface} contentStyle={styles.content} scroll={false}>
       <View style={styles.top}>
-        <Text variant="title" color={colors.pink} center>
+        <Text variant="title" color={colors.pinkInk} center>
           {celebrate ? '🎁 Bonus reçu !' : '🎁 Bonus reçu'}
         </Text>
         {/* La raison d'abord, en grand : c'est le cadeau, le reste est le
@@ -88,10 +88,10 @@ export default function BonusReceived() {
         loop={false}
       />
 
-      <Text variant="display" color={colors.pink} center style={styles.reward}>
+      <Text variant="display" color={colors.pinkInk} center style={styles.reward}>
         {`+${minutes}`}
       </Text>
-      <Text variant="title" color={colors.pink} center>
+      <Text variant="title" color={colors.pinkInk} center>
         {unitLabel(minutes, unit).toUpperCase()}
       </Text>
 

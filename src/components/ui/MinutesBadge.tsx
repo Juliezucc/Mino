@@ -21,9 +21,11 @@ interface Props {
 }
 
 const tones = {
-  blue: { bg: colors.blueSoft, fg: colors.blueDark },
-  mint: { bg: colors.mintSoft, fg: colors.mint },
-  purple: { bg: colors.purpleSoft, fg: colors.purple },
+  // Encre, pas couleur vive : ces pastilles portent le chiffre qui compte —
+  // « +15 min ». Mesuré à 2,2:1 avec les teintes de marque.
+  blue: { bg: colors.blueSoft, fg: colors.blueInk },
+  mint: { bg: colors.mintSoft, fg: colors.mintInk },
+  purple: { bg: colors.purpleSoft, fg: colors.purpleInk },
   muted: { bg: colors.surfaceSunken, fg: colors.textMuted },
 } as const;
 

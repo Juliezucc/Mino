@@ -63,7 +63,7 @@ export function ScreenRequestCard({
           </Text>
         </View>
         {running ? (
-          <Text variant="section" color={colors.blueDark}>
+          <Text variant="section" color={colors.blueInk}>
             {formatDuration(remaining)}
           </Text>
         ) : null}

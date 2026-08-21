@@ -114,10 +114,10 @@ export default function MissionDetail() {
           <Text variant="label" color={colors.textMuted}>
             TU GAGNES
           </Text>
-          <Text variant="display" color={colors.blue} center>
+          <Text variant="display" color={colors.blueInk} center>
             {`+${item.mission.minutes}`}
           </Text>
-          <Text variant="section" color={colors.blue}>
+          <Text variant="section" color={colors.blueInk}>
             {unitLabel(item.mission.minutes, unit).toUpperCase()}
           </Text>
           <AnimatedMascot expression="happy" size={140} />
@@ -128,7 +128,7 @@ export default function MissionDetail() {
       )}
 
       {error ? (
-        <Text variant="label" color={colors.danger} center>
+        <Text variant="label" color={colors.dangerInk} center>
           {error}
         </Text>
       ) : null}

@@ -82,7 +82,7 @@ export function TimeRing({
       <View style={styles.center} pointerEvents="none">
         <Text
           variant="display"
-          color={colors.blue}
+          color={colors.blueInk}
           style={{ fontSize: size * 0.24, lineHeight: size * 0.28 }}
           accessibilityLabel={
             minos ? `${formatMinos(shown)} disponibles` : `${shown} minutes disponibles`

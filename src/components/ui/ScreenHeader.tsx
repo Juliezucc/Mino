@@ -55,8 +55,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
   spacer: { flex: 1 },
   button: {
-    width: 44,
-    height: 44,
+    // 52 plutôt que 44 : c'est le minimum d'Apple, pensé pour un adulte
+    // assis. Ces mêmes écrans sont ceux d'un enfant de cinq ans debout.
+    width: 52,
+    height: 52,
     borderRadius: radii.pill,
     backgroundColor: colors.surface,
     alignItems: 'center',

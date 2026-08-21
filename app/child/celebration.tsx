@@ -67,7 +67,7 @@ export default function Celebration() {
   return (
     <Screen background={colors.surface} contentStyle={styles.content} scroll={false}>
       <View style={styles.top}>
-        <Text variant="title" color={colors.mint} center>
+        <Text variant="title" color={colors.mintInk} center>
           {celebrate ? 'Mission accomplie !' : 'Mission accomplie'}
         </Text>
         {mission ? (
@@ -84,10 +84,10 @@ export default function Celebration() {
         loop={false}
       />
 
-      <Text variant="display" color={colors.blue} center style={styles.reward}>
+      <Text variant="display" color={colors.blueInk} center style={styles.reward}>
         {`+${minutes}`}
       </Text>
-      <Text variant="title" color={colors.blue} center>
+      <Text variant="title" color={colors.blueInk} center>
         {unitLabel(minutes, unit).toUpperCase()}
       </Text>
 
