@@ -61,11 +61,29 @@ export default function ChildHome() {
   const todo = missions.filter((m) => m.state === 'todo');
   const waiting = missions.filter((m) => m.state === 'pending');
 
-  const expression: MascotExpression =
-    balance.minutes === 0 ? 'sad' : balance.minutes < 10 ? 'worried' : waiting.length > 0 ? 'motivated' : 'happy';
+  /**
+   * Un enfant qui n'a encore rien gagné n'a pas « plus » de minos : il n'en a
+   * jamais eu. Le dire autrement, c'est reprocher à quelqu'un d'avoir dépensé
+   * ce qu'on ne lui a jamais donné — et accueillir un enfant, le premier jour,
+   * avec un Mino triste.
+   */
+  const debut = data ? data.transactions.every((t) => t.childId !== child.id) : false;
 
-  const message =
-    balance.minutes === 0
+  const expression: MascotExpression = debut
+    ? 'motivated'
+    : balance.minutes === 0
+      ? 'sad'
+      : balance.minutes < 10
+        ? 'worried'
+        : waiting.length > 0
+          ? 'motivated'
+          : 'happy';
+
+  const message = debut
+    ? todo.length > 0
+      ? `Bienvenue ! Tu as ${todo.length} mission${todo.length > 1 ? 's' : ''} pour commencer.`
+      : 'Bienvenue ! Tes missions arrivent bientôt.'
+    : balance.minutes === 0
       ? unit === 'minos'
         ? 'Plus de minos… fais une mission pour en gagner !'
         : 'Plus de temps. Une mission et tu en regagnes.'

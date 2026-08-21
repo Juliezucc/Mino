@@ -101,7 +101,7 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
         <Text variant="caption" color={colors.textSubtle}>
           {requireApproval
             ? 'Même pour des minos déjà gagnés, chaque session attendra votre accord — y compris sur l’appareil où Mino est installé.'
-            : 'Il ne peut lancer que des minos déjà gagnés et validés par vous, jamais plus que son compteur. Sur l’appareil où Mino est installé, il démarre lui-même ; console, télévision et ordinateur passent toujours par vous.'}
+            : 'Il ne peut lancer que des minos déjà gagnés et confirmés par vous, jamais plus que son compteur. Sur l’appareil où Mino est installé, il démarre lui-même ; console, télévision et ordinateur passent toujours par vous.'}
         </Text>
       </View>
 

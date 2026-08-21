@@ -1,5 +1,7 @@
 import * as actions from '@/domain/actions';
-import { buildDemoFamily } from '@/data/demo';
+import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
+import { isFirstRun } from '@/domain/firstRun';
+import { FamilyData } from '@/domain/types';
 import { balanceOf, pendingCompletions, uncelebratedCompletions } from '@/domain/ledger';
 import { missionsForChild } from '@/domain/missions';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -297,5 +299,89 @@ describe('modifier une mission', () => {
     expect(() => actions.updateMission(base, base.missions[0].id, { title: '   ' })).toThrow(
       actions.DomainError,
     );
+  });
+});
+
+describe('la toute première ouverture', () => {
+  /**
+   * Le trou trouvé en conduisant le vrai parcours d'inscription : un parent
+   * qui vient de tout créer arrivait sur un écran qui lui disait trois fois
+   * qu'il n'y avait rien, et jamais ce qu'il devait faire ensuite.
+   */
+  const famille = (): FamilyData => {
+    const base = buildEmptyFamily(
+      { familyName: 'Martin', parentName: 'Julie', email: 'julie@wheb.fr' },
+      new Date('2026-08-20T09:00:00.000Z'),
+    );
+    return actions.createChild(base, { firstName: 'Noah', age: 8, avatarKey: 'fox' }).data;
+  };
+
+  it('se reconnaît quand la famille existe mais que rien n’a été gagné', () => {
+    expect(isFirstRun(famille())).toBe(true);
+  });
+
+  it('ne se déclenche pas tant qu’aucun enfant n’existe', () => {
+    // Cet écran-là a déjà sa propre invite : « Créer un profil enfant ».
+    const vide = buildEmptyFamily(
+      { familyName: 'Martin', parentName: 'Julie', email: 'julie@wheb.fr' },
+      new Date('2026-08-20T09:00:00.000Z'),
+    );
+    expect(isFirstRun(vide)).toBe(false);
+  });
+
+  it('s’efface à la première minute gagnée, sans que personne ait à la fermer', () => {
+    const base = famille();
+    const noah = base.children[0];
+    const avec = actions.adjustBalance(base, {
+      childId: noah.id,
+      delta: 15,
+      reason: 'Bienvenue sur Mino',
+    });
+    expect(isFirstRun(avec)).toBe(false);
+  });
+
+  it('s’arrête dès que l’enfant a terminé une mission, avant toute minute', () => {
+    // Le défaut trouvé en conduisant le parcours : « j'ai terminé » n'écrit
+    // qu'une complétion en attente, aucune minute. Une règle qui ne regardait
+    // que le registre laissait donc l'écran en mode « première ouverture »,
+    // masquait la section des demandes, et la toute première mission de la
+    // toute première famille devenait impossible à confirmer.
+    const base = famille();
+    const noah = base.children[0];
+    const avec = actions.createMission(base, {
+      title: 'Ranger mes affaires',
+      icon: '🧺',
+      minutes: 15,
+      repeat: { kind: 'daily' },
+      childIds: [noah.id],
+      createdBy: base.parents[0].id,
+    });
+    const termine = actions.completeMission(avec.data, {
+      childId: noah.id,
+      missionId: avec.mission.id,
+    });
+
+    expect(balanceOf(termine.data.transactions, noah.id)).toBe(0);
+    expect(pendingCompletions(termine.data).length).toBe(1);
+    expect(isFirstRun(termine.data)).toBe(false);
+  });
+
+  it('ne revient pas quand le solde retombe à zéro', () => {
+    // Un enfant qui a tout dépensé n'est pas un enfant qui débute : le registre
+    // garde ses lignes, et c'est bien lui qu'on interroge.
+    const base = famille();
+    const noah = base.children[0];
+    const gagne = actions.adjustBalance(base, {
+      childId: noah.id,
+      delta: 15,
+      reason: 'Bienvenue sur Mino',
+    });
+    const depense = actions.adjustBalance(gagne, {
+      childId: noah.id,
+      delta: -15,
+      reason: 'Temps d’écran utilisé',
+    });
+    expect(balanceOf(depense.transactions, noah.id)).toBe(0);
+    expect(isFirstRun(depense)).toBe(false);
   });
 });

@@ -15,6 +15,8 @@ import {
   TimeCapsules,
 } from '@/components/ui';
 import { balanceDetail } from '@/domain/ledger';
+import { isFirstRun } from '@/domain/firstRun';
+import { FirstStepCard } from '@/features/parent/FirstStepCard';
 import { RequestCard } from '@/features/parent/RequestCard';
 import { ScreenRequestCard } from '@/features/parent/ScreenRequestCard';
 import { HistoryList } from '@/features/history/HistoryList';
@@ -52,6 +54,8 @@ export default function ParentHome() {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 6);
 
+  const firstStep = isFirstRun(data);
+
   return (
     <Screen contentStyle={styles.content}>
       <View style={styles.header}>
@@ -60,11 +64,19 @@ export default function ParentHome() {
           <Text variant="body" color={colors.textMuted}>
             {waiting > 0
               ? `${waiting} demande${waiting > 1 ? 's' : ''} vous attend${waiting > 1 ? 'ent' : ''}`
-              : 'Tout est à jour.'}
+              : // « Tout est à jour » à quelqu'un dont rien n'a encore eu lieu
+                // sonne faux : il n'y a rien à jour, il y a tout à commencer.
+                firstStep
+                ? 'Votre famille est prête.'
+                : 'Tout est à jour.'}
           </Text>
         </View>
         <Mascot expression={waiting > 0 ? 'motivated' : 'happy'} size={72} />
       </View>
+
+      {/* Avant la première minute gagnée, la seule chose utile à dire est ce
+          qui vient après. Voir `FirstStepCard`. */}
+      {firstStep ? <FirstStepCard child={children[0]} familyCode={data.family.code} /> : null}
 
       <View style={styles.section}>
         <SectionHeader
@@ -143,49 +155,55 @@ export default function ParentHome() {
         </View>
       ) : null}
 
-      <View style={styles.section}>
-        <SectionHeader
-          // « à valider » jugeait la mission — ranger sa chambre n'est pas une
-          // demande qu'on approuve. Ce qui attend ici, c'est un enfant.
-          title="En attente de vous"
-          subtitle={waiting > 0 ? 'Les minutes sont ajoutées immédiatement' : undefined}
-        />
-        {waiting === 0 ? (
-          <Card elevation="none" background={colors.surfaceMuted}>
-            <Text variant="body" color={colors.textMuted} center>
-              Aucune demande en attente.
-            </Text>
-          </Card>
-        ) : (
-          <>
-            {screenRequests.map((session) => {
-              const child = children.find((c) => c.id === session.childId);
-              if (!child) return null;
-              return (
-                <ScreenRequestCard
-                  key={session.id}
-                  session={session}
-                  child={child}
-                  devices={data.devices}
-                  onApprove={() => approveSession(session.id).catch(() => undefined)}
-                  onRefuse={() => refuseSession(session.id).catch(() => undefined)}
-                />
-              );
-            })}
-            {requests.map((completion) => (
-              <RequestCard key={completion.id} completion={completion} />
-            ))}
-          </>
-        )}
-      </View>
+      {/* Le premier jour, ces deux sections ne diraient que « rien », deux fois
+          de plus, sous une carte qui vient de le dire mieux. */}
+      {firstStep ? null : (
+        <View style={styles.section}>
+          <SectionHeader
+            // « à valider » jugeait la mission — ranger sa chambre n'est pas
+            // une demande qu'on approuve. Ce qui attend ici, c'est un enfant.
+            title="En attente de vous"
+            subtitle={waiting > 0 ? 'Les minutes sont ajoutées immédiatement' : undefined}
+          />
+          {waiting === 0 ? (
+            <Card elevation="none" background={colors.surfaceMuted}>
+              <Text variant="body" color={colors.textMuted} center>
+                Aucune demande en attente.
+              </Text>
+            </Card>
+          ) : (
+            <>
+              {screenRequests.map((session) => {
+                const child = children.find((c) => c.id === session.childId);
+                if (!child) return null;
+                return (
+                  <ScreenRequestCard
+                    key={session.id}
+                    session={session}
+                    child={child}
+                    devices={data.devices}
+                    onApprove={() => approveSession(session.id).catch(() => undefined)}
+                    onRefuse={() => refuseSession(session.id).catch(() => undefined)}
+                  />
+                );
+              })}
+              {requests.map((completion) => (
+                <RequestCard key={completion.id} completion={completion} />
+              ))}
+            </>
+          )}
+        </View>
+      )}
 
-      <View style={styles.section}>
-        <SectionHeader
-          title="Historique"
-          action={{ label: 'Voir tout', onPress: () => router.push('/parent/enfants') }}
-        />
-        <HistoryList transactions={recent} attributeTo={children} />
-      </View>
+      {firstStep ? null : (
+        <View style={styles.section}>
+          <SectionHeader
+            title="Historique"
+            action={{ label: 'Voir tout', onPress: () => router.push('/parent/enfants') }}
+          />
+          <HistoryList transactions={recent} attributeTo={children} />
+        </View>
+      )}
     </Screen>
   );
 }
