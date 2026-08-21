@@ -48,8 +48,12 @@ Aucun écran ne filtre par famille pour des raisons de sécurité. C'est la
 politique RLS qui refuse de renvoyer les lignes d'une autre famille — même à un
 client modifié, même à quelqu'un qui connaîtrait un identifiant.
 
-Deux niveaux : `auth_family_ids()` dit à quelle famille on appartient,
+Deux niveaux : `auth_family_ids_array()` dit à quelle famille on appartient,
 `auth_is_parent()` distingue le téléphone du parent de la tablette de l'enfant.
+(Un tableau, et non un ensemble : écrite `in (select …)`, la même politique est
+tout aussi juste mais interdit à PostgreSQL de se servir de l'index, et
+l'application lit alors le grand livre de toutes les familles à chaque
+ouverture. Mesuré, corrigé et gardé par un test — `docs/ops/capacite.md` §2.4.)
 Un appareil enfant peut dire « j'ai terminé » et dépenser du temps ; il ne peut
 ni confirmer une mission, ni ajouter des minutes. Ce n'est pas l'interface qui
 l'empêche, c'est le `with check` de la politique.

@@ -1,0 +1,105 @@
+/**
+ * Un PostgreSQL jetable, monté puis démonté par le script qui l'appelle.
+ *
+ * Deux scripts en ont besoin — `test-sql.mjs` pour rejouer les politiques,
+ * `load-test.mjs` pour mesurer la charge — et la mécanique n'est pas
+ * anodine : initdb refuse de tourner en root, la socket doit rester dans le
+ * répertoire jetable pour ne pas entrer en collision avec un serveur déjà
+ * installé, et le serveur doit tomber même quand le script échoue. Écrit deux
+ * fois, cela aurait divergé une fois.
+ */
+
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+export const BIN = [
+  '/usr/lib/postgresql/16/bin',
+  '/usr/lib/postgresql/15/bin',
+  '/usr/local/bin',
+].find((dir) => existsSync(join(dir, 'initdb')));
+
+/** Ce qu'on dit quand le paquet manque : une vérification de moins, pas une porte fermée. */
+export function announceMissing() {
+  console.log('PostgreSQL absent — rien à mesurer ici.');
+  console.log('Sur Debian/Ubuntu : sudo apt install postgresql');
+  console.log('Sur macOS : brew install postgresql@16');
+}
+
+/**
+ * Monte un serveur et rend de quoi lui parler.
+ *
+ * `options` passe des paramètres à `postgres` (`shared_buffers`, etc.) : une
+ * mesure de charge sur les réglages par défaut d'initdb mesure surtout les
+ * réglages par défaut d'initdb.
+ */
+export function startPostgres({ db = 'mino', settings = {} } = {}) {
+  if (!BIN) throw new Error('PostgreSQL absent');
+
+  const asPostgres = process.getuid?.() === 0;
+  const run = (cmd, args, opts = {}) =>
+    asPostgres
+      ? execFileSync('su', ['postgres', '-c', [cmd, ...args].join(' ')], opts)
+      : execFileSync(cmd, args, opts);
+
+  const dir = asPostgres ? mkdtempSync('/var/tmp/mino-sql-') : mkdtempSync(join(tmpdir(), 'mino-sql-'));
+  const data = join(dir, 'data');
+  let started = false;
+
+  const stop = () => {
+    if (started) {
+      try {
+        run(`${BIN}/pg_ctl`, ['-D', data, '-m', 'immediate', 'stop'], { stdio: 'ignore' });
+      } catch {
+        /* le serveur est déjà tombé */
+      }
+      started = false;
+    }
+    rmSync(dir, { recursive: true, force: true });
+  };
+
+  process.on('exit', stop);
+
+  if (asPostgres) execFileSync('chown', ['-R', 'postgres', dir]);
+  run(`${BIN}/initdb`, ['-D', data, '-A', 'trust'], { stdio: 'ignore' });
+
+  const opts = ['-k ' + dir, '-h ""']
+    .concat(Object.entries(settings).map(([k, v]) => `-c ${k}=${v}`))
+    .join(' ');
+  run(`${BIN}/pg_ctl`, ['-D', data, '-l', join(dir, 'log'), '-o', `'${opts}'`, 'start'], {
+    stdio: 'ignore',
+  });
+  started = true;
+
+  // `su … -c` reçoit UNE chaîne passée au shell : tout ce qui y entre doit être
+  // cité, sans quoi une requête contenant une espace se coupe en deux.
+  const shq = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
+  const call = (args, opts = {}) =>
+    spawnSync(
+      asPostgres ? 'su' : `${BIN}/psql`,
+      asPostgres
+        ? ['postgres', '-c', [`${BIN}/psql`, '-h', dir, '-d', db, ...args].map(shq).join(' ')]
+        : ['-h', dir, '-d', db, ...args],
+      { encoding: 'utf8', ...opts },
+    );
+
+  run(`${BIN}/createdb`, ['-h', dir, db], { stdio: 'ignore' });
+
+  return {
+    dir,
+    stop,
+    /** Applique un fichier. `vars` alimente les `:variables` de psql. */
+    file: (path, vars = {}) =>
+      call([
+        '-v',
+        'ON_ERROR_STOP=1',
+        '-q',
+        ...Object.entries(vars).flatMap(([k, v]) => ['-v', `${k}=${v}`]),
+        '-f',
+        path,
+      ]),
+    /** Exécute une commande et rend sa sortie brute. */
+    query: (text) => call(['-v', 'ON_ERROR_STOP=1', '-At', '-c', text]),
+  };
+}

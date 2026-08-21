@@ -63,7 +63,7 @@ drop policy if exists companion_usage_read on companion_usage;
 create policy companion_usage_read on companion_usage
   for select using (
     auth_is_parent()
-    and child_id in (select id from children where family_id in (select auth_family_ids()))
+    and child_id = any (coalesce((select auth_child_ids_array()), '{}'::text[]))
   );
 
 -- ------------------------------------------------------ les conversations
@@ -115,7 +115,7 @@ alter table companion_messages enable row level security;
  */
 drop policy if exists companion_messages_read on companion_messages;
 create policy companion_messages_read on companion_messages
-  for select using (auth_is_parent() and family_id in (select auth_family_ids()));
+  for select using (auth_is_parent() and family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
 
 -- Aucune politique d'écriture : seule la fonction serveur écrit ici.
 

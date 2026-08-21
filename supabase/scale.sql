@@ -45,6 +45,27 @@ create index if not exists idx_sessions_family_running
 create index if not exists idx_assignments_mission
   on mission_assignments (mission_id);
 
+-- Et par l'enfant, sans condition. `idx_assignments_child` ne couvre que les
+-- affectations actives ; la politique, elle, ne parle pas d'« active » — un
+-- index partiel ne pouvait donc pas la servir.
+create index if not exists idx_assignments_child_all
+  on mission_assignments (child_id);
+
+/**
+ * La même leçon, deux fois de plus.
+ *
+ * Un index partiel ne sert une requête que si celle-ci répète sa condition.
+ * `idx_missions_family` est posé `where archived = false` ; l'application, elle,
+ * demande toutes les missions de sa famille, archivées comprises, et se
+ * retrouvait donc à parcourir les cinquante mille missions de la plateforme —
+ * 6 ms mesurées à 10 000 familles, soit le tiers d'une ouverture.
+ *
+ * `parents` n'avait aucun index sur `family_id` : seulement dix mille lignes,
+ * mais lues à chaque ouverture, et le parcours coûtait plus que la lecture.
+ */
+create index if not exists idx_missions_family_all on missions (family_id);
+create index if not exists idx_parents_family      on parents (family_id);
+
 -- Les deux entrées du parrainage. `code` est cherché à chaque saisie.
 create index if not exists idx_referrals_code on referrals (code);
 
@@ -85,7 +106,7 @@ create policy mino_family_channel_read on realtime.messages
   for select to authenticated
   using (
     realtime.topic() like 'famille:%'
-    and substring(realtime.topic() from 9) in (select auth_family_ids())
+    and substring(realtime.topic() from 9) = any (coalesce((select auth_family_ids_array()), '{}'::text[]))
   );
 
 -- Aucune politique d'insertion : seule la base émet sur ces canaux, via le

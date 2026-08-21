@@ -248,6 +248,65 @@ as $$
   select family_id from parents where user_id = auth.uid();
 $$;
 
+/**
+ * Les mêmes familles, mais dans un tableau — et c'est tout sauf un détail.
+ *
+ * Écrit `family_id in (select auth_family_ids())`, un filtre de POLITIQUE ne
+ * devient jamais une condition d'index : PostgreSQL en fait un « hashed
+ * SubPlan », c'est-à-dire un filtre appliqué APRÈS lecture. La colonne de tête de
+ * `idx_transactions_family` reste donc inutilisée et chaque ouverture de
+ * l'application lit le grand livre de TOUTES les familles pour n'en garder
+ * qu'une.
+ *
+ * Mesuré, pas supposé (`npm run test:charge`, 500 familles, un an) :
+ *
+ *   in (select …)                131,9 ms   548 474 blocs lus
+ *   = any (tableau, InitPlan)      1,1 ms     1 097 blocs lus
+ *
+ * D'où la forme retenue partout ci-dessous :
+ *
+ *   family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[]))
+ *
+ * Le `coalesce` n'est pas une précaution contre le nul — la fonction rend déjà
+ * un tableau vide. Il est là pour que `any` reçoive une EXPRESSION et non une
+ * sous-requête : `any ((select …))` seul se lit comme la forme « ensemble » et
+ * refuse de compiler. Le `(select …)` autour de l'appel, lui, garantit une
+ * évaluation unique par requête (un InitPlan) au lieu d'une par ligne.
+ *
+ * Ce que la politique autorise ne change pas d'un iota — `supabase/test/rls.sql`
+ * le vérifie ligne à ligne. Seul le chemin d'accès change.
+ */
+create or replace function auth_family_ids_array()
+returns text[]
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(array_agg(family_id), '{}'::text[])
+  from parents where user_id = auth.uid();
+$$;
+
+/**
+ * Les enfants de ces familles-là.
+ *
+ * `mission_assignments` est la seule table sans `family_id` : sa politique
+ * passait par un `exists` sur `children`, que le planificateur ne peut pas
+ * davantage transformer en condition d'index. Un tableau d'identifiants
+ * d'enfants rend la colonne `child_id` indexable, exactement comme ci-dessus.
+ */
+create or replace function auth_child_ids_array()
+returns text[]
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(array_agg(c.id), '{}'::text[])
+  from children c
+  where c.family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[]));
+$$;
+
 alter table families                enable row level security;
 alter table parents                 enable row level security;
 alter table children                enable row level security;
@@ -261,7 +320,7 @@ alter table devices                 enable row level security;
 -- families -------------------------------------------------------------
 drop policy if exists families_select on families;
 create policy families_select on families
-  for select using (id in (select auth_family_ids()));
+  for select using (id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
 
 drop policy if exists families_insert on families;
 create policy families_insert on families
@@ -269,16 +328,16 @@ create policy families_insert on families
 
 drop policy if exists families_update on families;
 create policy families_update on families
-  for update using (id in (select auth_family_ids()));
+  for update using (id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
 
 drop policy if exists families_delete on families;
 create policy families_delete on families
-  for delete using (id in (select auth_family_ids()));
+  for delete using (id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
 
 -- parents --------------------------------------------------------------
 drop policy if exists parents_select on parents;
 create policy parents_select on parents
-  for select using (family_id in (select auth_family_ids()));
+  for select using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
 
 drop policy if exists parents_insert on parents;
 create policy parents_insert on parents
@@ -307,32 +366,25 @@ begin
   ] loop
     execute format('drop policy if exists %I_family_access on %I', t, t);
     execute format(
+      -- Les guillemets doublés : tout ceci est une chaîne, et `''{}''` y écrit
+      -- le tableau vide.
       'create policy %I_family_access on %I for all
-         using (family_id in (select auth_family_ids()))
-         with check (family_id in (select auth_family_ids()))',
+         using (family_id = any (coalesce((select auth_family_ids_array()), ''{}''::text[])))
+         with check (family_id = any (coalesce((select auth_family_ids_array()), ''{}''::text[])))',
       t, t
     );
   end loop;
 end $$;
 
--- Assignments carry no family_id: they inherit it from the child.
+-- Assignments carry no family_id: they inherit it from the child. Le `exists`
+-- corrélé qui servait ici disait la même chose, mais obligeait la base à
+-- relire `children` pour chaque affectation examinée ; la liste des enfants,
+-- calculée une fois, rend `child_id` indexable. Même frontière, autre chemin.
 drop policy if exists mission_assignments_family_access on mission_assignments;
 create policy mission_assignments_family_access on mission_assignments
   for all
-  using (
-    exists (
-      select 1 from children c
-      where c.id = mission_assignments.child_id
-        and c.family_id in (select auth_family_ids())
-    )
-  )
-  with check (
-    exists (
-      select 1 from children c
-      where c.id = mission_assignments.child_id
-        and c.family_id in (select auth_family_ids())
-    )
-  );
+  using (child_id = any (coalesce((select auth_child_ids_array()), '{}'::text[])))
+  with check (child_id = any (coalesce((select auth_child_ids_array()), '{}'::text[])));
 
 -- ---------------------------------------------------------------- realtime
 
@@ -389,14 +441,14 @@ alter table referrals     enable row level security;
 -- declared on purpose: with RLS enabled and no policy, those are all denied.
 drop policy if exists subscriptions_select on subscriptions;
 create policy subscriptions_select on subscriptions
-  for select using (family_id in (select auth_family_ids()));
+  for select using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
 
 -- A family sees the referrals it made, and the one it benefited from.
 drop policy if exists referrals_select on referrals;
 create policy referrals_select on referrals
   for select using (
-    referrer_family_id in (select auth_family_ids())
-    or referee_family_id in (select auth_family_ids())
+    referrer_family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[]))
+    or referee_family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[]))
   );
 
 
@@ -429,6 +481,23 @@ as $$
   select family_id from parents where user_id = auth.uid()
   union
   select family_id from family_devices where user_id = auth.uid()
+$$;
+
+-- Et la même chose en tableau, une fois `family_devices` connue. Voir le long
+-- commentaire près de la première définition : c'est cette forme-là que lisent
+-- les politiques, et c'est elle qui permet à l'index de servir.
+create or replace function auth_family_ids_array()
+returns text[]
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(array_agg(family_id), '{}'::text[]) from (
+    select family_id from parents where user_id = auth.uid()
+    union
+    select family_id from family_devices where user_id = auth.uid()
+  ) t;
 $$;
 
 /**
@@ -531,12 +600,12 @@ drop policy if exists mission_completions_family_access on mission_completions;
 
 drop policy if exists mission_completions_select on mission_completions;
 create policy mission_completions_select on mission_completions
-  for select using (family_id in (select auth_family_ids()));
+  for select using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
 
 drop policy if exists mission_completions_insert on mission_completions;
 create policy mission_completions_insert on mission_completions
   for insert with check (
-    family_id in (select auth_family_ids())
+    family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[]))
     and (
       auth_is_parent()
       -- A device may only ever create a request. Approving one's own mission is
@@ -576,20 +645,20 @@ create policy mission_completions_insert on mission_completions
 
 drop policy if exists mission_completions_update on mission_completions;
 create policy mission_completions_update on mission_completions
-  for update using (family_id in (select auth_family_ids()) and auth_is_parent())
-  with check (family_id in (select auth_family_ids()) and auth_is_parent());
+  for update using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])) and auth_is_parent())
+  with check (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])) and auth_is_parent());
 
 -- Transactions: a child's device may spend time, never grant it.
 drop policy if exists screen_time_transactions_family_access on screen_time_transactions;
 
 drop policy if exists screen_time_transactions_select on screen_time_transactions;
 create policy screen_time_transactions_select on screen_time_transactions
-  for select using (family_id in (select auth_family_ids()));
+  for select using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
 
 drop policy if exists screen_time_transactions_insert on screen_time_transactions;
 create policy screen_time_transactions_insert on screen_time_transactions
   for insert with check (
-    family_id in (select auth_family_ids())
+    family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[]))
     and (
       auth_is_parent()
       -- The only line a device may write on its own: time coming off.
@@ -633,13 +702,13 @@ drop policy if exists missions_family_access on missions;
 
 drop policy if exists missions_select on missions;
 create policy missions_select on missions
-  for select using (family_id in (select auth_family_ids()));
+  for select using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
 
 drop policy if exists missions_write on missions;
 create policy missions_write on missions
   for all
-  using (family_id in (select auth_family_ids()) and auth_is_parent())
-  with check (family_id in (select auth_family_ids()) and auth_is_parent());
+  using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])) and auth_is_parent())
+  with check (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])) and auth_is_parent());
 
 
 -- ------------------------------------------------------------ code parent
