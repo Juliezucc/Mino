@@ -36,7 +36,7 @@ toujours le vrai solde (`__tests__/history.test.ts`).
 
 `src/domain/` ne contient que des fonctions `(données, entrée) → nouvelles
 données`. Aucun appel réseau, aucun accès au stockage, aucun composant. C'est ce
-qui rend les règles testables sans lancer l'application — 189 tests en 3
+qui rend les règles testables sans lancer l'application — 194 tests en 3
 secondes.
 
 Le store appelle une fonction pure, persiste le résultat, publie le nouvel état.
@@ -121,7 +121,7 @@ supabase/
                       store-purchase, store-notifications
 docs/                 ce dossier
 scripts/              génération : visuels, guide, FAQ, licences
-__tests__/            189 tests
+__tests__/            194 tests
 ```
 
 ---
@@ -190,7 +190,7 @@ minutes**, et il tient à quatre garde-fous côté base, tous vérifiés par
 
 ```bash
 npm run typecheck   # TypeScript strict, zéro erreur attendue
-npm test            # 189 tests
+npm test            # 194 tests
 npm run test:sql    # applique le schéma sur un PostgreSQL jetable et l'attaque
 npm run licences    # aucune licence contaminante embarquée
 npm run faq         # régénère docs/support/ si la FAQ a changé
@@ -206,11 +206,14 @@ base vide n'arrive qu'une fois dans la vie du produit — et joue enfin
 vingt-sept tentatives depuis une session d'appareil : se compter la mission
 d'un frère, rejouer une récompense, se signer du nom d'un parent.
 
-Et surtout : **rejouer le parcours 35 → 50 minutes dans l'application**. Les
-trois défauts les plus graves trouvés jusqu'ici — un bouclier d'écran qui ne se
-levait pas, un code parent lisible depuis la tablette de l'enfant, et un
-verrouillage définitif de l'espace parent à la mise à jour — ont tous été
-trouvés en se servant de l'application, aucun en relisant le code.
+Et surtout : **rejouer le parcours 35 → 50 minutes dans l'application**, et de
+temps en temps **la vraie première ouverture**, sans la démo — créer un compte,
+un enfant, une mission, et aller jusqu'aux minutes gagnées. Les défauts les plus
+graves trouvés jusqu'ici — un bouclier d'écran qui ne se levait pas, un code
+parent lisible depuis la tablette de l'enfant, un verrouillage définitif de
+l'espace parent à la mise à jour, et une toute première mission impossible à
+confirmer — ont tous été trouvés en se servant de l'application, aucun en
+relisant le code.
 
 ---
 
