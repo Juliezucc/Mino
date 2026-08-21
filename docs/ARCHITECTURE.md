@@ -222,8 +222,17 @@ tient la validation automatique n'aurait jamais existé. Rien de tout cela
 n'était visible à la relecture. La suite applique donc les six fichiers pour de
 vrai, **puis les réapplique** sur la base déjà en place — c'est le cas réel, une
 base vide n'arrive qu'une fois dans la vie du produit — et joue enfin
-vingt-sept tentatives depuis une session d'appareil : se compter la mission
-d'un frère, rejouer une récompense, se signer du nom d'un parent.
+soixante-dix-huit tentatives depuis une session d'appareil : se compter la
+mission d'un frère, rejouer une récompense, se signer du nom d'un parent, lire
+les conversations de sa sœur, se rembourser un échange, supprimer des comptes.
+
+Cette dernière série a livré un piège qui vaut d'être connu : **`revoke ... from
+public` ne suffit pas chez Supabase.** Les privilèges par défaut y accordent
+explicitement l'exécution à `anon` et `authenticated` sur toute fonction créée
+dans `public` ; révoquer à `public` ne défait que le droit implicite de
+PostgreSQL, et laisse la fonction ouverte à n'importe quel appareil connecté.
+Cinq fonctions étaient dans ce cas, dont celle qui décompte le budget du
+compagnon — donc la facture — et celle qui supprime les comptes orphelins.
 
 `audit:a11y` mérite le même mot. « Gros boutons atteignables par un enfant de
 5 ans, icône + texte, contraste suffisant » était affirmé depuis le début et

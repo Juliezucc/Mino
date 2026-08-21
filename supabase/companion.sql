@@ -142,7 +142,18 @@ begin
 end;
 $$;
 
-revoke all on function purge_companion_messages() from public;
+-- Révoqué à `public` ET à `anon`/`authenticated`, et il faut les trois.
+--
+-- Supabase pose `alter default privileges in schema public grant all on
+-- functions to anon, authenticated, service_role` : toute fonction créée
+-- ensuite porte donc un droit d'exécution EXPLICITE pour ces rôles, qu'un
+-- `revoke ... from public` ne retire pas — il ne défait que le droit implicite
+-- de PostgreSQL. Écrire `from public` seul laisse la fonction ouverte à
+-- n'importe quel appareil connecté, en croyant l'avoir fermée.
+--
+-- Trouvé par `supabase/test/companion.sql`, dont le préambule reproduit
+-- exactement ces privilèges par défaut.
+revoke all on function purge_companion_messages() from public, anon, authenticated;
 
 -- ------------------------------------------------- ce que l'application lit
 
@@ -197,7 +208,7 @@ begin
 end;
 $$;
 
-revoke all on function companion_consume(text, integer) from public;
+revoke all on function companion_consume(text, integer) from public, anon, authenticated;
 -- Appelée uniquement par la fonction serveur, avec la clé de service.
 
 /**
@@ -219,7 +230,7 @@ as $$
    where child_id = p_child_id and day = current_date;
 $$;
 
-revoke all on function companion_refund(text) from public;
+revoke all on function companion_refund(text) from public, anon, authenticated;
 
 -- ---------------------------------------------------------- pilotage
 

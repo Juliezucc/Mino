@@ -177,7 +177,7 @@ as $$
   select count(*)::int from gone;
 $$;
 
-revoke all on function purge_join_attempts() from public;
+revoke all on function purge_join_attempts() from public, anon, authenticated;
 
 /**
  * Les comptes anonymes orphelins.
@@ -207,7 +207,8 @@ as $$
   select count(*)::int from gone;
 $$;
 
-revoke all on function purge_orphan_devices() from public;
+-- Celle-ci supprime des comptes : elle n'appartient qu'au planificateur.
+revoke all on function purge_orphan_devices() from public, anon, authenticated;
 
 -- Planifier avec pg_cron (extension à activer dans le tableau de bord) :
 --

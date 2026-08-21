@@ -113,13 +113,14 @@ try {
   console.log('réappliqués sur une base déjà en place : ok');
 
   const out = psql('supabase/test/rls.sql');
-  const lines = `${out.stderr}`
+  const companion = psql('supabase/test/companion.sql');
+  const lines = `${out.stderr}${companion.stderr}`
     .split('\n')
     .filter((l) => l.includes('ok ·') || l.includes('ÉCHEC'))
     .map((l) => l.replace(/^.*NOTICE:\s+/, '').replace(/^.*ERROR:\s+/, '❌ '));
   console.log(lines.join('\n'));
 
-  if (out.status !== 0) {
+  if (out.status !== 0 || companion.status !== 0) {
     console.error('\nUne tentative est passée. Voir ci-dessus.');
     process.exit(1);
   }
