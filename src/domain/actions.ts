@@ -298,7 +298,7 @@ export function approveCompletion(
     childId: completion.childId,
     delta: minutes,
     kind: 'mission_reward',
-    reason: mission?.title ?? 'Mission validée',
+    reason: mission?.title ?? 'Mission accomplie',
     refId: completion.id,
     createdAt: iso(now),
   };

@@ -42,6 +42,18 @@ export class SupabaseAuthService implements AuthService {
     return () => data.subscription.unsubscribe();
   }
 
+  /**
+   * Idempotent : le dépôt ouvre déjà une session anonyme au moment de
+   * rejoindre, et une session existante ne doit surtout pas être remplacée —
+   * ce serait déconnecter un parent en lui faisant scanner le code de sa
+   * propre famille.
+   */
+  async signInAsDevice(): Promise<void> {
+    const { data } = await this.client.auth.getSession();
+    if (data.session) return;
+    await this.client.auth.signInAnonymously();
+  }
+
   async signUp({ email, password }: { email: string; password: string }): Promise<AuthResult> {
     const { error } = await this.client.auth.signUp({
       email: email.trim().toLowerCase(),

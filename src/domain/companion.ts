@@ -364,7 +364,7 @@ export function contextPrompt(context: CompanionContext): string {
   return [
     `Enfant : ${context.firstName}, ${context.age} ans. Unité : ${context.unit}.`,
     `Solde : ${context.balance} ${context.unit}.`,
-    `Missions validées aujourd'hui : ${list(context.missionsDone)}.`,
+    `Missions accomplies aujourd'hui : ${list(context.missionsDone)}.`,
     `Missions terminées, en attente de validation : ${list(context.missionsWaiting)}.`,
     `Missions encore à faire : ${list(context.missionsTodo)}.`,
     `Défis que tu peux proposer : ${list(context.challenges)}.`,

@@ -41,6 +41,16 @@ export interface AuthService {
   signUp(input: { email: string; password: string }): Promise<AuthResult>;
   signIn(input: { email: string; password: string }): Promise<AuthResult>;
   signOut(): Promise<void>;
+  /**
+   * L'identité d'un appareil qui vient de rejoindre une famille avec le code.
+   *
+   * Anonyme, et volontairement moins privilégiée qu'un parent : c'est elle que
+   * `auth_is_parent()` refuse côté base. Elle sert aussi côté écran — voir
+   * `app/parent-pin.tsx`, où ne pas savoir de quel genre d'appareil il
+   * s'agissait laissait un enfant **choisir lui-même le code parent** sur sa
+   * propre tablette.
+   */
+  signInAsDevice(): Promise<void>;
   /** Sends the reset e-mail. Always reports success, so it cannot enumerate accounts. */
   requestPasswordReset(email: string): Promise<AuthResult>;
 

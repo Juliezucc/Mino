@@ -34,7 +34,7 @@ function elapsedLabel(iso: string): string {
  *
  * **Pourquoi « C'est fait » et non « Mission accomplie ».** Dans ce produit, un
  * participe passé désigne un état atteint : la pastille « VALIDÉE », la
- * célébration « Mission validée ». Un participe sur un bouton se lirait donc
+ * célébration « Mission accomplie ». Un participe sur un bouton se lirait donc
  * comme une étiquette de statut, pas comme une décision. « C'est fait » est une
  * proposition complète — sujet, verbe — donc une réponse. Et ce n'est pas un mot
  * de plus à apprendre : l'écran de l'enfant dit déjà « Quand c'est fait, appuie

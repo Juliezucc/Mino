@@ -103,7 +103,7 @@ export default function MissionDetail() {
         <Card style={styles.card} background={colors.mintSoft} elevation="none">
           <AnimatedMascot expression="proud" size={150} />
           <Text variant="title" center>
-            Mission validée !
+            Mission accomplie !
           </Text>
           <Text variant="body" color={colors.textMuted} center>
             {`Tu as gagné ${formatTime(item.completion?.minutesAwarded ?? item.mission.minutes, unit)}.`}

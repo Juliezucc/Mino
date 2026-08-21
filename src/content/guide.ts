@@ -64,7 +64,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Choisissez un code parent que votre enfant ne devinera pas',
         body: [
-          'Ce code à 4 chiffres protège l’espace parent. C’est lui qui empêche votre enfant de valider ses propres missions.',
+          'Ce code à 4 chiffres protège l’espace parent. C’est lui qui empêche votre enfant de confirmer ses propres missions.',
         ],
         tip: 'Évitez sa date de naissance, celle de son frère ou de sa sœur, et 1234. Un enfant de 8 ans essaie ces trois-là en premier.',
       },
@@ -110,7 +110,7 @@ export const GUIDE: GuideChapter[] = [
           'Vérifiez aussi qu’il voit bien son compteur et ses missions à lui, et pas ceux de son frère ou de sa sœur.',
         ],
         screen: 'enfantAccueil',
-        tip: 'Quoi qu’il arrive, l’appareil d’un enfant ne peut techniquement pas valider une mission ni s’ajouter du temps : la base de données le lui refuse.',
+        tip: 'Quoi qu’il arrive, l’appareil d’un enfant ne peut techniquement pas confirmer une mission ni s’ajouter du temps : la base de données le lui refuse.',
       },
     ],
   },
@@ -146,7 +146,7 @@ export const GUIDE: GuideChapter[] = [
           'Les missions qui touchent à la cuisine, aux appareils ou aux produits d’entretien portent un encadré ⚠️ avant que vous ne les acceptiez : « sans objet tranchant ni cuisson », « sans les couteaux », « produits ménagers manipulés par l’adulte ».',
           'Ce sont des repères, pas des règles absolues. C’est vous qui connaissez votre enfant, et c’est à vous de juger — et d’être là.',
         ],
-        tip: 'Une mission proposée par une application n’est pas une mission validée pour votre enfant. L’enfant reste sous votre surveillance, toujours.',
+        tip: 'Une mission proposée par une application n’est pas une mission approuvée d’avance pour votre enfant. L’enfant reste sous votre surveillance, toujours.',
       },
       {
         title: 'Ou créez la vôtre',
@@ -168,7 +168,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'L’enfant voit ce qui lui reste à faire',
         body: [
-          'Sa liste ne montre que les missions en cours. Les missions déjà validées disparaissent : à cet âge, une colonne de coches grises enterre la réponse à la seule question qui compte — qu’est-ce que je fais maintenant ?',
+          'Sa liste ne montre que les missions en cours. Les missions déjà accomplies disparaissent : à cet âge, une colonne de coches grises enterre la réponse à la seule question qui compte — qu’est-ce que je fais maintenant ?',
         ],
         screen: 'enfantMissions',
       },
@@ -242,7 +242,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Vous lancez le minuteur',
         body: [
-          'La demande arrive sur votre accueil, à côté des missions à valider. Vous lancez, ou vous refusez.',
+          'La demande arrive sur votre accueil, à côté des missions à confirmer. Vous lancez, ou vous refusez.',
           'Le décompte démarre au moment où vous lancez, pas au moment où l’enfant a demandé : une demande vue une demi-heure plus tard ne lui coûte pas une demi-heure.',
         ],
         where: 'Espace parent → Accueil',

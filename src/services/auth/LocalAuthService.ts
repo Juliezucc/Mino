@@ -56,6 +56,18 @@ export class LocalAuthService implements AuthService {
     return { ok: true };
   }
 
+  /**
+   * Le remplaçant local ne connaissait que « parent » : un appareil qui
+   * rejoignait avec le code gardait donc une session vide, et rien à l'écran
+   * ne pouvait savoir qu'il avait affaire à la tablette d'un enfant. C'est
+   * exactement ce qui laissait passer le défaut du code parent. Une couture
+   * locale qui ne reproduit pas la distinction que fait la vraie ne sert à
+   * rien : c'est hors ligne qu'on juge les parcours.
+   */
+  async signInAsDevice(): Promise<void> {
+    await this.publish({ kind: 'device', userId: 'local-device', email: null });
+  }
+
   async signOut(): Promise<void> {
     await AsyncStorage.removeItem(SESSION_KEY);
     this.listeners.forEach((l) => l(NO_SESSION));

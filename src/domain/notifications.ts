@@ -154,7 +154,7 @@ export function completionApproved(child: Child, minutes: number): NotificationP
     kind: 'completion.approved',
     audience: 'child',
     childId: child.id,
-    title: unit === 'minos' ? 'Mission validée ! 🎉' : 'Mission validée',
+    title: unit === 'minos' ? 'Mission accomplie ! 🎉' : 'Mission accomplie',
     body: `Tu as gagné ${formatTime(minutes, unit)}.`,
     route: '/child',
   };

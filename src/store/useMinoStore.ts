@@ -327,6 +327,10 @@ export const useMinoStore = create<MinoState>((set, get) => {
     async joinFamily(input) {
       const data = await get().repository.joinFamily(input);
       if (!data) return false;
+      // Cet appareil est celui d'un enfant, et l'application doit pouvoir le
+      // savoir : c'est ce qui distingue « aucun code parent n'est défini, à
+      // vous d'en choisir un » de « demande à un parent ».
+      await getAuthService().signInAsDevice().catch(() => undefined);
       // The child's device never lands in the parent area, whatever it holds.
       publish(data, { status: 'ready', activeChildId: null, parentUnlocked: false });
       await get().loadBilling();

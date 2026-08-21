@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Screen, ScreenHeader, Text } from '@/components/ui';
+import { parentGate } from '@/domain/parentGate';
 import { getAuthService } from '@/services/auth';
 import { useParent } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -35,16 +36,43 @@ export default function ParentPin() {
    * code" forever.
    */
   const [hasPin, setHasPin] = useState<boolean | null>(null);
+  /**
+   * De quel appareil s'agit-il ?
+   *
+   * Cette question manquait, et son absence ouvrait la porte en grand. Sur la
+   * tablette d'un enfant — celle qui a rejoint la famille avec le code — il
+   * n'existe aucun code parent, puisque le code appartient au compte du
+   * parent. L'écran en concluait « aucun code n'est défini » et invitait
+   * poliment **l'enfant** à en choisir un. Il lui suffisait de taper quatre
+   * chiffres pour s'ouvrir l'espace parent sur son propre appareil.
+   *
+   * Trouvé en conduisant le parcours du deuxième appareil, jusqu'au bout.
+   */
+  const [deviceSession, setDeviceSession] = useState<boolean | null>(null);
 
   useEffect(() => {
-    getAuthService()
-      .hasParentPin()
-      .then(setHasPin)
-      .catch(() => setHasPin(true));
+    const auth = getAuthService();
+    auth.hasParentPin().then(setHasPin).catch(() => setHasPin(true));
+    auth
+      .session()
+      .then((s) => setDeviceSession(s.kind === 'device'))
+      // Dans le doute, on suppose l'appareil d'un enfant : se tromper dans ce
+      // sens fait attendre un parent, se tromper dans l'autre ouvre l'espace
+      // parent à un enfant.
+      .catch(() => setDeviceSession(true));
   }, []);
 
+  // Tant qu'on interroge, on n'affiche ni l'un ni l'autre : `enter` est le
+  // seul état qui ne promette rien de faux.
+  const gate =
+    hasPin === null || deviceSession === null
+      ? 'enter'
+      : parentGate({ hasPin, onChildDevice: deviceSession });
+  const canCreatePin = gate === 'create';
+  const blocked = gate === 'ask-a-parent';
+
   const press = (key: string) => {
-    if (key === '' || checking) return;
+    if (key === '' || checking || blocked) return;
     setError(null);
 
     if (key === '⌫') {
@@ -61,7 +89,13 @@ export default function ParentPin() {
   const submit = async (value: string) => {
     setChecking(true);
 
-    if (hasPin === false) {
+    if (blocked) {
+      setChecking(false);
+      setPin('');
+      return;
+    }
+
+    if (canCreatePin) {
       const created = await getAuthService().setParentPin(value);
       setChecking(false);
       if (!created.ok) {
@@ -98,29 +132,35 @@ export default function ParentPin() {
 
       <View style={styles.head}>
         <Text variant="title" center>
-          {hasPin === false ? 'Choisir un code parent' : 'Code parent'}
+          {blocked ? 'Demande à un parent' : canCreatePin ? 'Choisir un code parent' : 'Code parent'}
         </Text>
         <Text variant="body" color={colors.textMuted} center>
-          {hasPin === false
-            ? 'Aucun code n’est encore défini. Choisissez-en un que votre enfant ne devinera pas.'
-            : parent
-              ? `Bonjour ${parent.displayName}, entre ton code à 4 chiffres.`
-              : 'Entre ton code à 4 chiffres.'}
+          {blocked
+            ? 'Le code se choisit sur le téléphone de ton parent, dans Réglages. Ensuite, il marchera ici.'
+            : canCreatePin
+              ? 'Aucun code n’est encore défini. Choisissez-en un que votre enfant ne devinera pas.'
+              : parent
+                ? `Bonjour ${parent.displayName}, entre ton code à 4 chiffres.`
+                : 'Entre ton code à 4 chiffres.'}
         </Text>
       </View>
 
-      <View style={styles.dots}>
-        {[0, 1, 2, 3].map((i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              i < pin.length && styles.dotFilled,
-              error && styles.dotError,
-            ]}
-          />
-        ))}
-      </View>
+      {/* Ni pastilles ni pavé quand il n'y a rien à taper : un clavier qui ne
+          répond pas se lit comme une panne, et on essaie plus fort. */}
+      {blocked ? null : (
+        <View style={styles.dots}>
+          {[0, 1, 2, 3].map((i) => (
+            <View
+              key={i}
+              style={[
+                styles.dot,
+                i < pin.length && styles.dotFilled,
+                error && styles.dotError,
+              ]}
+            />
+          ))}
+        </View>
+      )}
 
       {error ? (
         <Text variant="label" color={colors.danger} center>
@@ -130,6 +170,7 @@ export default function ParentPin() {
         <View style={styles.errorSpacer} />
       )}
 
+      {blocked ? null : (
       <View style={styles.pad}>
         {KEYS.map((key, index) => (
           <Pressable
@@ -150,6 +191,7 @@ export default function ParentPin() {
           </Pressable>
         ))}
       </View>
+      )}
     </Screen>
   );
 }

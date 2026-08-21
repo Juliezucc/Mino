@@ -31,6 +31,7 @@ export default function JoinFamily() {
   const router = useRouter();
   const joinFamily = useMinoStore((s) => s.joinFamily);
   const selectChild = useMinoStore((s) => s.selectChild);
+  const lockDeviceTo = useMinoStore((s) => s.lockDeviceTo);
   const children = useChildren();
   const service = getScreenTimeService();
 
@@ -57,8 +58,26 @@ export default function JoinFamily() {
     }
   };
 
-  const pickChild = (childId: string) => {
+  /**
+   * « C'est l'appareil de qui ? » — et la réponse est appliquée.
+   *
+   * Elle ne l'était pas : choisir un enfant et choisir « Appareil partagé »
+   * faisaient exactement la même chose, la question était posée pour rien. Or
+   * c'est tout l'intérêt de cet écran — sur la tablette de Noah, Mino doit
+   * rouvrir sur Noah, et changer de profil doit passer par le code parent.
+   *
+   * Le réglage reste modifiable dans Réglages : un enfant qui répondrait «
+   * partagé » pour s'ouvrir les minos de son frère n'a rien gagné de
+   * définitif, et un parent est de toute façon présent à l'étape suivante.
+   */
+  const pickChild = async (childId: string) => {
     selectChild(childId);
+    await lockDeviceTo(childId).catch(() => undefined);
+    setStep('shield');
+  };
+
+  const pickShared = async () => {
+    await lockDeviceTo(null).catch(() => undefined);
     setStep('shield');
   };
 
@@ -133,8 +152,8 @@ export default function JoinFamily() {
                 C’est l’appareil de qui ?
               </Text>
               <Text variant="body" color={colors.textMuted} center>
-                Choisis ton profil. Si vous partagez l’appareil, tu pourras en changer à chaque
-                fois.
+                Si c’est ta tablette à toi, choisis-toi : Mino s’ouvrira toujours sur ton profil.
+                Si vous êtes plusieurs dessus, choisis « Appareil partagé ».
               </Text>
             </View>
 
@@ -142,9 +161,11 @@ export default function JoinFamily() {
               {children.map((child) => (
                 <Pressable
                   key={child.id}
-                  onPress={() => pickChild(child.id)}
+                  onPress={() => {
+                    pickChild(child.id).catch(() => undefined);
+                  }}
                   accessibilityRole="button"
-                  accessibilityLabel={child.firstName}
+                  accessibilityLabel={`C’est l’appareil de ${child.firstName}`}
                   style={styles.childTile}
                 >
                   <Avatar avatarKey={child.avatarKey} size={72} />
@@ -156,7 +177,9 @@ export default function JoinFamily() {
             <Button
               label="Appareil partagé"
               variant="secondary"
-              onPress={() => setStep('shield')}
+              onPress={() => {
+                pickShared().catch(() => undefined);
+              }}
             />
           </>
         ) : (

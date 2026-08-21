@@ -68,7 +68,7 @@ export default function Celebration() {
     <Screen background={colors.surface} contentStyle={styles.content} scroll={false}>
       <View style={styles.top}>
         <Text variant="title" color={colors.mint} center>
-          {celebrate ? 'Mission validée !' : 'Mission validée'}
+          {celebrate ? 'Mission accomplie !' : 'Mission accomplie'}
         </Text>
         {mission ? (
           <Text variant="body" color={colors.textMuted} center>

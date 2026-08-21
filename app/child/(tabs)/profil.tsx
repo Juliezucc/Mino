@@ -52,7 +52,7 @@ export default function ChildProfile() {
           <MinutesBadge minutes={balance.earnedToday} tone="mint" unit={unit} />
         </View>
         <Text variant="caption" color={colors.textSubtle} center>
-          {`${approved} mission${approved > 1 ? 's' : ''} validée${approved > 1 ? 's' : ''} au total`}
+          {`${approved} mission${approved > 1 ? 's' : ''} accomplie${approved > 1 ? 's' : ''} au total`}
         </Text>
       </Card>
 

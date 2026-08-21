@@ -1,6 +1,7 @@
 import * as actions from '@/domain/actions';
 import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
 import { isFirstRun } from '@/domain/firstRun';
+import { parentGate } from '@/domain/parentGate';
 import { FamilyData } from '@/domain/types';
 import { balanceOf, pendingCompletions, uncelebratedCompletions } from '@/domain/ledger';
 import { missionsForChild } from '@/domain/missions';
@@ -383,5 +384,25 @@ describe('la toute première ouverture', () => {
     });
     expect(balanceOf(depense.transactions, noah.id)).toBe(0);
     expect(isFirstRun(depense)).toBe(false);
+  });
+});
+
+describe('le code parent, selon l’appareil', () => {
+  /**
+   * La tablette d'un enfant n'a pas de code parent — il appartient au compte du
+   * parent. L'écran en concluait « aucun code n'est défini » et laissait
+   * l'enfant en choisir un, ce qui lui ouvrait l'espace parent chez lui.
+   */
+  it('laisse un parent choisir son code s’il n’en a pas', () => {
+    expect(parentGate({ hasPin: false, onChildDevice: false })).toBe('create');
+  });
+
+  it('ne laisse jamais l’appareil d’un enfant choisir le code', () => {
+    expect(parentGate({ hasPin: false, onChildDevice: true })).toBe('ask-a-parent');
+  });
+
+  it('demande simplement le code dès qu’il existe, où que l’on soit', () => {
+    expect(parentGate({ hasPin: true, onChildDevice: true })).toBe('enter');
+    expect(parentGate({ hasPin: true, onChildDevice: false })).toBe('enter');
   });
 });
