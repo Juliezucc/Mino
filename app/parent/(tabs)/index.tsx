@@ -171,7 +171,17 @@ export default function ParentHome() {
             // « à valider » jugeait la mission — ranger sa chambre n'est pas
             // une demande qu'on approuve. Ce qui attend ici, c'est un enfant.
             title="En attente de vous"
-            subtitle={waiting > 0 ? 'Les minutes sont ajoutées immédiatement' : undefined}
+            // La section mélange deux choses : une mission à confirmer, qui
+            // AJOUTE des minutes, et une demande d'écran, qui en DÉPENSE.
+            // Promettre « les minutes sont ajoutées » au-dessus d'un bouton
+            // « LANCER 20 MIN » disait le contraire de ce qui allait se passer.
+            subtitle={
+              requests.length > 0 && screenRequests.length === 0
+                ? 'Les minutes sont ajoutées immédiatement'
+                : screenRequests.length > 0 && requests.length === 0
+                  ? 'Le minuteur démarre dès que vous lancez'
+                  : undefined
+            }
           />
           {waiting === 0 ? (
             <Card elevation="none" background={colors.surfaceMuted}>

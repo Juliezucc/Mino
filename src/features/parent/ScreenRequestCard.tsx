@@ -82,7 +82,11 @@ export function ScreenRequestCard({
         </View>
       ) : (
         <View style={styles.actions}>
-          <Button label="REFUSER" variant="ghost" onPress={() => onRefuse?.()} />
+          {/* « Pas maintenant » plutôt que « REFUSER » : ce n'est presque
+              jamais un non définitif, c'est un non tout de suite. Le mot dit
+              au passage à l'enfant que ses minos ne sont pas perdus — et il
+              évite de faire d'un « on est à table » un jugement. */}
+          <Button label="Pas maintenant" variant="ghost" onPress={() => onRefuse?.()} />
           <Button
             label={`LANCER ${session.requestedMinutes} MIN`}
             onPress={() => onApprove?.()}

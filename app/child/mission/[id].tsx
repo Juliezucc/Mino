@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
 import { Button, Card, Screen, ScreenHeader, StatusPill, Text } from '@/components/ui';
-import { unitOf } from '@/domain/ageBand';
+import { registerOf, unitOf } from '@/domain/ageBand';
 import { formatTime, unitLabel } from '@/domain/minos';
 import { accentFor, colors, radii, spacing } from '@/theme';
 import { useActiveChild, useChildMissions } from '@/store/selectors';
@@ -29,6 +29,7 @@ export default function MissionDetail() {
   if (!child || !item) return null;
 
   const unit = unitOf(child);
+  const register = registerOf(child);
   const accent = accentFor(item.mission.id);
   const waiting = item.state === 'pending';
   const done = item.state === 'done';
@@ -93,9 +94,17 @@ export default function MissionDetail() {
 
       {waiting ? (
         <Card style={styles.card} background={colors.yellowSoft} elevation="none">
-          <AnimatedMascot expression="motivated" size={150} animation="celebrate" />
+          {/* Le registre ne changeait que l'unité : un ado de quatorze ans
+              lisait « Bien joué ! » sous une mascotte qui saute, et « appuie
+              sur le bouton vert » plus bas. C'est le genre de détail pour
+              lequel on désinstalle à cet âge-là. */}
+          <AnimatedMascot
+            expression="motivated"
+            size={register.celebrate ? 150 : 96}
+            animation={register.celebrate ? 'celebrate' : undefined}
+          />
           <Text variant="title" center>
-            Bien joué !
+            {register.celebrate ? 'Bien joué !' : 'C’est noté'}
           </Text>
           <Text variant="body" color={colors.textMuted} center>
             {unit === 'minos'
@@ -105,9 +114,9 @@ export default function MissionDetail() {
         </Card>
       ) : done ? (
         <Card style={styles.card} background={colors.mintSoft} elevation="none">
-          <AnimatedMascot expression="proud" size={150} />
+          <AnimatedMascot expression="proud" size={register.celebrate ? 150 : 96} />
           <Text variant="title" center>
-            Mission accomplie !
+            {register.celebrate ? 'Mission accomplie !' : 'Mission accomplie'}
           </Text>
           <Text variant="body" color={colors.textMuted} center>
             {`Tu as gagné ${formatTime(item.completion?.minutesAwarded ?? item.mission.minutes, unit)}.`}
@@ -124,9 +133,11 @@ export default function MissionDetail() {
           <Text variant="section" color={colors.blueInk}>
             {unitLabel(item.mission.minutes, unit).toUpperCase()}
           </Text>
-          <AnimatedMascot expression="happy" size={140} />
+          <AnimatedMascot expression="happy" size={register.celebrate ? 140 : 88} />
           <Text variant="body" color={colors.textMuted} center>
-            Quand c’est fait, appuie sur le bouton vert. Ton parent recevra la demande.
+            {register.celebrate
+              ? 'Quand c’est fait, appuie sur le bouton vert. Ton parent recevra la demande.'
+              : 'Marque-la terminée quand c’est fait : la demande part chez ton parent.'}
           </Text>
         </Card>
       )}

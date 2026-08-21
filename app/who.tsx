@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icons/Icon';
 import { Mascot } from '@/components/mascot';
-import { Avatar, Card, Logo, Screen, Text, TimeCapsules } from '@/components/ui';
+import { Avatar, Button, Card, Logo, Screen, Text, TimeCapsules } from '@/components/ui';
 import { balanceOf } from '@/domain/ledger';
 import { unitOf } from '@/domain/ageBand';
 import { formatTime } from '@/domain/minos';
@@ -25,7 +25,40 @@ export default function Who() {
     selectChild(null);
   }, [lockParent, selectChild]);
 
-  if (!data) return null;
+  /**
+   * Aucune famille sur cet appareil.
+   *
+   * `return null` rendait un écran BLANC, sans rien pour en sortir. On y arrive
+   * plus facilement qu'il n'y paraît : un parent qui se connecte sur un
+   * nouveau téléphone, quelqu'un qui a abandonné l'inscription en route, ou
+   * simplement un chargement qui n'aboutit pas parce qu'on est dans le métro.
+   *
+   * Trouvé en conduisant la connexion. Un écran vide n'est pas une erreur
+   * rare : c'est une erreur muette, et c'est la pire des deux.
+   */
+  if (!data) {
+    return (
+      <Screen contentStyle={styles.empty}>
+        <Mascot expression="surprised" size={120} />
+        <Text variant="title" center>
+          Rien à ouvrir sur cet appareil
+        </Text>
+        <Text variant="body" color={colors.textMuted} center>
+          Votre famille n’a pas été trouvée ici. Si vous venez de vous connecter, vérifiez votre
+          connexion et réessayez ; sinon, créez votre famille ou rattachez cet appareil avec le
+          code.
+        </Text>
+        <Button label="Créer ma famille" onPress={() => router.replace('/onboarding/account')} />
+        <Button
+          label="J’ai un code famille"
+          icon="🔑"
+          variant="secondary"
+          onPress={() => router.replace('/join')}
+        />
+        <Button label="Revenir à l’accueil" variant="ghost" onPress={() => router.replace('/welcome')} />
+      </Screen>
+    );
+  }
 
   const openChild = (childId: string) => {
     selectChild(childId);
@@ -105,7 +138,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.xl,
   },
-  empty: { alignItems: 'center', gap: spacing.md },
+  empty: { alignItems: 'center', gap: spacing.md, paddingTop: spacing.xl },
   parentRow: {
     flexDirection: 'row',
     alignItems: 'center',
