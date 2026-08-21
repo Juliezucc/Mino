@@ -10,6 +10,7 @@
     "test": "jest",
     "test:sql": "node scripts/test-sql.mjs",
     "db:push": "node scripts/db-push.mjs",
+    "audit:a11y": "node scripts/audit-a11y.mjs",
     "typecheck": "tsc --noEmit",
     "faq": "node --experimental-strip-types --no-warnings scripts/export-faq.mjs",
     "licences": "node scripts/licences.mjs",

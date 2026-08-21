@@ -56,7 +56,20 @@ export const colors = {
   // devenait illisible dès qu'on lui confiait autre chose qu'une décoration.
   textMuted: '#5A6180',
   textSubtle: '#636D95',
-  onBrand: '#FFFFFF',
+  /**
+   * Ce qui s'écrit **sur** une couleur de marque.
+   *
+   * Marine, pas blanc. Mesuré : du blanc sur le bleu #4EB6FF donne 2,2:1 et sur
+   * le mint 2,1:1, quand le seuil lisible est 4,5:1 — et 3:1 même en gros
+   * caractères. Le marine sur ces mêmes aplats donne 7,5:1 et 7,8:1, et il
+   * passe sur toute la palette, violet compris (4,9:1).
+   *
+   * Décision de Julie, entre trois options mesurées : la palette est conservée
+   * telle quelle, c'est l'encre qui change.
+   */
+  onBrand: '#1A1D2E',
+  /** Et sur un aplat foncé — la puce marine — c'est l'inverse. */
+  onDark: '#FFFFFF',
 
   // Lines
   border: '#E6ECFA',

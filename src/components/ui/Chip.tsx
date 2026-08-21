@@ -33,7 +33,9 @@ export function Chip({ label, selected, onPress, icon, style, tone = 'blue' }: P
     >
       <Text
         variant="label"
-        color={selected ? colors.onBrand : colors.textMuted}
+        // La puce « marine » est le seul aplat foncé de l'application : c'est
+        // le seul endroit où l'encre reste blanche.
+        color={selected ? (tone === 'blue' ? colors.onBrand : colors.onDark) : colors.textMuted}
         numberOfLines={1}
       >
         {icon ? `${icon} ${label}` : label}
