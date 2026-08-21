@@ -208,6 +208,53 @@ export const GUIDE: GuideChapter[] = [
   },
 
   {
+    id: 'blocage',
+    // Aligné sur le site : le titre précédent, « Faire respecter le temps
+    // gagné », promettait une contrainte que Mino n'exerce pas lui-même.
+    title: 'Le temps d’écran sur son téléphone',
+    icon: '🔒',
+    summary: 'Mino compte le temps ; le système de l’appareil le fait respecter.',
+    duration: '5 minutes',
+    steps: [
+      {
+        title: 'Qui fait quoi',
+        body: [
+          'Mino, installé sur l’iPhone, l’iPad ou l’appareil Android de votre enfant, tient le compte du temps gagné et le décompte pendant chaque session.',
+          'Empêcher une application de s’ouvrir est en revanche un pouvoir que seuls iOS et Android accordent, et seulement à qui ils en donnent l’autorisation. Dans cette version, c’est donc le contrôle parental du système qui applique la limite que Mino a calculée.',
+          'La bonne façon de le voir aujourd’hui : Mino décide combien de temps est accordé et pourquoi, le système fait respecter ce total.',
+        ],
+        tip: 'Sans ce réglage, rien n’empêche votre enfant d’ouvrir YouTube sans passer par Mino. C’est cinq minutes, une seule fois, et tout tient ensuite.',
+      },
+      {
+        title: 'Sur iPhone et iPad',
+        body: [
+          'Réglages → Temps d’écran → Limites d’app. Ajoutez une limite quotidienne sur les applications concernées, à la hauteur de ce que votre enfant peut raisonnablement gagner dans la journée.',
+          'Activez ensuite « Utiliser un code pour le Temps d’écran », avec un code différent de celui qui déverrouille l’appareil — sinon votre enfant lèvera la limite lui-même.',
+          'Excluez Mino de la limite, pour qu’il puisse toujours ouvrir ses missions.',
+        ],
+        outside: true,
+      },
+      {
+        title: 'Sur Android',
+        body: [
+          'Application Family Link → votre enfant → Contrôles → Limites de temps par application.',
+          'Family Link demande un compte Google pour l’enfant. Si vous préférez ne pas en créer, les mêmes limites existent directement sur l’appareil, dans Bien-être numérique et contrôle parental.',
+        ],
+        outside: true,
+      },
+      {
+        title: 'Ce vers quoi nous allons',
+        body: [
+          'Le réglage manuel ci-dessus est une étape, pas la destination. Mino est développé pour prendre la main lui-même : les applications que vous choisissez restent verrouillées, et le verrou se lève exactement le temps que votre enfant a gagné — plus de limite quotidienne à estimer à l’avance, plus d’écart entre ce qu’il a mérité et ce qu’il peut faire.',
+          'Cela demande une autorisation d’Apple et de Google, que nous demandons expressément pour cet usage. Quand elle sera accordée, un écran « Blocage des applications » vous proposera d’autoriser Mino et de choisir les applications concernées. Rien de ce que vous avez réglé ci-dessus ne sera perdu : ce sera simplement devenu inutile.',
+        ],
+        where: 'Espace parent → Réglages → Blocage des applications',
+        tip: 'Le système ne nous dira jamais quelles applications vous avez choisies — seulement combien. Mino ne peut donc pas savoir ce que votre enfant utilise, et c’est un choix que nous assumons.',
+      },
+    ],
+  },
+
+  {
     id: 'console',
     title: 'Console, télé, ordinateur',
     icon: '🎮',
@@ -263,53 +310,6 @@ export const GUIDE: GuideChapter[] = [
           'Si vous préférez que chaque session passe par vous, ouvrez sa fiche dans Enfants et choisissez « Il me demande d’abord ». Toutes ses sessions attendront alors votre accord, sur tous les écrans.',
         ],
         where: 'Espace parent → Enfants → l’enfant',
-      },
-    ],
-  },
-
-  {
-    id: 'blocage',
-    // Aligné sur le site : le titre précédent, « Faire respecter le temps
-    // gagné », promettait une contrainte que Mino n'exerce pas lui-même.
-    title: 'Le temps d’écran sur son téléphone',
-    icon: '🔒',
-    summary: 'Mino compte le temps ; le système de l’appareil le fait respecter.',
-    duration: '5 minutes',
-    steps: [
-      {
-        title: 'Qui fait quoi',
-        body: [
-          'Mino, installé sur l’iPhone, l’iPad ou l’appareil Android de votre enfant, tient le compte du temps gagné et le décompte pendant chaque session.',
-          'Empêcher une application de s’ouvrir est en revanche un pouvoir que seuls iOS et Android accordent, et seulement à qui ils en donnent l’autorisation. Dans cette version, c’est donc le contrôle parental du système qui applique la limite que Mino a calculée.',
-          'La bonne façon de le voir aujourd’hui : Mino décide combien de temps est accordé et pourquoi, le système fait respecter ce total.',
-        ],
-        tip: 'Sans ce réglage, rien n’empêche votre enfant d’ouvrir YouTube sans passer par Mino. C’est cinq minutes, une seule fois, et tout tient ensuite.',
-      },
-      {
-        title: 'Sur iPhone et iPad',
-        body: [
-          'Réglages → Temps d’écran → Limites d’app. Ajoutez une limite quotidienne sur les applications concernées, à la hauteur de ce que votre enfant peut raisonnablement gagner dans la journée.',
-          'Activez ensuite « Utiliser un code pour le Temps d’écran », avec un code différent de celui qui déverrouille l’appareil — sinon votre enfant lèvera la limite lui-même.',
-          'Excluez Mino de la limite, pour qu’il puisse toujours ouvrir ses missions.',
-        ],
-        outside: true,
-      },
-      {
-        title: 'Sur Android',
-        body: [
-          'Application Family Link → votre enfant → Contrôles → Limites de temps par application.',
-          'Family Link demande un compte Google pour l’enfant. Si vous préférez ne pas en créer, les mêmes limites existent directement sur l’appareil, dans Bien-être numérique et contrôle parental.',
-        ],
-        outside: true,
-      },
-      {
-        title: 'Ce vers quoi nous allons',
-        body: [
-          'Le réglage manuel ci-dessus est une étape, pas la destination. Mino est développé pour prendre la main lui-même : les applications que vous choisissez restent verrouillées, et le verrou se lève exactement le temps que votre enfant a gagné — plus de limite quotidienne à estimer à l’avance, plus d’écart entre ce qu’il a mérité et ce qu’il peut faire.',
-          'Cela demande une autorisation d’Apple et de Google, que nous demandons expressément pour cet usage. Quand elle sera accordée, un écran « Blocage des applications » vous proposera d’autoriser Mino et de choisir les applications concernées. Rien de ce que vous avez réglé ci-dessus ne sera perdu : ce sera simplement devenu inutile.',
-        ],
-        where: 'Espace parent → Réglages → Blocage des applications',
-        tip: 'Le système ne nous dira jamais quelles applications vous avez choisies — seulement combien. Mino ne peut donc pas savoir ce que votre enfant utilise, et c’est un choix que nous assumons.',
       },
     ],
   },

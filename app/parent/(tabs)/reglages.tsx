@@ -236,9 +236,9 @@ export default function ParentSettings() {
           CONFIDENTIALITÉ
         </Text>
         <Text variant="body" color={colors.textMuted}>
-          Pas de géolocalisation, pas de publicité, pas de tracking marketing côté enfant, pas de
-          chat, pas de profil public. Les enfants d’une famille ne sont jamais visibles par une
-          autre famille.
+          Pas de géolocalisation, pas de publicité, pas de tracking marketing côté enfant, pas
+          de messagerie entre personnes, pas de profil public. Les enfants d’une famille ne sont
+          jamais visibles par une autre famille.
         </Text>
         <Text variant="caption" color={colors.textSubtle}>
           {`Stockage des données : ${repositoryName === 'local' ? 'appareil uniquement' : 'Supabase (RLS activée)'}`}

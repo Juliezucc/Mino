@@ -36,7 +36,7 @@ toujours le vrai solde (`__tests__/history.test.ts`).
 
 `src/domain/` ne contient que des fonctions `(données, entrée) → nouvelles
 données`. Aucun appel réseau, aucun accès au stockage, aucun composant. C'est ce
-qui rend les règles testables sans lancer l'application — 204 tests en 3
+qui rend les règles testables sans lancer l'application — 210 tests en 3
 secondes.
 
 Le store appelle une fonction pure, persiste le résultat, publie le nouvel état.
@@ -139,7 +139,7 @@ supabase/
                       store-purchase, store-notifications
 docs/                 ce dossier
 scripts/              génération : visuels, guide, FAQ, licences
-__tests__/            204 tests
+__tests__/            210 tests
 ```
 
 ---
@@ -208,7 +208,7 @@ minutes**, et il tient à quatre garde-fous côté base, tous vérifiés par
 
 ```bash
 npm run typecheck   # TypeScript strict, zéro erreur attendue
-npm test            # 204 tests
+npm test            # 210 tests
 npm run test:sql    # applique le schéma sur un PostgreSQL jetable et l'attaque
 npm run audit:a11y  # mesure surfaces tactiles et contrastes sur le rendu réel
 npm run licences    # aucune licence contaminante embarquée

@@ -175,7 +175,7 @@ de conception, pas une option :
 
 - aucun compte, aucun e-mail, aucun mot de passe pour l'enfant ;
 - pas de géolocalisation, pas de publicité, pas de tracking marketing ;
-- pas de chat, pas de contenu public, pas de profil public ;
+- pas de messagerie entre personnes, pas de contenu public, pas de profil public ;
 - les enfants d'une famille ne sont jamais visibles par une autre famille — c'est
   garanti par les policies RLS, pas seulement par le code client ;
 - l'espace parent est protégé par un code à 4 chiffres, qui **n'est lisible nulle

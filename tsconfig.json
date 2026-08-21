@@ -2,6 +2,12 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // `src/content/faq.ts` importe les tarifs depuis le domaine en chemin
+    // relatif avec extension : c'est la seule forme que sait charger
+    // `scripts/export-faq.mjs`, qui exécute le fichier hors de Metro et ne
+    // résout donc pas l'alias `@/`. La FAQ doit rester chargeable seule —
+    // c'est elle qui alimente le site et l'outil de support.
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": ["./src/*"]
     },

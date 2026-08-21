@@ -17,6 +17,17 @@
  *     qui déflecte un ticket et une recherche qui en crée un.
  */
 
+import {
+  ANNUAL_PRICE_EUR,
+  MONTHLY_PRICE_EUR,
+  annualSavingPercent,
+  freeMonthsOnAnnual,
+} from '../domain/billing.ts';
+
+/** « 9,90 € » et « 79 € » : les centimes ne s'écrivent que s'il y en a. */
+const price = (v: number) =>
+  `${Number.isInteger(v) ? String(v) : v.toFixed(2).replace('.', ',')} €`;
+
 export type FaqCategory =
   | 'installation'
   | 'temps-ecran'
@@ -329,7 +340,7 @@ export const FAQ: FaqEntry[] = [
     id: 'prix',
     question: 'Combien coûte Mino ?',
     answer:
-      '9,90 € par mois, ou 79 € par an — deux mois offerts. Toute la famille est comprise : autant d’enfants et d’appareils que vous voulez, sans supplément.',
+      `${price(MONTHLY_PRICE_EUR)} par mois, ou ${price(ANNUAL_PRICE_EUR)} par an — soit ${freeMonthsOnAnnual()} mois offerts, ${annualSavingPercent()} % de moins. Toute la famille est comprise : autant d’enfants et d’appareils que vous voulez, sans supplément.`,
     category: 'abonnement',
     keywords: ['prix', 'tarif', 'combien', 'cout', 'payant', 'gratuit', 'abonnement'],
     route: '/parent/abonnement',
@@ -513,7 +524,7 @@ export const FAQ: FaqEntry[] = [
     id: 'autre-famille',
     question: 'Une autre famille peut-elle voir mon enfant ?',
     answer:
-      'Non, et pas seulement parce que l’application ne l’affiche pas : la base de données elle-même refuse de renvoyer les lignes d’une famille à quelqu’un qui n’en fait pas partie. Il n’y a ni profil public, ni messagerie, ni contenu partagé entre familles.',
+      'Non, et pas seulement parce que l’application ne l’affiche pas : la base de données elle-même refuse de renvoyer les lignes d’une famille à quelqu’un qui n’en fait pas partie. Il n’y a ni profil public, ni messagerie entre personnes, ni contenu partagé entre familles.',
     category: 'confidentialite',
     keywords: ['autre famille', 'visible', 'public', 'chat', 'messagerie', 'inconnu', 'securite'],
   },

@@ -106,8 +106,9 @@ ensuite, la preuve après, le prix à la fin.
 >
 > **Ce que Mino ne fait pas**
 > Aucune publicité. Aucune revente de données. Aucune géolocalisation. Aucune
-> messagerie. Aucun profil public. Votre enfant n'a ni compte, ni adresse
-> e-mail. Nous collectons son prénom, son âge et son avatar — rien d'autre.
+> messagerie entre personnes. Aucun profil public. Votre enfant n'a ni compte,
+> ni adresse e-mail. Nous collectons son prénom, son âge et son avatar — rien
+> d'autre.
 >
 > **Essai de 30 jours**, puis 9,90 €/mois ou 79 €/an pour toute la famille,
 > autant d'enfants et d'appareils que vous voulez. Annulation en deux touches.
@@ -149,7 +150,7 @@ concurrent n'y répond frontalement.
 
 En dessous de 4,0, le classement décroche et le taux d'installation s'effondre.
 
-**Quand demander** : après une mission validée, pas au premier lancement. Un
+**Quand demander** : après une mission confirmée, pas au premier lancement. Un
 parent à qui on demande un avis avant que le produit n'ait servi met deux
 étoiles, et il a raison.
 

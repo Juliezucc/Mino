@@ -218,8 +218,15 @@ Deno.serve(async (request) => {
   const child = await childOfCaller(request, body.childId);
   if (!child) return fail('Non autorisé.', 403);
 
+  // Trier AVANT de tronquer, et pas l'inverse.
+  //
+  // Le tri portait sur les 300 premiers caractères : une phrase grave placée
+  // au-delà passait au travers du filet. Ce n'est pas un cas d'école depuis
+  // que la dictée vocale existe — on parle plus longtemps qu'on n'écrit, et
+  // sans ponctuation. La troncature protège la facture ; elle n'a rien à faire
+  // devant la sécurité.
+  const safety = triage(body.message);
   const message = body.message.slice(0, 300);
-  const safety = triage(message);
 
   // Rien n'est écrit avant d'avoir été décompté.
   //

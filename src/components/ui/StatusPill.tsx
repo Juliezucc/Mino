@@ -9,7 +9,9 @@ import { Text } from './Text';
 const STATES: Record<MissionState, { label: string; icon: string; bg: string; fg: string }> = {
   todo: { label: 'À FAIRE', icon: '⭐', bg: colors.blueSoft, fg: colors.blueDark },
   pending: { label: 'EN ATTENTE', icon: '⏳', bg: colors.yellowSoft, fg: '#B27A11' },
-  done: { label: 'VALIDÉE', icon: '✓', bg: colors.mintSoft, fg: colors.mint },
+  // « ACCOMPLIE », pas « VALIDÉE » : c'est la pastille que l'enfant voit sur
+  // une mission faite, et elle doit dire le même mot que sa célébration.
+  done: { label: 'ACCOMPLIE', icon: '✓', bg: colors.mintSoft, fg: colors.mintInk },
 };
 
 /** Mission status — icon + word, so it reads without knowing the colour code. */

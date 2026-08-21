@@ -155,7 +155,7 @@ Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appa
 
 ### Combien coûte Mino ?
 
-9,90 € par mois, ou 79 € par an — deux mois offerts. Toute la famille est comprise : autant d’enfants et d’appareils que vous voulez, sans supplément.
+9,90 € par mois, ou 79 € par an — soit 4 mois offerts, 34 % de moins. Toute la famille est comprise : autant d’enfants et d’appareils que vous voulez, sans supplément.
 
 ### Serai-je prélevé à la fin de l’essai ?
 
@@ -229,7 +229,7 @@ Non. L’application ne demande jamais la position et ne pourrait pas l’obteni
 
 ### Une autre famille peut-elle voir mon enfant ?
 
-Non, et pas seulement parce que l’application ne l’affiche pas : la base de données elle-même refuse de renvoyer les lignes d’une famille à quelqu’un qui n’en fait pas partie. Il n’y a ni profil public, ni messagerie, ni contenu partagé entre familles.
+Non, et pas seulement parce que l’application ne l’affiche pas : la base de données elle-même refuse de renvoyer les lignes d’une famille à quelqu’un qui n’en fait pas partie. Il n’y a ni profil public, ni messagerie entre personnes, ni contenu partagé entre familles.
 
 ### Où sont hébergées les données ?
 

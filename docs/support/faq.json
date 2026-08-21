@@ -445,7 +445,7 @@
     {
       "id": "prix",
       "title": "Combien coûte Mino ?",
-      "body": "9,90 € par mois, ou 79 € par an — deux mois offerts. Toute la famille est comprise : autant d’enfants et d’appareils que vous voulez, sans supplément.",
+      "body": "9,90 € par mois, ou 79 € par an — soit 4 mois offerts, 34 % de moins. Toute la famille est comprise : autant d’enfants et d’appareils que vous voulez, sans supplément.",
       "category": "Abonnement",
       "keywords": [
         "prix",
@@ -735,7 +735,7 @@
     {
       "id": "autre-famille",
       "title": "Une autre famille peut-elle voir mon enfant ?",
-      "body": "Non, et pas seulement parce que l’application ne l’affiche pas : la base de données elle-même refuse de renvoyer les lignes d’une famille à quelqu’un qui n’en fait pas partie. Il n’y a ni profil public, ni messagerie, ni contenu partagé entre familles.",
+      "body": "Non, et pas seulement parce que l’application ne l’affiche pas : la base de données elle-même refuse de renvoyer les lignes d’une famille à quelqu’un qui n’en fait pas partie. Il n’y a ni profil public, ni messagerie entre personnes, ni contenu partagé entre familles.",
       "category": "Données et confidentialité",
       "keywords": [
         "autre famille",

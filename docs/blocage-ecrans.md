@@ -113,7 +113,7 @@ suffit d'ajouter `IosFamilyControlsScreenTimeService` et
 de basculer `capability` sur `'device-managed'`.
 
 Trois textes de l'application lisent cette valeur et changent tout seuls : les
-réglages, les CGV, et le chapitre « Faire respecter le temps gagné » du guide.
+réglages, les CGV, et le chapitre « Le temps d’écran sur son téléphone » du guide.
 Rien d'autre dans l'application ne sait comment le temps est appliqué.
 
 ## Dans quel ordre s'y prendre
@@ -131,7 +131,7 @@ Rien d'autre dans l'application ne sait comment le temps est appliqué.
 
 ## En attendant
 
-Le chapitre « Faire respecter le temps gagné » du guide explique au parent
+Le chapitre « Le temps d’écran sur son téléphone » du guide explique au parent
 comment régler Temps d'écran ou Family Link en cinq minutes, et pourquoi.
 Cette configuration restera valable après la bascule : elle ne sera simplement
 plus nécessaire.

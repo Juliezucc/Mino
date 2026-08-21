@@ -405,6 +405,23 @@ describe('les deux copies de Mino ne doivent pas diverger', () => {
     expect(mots(laBas)).toBe(mots(SYSTEM_PROMPT));
   });
 
+  it('normalise le message de la même façon des deux côtés', () => {
+    // `normalise` décide de ce que les motifs voient. Deux versions
+    // différentes, et le filet n'attrape pas la même chose selon qui répond —
+    // une apostrophe courbe suffit.
+    // On compare la suite de transformations, pas la façon de déclarer la
+    // fonction : ici une déclaration, là-bas une flèche.
+    const chaine = (source: string, start: string) => {
+      const bloc = between(source, start, ';');
+      return (bloc.match(/\.(replace|trim|toLowerCase|normalize)\([^)]*\)?/g) ?? [])
+        .map((c) => c.replace(/\s+/g, ''));
+    };
+    const ici = chaine(clientSource, 'export function normalise(message: string): string {');
+    const laBas = chaine(edge, 'const normalise = (s: string) =>');
+    expect(ici.length).toBeGreaterThan(2);
+    expect(laBas).toEqual(ici);
+  });
+
   it('offre le même budget quotidien des deux côtés', () => {
     expect(edge).toContain(`const DAILY_EXCHANGES = ${DAILY_EXCHANGES};`);
   });

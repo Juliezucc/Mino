@@ -367,3 +367,15 @@ export function describePlan(plan: Plan): string {
 export function annualSavingPercent(): number {
   return Math.round((1 - ANNUAL_PRICE_EUR / (MONTHLY_PRICE_EUR * 12)) * 100);
 }
+
+/**
+ * Combien de mois l'abonnement annuel fait économiser, en mois de mensuel.
+ *
+ * Existe parce que la FAQ annonçait « deux mois offerts » quand la remise en
+ * vaut quatre : 9,90 × 12 − 79 = 39,80 €. Se tromper à son propre désavantage
+ * reste se tromper — et un chiffre écrit à la main dans un texte commercial
+ * finit toujours par ne plus correspondre au prix. Celui-ci se recalcule.
+ */
+export function freeMonthsOnAnnual(): number {
+  return Math.round((MONTHLY_PRICE_EUR * 12 - ANNUAL_PRICE_EUR) / MONTHLY_PRICE_EUR);
+}

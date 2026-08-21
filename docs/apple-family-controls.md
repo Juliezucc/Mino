@@ -77,7 +77,7 @@ adapter, pas à copier telle quelle.
 > compte.
 >
 > L'application ne comporte ni publicité, ni traceur publicitaire, ni mesure
-> d'audience marketing, ni messagerie, ni contenu public, ni profil public. Les
+> d'audience marketing, ni messagerie entre personnes, ni contenu public, ni profil public. Les
 > données d'une famille sont isolées au niveau de la base de données.
 >
 > Les jetons opaques renvoyés par `FamilyActivityPicker` ne sont ni interprétés,

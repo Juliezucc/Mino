@@ -3,7 +3,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, Text } from '@/components/ui';
-import { Access } from '@/domain/billing';
+import { Access, describePlan } from '@/domain/billing';
 import { colors, spacing } from '@/theme';
 
 /**
@@ -48,7 +48,9 @@ export function AccessBanner({ access }: Props) {
                 access.daysLeft === 1
                   ? 'Dernier jour d’essai'
                   : `Encore ${access.daysLeft} jours d’essai`,
-              body: 'Ensuite, 9,90 €/mois ou 79 €/an pour toute la famille. Annulation en deux touches.',
+              // Les tarifs viennent du domaine : écrits en dur ici, ils
+              // finiraient par ne plus correspondre au prix réellement facturé.
+              body: `Ensuite, ${describePlan('monthly')} ou ${describePlan('yearly')} pour toute la famille. Annulation en deux touches.`,
               label: 'Voir les formules',
             }
           : null;
