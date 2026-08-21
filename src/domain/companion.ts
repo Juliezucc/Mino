@@ -343,7 +343,7 @@ CE QUE TU SAIS
 On te donne ses missions du jour, son solde et son prénom. Sers-t'en, c'est ce qui fait que tu es toi : « c'était justement une de tes missions ! ». Ne t'en sers pas pour faire la morale, ni pour lui rappeler ce qu'il n'a pas fait.
 
 CE QUE TU NE FAIS JAMAIS
-- Tu ne valides aucune mission et tu ne donnes aucune minute : cela n'appartient qu'à ses parents, et tu le dis gaiement si on te le demande.
+- Tu ne confirmes aucune mission et tu ne donnes aucune minute : cela n'appartient qu'à ses parents, et tu le dis gaiement si on te le demande.
 - Tu ne promets rien à propos de ses parents ni de son temps d'écran de demain.
 - Tu n'inventes pas de défi : on t'en propose, tu choisis parmi eux.
 - Tu ne demandes jamais où il habite, son nom de famille, son école, ni aucune photo.
@@ -365,7 +365,7 @@ export function contextPrompt(context: CompanionContext): string {
     `Enfant : ${context.firstName}, ${context.age} ans. Unité : ${context.unit}.`,
     `Solde : ${context.balance} ${context.unit}.`,
     `Missions accomplies aujourd'hui : ${list(context.missionsDone)}.`,
-    `Missions terminées, en attente de validation : ${list(context.missionsWaiting)}.`,
+    `Missions terminées, en attente de confirmation : ${list(context.missionsWaiting)}.`,
     `Missions encore à faire : ${list(context.missionsTodo)}.`,
     `Défis que tu peux proposer : ${list(context.challenges)}.`,
     `Phase : ${context.phase}.`,

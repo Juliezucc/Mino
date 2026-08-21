@@ -14,7 +14,7 @@ import { LegalDocument, OPERATOR } from './document';
 export const PRIVACY: LegalDocument = {
   title: 'Politique de confidentialité',
   subtitle: 'Ce que Mino sait de votre famille, et ce qu’il n’en fait pas',
-  updatedAt: '20 août 2026',
+  updatedAt: '21 août 2026',
   intro: [
     {
       kind: 'p',
@@ -22,7 +22,7 @@ export const PRIVACY: LegalDocument = {
     },
     {
       kind: 'note',
-      text: 'Pas de publicité. Pas de revente de données. Pas de traceur publicitaire. Pas de géolocalisation. Pas de messagerie. Pas de profil public. Aucun enfant n’est visible par une autre famille que la sienne.',
+      text: 'Pas de publicité. Pas de revente de données. Pas de traceur publicitaire. Pas de géolocalisation. Pas de messagerie entre personnes. Pas de profil public. Aucun enfant n’est visible par une autre famille que la sienne.',
     },
   ],
   sections: [
@@ -59,7 +59,7 @@ export const PRIVACY: LegalDocument = {
             },
             {
               label: 'Utilisation',
-              value: 'Les missions créées, les demandes de validation, les minutes gagnées et utilisées, les sessions de temps d’écran. Ces données existent parce qu’elles sont l’application elle-même.',
+              value: 'Les missions créées, les missions déclarées et en attente de confirmation, les minutes gagnées et utilisées, les sessions de temps d’écran. Ces données existent parce qu’elles sont l’application elle-même.',
             },
             {
               label: 'Abonnement',
@@ -129,7 +129,7 @@ export const PRIVACY: LegalDocument = {
         {
           kind: 'bullets',
           items: [
-            'Un enfant ne peut pas être contacté depuis l’application : il n’y a ni messagerie, ni commentaire, ni partage.',
+            'Un enfant ne peut être contacté par personne depuis l’application : il n’y a ni messagerie, ni commentaire, ni partage. Les seuls échanges possibles sont ceux avec Mino, décrits à la section 5, et ils ne mettent en relation avec aucune autre personne.',
             'Un profil enfant n’est visible que par les membres de sa propre famille. Les règles de sécurité de notre base de données l’empêchent techniquement, pas seulement contractuellement.',
             'Aucune publicité, aucune mesure d’audience marketing et aucun traceur tiers ne sont présents dans l’expérience enfant.',
             'Le parent peut supprimer un profil enfant à tout moment ; ses données sont alors effacées.',

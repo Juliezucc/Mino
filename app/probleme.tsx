@@ -116,7 +116,7 @@ export default function SignalerUnProbleme() {
       </View>
 
       <Field
-        placeholder="Ex. : j’ai validé une mission et le compteur n’a pas bougé"
+        placeholder="Ex. : j’ai confirmé une mission et le compteur n’a pas bougé"
         value={message}
         onChangeText={setMessage}
         multiline

@@ -128,7 +128,7 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
             ici, c'est ce que Mino fait — et surtout ce qu'il ne fait pas. */}
         <Text variant="caption" color={colors.textSubtle}>
           {companionEnabled
-            ? 'Quand son temps d’écran est fini, il peut discuter avec Mino — une vingtaine d’échanges par jour, puis Mino l’envoie jouer. Mino ne valide aucune mission, ne donne aucune minute, et vous pouvez lire toutes leurs conversations.'
+            ? 'Quand son temps d’écran est fini, il peut discuter avec Mino — une vingtaine d’échanges par jour, puis Mino l’envoie jouer. Mino ne confirme aucune mission, ne donne aucune minute, et vous pouvez lire toutes leurs conversations.'
             : 'Mino ne discutera pas avec lui. L’écran « plus de temps » proposera simplement ses missions.'}
         </Text>
       </View>

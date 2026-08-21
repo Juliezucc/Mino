@@ -16,7 +16,7 @@ import { ANNUAL_PRICE_EUR, MONTHLY_PRICE_EUR, REFERRAL, TRIAL_DAYS } from '@/dom
 export const TERMS: LegalDocument = {
   title: 'Conditions générales',
   subtitle: 'Conditions générales de vente et d’utilisation de Mino',
-  updatedAt: '20 août 2026',
+  updatedAt: '21 août 2026',
   intro: [
     {
       kind: 'p',
@@ -38,7 +38,7 @@ export const TERMS: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: 'Mino permet à un parent de définir de petites responsabilités du quotidien, appelées missions, et d’accorder à son enfant du temps d’écran lorsqu’elles sont accomplies. L’enfant signale qu’il a terminé, le parent valide ou refuse, et le temps accordé s’ajoute au compteur de l’enfant.',
+          text: 'Mino permet à un parent de définir de petites responsabilités du quotidien, appelées missions, et d’accorder à son enfant du temps d’écran lorsqu’elles sont accomplies. L’enfant signale qu’il a terminé, le parent confirme ou la remet à faire, et le temps accordé s’ajoute au compteur de l’enfant. Le parent peut décider, mission par mission, que certaines se comptent sans confirmation.',
         },
         {
           kind: 'note',
@@ -46,12 +46,33 @@ export const TERMS: LegalDocument = {
         },
         {
           kind: 'p',
-          text: 'Mino ne comporte ni monnaie virtuelle, ni achat intégré, ni publicité, ni messagerie, ni contenu public. Les minos affichés à l’enfant sont l’unité dans laquelle le service exprime les minutes de temps d’écran : un mino vaut toujours une minute, ils ne peuvent être ni achetés, ni vendus, ni convertis.',
+          text: 'Mino ne comporte ni monnaie virtuelle, ni publicité, ni messagerie entre personnes, ni contenu public. Les minos affichés à l’enfant sont l’unité dans laquelle le service exprime les minutes de temps d’écran : un mino vaut toujours une minute, ils ne peuvent être ni achetés, ni vendus, ni convertis. L’abonnement peut être souscrit depuis l’application, par l’intermédiaire de l’App Store ou de Google Play ; aucun autre achat n’est proposé.',
         },
       ],
     },
     {
-      title: '3. Qui peut souscrire, et sous quelle responsabilité',
+      title: '3. Mino, le compagnon',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Lorsque son temps d’écran est épuisé, l’enfant peut échanger avec Mino, le personnage de l’application. Ces échanges sont produits par un modèle de langage et non par une personne : personne ne lit les messages en direct, et Mino ne doit jamais être considéré comme un interlocuteur de confiance pour une situation grave.',
+        },
+        {
+          kind: 'p',
+          text: 'Le nombre d’échanges est volontairement limité à une vingtaine par jour et par enfant : Mino tient compagnie, il ne remplace pas le temps d’écran qui vient de se terminer, et il encourage l’enfant à faire autre chose. Mino ne confirme aucune mission et n’accorde aucune minute — cela n’appartient qu’au parent.',
+        },
+        {
+          kind: 'note',
+          text: 'Le compagnon peut être désactivé enfant par enfant depuis l’espace parent. Le parent peut relire l’intégralité des conversations, et l’enfant en est informé sur son propre écran. Si un message évoque une situation de danger, Mino cesse la conversation et oriente vers un adulte et vers le 119, numéro national gratuit et confidentiel de l’enfance en danger.',
+        },
+        {
+          kind: 'p',
+          text: 'Le microphone n’est utilisé que si l’enfant appuie sur le bouton prévu à cet effet, pour dicter un message ; aucune écoute n’a lieu en dehors de ce geste. Les modalités de traitement figurent dans la politique de confidentialité.',
+        },
+      ],
+    },
+    {
+      title: '4. Qui peut souscrire, et sous quelle responsabilité',
       blocks: [
         {
           kind: 'p',
@@ -81,7 +102,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '4. Prix',
+      title: '5. Prix',
       blocks: [
         {
           kind: 'rows',
@@ -97,7 +118,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '5. La période d’essai',
+      title: '6. La période d’essai',
       blocks: [
         {
           kind: 'p',
@@ -114,7 +135,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '6. Le parrainage',
+      title: '7. Le parrainage',
       blocks: [
         {
           kind: 'p',
@@ -138,7 +159,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '7. Paiement et reconduction',
+      title: '8. Paiement et reconduction',
       blocks: [
         {
           kind: 'p',
@@ -163,7 +184,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '8. Résiliation',
+      title: '9. Résiliation',
       blocks: [
         {
           kind: 'note',
@@ -188,7 +209,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '9. Droit de rétractation',
+      title: '10. Droit de rétractation',
       blocks: [
         {
           kind: 'p',
@@ -205,7 +226,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '10. Disponibilité et responsabilité',
+      title: '11. Disponibilité et responsabilité',
       blocks: [
         {
           kind: 'p',
@@ -215,10 +236,14 @@ export const TERMS: LegalDocument = {
           kind: 'p',
           text: 'Mino est un outil d’organisation familiale. Il ne se substitue ni à votre autorité parentale, ni à un dispositif de contrôle parental système, ni à un accompagnement éducatif ou médical. Vous restez seul décisionnaire du temps d’écran accordé à votre enfant.',
         },
+        {
+          kind: 'p',
+          text: 'Cela vaut en particulier pour le compagnon décrit à l’article 3 : ses réponses sont générées automatiquement, elles peuvent être imprécises, et elles ne constituent ni un avis, ni un accompagnement, ni une surveillance. Aucune personne ne lit les conversations en temps réel.',
+        },
       ],
     },
     {
-      title: '11. Propriété intellectuelle',
+      title: '12. Propriété intellectuelle',
       blocks: [
         {
           kind: 'p',
@@ -227,7 +252,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '12. Données personnelles',
+      title: '13. Données personnelles',
       blocks: [
         {
           kind: 'p',
@@ -236,7 +261,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '13. Réclamations et médiation',
+      title: '14. Réclamations et médiation',
       blocks: [
         {
           kind: 'p',
@@ -257,7 +282,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '14. Droit applicable',
+      title: '15. Droit applicable',
       blocks: [
         {
           kind: 'p',

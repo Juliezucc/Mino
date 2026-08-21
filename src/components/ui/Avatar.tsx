@@ -30,8 +30,20 @@ export const AVATARS: { key: AvatarKey; emoji: string; label: string; color: str
 ];
 
 /**
- * Every key this app has ever written, mapped forward. Two renames have gone
- * through here; an existing family must never open Mino to a blank avatar.
+ * Les clés qu'une version de développement a pu écrire, redirigées.
+ *
+ * Le commentaire précédent parlait de « familles existantes », ce qui laissait
+ * croire à des profils en production : il n'y en a aucun, l'application n'a
+ * jamais été publiée. Ces deux renommages (créatures colorées → animaux) sont
+ * restés dans les téléphones de test, et nulle part ailleurs.
+ *
+ * On garde la table quand même, parce qu'elle coûte neuf lignes et qu'un
+ * appareil de test qui ouvre Mino sur le mauvais animal fait perdre du temps
+ * pour rien. `avatarFor` ne renvoie de toute façon jamais rien de vide : sans
+ * cette table, une clé inconnue donnerait simplement un renard.
+ *
+ * **À supprimer à la première mise en production** : à partir de là, plus
+ * personne ne peut détenir ces clés.
  */
 const LEGACY: Record<string, AvatarKey> = {
   // The colour keys, from the monster set.

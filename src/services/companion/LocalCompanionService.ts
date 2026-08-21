@@ -138,7 +138,7 @@ export class LocalCompanionService implements CompanionService {
     if (/mission|minos?\b|gagner|combien/i.test(said)) {
       const todo = context.missionsTodo[0];
       return todo
-        ? `Il te reste « ${todo} » aujourd’hui. C’est tes parents qui valident, moi je ne fais qu’applaudir 👏`
+        ? `Il te reste « ${todo} » aujourd’hui. C’est tes parents qui confirment, moi je ne fais qu’applaudir 👏`
         : `Tes missions, c’est dans l’onglet Missions ! Moi je ne donne pas de ${context.unit}, ça c’est tes parents 😄`;
     }
 

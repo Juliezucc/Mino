@@ -100,7 +100,7 @@ export default function MissionDetail() {
           <Text variant="body" color={colors.textMuted} center>
             {unit === 'minos'
               ? 'Demande envoyée à ton parent. Tes minos arrivent dès qu’il confirme.'
-              : 'Demande envoyée. Le temps arrive dès validation.'}
+              : 'Demande envoyée. Le temps arrive dès que ton parent confirme.'}
           </Text>
         </Card>
       ) : done ? (

@@ -257,7 +257,7 @@ export const GUIDE: GuideChapter[] = [
         tip: 'La console reste sous votre contrôle : Mino tient le compte et vous prévient, il n’éteint rien tout seul.',
       },
       {
-        title: 'Et si vous voulez valider même sur son téléphone',
+        title: 'Et si vous voulez confirmer même sur son téléphone',
         body: [
           'Par défaut, sur l’appareil où Mino est installé, votre enfant démarre son temps tout seul : le compteur est à lui, il en dispose.',
           'Si vous préférez que chaque session passe par vous, ouvrez sa fiche dans Enfants et choisissez « Il me demande d’abord ». Toutes ses sessions attendront alors votre accord, sur tous les écrans.',
@@ -269,7 +269,9 @@ export const GUIDE: GuideChapter[] = [
 
   {
     id: 'blocage',
-    title: 'Faire respecter le temps gagné',
+    // Aligné sur le site : le titre précédent, « Faire respecter le temps
+    // gagné », promettait une contrainte que Mino n'exerce pas lui-même.
+    title: 'Le temps d’écran sur son téléphone',
     icon: '🔒',
     summary: 'Mino compte le temps ; le système de l’appareil le fait respecter.',
     duration: '5 minutes',
@@ -335,7 +337,7 @@ export const GUIDE: GuideChapter[] = [
           'Une vraie tâche — ranger sa chambre, débarrasser la table : 10 à 15 minos.',
           'Un effort long — les devoirs, aider en cuisine : 20 minos.',
         ],
-        tip: 'Le total d’une journée doit correspondre à ce que vous accepteriez de toute façon. Additionnez vos missions avant de valider la liste.',
+        tip: 'Le total d’une journée doit correspondre à ce que vous accepteriez de toute façon. Additionnez vos missions avant d’arrêter la liste.',
       },
       {
         title: 'S’il en gagne trop',
@@ -347,7 +349,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'En cas d’erreur',
         body: [
-          'Vous avez validé trop vite ? Ajustez le compteur depuis la fiche de l’enfant. L’opération apparaît dans son historique : rien n’est effacé, tout se lit.',
+          'Vous avez confirmé trop vite ? Ajustez le compteur depuis la fiche de l’enfant. L’opération apparaît dans son historique : rien n’est effacé, tout se lit.',
         ],
         where: 'Espace parent → Enfants → l’enfant',
       },

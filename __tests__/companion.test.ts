@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs';
+
 import {
   ALERT_REPLY,
+  CLOSED,
+  FAREWELL,
   CHALLENGES,
   DAILY_EXCHANGES,
   NUDGE_FROM,
@@ -15,6 +19,9 @@ import {
   pickChallenge,
   triage,
 } from '@/domain/companion';
+
+/** La source du domaine, lue telle quelle : c'est elle qu'on compare au serveur. */
+const clientSource = readFileSync('src/domain/companion.ts', 'utf8');
 import { ChildMission } from '@/domain/missions';
 import { Child, Mission, MissionAssignment } from '@/domain/types';
 
@@ -217,7 +224,7 @@ describe('le contexte envoyé au modèle', () => {
   });
 
   it('interdit au modèle ce que seuls les parents peuvent faire', () => {
-    expect(SYSTEM_PROMPT).toMatch(/ne valides aucune mission/i);
+    expect(SYSTEM_PROMPT).toMatch(/ne confirmes aucune mission/i);
     expect(SYSTEM_PROMPT).toMatch(/n'inventes pas de défi|n’inventes pas de défi/i);
     expect(SYSTEM_PROMPT).toMatch(/jamais être humain|prétends jamais/i);
   });
@@ -341,5 +348,77 @@ describe('la mission dont il est question', () => {
   it('se moque des accents et des apostrophes', () => {
     expect(matchMission("j'ai fait mes devoirs", missions)).toBe('Faire mes devoirs');
     expect(matchMission('j’ai étendu la lessive', missions)).toBe('Lancer et étendre une lessive');
+  });
+});
+
+describe('les deux copies de Mino ne doivent pas diverger', () => {
+  /**
+   * La consigne au modèle et les motifs de sécurité existent DEUX fois : dans
+   * `src/domain/companion.ts`, qui sert au repli hors ligne et à l'aperçu, et
+   * dans `supabase/functions/companion/index.ts`, qui tourne sur le serveur et
+   * ne peut rien importer du dépôt.
+   *
+   * Cette duplication est assumée — une fonction Deno ne partage pas les
+   * modules de l'application — mais elle est dangereuse : elles avaient déjà
+   * divergé quand ce test a été écrit. Le serveur disait « Missions validées
+   * aujourd'hui » quand le client disait « accomplies ». Deux conséquences,
+   * l'une visible et l'autre non : Mino ne parle pas pareil selon qui répond,
+   * et deux consignes différentes font deux caches de prompt au lieu d'un.
+   *
+   * Le pire cas n'est pas le vocabulaire : c'est le filet de sécurité. Un motif
+   * ajouté d'un seul côté laisse passer, de l'autre, le message qu'il devait
+   * attraper.
+   */
+  const edge = readFileSync('supabase/functions/companion/index.ts', 'utf8');
+
+  const between = (source: string, start: string, end: string) => {
+    const from = source.indexOf(start);
+    expect(from).toBeGreaterThan(-1);
+    const to = source.indexOf(end, from);
+    expect(to).toBeGreaterThan(from);
+    return source.slice(from + start.length, to);
+  };
+
+  /** Les motifs, réduits à leur source, sans mise en forme ni commentaires. */
+  const patterns = (block: string) =>
+    (block.match(/\/[^/\n]+\/i/g) ?? []).map((p) => p.trim()).sort();
+
+  it('applique les mêmes motifs d’alerte des deux côtés', () => {
+    const ici = patterns(between(clientSource, 'const ALERT_PATTERNS = [', '];'));
+    const laBas = patterns(between(edge, 'const ALERT_PATTERNS = [', '];'));
+    expect(ici.length).toBeGreaterThan(5);
+    expect(laBas).toEqual(ici);
+  });
+
+  it('applique les mêmes motifs de tristesse des deux côtés', () => {
+    const ici = patterns(between(clientSource, 'const TENDER_PATTERNS = [', '];'));
+    const laBas = patterns(between(edge, 'const TENDER_PATTERNS = [', '];'));
+    expect(ici.length).toBeGreaterThan(3);
+    expect(laBas).toEqual(ici);
+  });
+
+  it('donne au modèle exactement la même consigne des deux côtés', () => {
+    // Comparé mot à mot, espaces normalisés : c'est la consigne qui compte, pas
+    // la façon dont chaque fichier l'a coupée en lignes.
+    const mots = (s: string) => s.replace(/\s+/g, ' ').trim();
+    const laBas = between(edge, 'const SYSTEM = `', '`;');
+    expect(mots(laBas)).toBe(mots(SYSTEM_PROMPT));
+  });
+
+  it('offre le même budget quotidien des deux côtés', () => {
+    expect(edge).toContain(`const DAILY_EXCHANGES = ${DAILY_EXCHANGES};`);
+  });
+
+  it('donne la même réponse d’alerte et le même au revoir', () => {
+    for (const [nom, valeur] of [
+      ['ALERT_REPLY', ALERT_REPLY],
+      ['FAREWELL', FAREWELL],
+      ['CLOSED', CLOSED],
+    ] as const) {
+      const laBas = between(edge, `const ${nom} =`, ';');
+      // La constante est écrite sur une ou deux lignes selon le fichier : on
+      // compare le texte, pas sa présentation.
+      expect(laBas.replace(/\s+/g, ' ')).toContain(valeur.slice(0, 40));
+    }
   });
 });

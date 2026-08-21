@@ -88,7 +88,7 @@ export default function ParentChildDetail() {
       <View style={styles.section}>
         <SectionHeader
           title="Une fois qu’il a gagné des minos"
-          subtitle="Il ne peut jamais lancer plus que son compteur, ni du temps que vous n’avez pas validé"
+          subtitle="Il ne peut jamais lancer plus que son compteur, ni du temps que vous n’avez pas confirmé"
         />
         <View style={styles.row}>
           <Chip
@@ -129,7 +129,7 @@ export default function ParentChildDetail() {
           />
         </View>
         <Text variant="caption" color={colors.textSubtle}>
-          Une vingtaine d’échanges par jour, puis Mino l’envoie jouer. Il ne valide aucune mission
+          Une vingtaine d’échanges par jour, puis Mino l’envoie jouer. Il ne confirme aucune mission
           et ne donne aucune minute.
         </Text>
         <Button
