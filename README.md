@@ -39,6 +39,9 @@ npm install
 npm start          # puis « i » pour iOS, « a » pour Android, « w » pour le web
 ```
 
+Pour essayer sur un vrai téléphone, puis brancher le serveur : **[docs/ops/mise-en-route.md](docs/ops/mise-en-route.md)**
+— pas à pas, sans rien supposer d'acquis.
+
 Au premier lancement, l'écran d'accueil propose **« Découvrir avec la démo »** :
 la famille de démonstration est créée instantanément.
 

@@ -31,6 +31,12 @@ yarn-error.*
 *.pem
 
 # local env files
+# `.env` compris, et pas seulement `.env.local` : c'est le fichier que
+# `docs/ops/mise-en-route.md` fait créer, et il porte les clés du projet
+# Supabase. Celle de l'application est publique par construction — elle part
+# dans le bundle — mais rien de tout cela n'a à entrer dans le dépôt, et le
+# jour où une clé `service_role` s'y glisserait, il serait trop tard.
+.env
 .env*.local
 
 # typescript

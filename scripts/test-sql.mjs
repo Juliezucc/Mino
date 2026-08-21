@@ -16,8 +16,21 @@
  * Usage : npm run test:sql
  */
 
+import { execFileSync } from 'node:child_process';
+
 import { announceMissing, BIN, startPostgres } from './pg.mjs';
 import { SQL_FILES } from '../supabase/order.mjs';
+
+// `supabase/tout.sql` est ce qu'on colle réellement dans le tableau de bord.
+// S'il a dérivé des fichiers d'origine, ce qui part en production n'est plus
+// ce que le dépôt contient — et rien d'autre ne le dirait.
+try {
+  execFileSync('node', ['scripts/db-bundle.mjs', '--check'], { stdio: 'inherit' });
+} catch {
+  // `db-bundle.mjs` a déjà dit ce qu'il fallait faire ; une trace de pile
+  // par-dessus ne ferait que cacher la phrase utile.
+  process.exit(1);
+}
 
 if (!BIN) {
   announceMissing();

@@ -11,6 +11,7 @@
     "test:sql": "node scripts/test-sql.mjs",
     "test:charge": "node scripts/load-test.mjs",
     "db:push": "node scripts/db-push.mjs",
+    "db:bundle": "node scripts/db-bundle.mjs",
     "audit:a11y": "node scripts/audit-a11y.mjs",
     "typecheck": "tsc --noEmit",
     "faq": "node --experimental-strip-types --no-warnings scripts/export-faq.mjs",
