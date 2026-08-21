@@ -192,6 +192,7 @@ minutes**, et il tient à quatre garde-fous côté base, tous vérifiés par
 npm run typecheck   # TypeScript strict, zéro erreur attendue
 npm test            # 194 tests
 npm run test:sql    # applique le schéma sur un PostgreSQL jetable et l'attaque
+npm run audit:a11y  # mesure surfaces tactiles et contrastes sur le rendu réel
 npm run licences    # aucune licence contaminante embarquée
 npm run faq         # régénère docs/support/ si la FAQ a changé
 ```
@@ -205,6 +206,17 @@ vrai, **puis les réapplique** sur la base déjà en place — c'est le cas rée
 base vide n'arrive qu'une fois dans la vie du produit — et joue enfin
 vingt-sept tentatives depuis une session d'appareil : se compter la mission
 d'un frère, rejouer une récompense, se signer du nom d'un parent.
+
+`audit:a11y` mérite le même mot. « Gros boutons atteignables par un enfant de
+5 ans, icône + texte, contraste suffisant » était affirmé depuis le début et
+jamais mesuré. Premier passage : **44 cibles trop petites et 63 contrastes
+insuffisants** — le bleu de marque écrit sur du blanc donne 2,22:1 quand le
+seuil lisible est 4,5:1. La palette n'a pas changé pour autant : des encres de
+la même teinte portent le texte, et les couleurs vives gardent tous les aplats.
+Sur les aplats, c'est le marine qui écrit (7,5:1), décision prise entre trois
+options mesurées. Le seul écart assumé — la flèche de retour à 52 px — est
+déclaré dans le script avec sa raison et reste affiché : un audit dont on
+baisse le seuil jusqu'à ce qu'il passe ne mesure plus rien.
 
 Et surtout : **rejouer le parcours 35 → 50 minutes dans l'application**, et de
 temps en temps **la vraie première ouverture**, sans la démo — créer un compte,
