@@ -21,6 +21,8 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { SQL_FILES } from '../supabase/order.mjs';
+
 const BIN = ['/usr/lib/postgresql/16/bin', '/usr/lib/postgresql/15/bin', '/usr/local/bin'].find(
   (dir) => existsSync(join(dir, 'initdb')),
 );
@@ -80,26 +82,35 @@ try {
 
   run(`${BIN}/createdb`, ['-h', dir, 'mino'], { stdio: 'ignore' });
 
-  // Dans l'ordre d'application indiqué par docs/ARCHITECTURE.md : c'est
-  // celui-là qu'on vérifie, pas un ordre commode.
-  for (const [label, file] of [
+  // Le même ordre que `db:push`, et depuis la même source : c'est
+  // l'application réelle qu'on répète ici, pas une variante commode.
+  const files = [
     ['préalables Supabase', 'supabase/test/harness.sql'],
-    ['schema.sql', 'supabase/schema.sql'],
-    ['scale.sql', 'supabase/scale.sql'],
-    ['support.sql', 'supabase/support.sql'],
-    ['analytics.sql', 'supabase/analytics.sql'],
-    ['store.sql', 'supabase/store.sql'],
-    ['companion.sql', 'supabase/companion.sql'],
-  ]) {
+    ...SQL_FILES.map(([name]) => [name, `supabase/${name}`]),
+  ];
+
+  const apply = (label, file, pass) => {
     const out = psql(file);
     const errors = `${out.stderr}`.split('\n').filter((l) => l.includes('ERROR'));
     if (out.status !== 0 || errors.length) {
-      console.error(`${label} : refusé par PostgreSQL`);
+      console.error(`${label} : refusé par PostgreSQL${pass === 2 ? ' à la deuxième passe' : ''}`);
       console.error(errors.join('\n') || out.stderr);
       process.exit(1);
     }
+  };
+
+  for (const [label, file] of files) {
+    apply(label, file, 1);
     console.log(`${label} : appliqué`);
   }
+
+  // Deuxième passe, sur la base déjà peuplée. C'est le cas réel : la première
+  // application se fait sur une base vide une seule fois dans la vie du
+  // produit, toutes les suivantes corrigent quelque chose. Deux politiques de
+  // `companion.sql` se créaient sans se supprimer d'abord — la correction
+  // était donc impossible à appliquer, et rien ne le disait.
+  for (const [label, file] of files) apply(label, file, 2);
+  console.log('réappliqués sur une base déjà en place : ok');
 
   const out = psql('supabase/test/rls.sql');
   const lines = `${out.stderr}`

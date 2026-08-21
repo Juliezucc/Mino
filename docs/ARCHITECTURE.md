@@ -200,12 +200,30 @@ npm run faq         # régénère docs/support/ si la FAQ a changé
 tentative a buté sur un index déclaré avant sa table, puis sur une expression
 d'index mal parenthésée. `supabase db push` aurait échoué, et l'index qui
 tient la validation automatique n'aurait jamais existé. Rien de tout cela
-n'était visible à la relecture. La suite applique donc le fichier pour de vrai,
-puis joue vingt-sept tentatives depuis une session d'appareil : se compter la
-mission d'un frère, rejouer une récompense, se signer du nom d'un parent.
+n'était visible à la relecture. La suite applique donc les six fichiers pour de
+vrai, **puis les réapplique** sur la base déjà en place — c'est le cas réel, une
+base vide n'arrive qu'une fois dans la vie du produit — et joue enfin
+vingt-sept tentatives depuis une session d'appareil : se compter la mission
+d'un frère, rejouer une récompense, se signer du nom d'un parent.
 
 Et surtout : **rejouer le parcours 35 → 50 minutes dans l'application**. Les
 trois défauts les plus graves trouvés jusqu'ici — un bouclier d'écran qui ne se
 levait pas, un code parent lisible depuis la tablette de l'enfant, et un
 verrouillage définitif de l'espace parent à la mise à jour — ont tous été
 trouvés en se servant de l'application, aucun en relisant le code.
+
+---
+
+## Appliquer le SQL
+
+```bash
+npm run db:push -- --dry-run          # ce qui serait appliqué, et dans quel ordre
+SUPABASE_DB_URL='postgresql://…' npm run db:push
+```
+
+L'URL vient du tableau de bord Supabase (Project settings → Database →
+Connection string → URI) et ne doit jamais entrer dans le dépôt. Un fichier par
+transaction : il passe entièrement ou pas du tout. L'ordre est celui de
+`supabase/order.mjs`, lu aussi par `test:sql` — deux listes auraient divergé, et
+la divergence se serait vue en production.
+

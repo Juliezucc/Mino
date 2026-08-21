@@ -59,6 +59,7 @@ alter table companion_usage enable row level security;
  * nombre. Ouvrir la table à toute la famille laisserait un appareil enfant lire
  * la consommation de son frère — sans utilité, et donc sans raison.
  */
+drop policy if exists companion_usage_read on companion_usage;
 create policy companion_usage_read on companion_usage
   for select using (
     auth_is_parent()
@@ -112,6 +113,7 @@ alter table companion_messages enable row level security;
  * qu'il ne l'est pas est un mensonge qu'il découvrira un jour ; le lui dire et
  * n'ouvrir qu'aux parents est la seule position tenable.
  */
+drop policy if exists companion_messages_read on companion_messages;
 create policy companion_messages_read on companion_messages
   for select using (auth_is_parent() and family_id in (select auth_family_ids()));
 
