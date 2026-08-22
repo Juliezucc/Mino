@@ -18,6 +18,17 @@ jest.mock('@react-native-async-storage/async-storage', () => {
   };
 });
 
+// Le module natif n'existe pas sous Jest. Ce qu'on vérifie ici est la FORME
+// des codes — leur longueur, leur alphabet — pas la qualité de l'aléa : celle-là
+// tient au système, et se vérifie sur l'appareil, pas dans un test.
+jest.mock('expo-crypto', () => ({
+  getRandomBytes: (n: number) => {
+    const out = new Uint8Array(n);
+    for (let i = 0; i < n; i += 1) out[i] = Math.floor(Math.random() * 256);
+    return out;
+  },
+}));
+
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(async () => undefined),
   notificationAsync: jest.fn(async () => undefined),

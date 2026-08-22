@@ -1,13 +1,13 @@
 # Licences des dépendances
 <!-- Généré par `npm run licences`. Relancer après chaque npm install. -->
-740 paquets installés, dont 458 réellement embarqués dans l'application.
+741 paquets installés, dont 459 réellement embarqués dans l'application.
 ## Verdict
 > Aucune licence contaminante (GPL, AGPL, SSPL) parmi les paquets embarqués. Rien ne s'oppose à une distribution propriétaire.
 Pour mémoire, 1 paquet(s) d'outillage sous licence contaminante — `ffmpeg-static` (GPL-3.0-or-later). Ils servent à fabriquer l'application et ne sont distribués avec elle sous aucune forme : la licence ne s'applique donc pas à Mino. À ne pas confondre avec le cas ci-dessus.
 ## Répartition
 | Licence | Paquets |
 | --- | --- |
-| MIT | 635 |
+| MIT | 636 |
 | ISC | 33 |
 | BSD-3-Clause | 19 |
 | Apache-2.0 | 16 |
@@ -385,6 +385,7 @@ Pour mémoire, 1 paquet(s) d'outillage sous licence contaminante — `ffmpeg-sta
 | expo | 57.0.14 | MIT | oui |
 | expo-application | 57.0.2 | MIT | oui |
 | expo-constants | 57.0.13 | MIT | oui |
+| expo-crypto | 57.0.1 | MIT | oui |
 | expo-font | 57.0.1 | MIT | oui |
 | expo-glass-effect | 57.0.1 | MIT | oui |
 | expo-haptics | 57.0.1 | MIT | oui |

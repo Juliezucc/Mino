@@ -1,0 +1,69 @@
+# Le second regard.
+#
+# Mino est tenu par une seule personne. Il n'y a pas de collègue pour dire
+# « tu as cassé le calcul du solde » — donc c'est ce fichier qui le dit, à
+# chaque poussée, sans qu'on ait à y penser un soir de fatigue.
+#
+# Trois vérifications, dans l'ordre du plus rapide au plus lent, pour que le
+# retour arrive vite quand quelque chose de simple est cassé :
+#
+#   typecheck   TypeScript strict sur tout le dépôt          ~30 s
+#   test        210 tests de domaine et de parcours          ~10 s
+#   test:sql    le schéma appliqué DEUX FOIS sur un vrai     ~60 s
+#               PostgreSQL, puis 113 tentatives d'effraction
+#
+# La troisième est celle qui compte le plus et c'est celle qu'on saute quand
+# on la lance à la main : elle monte un PostgreSQL, y rejoue les sept fichiers
+# SQL dans l'ordre de `db:push`, vérifie qu'ils se réappliquent sans casser,
+# et qu'aucune famille ne peut voir les enfants d'une autre.
+
+name: Vérifications
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  # Pour pouvoir la relancer à la main depuis l'onglet Actions, sans pousser.
+  workflow_dispatch:
+
+# Une poussée qui en suit une autre annule la précédente : c'est le résultat
+# du dernier état qui intéresse, pas celui d'un commit déjà dépassé.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    name: Types, tests, schéma
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      # Le runner Ubuntu embarque déjà PostgreSQL et ne le démarre pas — ce qui
+      # tombe bien : `test:sql` monte le sien, sur une socket à lui, et le
+      # démonte après.
+      #
+      # `MINO_REQUIRE_PG=1` est la ligne importante : sans elle, le jour où le
+      # runner change de version de PostgreSQL, le script sortirait en 0 en
+      # disant « absent » — et la vérification la plus précieuse du dépôt
+      # deviendrait un coche vert qui ne prouve rien.
+      - name: Schéma et politiques de sécurité
+        run: npm run test:sql
+        env:
+          MINO_REQUIRE_PG: '1'

@@ -15,16 +15,34 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 export const BIN = [
+  '/usr/lib/postgresql/18/bin',
+  '/usr/lib/postgresql/17/bin',
   '/usr/lib/postgresql/16/bin',
   '/usr/lib/postgresql/15/bin',
   '/usr/local/bin',
+  '/opt/homebrew/bin',
 ].find((dir) => existsSync(join(dir, 'initdb')));
 
-/** Ce qu'on dit quand le paquet manque : une vérification de moins, pas une porte fermée. */
+/**
+ * Ce qu'on dit quand le paquet manque.
+ *
+ * Sur une machine de développement, c'est une vérification de moins et pas une
+ * porte fermée : on le dit et on sort en 0. En intégration continue, c'est
+ * l'inverse — un `test:sql` qui passe parce que PostgreSQL n'est pas installé
+ * est exactement le pire des résultats : le vert d'une vérification qui n'a
+ * pas eu lieu. `MINO_REQUIRE_PG=1` fait donc échouer franchement.
+ */
 export function announceMissing() {
-  console.log('PostgreSQL absent — rien à mesurer ici.');
-  console.log('Sur Debian/Ubuntu : sudo apt install postgresql');
-  console.log('Sur macOS : brew install postgresql@16');
+  const exige = process.env.MINO_REQUIRE_PG === '1';
+  const dire = exige ? console.error : console.log;
+  dire('PostgreSQL absent.');
+  dire('Sur Debian/Ubuntu : sudo apt install postgresql');
+  dire('Sur macOS : brew install postgresql@16');
+  if (exige) {
+    console.error('');
+    console.error('MINO_REQUIRE_PG=1 : on refuse de rendre un vert qui ne prouve rien.');
+    process.exit(1);
+  }
 }
 
 /**

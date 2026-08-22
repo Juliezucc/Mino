@@ -41,6 +41,18 @@ describe('joining a family', () => {
     expect(generated).toMatch(/^MINO-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/);
   });
 
+  it('tire ses codes du générateur du système, jamais de Math.random', () => {
+    // Ce code est la seule chose entre un inconnu et une famille avec des
+    // enfants dedans. `Math.random()` n'est pas un générateur cryptographique,
+    // et le code de parrainage — qui se partage avec des inconnus — était tiré
+    // juste après lui. Ce test tombe si quelqu'un revient en arrière.
+    const crypto = require('expo-crypto');
+    const espion = jest.spyOn(crypto, 'getRandomBytes');
+    createFamilyCode();
+    expect(espion).toHaveBeenCalled();
+    espion.mockRestore();
+  });
+
   it('never produces I, O, 0 or 1, which get misread aloud', () => {
     const codes = Array.from({ length: 200 }, () => createFamilyCode());
     expect(codes.some((c) => /[IO01]/.test(c.slice(5)))).toBe(false);
