@@ -1,0 +1,9 @@
+{
+  "name": "mino-screen-time",
+  "version": "0.1.0",
+  "description": "Le bouclier système : pose, lève et repose la limite d'écran.",
+  "main": "index.ts",
+  "author": "Agence Wheb",
+  "license": "UNLICENSED",
+  "homepage": "https://mino.app"
+}

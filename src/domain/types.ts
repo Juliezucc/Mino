@@ -34,6 +34,15 @@ export interface Parent {
   email: string;
   createdAt: ISODate;
   /**
+   * Quand ce parent a déclaré être titulaire de l'autorité parentale.
+   *
+   * L'instant, pas le simple fait : c'est la date qui vaut preuve le jour où
+   * on la demande. Absente sur les comptes créés avant que l'écran ne pose la
+   * question — d'où l'optionnel, qui est un fait historique et non une
+   * permission de s'en passer.
+   */
+  consentAt?: ISODate;
+  /**
    * The PIN guarding the parent area is deliberately NOT here.
    *
    * This document is readable by every device in the family, the child's

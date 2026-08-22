@@ -16,7 +16,7 @@ import * as actions from '@/domain/actions';
 import { GatedAction, LOCKED_MESSAGE, isLocked } from '@/domain/access';
 import { Plan, Referral, Subscription } from '@/domain/billing';
 import { DeviceKind } from '@/domain/devices';
-import { AvatarKey, FamilyData, ID, RepeatRule } from '@/domain/types';
+import { AvatarKey, FamilyData, ID, ISODate, RepeatRule } from '@/domain/types';
 import * as notify from '@/domain/notifications';
 import { AuthResult, getAuthService } from '@/services/auth';
 import { getNotificationService } from '@/services/notifications';
@@ -76,6 +76,7 @@ interface MinoState {
     password: string;
     pin: string;
     familyName?: string;
+    consentAt: ISODate;
   }) => Promise<AuthResult>;
   signIn: (input: { email: string; password: string }) => Promise<AuthResult>;
   signOut: () => Promise<void>;
@@ -364,7 +365,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
       await get().loadBilling();
     },
 
-    async createAccount({ parentName, email, password, pin, familyName }) {
+    async createAccount({ parentName, email, password, pin, familyName, consentAt }) {
       // The account first: without an identity there is nothing to attach a
       // family to, and every row the backend stores is scoped by it.
       const signUp = await getAuthService().signUp({ email, password });
@@ -377,6 +378,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
         parentName,
         email,
         familyName: familyName?.trim() || `Famille de ${parentName}`,
+        consentAt,
       });
       publish(data, { status: 'ready', activeChildId: null, parentUnlocked: true });
       await get().repository.persist(data, { kind: 'bootstrap' });

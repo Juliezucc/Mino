@@ -61,11 +61,17 @@ create table if not exists parents (
   -- `parent_secrets` at the end of this file.
   display_name text not null,
   email        text not null,
+  -- Quand ce parent a déclaré être titulaire de l'autorité parentale.
+  -- L'instant, et pas le simple fait : c'est la date qui vaut preuve le jour
+  -- où on la demande. Nulle sur les comptes créés avant que l'écran ne pose la
+  -- question — un fait historique, pas une permission de s'en passer.
+  consent_at   timestamptz,
   created_at   timestamptz not null default now()
 );
 
 -- Existing installations: the column has to go, not just stop being written.
 alter table parents drop column if exists pin;
+alter table parents add column if not exists consent_at timestamptz;
 
 create table if not exists children (
   id               text primary key,

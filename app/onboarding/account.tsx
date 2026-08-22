@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, Field, Screen, ScreenHeader, Text } from '@/components/ui';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -17,6 +17,7 @@ export default function CreateAccount() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
+  const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
@@ -30,6 +31,12 @@ export default function CreateAccount() {
     if (/^(\d)\1{3}$/.test(pin) || pin === '1234' || pin === '0000') {
       next.pin = 'Trop facile à deviner. Choisissez autre chose.';
     }
+    // Le seul consentement qui ne se rattrape jamais. Mino encadre le temps
+    // d'écran d'un enfant : c'est le titulaire de l'autorité parentale qui
+    // l'autorise, et le dossier déposé chez Apple l'affirme. Ne pas le
+    // demander ici, c'est affirmer chez Apple quelque chose que le binaire ne
+    // fait pas — et ne pas pouvoir le prouver le jour où on le demande.
+    if (!consent) next.consent = 'Cochez cette case pour continuer.';
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -39,6 +46,9 @@ export default function CreateAccount() {
       email: email.trim(),
       password,
       pin,
+      // L'instant du consentement, pas seulement le fait qu'il ait eu lieu :
+      // c'est la date qui vaut preuve.
+      consentAt: new Date().toISOString(),
     });
     setLoading(false);
 
@@ -101,6 +111,48 @@ export default function CreateAccount() {
           />
         </View>
 
+        <Pressable
+          onPress={() => setConsent((v) => !v)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: consent }}
+          accessibilityLabel="Je suis titulaire de l’autorité parentale et j’accepte les conditions générales et la politique de confidentialité."
+          style={styles.consent}
+          hitSlop={8}
+        >
+          <View style={[styles.box, consent && styles.boxOn]}>
+            {consent ? (
+              <Text variant="bodyStrong" color={colors.onBrand}>
+                ✓
+              </Text>
+            ) : null}
+          </View>
+          <Text variant="caption" color={colors.textMuted} style={styles.consentText}>
+            Je suis titulaire de l’autorité parentale sur les enfants que j’ajouterai, et
+            j’accepte les{' '}
+            <Text
+              variant="caption"
+              color={colors.blueInk}
+              onPress={() => router.push('/legal/cgv')}
+            >
+              conditions générales
+            </Text>{' '}
+            et la{' '}
+            <Text
+              variant="caption"
+              color={colors.blueInk}
+              onPress={() => router.push('/legal/confidentialite')}
+            >
+              politique de confidentialité
+            </Text>
+            .
+          </Text>
+        </Pressable>
+        {errors.consent ? (
+          <Text variant="caption" color={colors.dangerInk}>
+            {errors.consent}
+          </Text>
+        ) : null}
+
         <Text variant="caption" color={colors.textSubtle}>
           Mino ne collecte aucune donnée inutile : pas de géolocalisation, pas de publicité, pas de
           suivi marketing côté enfant.
@@ -115,4 +167,19 @@ export default function CreateAccount() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   form: { gap: spacing.lg },
+  consent: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  // 28 points, et non 20 : la case se coche avec un pouce, sur un écran tenu
+  // d'une main, par quelqu'un qui a un enfant dans les bras.
+  box: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  boxOn: { backgroundColor: colors.mint, borderColor: colors.mint },
+  consentText: { flex: 1 },
 });

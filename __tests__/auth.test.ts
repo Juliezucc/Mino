@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { buildDemoFamily } from '@/data/demo';
+import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
 import { LocalAuthService } from '@/services/auth';
 
 /**
@@ -81,5 +81,29 @@ describe('parent PIN', () => {
 
     await auth.setParentPin('9137');
     expect((await auth.verifyParentPin('9137')).ok).toBe(true);
+  });
+});
+
+describe('autorité parentale', () => {
+  it('horodate la déclaration du parent, et la garde sur sa ligne', () => {
+    const quand = '2026-08-22T09:30:00.000Z';
+    const data = buildEmptyFamily({
+      familyName: 'Durand',
+      parentName: 'Claire',
+      email: 'claire@exemple.fr',
+      consentAt: quand,
+    });
+    // L'instant, pas le simple fait : c'est la date qui vaut preuve le jour où
+    // on la demande.
+    expect(data.parents[0].consentAt).toBe(quand);
+  });
+
+  it('laisse la date absente sur les comptes créés avant que l’écran ne demande', () => {
+    const data = buildEmptyFamily({
+      familyName: 'Durand',
+      parentName: 'Claire',
+      email: 'claire@exemple.fr',
+    });
+    expect(data.parents[0].consentAt).toBeUndefined();
   });
 });

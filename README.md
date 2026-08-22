@@ -2,7 +2,7 @@
 
 **Grandir, une mission à la fois.**
 
-Mino est une application familiale pour les enfants de 5 à 12 ans. Le principe tient
+Mino est une application familiale pour les enfants de 5 à 17 ans. Le principe tient
 en une ligne :
 
 > Je fais **mes missions** → je gagne **du temps** → je profite **de mes écrans**.
@@ -129,14 +129,21 @@ L'historique et le solde ne peuvent donc jamais diverger.
 
 ### Le seam « temps d'écran réel »
 
-`src/services/screenTime/` isole tout ce qui touchera un jour aux APIs natives de
-contrôle parental. Le MVP livre `LocalTimerScreenTimeService`, qui annonce
-honnêtement `capability: 'timer-only'` : il mesure le temps, il ne bloque rien.
+**Le blocage réel est le produit**, pas une option : sans lui, Mino ne fait que
+compter pendant que l'enfant ouvre ce qu'il veut à côté.
 
-Pour brancher le vrai blocage (Apple FamilyControls / DeviceActivity, Android
-UsageStatsManager) il suffit d'écrire une nouvelle implémentation de l'interface
-`ScreenTimeService` et de la choisir dans `getScreenTimeService()`. Aucun écran,
-aucun store, aucune règle métier ne change.
+`src/services/screenTime/` porte les deux mondes, et `getScreenTimeService()`
+choisit tout seul :
+
+| Implémentation | Quand | Ce qu'elle fait |
+| --- | --- | --- |
+| `DeviceManagedScreenTimeService` | dès que le module natif est dans la build | pose et lève le bouclier système |
+| `LocalTimerScreenTimeService` | Expo Go, export web, builds sans le module | compte honnêtement, et l'annonce (`capability: 'timer-only'`) |
+
+Le module natif vit dans `modules/mino-screen-time/`. Il ne peut pas tourner
+dans Expo Go — le blocage n'est pas du JavaScript — il faut une *development
+build*. Aucun écran, aucun store, aucune règle métier ne change d'un monde à
+l'autre.
 
 ### Backend
 
@@ -150,8 +157,9 @@ EXPO_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
-`createRepository()` choisit alors `SupabaseRepository` automatiquement. Appliquez
-les quatre fichiers SQL **dans cet ordre** :
+`createRepository()` choisit alors `SupabaseRepository` automatiquement. Le plus
+simple est `npm run db:bundle`, qui réunit les sept fichiers dans le bon ordre en
+un seul à coller. Pour mémoire, cet ordre est :
 
 | Fichier | Ce qu'il apporte |
 | --- | --- |
@@ -161,6 +169,7 @@ les quatre fichiers SQL **dans cet ordre** :
 | `supabase/analytics.sql` | journal de facturation et vues de pilotage |
 | `supabase/store.sql` | achats App Store et Play Store, revenu net par rail |
 | `supabase/companion.sql` | budget d'échanges, conversations, purge |
+| `supabase/retention.sql` | fenêtre de conservation, repli du grand livre |
 
 Le temps réel passe par un **canal privé par famille** (`famille:<id>`), alimenté
 par un déclencheur : le parent valide sur son téléphone, la tablette de l'enfant

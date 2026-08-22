@@ -1,0 +1,69 @@
+import DeviceActivity
+import FamilyControls
+import ManagedSettings
+import Foundation
+
+/**
+ Ce qui repose le bouclier quand Mino n'est plus là.
+
+ **CE FICHIER NE FAIT PAS PARTIE DE L'APPLICATION.** Il doit être compilé dans
+ une CIBLE D'EXTENSION distincte, de type *Device Activity Monitor Extension*,
+ nommée `MinoShieldMonitor`. Laissé dans la cible principale, il ne sera jamais
+ réveillé et le bouclier ne reviendra jamais tout seul — c'est-à-dire que le
+ produit ne tiendra pas sa seule promesse.
+
+ Voir `docs/blocage-ecrans.md` pour la marche à suivre dans Xcode.
+
+ Pourquoi une extension et pas un minuteur dans l'application : un enfant qui
+ balaie Mino hors de l'écran, ou un iPhone qui met l'application en veille,
+ suffiraient à laisser le bouclier à terre indéfiniment. Le système, lui,
+ réveille l'extension à l'heure dite, sans réseau et sans nous.
+
+ L'extension ne partage avec l'application que deux choses, par le groupe
+ `group.fr.agencewheb.mino` : la sélection d'applications, et le magasin de
+ réglages `mino.shield`. Elle ne sait rien du reste, et n'a besoin de rien
+ d'autre.
+ */
+class MinoShieldMonitor: DeviceActivityMonitor {
+  private let store = ManagedSettingsStore(named: .init("mino.shield"))
+  private static let appGroup = "group.fr.agencewheb.mino"
+  private static let selectionKey = "mino.selection"
+  private static let deadlineKey = "mino.deadline"
+
+  override func intervalDidEnd(for activity: DeviceActivityName) {
+    super.intervalDidEnd(for: activity)
+    reshield()
+  }
+
+  /// Ceinture et bretelles : si le système annule l'intervalle pour une raison
+  /// qui lui appartient, on repose quand même. Une session qui se termine mal
+  /// doit se terminer fermée, jamais ouverte.
+  override func eventDidReachThreshold(
+    _ event: DeviceActivityEvent.Name,
+    activity: DeviceActivityName
+  ) {
+    super.eventDidReachThreshold(event, activity: activity)
+    reshield()
+  }
+
+  private func reshield() {
+    let defaults = UserDefaults(suiteName: Self.appGroup)
+    defaults?.removeObject(forKey: Self.deadlineKey)
+
+    guard
+      let data = defaults?.data(forKey: Self.selectionKey),
+      let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+    else {
+      // Pas de sélection lisible : on ne devine pas. Reposer un bouclier vide
+      // ne bloquerait rien, mais inventer une liste bloquerait n'importe quoi.
+      return
+    }
+
+    store.shield.applications = selection.applicationTokens.isEmpty
+      ? nil
+      : selection.applicationTokens
+    store.shield.applicationCategories = selection.categoryTokens.isEmpty
+      ? nil
+      : .specific(selection.categoryTokens)
+  }
+}

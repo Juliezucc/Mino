@@ -1,4 +1,5 @@
-import { NativeModules, Platform } from 'react-native';
+import { requireOptionalNativeModule } from 'expo';
+import { Platform } from 'react-native';
 
 import { ScreenTimeAuthorization } from './ScreenTimeService';
 
@@ -44,6 +45,10 @@ export interface NativeScreenTime {
  */
 export function getNativeScreenTime(): NativeScreenTime | null {
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') return null;
-  const module = (NativeModules as Record<string, unknown>).MinoScreenTime;
-  return (module as NativeScreenTime | undefined) ?? null;
+  // `requireOptionalNativeModule` rend `null` au lieu de jeter quand le module
+  // n'est pas dans la build : c'est exactement l'état d'Expo Go, et il est
+  // prévu. L'ancien `NativeModules.MinoScreenTime` visait le pont hérité de
+  // React Native, où un module Expo ne s'enregistre pas — il n'aurait jamais
+  // rien trouvé, même une fois le module écrit.
+  return requireOptionalNativeModule<NativeScreenTime>('MinoScreenTime');
 }

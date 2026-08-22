@@ -1,0 +1,32 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
+
+  <!--
+    Trois autorisations, et aucune n'est anodine. Elles sont accordées par le
+    parent dans les réglages du système, jamais par une boîte de dialogue, et
+    Google demande une justification écrite pour les deux premières au moment
+    de publier. Voir docs/blocage-ecrans.md.
+  -->
+  <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+                   tools:ignore="ProtectedPermissions" />
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+  <application>
+    <service
+      android:name=".ShieldWatcher"
+      android:exported="false"
+      android:foregroundServiceType="specialUse">
+      <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="Contrôle parental : applique le temps d'écran gagné par l'enfant." />
+    </service>
+
+    <activity
+      android:name=".PickerActivity"
+      android:exported="false"
+      android:label="Applications à encadrer" />
+  </application>
+</manifest>

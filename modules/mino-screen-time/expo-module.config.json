@@ -1,0 +1,9 @@
+{
+  "platforms": ["ios", "android"],
+  "ios": {
+    "modules": ["MinoScreenTimeModule"]
+  },
+  "android": {
+    "modules": ["app.mino.screentime.MinoScreenTimeModule"]
+  }
+}

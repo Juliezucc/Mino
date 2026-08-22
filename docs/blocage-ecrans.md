@@ -1,11 +1,16 @@
 # Bloquer réellement les applications
 
-Aujourd'hui, Mino **compte** le temps d'écran mais ne **bloque** rien : l'enfant
-peut ouvrir YouTube sans passer par Mino. C'est le contrôle parental du système
-qui applique la limite, réglé à la main par le parent.
+**Le blocage est le produit.** Sans lui, Mino compte pendant que l'enfant ouvre
+ce qu'il veut à côté — et le compteur ne veut plus rien dire.
 
-Ce document explique pourquoi, et ce qu'il faut faire pour que Mino prenne la
-main lui-même.
+Le module natif est écrit : `modules/mino-screen-time/`. Il n'a **jamais été
+compilé** — ni Xcode ni le SDK Android n'existaient sur la machine qui l'a
+écrit — et son README dit précisément ce qu'il faut pour le faire tourner, dans
+quel ordre, et les deux réserves à connaître avant de s'engager.
+
+Ce document-ci explique le *pourquoi* : pourquoi une application ne peut pas en
+bloquer une autre, et pourquoi les deux plateformes n'ont presque rien en
+commun.
 
 ## Pourquoi une application ne peut pas bloquer une autre application
 

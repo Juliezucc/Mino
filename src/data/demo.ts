@@ -258,7 +258,7 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
 
 /** Empty family used by the real onboarding flow. */
 export function buildEmptyFamily(
-  input: { familyName: string; parentName: string; email: string },
+  input: { familyName: string; parentName: string; email: string; consentAt?: string },
   now: Date = new Date(),
 ): FamilyData {
   const family = {
@@ -274,6 +274,7 @@ export function buildEmptyFamily(
     displayName: input.parentName,
     email: input.email,
     createdAt: now.toISOString(),
+    consentAt: input.consentAt,
   };
   return {
     family,
