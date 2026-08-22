@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorToast } from '@/features/ErrorToast';
 import { getDiagnosticsService } from '@/services/diagnostics';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors } from '@/theme';
@@ -56,6 +57,9 @@ export default function RootLayout() {
             passe pas sous l'encoche : c'est le seul écran qu'on ne peut pas
             corriger après coup. */}
         <ErrorBoundary>
+          {/* Au-dessus de la navigation, monté une seule fois : ce qui n'a pas
+              pu être enregistré se dit de la même façon sur tous les écrans. */}
+          {ready ? <ErrorToast /> : null}
           {ready ? (
             <Stack
               screenOptions={{

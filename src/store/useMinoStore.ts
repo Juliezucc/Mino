@@ -54,6 +54,8 @@ interface MinoState {
    */
   offline: boolean;
   retry: () => Promise<void>;
+  /** Chasser le message d'erreur d'une pression. Voir `features/ErrorToast`. */
+  clearError: () => void;
 
   /**
    * Billing lives outside the family document on purpose: it belongs to the
@@ -315,6 +317,10 @@ export const useMinoStore = create<MinoState>((set, get) => {
     referrals: [],
     device: NO_DEVICE_PROFILE,
     notifications: notify.DEFAULT_PREFERENCES,
+
+    clearError() {
+      set({ lastError: null });
+    },
 
     setNotificationPreferences(patch) {
       set({ notifications: { ...get().notifications, ...patch } });
