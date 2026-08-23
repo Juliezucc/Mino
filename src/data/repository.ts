@@ -1,4 +1,5 @@
-import { FamilyData, ID } from '@/domain/types';
+import { FamilyData, ID, ISODate } from '@/domain/types';
+import { ScreenTimeAuthorization } from '@/services/screenTime';
 
 /**
  * What just changed. Local storage ignores it and rewrites the document;
@@ -59,4 +60,40 @@ export interface MinoRepository {
    * is six characters and why the backend rate-limits attempts.
    */
   joinFamily(input: { code: string }): Promise<FamilyData | null>;
+
+  /**
+   * Ce que cet appareil-ci dit de son bouclier, pour que le parent le sache.
+   *
+   * Sans cela, le produit avait un mode de panne silencieux et c'était le pire
+   * de tous : un adolescent retire à Mino l'accès aux statistiques d'usage —
+   * deux touches dans les réglages Android — le bouclier cesse d'exister, et
+   * le parent n'apprend rien. Son écran de blocage lit l'autorisation de SON
+   * téléphone, où tout va bien. Un bouclier mort dont le parent ignore la mort
+   * produit la confiance sans la protection.
+   *
+   * Facultatif : le dépôt local n'a personne à qui rendre compte.
+   */
+  reportShield?(input: {
+    status: ScreenTimeAuthorization;
+    label?: string;
+    childId?: ID | null;
+  }): Promise<void>;
+
+  /**
+   * L'état des appareils appairés, vu du côté du parent.
+   *
+   * `seenAt` compte autant que `status` : un appareil qui cesse complètement de
+   * donner de ses nouvelles — Mino désinstallé, téléphone éteint depuis trois
+   * jours — ne dira jamais « denied ». C'est le silence qu'il faut savoir lire.
+   */
+  pairedDevices?(): Promise<PairedDevice[]>;
+}
+
+export interface PairedDevice {
+  id: ID;
+  label: string | null;
+  childId: ID | null;
+  status: ScreenTimeAuthorization | null;
+  seenAt: ISODate | null;
+  joinedAt: ISODate;
 }

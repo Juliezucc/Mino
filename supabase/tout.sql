@@ -541,11 +541,92 @@ create table if not exists family_devices (
   joined_at timestamptz not null default now()
 );
 
+/**
+ * Ce que l'appareil de l'enfant dit de son bouclier.
+ *
+ * Sans ces trois colonnes, le produit avait un mode de panne silencieux, et
+ * c'était le pire de tous : un adolescent retire à Mino l'accès aux
+ * statistiques d'usage — deux touches dans les réglages Android — et le
+ * bouclier cesse d'exister. L'application le sait, sur SA tablette. Le parent,
+ * lui, n'apprend rien : son écran de blocage lit l'autorisation de SON
+ * téléphone à lui, où tout va bien. Il continue de croire que Mino encadre
+ * quelque chose.
+ *
+ * Un bouclier mort dont le parent ignore la mort est pire qu'un bouclier
+ * absent : il produit la confiance sans la protection.
+ *
+ * `shield_seen_at` compte autant que `shield_status` : un appareil qui cesse
+ * complètement de donner de ses nouvelles — Mino désinstallé, téléphone
+ * éteint depuis trois jours — ne dira jamais « denied ». C'est le silence
+ * qu'il faut savoir lire, et c'est l'écran parent qui le lit.
+ */
+alter table family_devices add column if not exists shield_status  text;
+alter table family_devices add column if not exists shield_seen_at timestamptz;
+alter table family_devices add column if not exists label          text;
+alter table family_devices add column if not exists child_id       text
+  references children (id) on delete set null;
+
 alter table family_devices enable row level security;
 
 drop policy if exists family_devices_select on family_devices;
 create policy family_devices_select on family_devices
-  for select using (user_id = auth.uid());
+  for select using (
+    -- L'appareil voit sa propre ligne…
+    user_id = auth.uid()
+    -- …et les parents de la famille voient toutes celles de leur famille.
+    -- C'est ce qui manquait : ils ne pouvaient pas même savoir combien
+    -- d'appareils avaient rejoint.
+    or family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[]))
+  );
+
+/**
+ * L'appareil rend compte de lui-même, et de rien d'autre.
+ *
+ * Une fonction plutôt qu'une politique `update` : une politique laisserait
+ * l'appareil écrire n'importe quelle colonne de sa ligne, `family_id` compris
+ * — c'est-à-dire se rattacher à la famille de quelqu'un d'autre. Ici il n'y a
+ * que trois champs à poser, et `where user_id = auth.uid()` n'est pas
+ * négociable depuis l'appelant.
+ *
+ * `p_child_id` est vérifié contre la famille de l'appareil : sans cela, un
+ * appareil pourrait se déclarer comme étant celui d'un enfant d'une autre
+ * famille, et l'écran du parent afficherait un prénom qui n'est pas le sien.
+ */
+create or replace function report_shield(
+  p_status   text,
+  p_label    text default null,
+  p_child_id text default null
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Aucune session' using errcode = '42501';
+  end if;
+  if p_status is not null and p_status not in ('approved', 'denied', 'not-determined', 'unavailable') then
+    raise exception 'Statut inconnu' using errcode = '22023';
+  end if;
+
+  update family_devices d
+     set shield_status  = coalesce(p_status, d.shield_status),
+         shield_seen_at = now(),
+         label          = coalesce(nullif(btrim(p_label), ''), d.label),
+         child_id       = case
+                            when p_child_id is null then d.child_id
+                            when exists (
+                              select 1 from children c
+                               where c.id = p_child_id and c.family_id = d.family_id
+                            ) then p_child_id
+                            else d.child_id
+                          end
+   where d.user_id = auth.uid();
+end;
+$$;
+
+revoke all on function report_shield(text, text, text) from public, anon;
+grant execute on function report_shield(text, text, text) to authenticated;
 
 -- Both kinds of member resolve through the same helper.
 create or replace function auth_family_ids()

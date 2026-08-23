@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { create } from 'zustand';
 
 import { DEMO_PARENT_PIN, buildDemoFamily, buildEmptyFamily } from '@/data/demo';
@@ -20,6 +21,7 @@ import { AvatarKey, FamilyData, ID, ISODate, RepeatRule } from '@/domain/types';
 import * as notify from '@/domain/notifications';
 import { AuthResult, getAuthService } from '@/services/auth';
 import { getNotificationService } from '@/services/notifications';
+import { getScreenTimeService } from '@/services/screenTime';
 import { CheckoutOutcome, getBillingService } from '@/services/billing';
 
 /**
@@ -96,6 +98,12 @@ interface MinoState {
   resumeChildId: () => ID | null;
   /** Réserve cet appareil à un enfant, ou le rend partagé avec `null`. */
   lockDeviceTo: (childId: ID | null) => Promise<void>;
+  /**
+   * Dire au reste de la famille dans quel état est le bouclier ICI.
+   *
+   * Jamais attendu par l'appelant : c'est un rapport, pas une action.
+   */
+  reportShield: () => Promise<void>;
 
   selectChild: (childId: ID | null) => void;
   unlockParent: (pin: string) => Promise<AuthResult>;
@@ -349,6 +357,40 @@ export const useMinoStore = create<MinoState>((set, get) => {
 
       publish(data, { status: 'ready', device, offline });
       if (data) await get().loadBilling();
+      if (data) void get().reportShield();
+    },
+
+    /**
+     * Dire au reste de la famille dans quel état est le bouclier ICI.
+     *
+     * Appelé au lancement, et à chaque fois que l'écran de blocage touche à
+     * l'autorisation. C'est ce qui ferme le mode de panne le plus grave du
+     * produit : un adolescent retire à Mino l'accès aux statistiques d'usage,
+     * le bouclier cesse d'exister, et le parent — qui lit l'autorisation de
+     * SON téléphone, où tout va bien — n'apprend rien. Un bouclier mort dont
+     * le parent ignore la mort produit la confiance sans la protection.
+     *
+     * `void` et jamais `await` chez l'appelant : c'est un rapport, pas une
+     * action. Il ne doit ni ralentir un lancement ni faire échouer un écran.
+     */
+    async reportShield() {
+      const report = get().repository.reportShield;
+      if (!report) return;
+      try {
+        const status = await getScreenTimeService().authorization();
+        await report.call(get().repository, {
+          status,
+          // Le nom que le propriétaire a donné à son téléphone (« iPhone de
+          // Malo »). Absent sur certaines configurations : l'écran parent se
+          // rabat alors sur le prénom de l'enfant, qui est de toute façon
+          // l'identifiant utile.
+          label: Constants.deviceName ?? undefined,
+          childId: get().device.lockedChildId,
+        });
+      } catch {
+        // Le silence est lui-même une information, lue côté parent
+        // dans `seenAt` : il n'y a rien à rattraper ici.
+      }
     },
 
     /** Réessayer après une coupure, sans redémarrer l'application. */

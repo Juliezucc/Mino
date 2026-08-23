@@ -5,6 +5,7 @@ import {
   FamilyData,
   Family,
   ID,
+  ISODate,
   Mission,
   MissionAssignment,
   MissionCompletion,
@@ -12,12 +13,13 @@ import {
   ScreenTimeSession,
   ScreenTimeTransaction,
 } from '@/domain/types';
+import { ScreenTimeAuthorization } from '@/services/screenTime';
 
 import { withOpeningBalances } from '@/domain/ledger';
 
 import { Device } from '@/domain/devices';
 
-import { ChangeEvent, MinoRepository } from './repository';
+import { ChangeEvent, MinoRepository, PairedDevice } from './repository';
 
 /**
  * Supabase-backed repository.
@@ -430,6 +432,48 @@ class SupabaseRepository implements MinoRepository {
     });
     if (error || !data) return null;
     return this.load();
+  }
+
+  /**
+   * L'appareil rend compte de son bouclier. Silencieusement — c'est un
+   * rapport, pas une action du parent : un échec ne doit rien casser à
+   * l'écran, et le silence qui en résulte est lui-même lisible côté parent
+   * grâce à `seenAt`.
+   */
+  async reportShield(input: {
+    status: ScreenTimeAuthorization;
+    label?: string;
+    childId?: ID | null;
+  }): Promise<void> {
+    try {
+      await this.client.rpc('report_shield', {
+        p_status: input.status,
+        p_label: input.label ?? null,
+        p_child_id: input.childId ?? null,
+      });
+    } catch {
+      // Voir ci-dessus : un rapport qui n'arrive pas se lit dans `seenAt`.
+    }
+  }
+
+  async pairedDevices(): Promise<PairedDevice[]> {
+    const { data, error } = await this.client
+      .from('family_devices')
+      .select('id, label, child_id, shield_status, shield_seen_at, joined_at')
+      .order('joined_at', { ascending: true });
+
+    // Une liste vide et une panne de réseau ne veulent pas dire la même chose :
+    // l'écran doit pouvoir dire « je ne sais pas » plutôt que « aucun appareil ».
+    if (error) throw new Error('Impossible de lire les appareils de la famille.');
+
+    return (data ?? []).map((row) => ({
+      id: row.id as ID,
+      label: (row.label as string | null) ?? null,
+      childId: (row.child_id as ID | null) ?? null,
+      status: (row.shield_status as ScreenTimeAuthorization | null) ?? null,
+      seenAt: (row.shield_seen_at as ISODate | null) ?? null,
+      joinedAt: row.joined_at as ISODate,
+    }));
   }
 
   /**

@@ -14,9 +14,9 @@ sur la machine qui l'a écrit.
 
 Ce qui est vérifié, en revanche :
 
-- le côté JavaScript compile (`npm run typecheck`) et ses 216 tests passent ;
+- le côté JavaScript compile (`npm run typecheck`) et ses 233 tests passent ;
 - la couture bascule correctement : sans module natif, `getScreenTimeService()`
-  rend le minuteur honnête, et rien d'autre dans l'application ne change ;
+  rend le minuteur honnête, et rien d’autre dans l’application ne change ;
 - l'architecture suit ce que documentent Apple et Google.
 
 Traitez donc ce dossier comme **un point de départ solide, pas comme un
@@ -78,7 +78,21 @@ Deux conséquences à assumer, et à écrire dans la fiche plutôt qu'à découv
    parental installé par le parent sur l'appareil de son enfant.
 2. **Un adolescent déterminé contourne** en retirant l'accès aux statistiques
    d'usage. On ne peut pas l'en empêcher — seulement le rendre visible au
-   parent, ce que fait `authorizationStatus` en repassant à « denied ».
+   parent, et c'est le point le plus important de ce document.
+
+   Cette phrase a longtemps été fausse. `authorizationStatus` repassait bien à
+   « denied », mais **sur la tablette de l'enfant**, où personne ne regardait :
+   l'écran de blocage du parent lit l'autorisation de SON téléphone, où tout va
+   bien. Le parent continuait donc de lire « Le blocage est actif » sur un
+   bouclier mort. Un bouclier mort dont le parent ignore la mort est pire qu'un
+   bouclier absent — il produit la confiance sans la protection.
+
+   L'appareil rend maintenant compte de lui-même (`report_shield`), et l'écran
+   du parent affiche l'état de chaque appareil de la famille. Le **silence**
+   compte autant que le refus : le contournement le plus efficace ne produit
+   jamais de « denied » — on désinstalle Mino, et la dernière nouvelle reste
+   éternellement « approved ». Passé trois jours sans nouvelles, l'appareil
+   passe en « sans nouvelles », pas en « protégé » (`src/domain/shieldReport.ts`).
 
 Autrement dit : sur iOS le blocage est **solide et incertain à obtenir**, sur
 Android il est **certain à obtenir et poreux**. Ce n'est pas symétrique, et la

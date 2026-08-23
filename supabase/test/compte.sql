@@ -285,3 +285,120 @@ do $$ begin
   delete from families where id = 'fam-horl';
   delete from auth.users where id = '99999999-9999-9999-9999-999999999999';
 end $$;
+
+-- ------------------------------------- ce que l'appareil dit de son bouclier
+
+/**
+ * Le mode de panne silencieux.
+ *
+ * Un adolescent retire à Mino l'accès aux statistiques d'usage — deux touches
+ * dans les réglages Android — et le bouclier cesse d'exister. Le parent, lui,
+ * lit l'autorisation de SON téléphone, où tout va bien, et continue de croire
+ * que Mino encadre quelque chose. Un bouclier mort dont le parent ignore la
+ * mort produit la confiance sans la protection.
+ *
+ * Trois choses à tenir : le parent voit, l'appareil ne rend compte que de
+ * lui-même, et il ne peut pas s'attribuer l'enfant d'une autre famille.
+ */
+do $$ begin
+  delete from families where id in ('fam-bouc', 'fam-autre');
+  delete from auth.users where id in (
+    'aaaaaaaa-0000-0000-0000-000000000001',
+    'aaaaaaaa-0000-0000-0000-000000000002',
+    'aaaaaaaa-0000-0000-0000-000000000003');
+
+  insert into auth.users (id, email, is_anonymous) values
+    ('aaaaaaaa-0000-0000-0000-000000000001', 'bouclier@mino.app', false),
+    ('aaaaaaaa-0000-0000-0000-000000000002', null, true),
+    ('aaaaaaaa-0000-0000-0000-000000000003', null, true);
+  insert into families (id, name, code, referral_code) values
+    ('fam-bouc', 'Roux', 'BOUCLI1', 'PARRAINB'),
+    ('fam-autre', 'Voisin', 'BOUCLI2', 'PARRAINV');
+  insert into parents (id, family_id, user_id, display_name, email) values
+    ('par-bouc', 'fam-bouc', 'aaaaaaaa-0000-0000-0000-000000000001', 'Inès', 'bouclier@mino.app');
+  insert into children (id, family_id, first_name, age, avatar_key) values
+    ('enf-bouc', 'fam-bouc', 'Malo', 10, 'renard'),
+    ('enf-autre', 'fam-autre', 'Ava', 10, 'chat');
+  insert into family_devices (id, family_id, user_id) values
+    ('dev-bouc', 'fam-bouc', 'aaaaaaaa-0000-0000-0000-000000000002'),
+    ('dev-autre', 'fam-autre', 'aaaaaaaa-0000-0000-0000-000000000003');
+end $$;
+
+do $$ begin
+  set local role authenticated;
+  set local mino.uid = 'aaaaaaaa-0000-0000-0000-000000000002';
+
+  perform report_shield('denied', '  Tablette de Malo  ', 'enf-bouc');
+end $$;
+
+do $$ begin
+  set local role authenticated;
+  set local mino.uid = 'aaaaaaaa-0000-0000-0000-000000000001';
+
+  perform assert(
+    (select shield_status from family_devices where id = 'dev-bouc') = 'denied',
+    'LE PARENT VOIT QUE LE BOUCLIER EST TOMBÉ SUR LA TABLETTE');
+  perform assert(
+    (select label from family_devices where id = 'dev-bouc') = 'Tablette de Malo',
+    'et de quel appareil il s''agit');
+  perform assert(
+    (select child_id from family_devices where id = 'dev-bouc') = 'enf-bouc',
+    'et de quel enfant');
+  perform assert(
+    (select shield_seen_at from family_devices where id = 'dev-bouc') is not null,
+    'et quand il a donné de ses nouvelles — le silence se lit aussi');
+
+  -- La famille d'à côté reste invisible, comme partout ailleurs.
+  perform assert(
+    not exists (select 1 from family_devices where id = 'dev-autre'),
+    'l''appareil d''une autre famille reste invisible');
+end $$;
+
+do $$ begin
+  set local role authenticated;
+  set local mino.uid = 'aaaaaaaa-0000-0000-0000-000000000002';
+
+  -- Un appareil qui tente de se dire celui d'un enfant d'une autre famille :
+  -- le prénom affiché au parent doit être le sien, pas celui d'un inconnu.
+  perform report_shield('approved', null, 'enf-autre');
+
+  perform assert(
+    (select child_id from family_devices where id = 'dev-bouc') = 'enf-bouc',
+    'un appareil ne s''attribue pas l''enfant d''une autre famille');
+  perform assert(
+    (select shield_status from family_devices where id = 'dev-bouc') = 'approved',
+    'mais son propre statut, oui');
+end $$;
+
+do $$
+declare v_refuse boolean := false;
+begin
+  set local role authenticated;
+  set local mino.uid = 'aaaaaaaa-0000-0000-0000-000000000002';
+
+  begin
+    perform report_shield('bidon');
+  exception when others then
+    v_refuse := true;
+  end;
+
+  perform assert(v_refuse, 'un statut inventé est refusé');
+end $$;
+
+do $$ begin
+  set local role authenticated;
+  set local mino.uid = 'aaaaaaaa-0000-0000-0000-000000000002';
+
+  -- Et surtout : il ne rend compte que de LUI. La ligne du voisin ne bouge pas.
+  perform assert(
+    (select shield_status from family_devices where id = 'dev-autre') is null,
+    'rendre compte ne touche jamais la ligne d''un autre appareil');
+end $$;
+
+do $$ begin
+  delete from families where id in ('fam-bouc', 'fam-autre');
+  delete from auth.users where id in (
+    'aaaaaaaa-0000-0000-0000-000000000001',
+    'aaaaaaaa-0000-0000-0000-000000000002',
+    'aaaaaaaa-0000-0000-0000-000000000003');
+end $$;

@@ -4,7 +4,11 @@ import { Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot';
 import { Button, Card, Screen, ScreenHeader, Text } from '@/components/ui';
+import { PairedDevice } from '@/data/repository';
+import { aRegler, etatDe, phraseDe } from '@/domain/shieldReport';
 import { ScreenTimeAuthorization, getScreenTimeService } from '@/services/screenTime';
+import { useFamily } from '@/store/selectors';
+import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
 
 /**
@@ -23,10 +27,40 @@ export default function ShieldSetup() {
   const [count, setCount] = useState(0);
   const [busy, setBusy] = useState(false);
 
+  /**
+   * L'état du bouclier sur LES AUTRES appareils — c'est-à-dire, presque
+   * toujours, sur celui qui compte.
+   *
+   * Sans cette liste, le produit avait un mode de panne silencieux et c'était
+   * le pire de tous : un adolescent retire à Mino l'accès aux statistiques
+   * d'usage, le bouclier cesse d'exister, et cet écran-ci continue d'afficher
+   * « Le blocage est actif » — parce qu'il lit l'autorisation du téléphone du
+   * PARENT, où tout va bien. Un bouclier mort dont le parent ignore la mort
+   * produit la confiance sans la protection.
+   *
+   * `null` veut dire « on n'a pas pu demander », et se dit ; `[]` veut dire
+   * « aucun appareil appairé », et ne se dit pas de la même façon.
+   */
+  const [appareils, setAppareils] = useState<PairedDevice[] | null>(null);
+  const famille = useFamily();
+  const depot = useMinoStore((s) => s.repository);
+  const reportShield = useMinoStore((s) => s.reportShield);
+
   const refresh = useCallback(async () => {
-    setStatus(await service.authorization());
+    const courant = await service.authorization();
+    setStatus(courant);
     setCount((await service.selection()).count);
-  }, [service]);
+    // Cet écran est le seul endroit où l'autorisation change : c'est donc ici
+    // qu'il faut en rendre compte, sans quoi la famille apprendrait la
+    // nouvelle au prochain lancement seulement.
+    void reportShield();
+    if (depot.pairedDevices) {
+      await depot
+        .pairedDevices()
+        .then(setAppareils)
+        .catch(() => setAppareils(null));
+    }
+  }, [service, depot, reportShield]);
 
   useEffect(() => {
     refresh().catch(() => undefined);
@@ -157,6 +191,49 @@ export default function ShieldSetup() {
           </Text>
         </>
       )}
+
+      {/* ----------------------------------- les autres appareils de la famille
+
+          Placé APRÈS le réglage de cet appareil-ci, et jamais avant : le
+          parent qui arrive ici vient régler quelque chose, pas faire un
+          inventaire. Mais il ne doit pas repartir sans avoir vu qu'un
+          appareil est passé au rouge.                                      */}
+      {appareils && appareils.length > 0 ? (
+        <View style={styles.parc}>
+          <Text variant="label" color={colors.textMuted}>
+            {aRegler(appareils) > 0
+              ? `APPAREILS DE LA FAMILLE — ${aRegler(appareils)} À REGARDER`
+              : 'APPAREILS DE LA FAMILLE'}
+          </Text>
+
+          {appareils.map((appareil) => {
+            const dit = phraseDe(etatDe(appareil));
+            const enfant = (famille?.children ?? []).find((c) => c.id === appareil.childId);
+            const nom =
+              enfant?.firstName ??
+              appareil.label ??
+              `Appareil arrivé le ${new Date(appareil.joinedAt).toLocaleDateString('fr-FR')}`;
+
+            return (
+              <Card
+                key={appareil.id}
+                elevation="none"
+                background={dit.grave ? colors.yellowSoft : colors.mintSoft}
+                style={styles.block}
+              >
+                <Text variant="cardTitle">
+                  {dit.grave ? '⚠️ ' : '✅ '}
+                  {nom}
+                </Text>
+                <Text variant="body">{dit.titre}</Text>
+                <Text variant="body" color={colors.textMuted}>
+                  {dit.detail}
+                </Text>
+              </Card>
+            );
+          })}
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -165,6 +242,7 @@ const styles = StyleSheet.create({
   content: { paddingTop: spacing.md, paddingBottom: spacing.xl, gap: spacing.lg },
   hero: { alignItems: 'center', gap: spacing.sm },
   block: { gap: spacing.md },
+  parc: { gap: spacing.md, marginTop: spacing.md },
   steps: { gap: spacing.md },
   step: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   number: {
