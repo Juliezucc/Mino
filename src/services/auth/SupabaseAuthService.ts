@@ -161,6 +161,45 @@ export class SupabaseAuthService implements AuthService {
     return { ok: true };
   }
 
+  /**
+   * `emailRedirectTo` pointe vers l'écran de connexion et non vers un écran
+   * dédié : le lien de confirmation d'une nouvelle adresse ne porte pas de
+   * jeton de session à consommer, il ne fait que valider le changement côté
+   * serveur. Ouvrir l'application suffit. Comme pour le mot de passe, l'URL
+   * doit figurer dans les « Redirect URLs » du projet.
+   */
+  async changeEmail(email: string): Promise<AuthResult> {
+    const { error } = await this.client.auth.updateUser(
+      { email: email.trim().toLowerCase() },
+      { emailRedirectTo: 'mino://login' },
+    );
+    if (error) {
+      return { ok: false, reason: 'Impossible de changer l’adresse. Vérifiez-la et réessayez.' };
+    }
+    return { ok: true };
+  }
+
+  /**
+   * On supprime, PUIS on ferme la session — et l'ordre n'est pas indifférent.
+   *
+   * En sens inverse, il n'y aurait plus de `auth.uid()` au moment de l'appel :
+   * la fonction refuserait, et le compte resterait entier derrière un écran
+   * qui vient d'annoncer sa disparition. C'est la pire des issues possibles,
+   * parce que personne ne la vérifie jamais.
+   *
+   * Le `signOut` qui suit ne peut plus échouer utilement — le jeton ne
+   * désigne plus personne — donc son résultat n'est pas lu : c'est le vidage
+   * local qui compte, et il a lieu.
+   */
+  async deleteAccount(): Promise<AuthResult> {
+    const { error } = await this.client.rpc('delete_my_account');
+    if (error) {
+      return { ok: false, reason: 'La suppression n’a pas abouti. Rien n’a été effacé.' };
+    }
+    await this.client.auth.signOut().catch(() => undefined);
+    return { ok: true };
+  }
+
   async setParentPin(pin: string): Promise<AuthResult> {
     if (!/^\d{4}$/.test(pin)) return { ok: false, reason: 'Le code doit contenir 4 chiffres.' };
     const { error } = await this.client.rpc('set_parent_pin', { p_pin: pin });

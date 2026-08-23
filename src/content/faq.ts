@@ -313,7 +313,7 @@ export const FAQ: FaqEntry[] = [
     id: 'enfant-connait-code-parent',
     question: 'Mon enfant a vu mon code parent',
     answer:
-      'Changez-le depuis Réglages, sur votre téléphone. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis sa tablette, même en cherchant.',
+      'Changez-le depuis Réglages, « Gérer mon compte », section Code parent. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis sa tablette, même en cherchant.',
     category: 'compte',
     keywords: ['code decouvert', 'changer code', 'espionne', 'securite code'],
   },
@@ -321,7 +321,7 @@ export const FAQ: FaqEntry[] = [
     id: 'changer-email',
     question: 'Comment changer mon adresse e-mail ?',
     answer:
-      'Depuis Réglages, section Compte. Une confirmation part sur la nouvelle adresse : le changement n’est effectif qu’une fois le lien ouvert.',
+      'Depuis Réglages, « Gérer mon compte ». Une confirmation part sur la nouvelle adresse : le changement n’est effectif qu’une fois le lien ouvert. C’est volontaire — celui qui tape l’adresse doit aussi pouvoir y lire le courrier.',
     category: 'compte',
     keywords: ['changer email', 'adresse mail', 'nouvelle adresse'],
   },
@@ -338,7 +338,7 @@ export const FAQ: FaqEntry[] = [
     id: 'supprimer-compte',
     question: 'Comment supprimer mon compte et nos données ?',
     answer:
-      'Depuis Réglages, « Supprimer le compte ». Tout est effacé sous trente jours : profils des enfants, missions, historique. Les factures sont conservées dix ans, comme la loi comptable l’exige, et elles ne contiennent aucune donnée d’enfant.',
+      'Depuis Réglages, « Gérer mon compte », tout en bas. L’effacement est immédiat et définitif : profils des enfants, missions, historique, minutes gagnées. Rien ne peut être récupéré ensuite, et personne chez nous ne le peut non plus. Résiliez votre abonnement avant, depuis l’App Store ou le Play Store : supprimer le compte ne l’annule pas. Les factures déjà émises sont conservées dix ans, comme la loi comptable l’exige, et elles ne contiennent aucune donnée d’enfant.',
     category: 'confidentialite',
     keywords: ['supprimer compte', 'effacer', 'rgpd', 'donnees', 'partir', 'desinscription'],
     route: '/legal/confidentialite',

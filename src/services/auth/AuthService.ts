@@ -73,6 +73,30 @@ export interface AuthService {
   /** Sends the reset e-mail. Always reports success, so it cannot enumerate accounts. */
   requestPasswordReset(email: string): Promise<AuthResult>;
 
+  /**
+   * Change l'adresse du compte — en deux temps, et jamais en un seul.
+   *
+   * L'adresse ne bouge qu'après confirmation sur la NOUVELLE boîte. C'est ce
+   * qui empêche qu'un téléphone laissé déverrouillé cinq minutes serve à
+   * emmener le compte ailleurs : celui qui tape l'adresse doit aussi pouvoir
+   * y lire le courrier.
+   */
+  changeEmail(email: string): Promise<AuthResult>;
+
+  /**
+   * Supprime définitivement le compte, et la famille s'il en était le dernier
+   * parent.
+   *
+   * Exigé par Apple (5.1.1(v)) et par le RGPD (article 17), et promis noir sur
+   * blanc dans la FAQ. Rien ici ne revient : l'écran qui appelle cette méthode
+   * doit demander confirmation en toutes lettres avant.
+   *
+   * Le travail se fait côté base, dans `delete_my_account()` — supprimer une
+   * ligne de `auth.users` demande des droits que l'application n'a pas et ne
+   * doit jamais avoir.
+   */
+  deleteAccount(): Promise<AuthResult>;
+
   /** Sets the parent PIN. The clear value is never stored anywhere. */
   setParentPin(pin: string): Promise<AuthResult>;
   /**

@@ -229,7 +229,7 @@ export const PRIVACY: LegalDocument = {
         },
         {
           kind: 'p',
-          text: 'La suppression de votre compte entraîne l’effacement des profils enfants, des missions et de l’historique de temps associés.',
+          text: 'La suppression de votre compte se fait depuis l’application — Réglages, « Gérer mon compte » — et n’exige de nous écrire à personne. Elle entraîne l’effacement immédiat et définitif des profils enfants, des missions, de l’historique de temps et des minutes gagnées. Seules les factures déjà émises subsistent, pour la durée légale rappelée ci-dessus ; elles ne contiennent aucune donnée d’enfant.',
         },
       ],
     },
@@ -253,7 +253,7 @@ export const PRIVACY: LegalDocument = {
         },
         {
           kind: 'p',
-          text: `Pour exercer ces droits, écrivez à ${OPERATOR.privacyEmail}. Nous répondons sous un mois. Si notre réponse ne vous satisfait pas, vous pouvez saisir la CNIL — 3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07, ou cnil.fr.`,
+          text: `Le droit à l’effacement s’exerce directement dans l’application, sans passer par nous : Réglages, « Gérer mon compte ». Pour les autres droits, écrivez à ${OPERATOR.privacyEmail}. Nous répondons sous un mois. Si notre réponse ne vous satisfait pas, vous pouvez saisir la CNIL — 3 place de Fontenoy, TSA 80715, 75334 Paris Cedex 07, ou cnil.fr.`,
         },
       ],
     },

@@ -212,18 +212,20 @@ Donc : **Authentication → Providers → Email → décocher « Confirm email �
 > projet, entre vous et vos enfants. Ça ne l'est plus à la première famille
 > inconnue.
 
-**b) L'adresse de retour du mot de passe oublié.**
+**b) Les deux adresses de retour.**
 
-Quand un parent demande un nouveau mot de passe, Mino demande à Supabase de le
-renvoyer vers `mino://mot-de-passe`. Supabase **refuse toute adresse qui n'est
-pas dans sa liste** — et son refus est silencieux : le lien part quand même,
-mais vers l'« URL du site » du projet, c'est-à-dire `http://localhost:3000`.
-Le parent clique, tombe sur une page d'erreur, et ne peut plus rien faire.
+Deux liens partent par e-mail et doivent revenir **dans l'application** : celui
+du mot de passe oublié, et celui qui confirme un changement d'adresse. Supabase
+**refuse toute adresse qui n'est pas dans sa liste** — et son refus est
+silencieux : le lien part quand même, mais vers l'« URL du site » du projet,
+c'est-à-dire `http://localhost:3000`. Le parent clique, tombe sur une page
+d'erreur, et ne peut plus rien faire.
 
-**Authentication → URL Configuration → Redirect URLs → Add URL** :
+**Authentication → URL Configuration → Redirect URLs → Add URL**, deux fois :
 
 ```
 mino://mot-de-passe
+mino://login
 ```
 
 **Comment savoir que ça a marché** : sur l'écran de connexion, « Mot de passe

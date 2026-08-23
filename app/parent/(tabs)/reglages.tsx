@@ -92,6 +92,15 @@ export default function ParentSettings() {
         <Text variant="caption" color={colors.textSubtle}>
           Ce code servira à connecter l’appareil d’un enfant à la famille.
         </Text>
+        {/* La FAQ renvoie ici depuis deux réponses — « changer d'adresse » et
+            « supprimer mon compte » — et l'a fait longtemps sans que l'écran
+            existe. */}
+        <Button
+          label="Gérer mon compte"
+          icon="👤"
+          variant="secondary"
+          onPress={() => router.push('/parent/compte')}
+        />
       </Card>
 
       <Card style={styles.block}>

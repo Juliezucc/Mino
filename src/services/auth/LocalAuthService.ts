@@ -91,6 +91,28 @@ export class LocalAuthService implements AuthService {
     return { ok: true };
   }
 
+  /**
+   * Hors ligne, l'adresse n'est qu'une étiquette : rien ne s'y envoie et rien
+   * ne s'y confirme. On la change quand même, pour que l'écran se comporte
+   * pareil des deux côtés — sauf le second temps, qui n'existe pas ici.
+   */
+  async changeEmail(email: string): Promise<AuthResult> {
+    const session = await this.session();
+    await this.publish({ ...session, kind: 'parent', email: email.trim().toLowerCase() });
+    return { ok: true };
+  }
+
+  /**
+   * Hors ligne, il n'y a rien à effacer côté serveur : c'est `resetAll()` qui
+   * vide l'appareil, et c'est déjà tout ce que possède la famille. On ferme
+   * simplement la session, pour que la suite du parcours soit la même.
+   */
+  async deleteAccount(): Promise<AuthResult> {
+    await this.signOut();
+    await AsyncStorage.multiRemove([PIN_KEY, ATTEMPTS_KEY]);
+    return { ok: true };
+  }
+
   async setParentPin(pin: string): Promise<AuthResult> {
     if (!/^\d{4}$/.test(pin)) return { ok: false, reason: 'Le code doit contenir 4 chiffres.' };
     await AsyncStorage.setItem(PIN_KEY, pin);

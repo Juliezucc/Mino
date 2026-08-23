@@ -80,6 +80,8 @@ interface MinoState {
   }) => Promise<AuthResult>;
   signIn: (input: { email: string; password: string }) => Promise<AuthResult>;
   signOut: () => Promise<void>;
+  /** Suppression définitive : le serveur d'abord, l'appareil ensuite. */
+  deleteAccount: () => Promise<AuthResult>;
   /** From the child's device: attach to a family with the family code. */
   joinFamily: (input: { code: string }) => Promise<boolean>;
   resetAll: () => Promise<void>;
@@ -395,9 +397,42 @@ export const useMinoStore = create<MinoState>((set, get) => {
       return { ok: true };
     },
 
+    /**
+     * Se déconnecter, c'est aussi oublier la famille — pas seulement le droit
+     * de la voir.
+     *
+     * L'ancienne version ne remettait que `parentUnlocked` à faux et laissait
+     * `data` en mémoire. Sur un appareil partagé, le parent suivant se
+     * connectait et voyait, le temps du chargement, les enfants du précédent.
+     * Une frontière de compte qui tient une demi-seconde ne tient pas.
+     */
     async signOut() {
       await getAuthService().signOut();
-      set({ parentUnlocked: false, activeChildId: null });
+      publish(null, {
+        activeChildId: null,
+        parentUnlocked: false,
+        status: 'ready',
+        subscription: null,
+        referrals: [],
+      });
+    },
+
+    /**
+     * Partir pour de bon.
+     *
+     * Deux effacements, et il en faut deux : le serveur d'abord — c'est lui
+     * qui détient les enfants, les missions et le grand livre — puis
+     * l'appareil, sans quoi Mino rouvrirait sur une famille qui n'existe plus
+     * nulle part et échouerait à chaque écriture sans savoir dire pourquoi.
+     *
+     * Si le serveur refuse, on ne vide rien. Un compte à moitié supprimé est
+     * plus difficile à rattraper qu'un compte pas supprimé du tout.
+     */
+    async deleteAccount() {
+      const result = await getAuthService().deleteAccount();
+      if (!result.ok) return result;
+      await get().resetAll();
+      return { ok: true };
     },
 
     async joinFamily(input) {

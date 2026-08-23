@@ -1,0 +1,279 @@
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
+
+import { Button, Card, Field, Screen, ScreenHeader, Text } from '@/components/ui';
+import { getAuthService } from '@/services/auth';
+import { useParent } from '@/store/selectors';
+import { useMinoStore } from '@/store/useMinoStore';
+import { colors, radii, spacing } from '@/theme';
+
+/**
+ * Le compte du parent : le changer, le quitter, l'effacer.
+ *
+ * Cet écran manquait, et son absence n'était pas silencieuse — la FAQ le
+ * promettait déjà mot pour mot (« Depuis Réglages, section Compte », « Depuis
+ * Réglages, "Supprimer le compte" »). Une promesse écrite dans le produit et
+ * absente du produit est un mensonge, pas un manque.
+ *
+ * Trois choses s'y jouent, dans un ordre qui est celui du risque croissant :
+ *
+ *   1. changer son adresse ou son mot de passe — courant, réversible ;
+ *   2. se déconnecter — rien ne se perd, mais il faut se souvenir de son mot
+ *      de passe pour revenir, ce que l'écran dit avant et non après ;
+ *   3. supprimer le compte — définitif, exigé par Apple (5.1.1(v)) et par le
+ *      RGPD, et gardé par une confirmation qui demande d'écrire un mot.
+ *
+ * Sur la suppression, deux honnêtetés valent d'être tenues même si elles
+ * coûtent : l'écran nomme ce qui part (les enfants, l'historique, les minutes
+ * gagnées) au lieu de dire « vos données », et il dit que l'abonnement, lui,
+ * ne s'annule pas ici — seul l'App Store ou le Play Store peut le faire.
+ * Laisser croire le contraire produirait un prélèvement sur un compte effacé,
+ * c'est-à-dire un litige sans interlocuteur.
+ */
+export default function CompteParent() {
+  const router = useRouter();
+  const parent = useParent();
+  const signOut = useMinoStore((s) => s.signOut);
+  const deleteAccount = useMinoStore((s) => s.deleteAccount);
+  const remote = useMinoStore((s) => s.repository.name) !== 'local';
+
+  const [email, setEmail] = useState('');
+  const [motDePasse, setMotDePasse] = useState('');
+  const [code, setCode] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [occupe, setOccupe] = useState(false);
+
+  const changerEmail = async () => {
+    setErreur(null);
+    setMessage(null);
+    if (!email.includes('@')) return setErreur('Cette adresse n’a pas l’air valable.');
+    setOccupe(true);
+    const r = await getAuthService().changeEmail(email);
+    setOccupe(false);
+    if (!r.ok) return setErreur(r.reason ?? 'Impossible de changer l’adresse.');
+    setEmail('');
+    setMessage(
+      remote
+        ? 'Un lien de confirmation est parti à la nouvelle adresse. L’ancienne reste active tant que vous ne l’avez pas ouvert.'
+        : 'Adresse mise à jour.',
+    );
+  };
+
+  const changerMotDePasse = async () => {
+    setErreur(null);
+    setMessage(null);
+    if (motDePasse.length < 8) return setErreur('Au moins 8 caractères.');
+    setOccupe(true);
+    const r = await getAuthService().setPassword(motDePasse);
+    setOccupe(false);
+    if (!r.ok) return setErreur(r.reason ?? 'Impossible d’enregistrer le mot de passe.');
+    setMotDePasse('');
+    setMessage('Nouveau mot de passe enregistré.');
+  };
+
+  const changerCode = async () => {
+    setErreur(null);
+    setMessage(null);
+    if (!/^\d{4}$/.test(code)) return setErreur('Le code doit contenir 4 chiffres.');
+    setOccupe(true);
+    const r = await getAuthService().setParentPin(code);
+    setOccupe(false);
+    if (!r.ok) return setErreur(r.reason ?? 'Impossible d’enregistrer le code.');
+    setCode('');
+    setMessage('Nouveau code parent enregistré.');
+  };
+
+  const seDeconnecter = () => {
+    Alert.alert(
+      'Se déconnecter ?',
+      'Rien ne sera perdu : vos enfants, leurs missions et leurs minutes restent sur votre compte. Il faudra votre mot de passe pour revenir.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Se déconnecter',
+          onPress: async () => {
+            await signOut();
+            router.replace('/welcome');
+          },
+        },
+      ],
+    );
+  };
+
+  /**
+   * La confirmation écrite, et pourquoi elle vaut mieux qu'un deuxième bouton.
+   *
+   * « Supprimer » se tape ; « Supprimer » ne se tape pas par accident dans une
+   * poche, ni par un enfant qui explore les réglages du téléphone de ses
+   * parents. Deux boutons d'affilée, si.
+   */
+  const supprimer = () => {
+    if (confirmation.trim().toLowerCase() !== 'supprimer') {
+      return setErreur('Écrivez « supprimer » dans le champ pour confirmer.');
+    }
+    Alert.alert(
+      'Supprimer définitivement ?',
+      'Les profils de vos enfants, leurs missions, leur historique et les minutes gagnées seront effacés. Rien de tout cela ne peut être récupéré.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            setOccupe(true);
+            const r = await deleteAccount();
+            setOccupe(false);
+            if (!r.ok) return setErreur(r.reason ?? 'La suppression n’a pas abouti.');
+            router.replace('/welcome');
+          },
+        },
+      ],
+    );
+  };
+
+  return (
+    <Screen contentStyle={styles.content}>
+      <ScreenHeader onBack={() => router.back()} />
+
+      <View style={styles.head}>
+        <Text variant="hero">Mon compte</Text>
+        <Text variant="body" color={colors.textMuted}>
+          {parent?.email}
+        </Text>
+      </View>
+
+      {message ? (
+        <Card style={styles.bonne}>
+          <Text variant="body" color={colors.mintInk}>
+            {message}
+          </Text>
+        </Card>
+      ) : null}
+
+      {erreur ? (
+        <Card style={styles.mauvaise}>
+          <Text variant="body" color={colors.pinkInk}>
+            {erreur}
+          </Text>
+        </Card>
+      ) : null}
+
+      <Card style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
+          ADRESSE E-MAIL
+        </Text>
+        <Text variant="body" color={colors.textMuted}>
+          {remote
+            ? 'La nouvelle adresse ne devient la vôtre qu’une fois le lien de confirmation ouvert sur cette boîte. Celui qui tape l’adresse doit pouvoir y lire le courrier.'
+            : 'Sans serveur, l’adresse n’est qu’une étiquette : rien ne s’y envoie.'}
+        </Text>
+        <Field
+          label="Nouvelle adresse"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoComplete="email"
+        />
+        <Button
+          label="Changer l’adresse"
+          variant="secondary"
+          loading={occupe}
+          onPress={changerEmail}
+        />
+      </Card>
+
+      <Card style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
+          MOT DE PASSE
+        </Text>
+        <Text variant="body" color={colors.textMuted}>
+          Il ne protège pas seulement votre compte : il protège les profils de
+          vos enfants.
+        </Text>
+        <Field
+          label="Nouveau mot de passe"
+          value={motDePasse}
+          onChangeText={setMotDePasse}
+          secureTextEntry
+          autoComplete="new-password"
+          textContentType="newPassword"
+        />
+        <Button
+          label="Changer le mot de passe"
+          variant="secondary"
+          loading={occupe}
+          onPress={changerMotDePasse}
+        />
+      </Card>
+
+      <Card style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
+          CODE PARENT
+        </Text>
+        <Text variant="body" color={colors.textMuted}>
+          Les quatre chiffres qui ouvrent l’espace parent devant votre enfant.
+          Ce n’est pas votre mot de passe, et il ne doit pas lui ressembler.
+          À changer sans hésiter le jour où votre enfant vous a vu le taper.
+        </Text>
+        {/* Pas de vérification de l'ancien code ici : on ne peut atteindre cet
+            écran qu'en l'ayant déjà donné. Le redemander serait une cérémonie,
+            pas une sécurité. */}
+        <Field
+          label="Nouveau code à 4 chiffres"
+          value={code}
+          onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 4))}
+          keyboardType="number-pad"
+          secureTextEntry
+        />
+        <Button
+          label="Changer le code parent"
+          icon="🔢"
+          variant="secondary"
+          loading={occupe}
+          onPress={changerCode}
+        />
+      </Card>
+
+      <View style={styles.actions}>
+        <Button label="Se déconnecter" icon="👋" variant="secondary" onPress={seDeconnecter} />
+      </View>
+
+      <Card style={styles.danger}>
+        <Text variant="label" color={colors.pinkInk}>
+          SUPPRIMER LE COMPTE
+        </Text>
+        <Text variant="body" color={colors.textMuted}>
+          Les profils de vos enfants, leurs missions, leur historique et les
+          minutes gagnées seront effacés. Rien ne peut être récupéré ensuite.
+        </Text>
+        <Text variant="caption" color={colors.textSubtle}>
+          Votre abonnement, lui, ne s’annule pas ici : il se résilie depuis
+          l’App Store ou le Play Store, et il vaut mieux le faire avant.
+          Les factures déjà émises sont conservées dix ans, comme la loi
+          comptable l’exige ; elles ne contiennent aucune donnée d’enfant.
+        </Text>
+        <Field
+          label="Écrivez « supprimer » pour confirmer"
+          value={confirmation}
+          onChangeText={setConfirmation}
+          autoCapitalize="none"
+        />
+        <Button label="Supprimer mon compte" variant="danger" loading={occupe} onPress={supprimer} />
+      </Card>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { paddingTop: spacing.lg, paddingBottom: spacing.xl, gap: spacing.lg },
+  head: { gap: spacing.xs },
+  block: { gap: spacing.sm },
+  actions: { gap: spacing.md },
+  danger: { gap: spacing.sm, borderColor: colors.pink, borderWidth: 1, borderRadius: radii.lg },
+  bonne: { backgroundColor: colors.mintSoft },
+  mauvaise: { backgroundColor: colors.pinkSoft },
+});

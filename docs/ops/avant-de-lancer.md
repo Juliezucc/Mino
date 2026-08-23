@@ -225,28 +225,30 @@ vérité au parent au lieu de lui proposer de créer le compte qu'il a déjà.
 
 Dans l'ordre du rapport qualité/prix.
 
-| Quoi | Effort |
-|---|---|
-| Un fichier GitHub Actions : `typecheck`, `test`, `test:sql` à chaque poussée | **1 h** — remplace le second regard qui n'existe pas |
-| Une surveillance qui réveille (UptimeRobot ou équivalent) plutôt qu'un tableau de bord à consulter | 20 min |
-| Tirer le code famille avec un vrai générateur cryptographique | 10 lignes |
-| Passer au plan Pro **et faire une restauration en vrai, une fois** | 1 j |
-| « Supprimer mon compte » : promis dans la FAQ et la politique, exigé par Apple, absent du code | 1–2 j |
-| Un SMTP européen : le service intégré de Supabase est bridé et n'est pas fait pour la production | 1 j |
-| Écran « Sécurité du compte » : changer l'e-mail, le mot de passe, régénérer le code famille, retirer un appareil | 2–3 j |
-| Le compagnon éteint par défaut, l'accord de traitement signé — ou la phrase retirée de la politique | 1–2 j |
-| La cinquième tâche de nuit : `purge_companion_messages()`, promise à 30 jours | ½ j |
-| Afficher `lastError` à l'écran | ½ j |
-| Une boîte contact@ vraiment relevée | 1 h pour la bêta |
-| Une RC professionnelle avec extension numérique, avant la bêta ouverte | quelques centaines d'euros/an |
+| Quoi | Effort | État |
+|---|---|---|
+| Un fichier GitHub Actions : `typecheck`, `test`, `test:sql` à chaque poussée | 1 h | ✅ `.github/workflows/verifications.yml` |
+| Tirer le code famille avec un vrai générateur cryptographique | 10 lignes | ✅ `expo-crypto`, tirage par rejet |
+| Afficher `lastError` à l'écran | ½ j | ✅ `src/features/ErrorToast.tsx` |
+| Réinitialisation du mot de passe : le lien ne revenait pas dans l'application, et personne n'y consommait le jeton | 1 j | ✅ `app/mot-de-passe.tsx` |
+| « Supprimer mon compte » : promis dans la FAQ et la politique, exigé par Apple | 1–2 j | ✅ `delete_my_account()` + `app/parent/compte.tsx` |
+| Écran Compte : changer l'e-mail, le mot de passe, le code parent, se déconnecter | 2–3 j | ✅ `app/parent/compte.tsx` |
+| Régénérer le code famille, retirer un appareil appairé | 1 j | ❌ reste à faire |
+| Une surveillance qui réveille (UptimeRobot ou équivalent) plutôt qu'un tableau de bord à consulter | 20 min | ❌ |
+| Passer au plan Pro **et faire une restauration en vrai, une fois** | 1 j | ❌ |
+| Un SMTP européen : le service intégré de Supabase est bridé et n'est pas fait pour la production | 1 j | ❌ bloque la confirmation d'e-mail |
+| Le compagnon éteint par défaut, l'accord de traitement signé — ou la phrase retirée de la politique | 1–2 j | ❌ |
+| La cinquième tâche de nuit : `purge_companion_messages()`, promise à 30 jours | ½ j | ❌ |
+| Une boîte contact@ vraiment relevée | 1 h pour la bêta | ❌ |
+| Une RC professionnelle avec extension numérique, avant la bêta ouverte | quelques centaines d'euros/an | ❌ |
 
-### Le tirage du code famille
+### Le tirage du code famille — corrigé
 
-`src/domain/id.ts` tire le code famille avec `Math.random()`. Son propre
-commentaire dit : « ce code est la seule chose entre un inconnu et une famille
-avec des enfants dedans ». `Math.random()` n'est pas fait pour ça — ce n'est pas
-un générateur cryptographique, et sa graine est prévisible. Le remède est
-`expo-crypto` et dix lignes.
+`src/domain/id.ts` tirait le code famille avec `Math.random()`. Son propre
+commentaire disait : « ce code est la seule chose entre un inconnu et une
+famille avec des enfants dedans ». `Math.random()` n'est pas fait pour ça — ce
+n'est pas un générateur cryptographique, et sa graine est prévisible. Il tire
+désormais avec `expo-crypto`, par rejet, pour que l'alphabet reste uniforme.
 
 ### Ce qu'il n'existe aucune procédure pour traiter
 
@@ -265,7 +267,8 @@ on ne la prend pas le soir où ça arrive.
 ## 6. Le total honnête
 
 - **Décisions** (§0, §2) : une semaine et demie, dont une matinée de choix purs.
-- **Développement** (§5) : douze à quinze jours, sans le module natif.
+- **Développement** (§5) : six à huit jours restants, sans le module natif —
+  la moitié de la liste est faite depuis la rédaction de ce document.
 - **Attente externe** : D-U-N-S, contrats Apple et Google, et la demande Family
   Controls si vous allez vers le blocage natif. Plusieurs semaines, sur
   lesquelles vous n'avez aucune prise — d'où l'urgence de les lancer.
