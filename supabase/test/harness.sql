@@ -89,6 +89,15 @@ alter table realtime.messages enable row level security;
 grant select on realtime.messages to anon, authenticated;
 
 grant usage on schema public, realtime to anon, authenticated, service_role;
+
+-- Chez Supabase, `authenticated` peut lire le schéma `auth` et appeler
+-- `auth.uid()` — c'est ce qui permet à une politique RLS de savoir qui écrit.
+-- Le harnais ne l'accordait pas : un déclencheur qui appelle `auth.uid()`
+-- échouait donc ici sur un refus de privilège que la production n'a jamais.
+-- Un harnais moins permissif que le vrai fait échouer du code correct, ce qui
+-- est aussi trompeur qu'un harnais trop permissif.
+grant usage on schema auth to anon, authenticated, service_role;
+grant execute on function auth.uid() to anon, authenticated, service_role;
 alter default privileges in schema public
   grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public

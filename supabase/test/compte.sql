@@ -189,3 +189,99 @@ do $$ begin
     '66666666-6666-6666-6666-666666666666',
     '88888888-8888-8888-8888-888888888888');
 end $$;
+
+-- ------------------------------------------ la date d'une déclaration
+
+/**
+ * L'horloge du téléphone ne date pas une mission.
+ *
+ * Les deux index uniques de `schema.sql` gravent « une fois par jour » sur
+ * `completed_at`. Tant que `completed_at` venait du client, il suffisait
+ * d'avancer la date de l'appareil d'un jour pour que la déclaration d'hier
+ * cesse d'être celle d'aujourd'hui : plus de collision, mission redéclarable,
+ * minutes doublées. Les index ne protégeaient de rien contre le seul
+ * adversaire qu'ils avaient.
+ */
+do $$ begin
+  delete from families where id = 'fam-horl';
+  delete from auth.users where id = '99999999-9999-9999-9999-999999999999';
+
+  insert into auth.users (id, email) values
+    ('99999999-9999-9999-9999-999999999999', 'horloge@mino.app');
+  insert into families (id, name, code, referral_code) values
+    ('fam-horl', 'Petit', 'HORLOG1', 'PARRAINH');
+  insert into parents (id, family_id, user_id, display_name, email) values
+    ('par-horl', 'fam-horl', '99999999-9999-9999-9999-999999999999', 'Léa', 'horloge@mino.app');
+  insert into children (id, family_id, first_name, age, avatar_key) values
+    ('enf-horl', 'fam-horl', 'Sacha', 8, 'hibou');
+  insert into missions (id, family_id, title, icon, minutes, created_by) values
+    ('mis-horl', 'fam-horl', 'Ranger sa chambre', '🧹', 15, 'par-horl');
+  insert into mission_assignments (id, mission_id, child_id) values
+    ('asg-horl', 'mis-horl', 'enf-horl');
+end $$;
+
+do $$
+declare v_date date;
+begin
+  set local role authenticated;
+  set local mino.uid = '99999999-9999-9999-9999-999999999999';
+
+  -- Un client qui prétend être demain.
+  insert into mission_completions
+    (id, family_id, assignment_id, mission_id, child_id, status,
+     minutes_requested, minutes_awarded, completed_at)
+  values
+    ('cmp-horl', 'fam-horl', 'asg-horl', 'mis-horl', 'enf-horl', 'pending', 15, 0,
+     now() + interval '1 day');
+
+  select (completed_at at time zone 'UTC')::date into v_date
+  from mission_completions where id = 'cmp-horl';
+
+  perform assert(
+    v_date = (now() at time zone 'UTC')::date,
+    'la base date la déclaration, pas le téléphone');
+end $$;
+
+/**
+ * Et la conséquence, qui est le vrai sujet : la deuxième déclaration se heurte
+ * maintenant à l'index, puisque les deux portent la même date.
+ */
+do $$
+declare v_refuse boolean := false;
+begin
+  set local role authenticated;
+  set local mino.uid = '99999999-9999-9999-9999-999999999999';
+
+  begin
+    insert into mission_completions
+      (id, family_id, assignment_id, mission_id, child_id, status,
+       minutes_requested, minutes_awarded, completed_at)
+    values
+      ('cmp-horl-2', 'fam-horl', 'asg-horl', 'mis-horl', 'enf-horl', 'pending', 15, 0,
+       now() + interval '1 day');
+  exception when unique_violation then
+    v_refuse := true;
+  end;
+
+  perform assert(v_refuse, 'AVANCER L''HORLOGE NE FAIT PLUS PASSER LA MISSION DEUX FOIS');
+end $$;
+
+do $$ begin
+  -- Ce que l'administration doit garder le droit de faire : dater vieux, sans
+  -- session, comme le font les jeux d'essai de la conservation.
+  insert into mission_completions
+    (id, family_id, assignment_id, mission_id, child_id, status,
+     minutes_requested, minutes_awarded, completed_at)
+  values
+    ('cmp-horl-vieux', 'fam-horl', 'asg-horl', 'mis-horl', 'enf-horl', 'approved', 15, 15,
+     now() - interval '200 days');
+
+  perform assert(
+    (select (completed_at at time zone 'UTC')::date
+     from mission_completions where id = 'cmp-horl-vieux')
+      < (now() at time zone 'UTC')::date,
+    'sans session, une date choisie reste une date choisie');
+
+  delete from families where id = 'fam-horl';
+  delete from auth.users where id = '99999999-9999-9999-9999-999999999999';
+end $$;

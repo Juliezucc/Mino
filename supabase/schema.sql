@@ -173,6 +173,48 @@ create unique index if not exists uniq_completion_pending_per_day
   on mission_completions (mission_id, child_id, ((completed_at at time zone 'UTC')::date))
   where status = 'pending';
 
+/**
+ * C'est LA BASE qui date une déclaration, pas le téléphone.
+ *
+ * Les deux index ci-dessus gravent la règle « une fois par jour » — mais ils
+ * la gravent sur `completed_at`, et `completed_at` arrivait du client. Or
+ * l'horloge d'un téléphone se règle. Il suffisait d'avancer la date d'un jour
+ * pour que la déclaration d'hier cesse d'être celle d'aujourd'hui : l'index ne
+ * voyait plus de collision, la mission redevenait déclarable, et la même
+ * mission rapportait deux fois. Les deux index protégeaient donc exactement
+ * rien contre le seul adversaire qu'ils avaient.
+ *
+ * `now()` est l'heure du serveur. Elle n'est pas dans les mains de l'enfant.
+ *
+ * La condition sur `auth.uid()` distingue une écriture venue d'un client — un
+ * parent, un appareil appairé — d'une écriture d'administration : les jeux
+ * d'essai qui datent volontairement une mission de six mois passent par le
+ * propriétaire de la base, sans session, et doivent continuer de pouvoir le
+ * faire. Un client, lui, n'a jamais de raison légitime de choisir sa date.
+ */
+create or replace function mino_stamp_completion()
+returns trigger
+language plpgsql
+-- `security definer`, comme toutes les fonctions de ce fichier qui touchent au
+-- schéma `auth` : c'est leur propriétaire qui a le droit d'y lire, pas le rôle
+-- qui écrit. La fonction ne fait rien d'autre que poser une date, il n'y a
+-- donc aucune surface à élargir.
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is not null then
+    new.completed_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_stamp_completion on mission_completions;
+create trigger trg_stamp_completion
+  before insert on mission_completions
+  for each row execute function mino_stamp_completion();
+
 -- Append-only ledger. The balance of a child is the SUM of `delta` here and
 -- is never stored as a mutable counter.
 create table if not exists screen_time_transactions (
