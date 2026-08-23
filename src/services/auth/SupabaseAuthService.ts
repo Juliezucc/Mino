@@ -54,14 +54,36 @@ export class SupabaseAuthService implements AuthService {
     await this.client.auth.signInAnonymously();
   }
 
+  /**
+   * Créer le compte — et refuser de dire que c'est fait quand ça ne l'est pas.
+   *
+   * Supabase active « Confirm email » par défaut. Dans ce cas `signUp` ne rend
+   * AUCUNE erreur, mais aussi aucune session : l'utilisateur existe et n'est
+   * pas connecté. Le code d'avant lisait la seule erreur, répondait « c'est
+   * bon », et la suite se déroulait sans session — le code parent ne pouvait
+   * pas s'écrire, la famille ne pouvait pas se sauvegarder, et le parent se
+   * retrouvait devant une famille vide qui n'existait nulle part.
+   *
+   * On lit donc la session, pas l'erreur. Voir `docs/ops/mise-en-route.md` :
+   * tant qu'aucun SMTP n'est branché, la confirmation doit rester désactivée —
+   * l'expéditeur intégré de Supabase est bridé à quelques envois par heure et
+   * n'est pas fait pour la production.
+   */
   async signUp({ email, password }: { email: string; password: string }): Promise<AuthResult> {
-    const { error } = await this.client.auth.signUp({
+    const { data, error } = await this.client.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
     });
     if (error) {
       // Deliberately the same message whether the address is free or taken.
       return { ok: false, reason: 'Impossible de créer le compte. Vérifiez l’adresse et réessayez.' };
+    }
+    if (!data.session) {
+      return {
+        ok: false,
+        reason:
+          'Votre compte est créé. Ouvrez le lien de confirmation envoyé à votre adresse, puis connectez-vous.',
+      };
     }
     return { ok: true };
   }
@@ -79,8 +101,62 @@ export class SupabaseAuthService implements AuthService {
     await this.client.auth.signOut();
   }
 
+  /**
+   * Les jetons arrivent dans le FRAGMENT de l'URL (`#access_token=…`), pas dans
+   * la requête : c'est la forme qu'utilise Supabase, et c'est aussi la raison
+   * pour laquelle expo-router ne les rend pas dans ses paramètres — un
+   * fragment ne quitte jamais le client, ce qui est précisément ce qu'on veut
+   * d'un jeton.
+   */
+  async resumeFromLink(url: string): Promise<AuthResult> {
+    const brut = url.includes('#') ? url.slice(url.indexOf('#') + 1) : url.split('?')[1] ?? '';
+    const params = new URLSearchParams(brut);
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+
+    if (!access_token || !refresh_token) {
+      return { ok: false, reason: 'Ce lien est incomplet. Demandez-en un nouveau.' };
+    }
+
+    const { error } = await this.client.auth.setSession({ access_token, refresh_token });
+    if (error) {
+      return {
+        ok: false,
+        reason: 'Ce lien n’est plus valable. Demandez-en un nouveau depuis la connexion.',
+      };
+    }
+    return { ok: true };
+  }
+
+  async setPassword(password: string): Promise<AuthResult> {
+    const { error } = await this.client.auth.updateUser({ password });
+    if (error) {
+      // La cause la plus fréquente n'est pas le mot de passe : c'est un lien
+      // ouvert trop tard, donc une session de récupération expirée.
+      return {
+        ok: false,
+        reason: 'Ce lien n’est plus valable. Demandez-en un nouveau depuis la connexion.',
+      };
+    }
+    return { ok: true };
+  }
+
+  /**
+   * Le lien doit revenir DANS l'application, pas dans un navigateur.
+   *
+   * Sans `redirectTo`, Supabase envoie vers l'« URL du site » du projet — dont
+   * la valeur par défaut est `http://localhost:3000`. Le parent recevait donc
+   * un lien qui ne menait nulle part, et n'avait aucun moyen de choisir un
+   * nouveau mot de passe. C'était une impasse complète, et silencieuse.
+   *
+   * `mino://mot-de-passe` est le schéma déclaré dans `app.json`. L'URL doit
+   * aussi être ajoutée aux « Redirect URLs » du projet Supabase, sinon il
+   * refuse de rediriger — c'est écrit dans le guide de mise en route.
+   */
   async requestPasswordReset(email: string): Promise<AuthResult> {
-    await this.client.auth.resetPasswordForEmail(email.trim().toLowerCase());
+    await this.client.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: 'mino://mot-de-passe',
+    });
     // Always the same answer: anything else says whether the account exists.
     return { ok: true };
   }

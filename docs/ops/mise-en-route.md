@@ -187,7 +187,51 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 Ce fichier est ignoré par git : il ne partira jamais dans le dépôt.
 
-### B4. Relancer
+### B4. Les deux réglages d'authentification
+
+Deux cases, dans **Authentication** → **Providers** / **URL Configuration**.
+Aucune des deux ne se voit tant qu'on ne s'en sert pas — et c'est précisément
+pour ça qu'elles sont ici, avant le premier lancement.
+
+**a) « Confirm email » : OFF, pour l'instant.**
+
+Supabase l'active par défaut. Tant qu'il est actif, un compte créé n'ouvre pas
+de session : le parent doit d'abord cliquer un lien reçu par e-mail. Or l'e-mail
+part du serveur de démonstration de Supabase, qui est **limité à quelques envois
+par heure et n'est pas fait pour de vrais utilisateurs**. L'application sait
+désormais le dire proprement (« Ouvrez le lien de confirmation envoyé à votre
+adresse, puis connectez-vous »), mais pour un test, c'est un aller-retour de
+plus qui n'apprend rien.
+
+Donc : **Authentication → Providers → Email → décocher « Confirm email »**.
+
+> ⚠️ À remettre **avant l'ouverture au public**, en même temps qu'un vrai
+> serveur d'envoi européen (Scaleway, Brevo, OVH) dans **Project Settings →
+> Auth → SMTP Settings**. Sans confirmation, n'importe qui peut créer un compte
+> avec l'adresse de quelqu'un d'autre. C'est acceptable pour vous, sur votre
+> projet, entre vous et vos enfants. Ça ne l'est plus à la première famille
+> inconnue.
+
+**b) L'adresse de retour du mot de passe oublié.**
+
+Quand un parent demande un nouveau mot de passe, Mino demande à Supabase de le
+renvoyer vers `mino://mot-de-passe`. Supabase **refuse toute adresse qui n'est
+pas dans sa liste** — et son refus est silencieux : le lien part quand même,
+mais vers l'« URL du site » du projet, c'est-à-dire `http://localhost:3000`.
+Le parent clique, tombe sur une page d'erreur, et ne peut plus rien faire.
+
+**Authentication → URL Configuration → Redirect URLs → Add URL** :
+
+```
+mino://mot-de-passe
+```
+
+**Comment savoir que ça a marché** : sur l'écran de connexion, « Mot de passe
+oublié », saisir votre adresse. L'e-mail arrive ; le lien **ouvre Mino** sur un
+écran « Nouveau mot de passe ». S'il ouvre un navigateur sur une page morte,
+c'est cette liste qu'il faut regarder.
+
+### B5. Relancer
 
 ```bash
 npm start -c
@@ -200,7 +244,7 @@ l'ancienne configuration et on chercherait longtemps pourquoi.
 parent » demande maintenant une vraie adresse e-mail et crée un compte qui
 survit à la désinstallation. En mode local, il n'y avait rien à créer.
 
-### B5. Le deuxième appareil
+### B6. Le deuxième appareil
 
 C'est le moment que la partie A ne permettait pas :
 
@@ -215,10 +259,10 @@ C'est le moment que la partie A ne permettait pas :
 Si le compteur ne bouge pas tout seul, c'est le temps réel qu'il faut regarder,
 et il faut me le dire.
 
-### B6. Les sauvegardes, avant tout le reste
+### B7. Les sauvegardes, avant tout le reste
 
 **Avant la première vraie famille, et avant l'étape suivante.** L'ordre compte :
-l'étape B7 met en place des travaux de nuit qui **suppriment** des lignes — du
+l'étape B8 met en place des travaux de nuit qui **suppriment** des lignes — du
 grand livre, et des comptes d'appareils. Les activer sur une base sans
 sauvegarde, c'est se priver de filet le jour où l'un d'eux se trompe.
 
@@ -231,9 +275,9 @@ couvrent**.
 Une base de familles sans sauvegarde n'est pas un risque technique, c'est un
 risque d'entreprise.
 
-### B7. Les quatre travaux de nuit
+### B8. Les quatre travaux de nuit
 
-À faire **après B6, jamais avant** : deux de ces quatre travaux suppriment des
+À faire **après B7, jamais avant** : deux de ces quatre travaux suppriment des
 lignes, et on ne lance pas une suppression automatique sur une base qu'on ne
 sait pas restaurer. Ils ne sont pas indispensables au premier jour ; ils évitent
 qu'une base grossisse pour rien.

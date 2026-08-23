@@ -51,6 +51,25 @@ export interface AuthService {
    * propre tablette.
    */
   signInAsDevice(): Promise<void>;
+  /**
+   * Ouvre la session portée par un lien reçu par e-mail.
+   *
+   * En React Native il n'y a pas de barre d'adresse : le client Supabase est
+   * créé avec `detectSessionInUrl: false` et ne consomme donc RIEN tout seul.
+   * Sans cette méthode, un lien de récupération ouvrait bien l'application et
+   * n'ouvrait aucune session — l'écran demandait un nouveau mot de passe et
+   * n'avait le droit de le poser sur personne.
+   */
+  resumeFromLink(url: string): Promise<AuthResult>;
+
+  /**
+   * Pose un nouveau mot de passe sur la session en cours.
+   *
+   * Appelé au bout du lien de récupération (`app/mot-de-passe.tsx`), là où la
+   * session ouverte ne permet que cela.
+   */
+  setPassword(password: string): Promise<AuthResult>;
+
   /** Sends the reset e-mail. Always reports success, so it cannot enumerate accounts. */
   requestPasswordReset(email: string): Promise<AuthResult>;
 

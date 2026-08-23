@@ -77,6 +77,20 @@ export class LocalAuthService implements AuthService {
     return { ok: true };
   }
 
+  /** Hors ligne, aucun lien n'arrive : il n'y a pas de serveur pour en envoyer. */
+  async resumeFromLink(): Promise<AuthResult> {
+    return { ok: true };
+  }
+
+  /**
+   * Hors ligne, il n'y a pas de mot de passe de compte : l'appareil EST la
+   * session. On rend « fait » plutôt qu'une erreur — un écran qui échouerait
+   * ici ferait croire à une panne là où il n'y a qu'une absence de compte.
+   */
+  async setPassword(): Promise<AuthResult> {
+    return { ok: true };
+  }
+
   async setParentPin(pin: string): Promise<AuthResult> {
     if (!/^\d{4}$/.test(pin)) return { ok: false, reason: 'Le code doit contenir 4 chiffres.' };
     await AsyncStorage.setItem(PIN_KEY, pin);
