@@ -126,7 +126,12 @@ describe('device-managed screen time', () => {
         until = deadline;
       },
       async remaining() {
+        calls.push('remaining');
         return Math.max(0, until - Date.now());
+      },
+      /** Simule un enfant qui recule l'horloge : le natif, lui, ne bouge pas. */
+      reculerHorloge(ms: number) {
+        until += ms;
       },
     };
   }
@@ -162,7 +167,9 @@ describe('device-managed screen time', () => {
     await service.revoke('ses_1');
 
     expect(native.isShielded()).toBe(true);
-    expect(native.calls).toEqual(['unshield', 'shield']);
+    // `remaining` vient AVANT `shield` : reposer le bouclier efface l'échéance,
+    // et c'est elle qui sert à facturer.
+    expect(native.calls).toEqual(['unshield', 'remaining', 'shield']);
   });
 
   it('re-shields even for a session it never knew about', async () => {
@@ -174,5 +181,77 @@ describe('device-managed screen time', () => {
     const out = await service.revoke('ses_unknown');
     expect(out.consumedMinutes).toBe(0);
     expect(native.isShielded()).toBe(true);
+  });
+});
+
+/**
+ * L'horloge du téléphone se règle. Celle du bouclier, non.
+ *
+ * Ce n'est pas une hypothèse d'école : reculer l'heure est le contournement le
+ * plus simple qui soit, à la portée de n'importe quel enfant qui sait ouvrir
+ * les réglages, et il rapportait deux fois — la session durait plus longtemps,
+ * et elle ne coûtait rien.
+ *
+ * Côté natif, l'échéance est aussi mesurée à `SystemClock.elapsedRealtime()`,
+ * qui compte depuis le démarrage et ne se règle pas ; on garde la plus courte
+ * des deux. Côté JavaScript, la facture ne se calcule plus sur `Date.now()`
+ * mais sur ce qu'il RESTAIT d'après le natif — c'est ce que tiennent ces deux
+ * tests.
+ */
+describe('l’horloge reculée', () => {
+  function natifFige(resteMs: number) {
+    const calls: string[] = [];
+    return {
+      calls,
+      async authorizationStatus() {
+        return 'approved' as const;
+      },
+      async requestAuthorization() {
+        return 'approved' as const;
+      },
+      async presentPicker() {
+        return { count: 3 };
+      },
+      async selectionCount() {
+        return { count: 3 };
+      },
+      async shield() {
+        calls.push('shield');
+      },
+      async unshield() {
+        calls.push('unshield');
+      },
+      async remaining() {
+        calls.push('remaining');
+        return resteMs;
+      },
+    };
+  }
+
+  it('facture ce que le natif dit, pas ce que dit l’horloge du téléphone', async () => {
+    // Le natif tient bon : il restait 5 minutes sur les 20 accordées.
+    const service = new DeviceManagedScreenTimeService(natifFige(5 * 60_000));
+    await service.grant({ sessionId: 'ses_1', childId: 'c1', minutes: 20 });
+
+    // Un enfant qui aurait reculé l'horloge ferait rendre à
+    // `Date.now() - startedAt` un écart quasi nul, donc zéro minute facturée.
+    const { consumedMinutes } = await service.revoke('ses_1');
+
+    expect(consumedMinutes).toBe(15);
+  });
+
+  it('se replie sur l’horloge murale seulement si le natif ne répond pas', async () => {
+    const natif = natifFige(0);
+    natif.remaining = async () => {
+      throw new Error('module absent');
+    };
+    const service = new DeviceManagedScreenTimeService(natif);
+    await service.grant({ sessionId: 'ses_2', childId: 'c1', minutes: 20 });
+
+    // Moins sûr, mais très au-dessus d'une facturation à zéro — et le bouclier
+    // est reposé dans tous les cas.
+    const { consumedMinutes } = await service.revoke('ses_2');
+    expect(consumedMinutes).toBe(0);
+    expect(natif.calls).toContain('shield');
   });
 });

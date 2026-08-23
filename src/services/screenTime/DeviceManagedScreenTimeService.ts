@@ -69,6 +69,20 @@ export class DeviceManagedScreenTimeService implements ScreenTimeService {
 
   async revoke(sessionId: ID): Promise<{ consumedMinutes: number }> {
     const grant = this.grants.get(sessionId);
+
+    /**
+     * Ce qu'il restait, demandé AVANT de reposer le bouclier — `shield()`
+     * efface l'échéance, donc après il n'y a plus rien à lire.
+     *
+     * On facture sur cette valeur et non sur `Date.now()`, et c'est tout
+     * l'objet du détour : l'horloge du téléphone se règle. Un enfant qui la
+     * reculait de deux heures avant de fermer sa session faisait rendre à
+     * `Date.now() - startedAt` un écart minuscule, se voyait débiter zéro
+     * minute, et gardait à la fois son temps d'écran et ses minos. Côté natif
+     * l'échéance est aussi mesurée à l'horloge monotone, qui ne se règle pas.
+     */
+    const resteMs = await this.native.remaining().catch(() => null);
+
     // Shield first, bill after: if anything below throws, the apps are already
     // locked again. The wrong failure mode here is a child left with an open
     // phone, not a minute mis-billed.
@@ -76,9 +90,15 @@ export class DeviceManagedScreenTimeService implements ScreenTimeService {
     if (!grant) return { consumedMinutes: 0 };
     this.grants.delete(sessionId);
 
-    const elapsedMs = Date.now() - new Date(grant.startedAt).getTime();
+    // Le repli sur l'horloge murale ne sert que si le module natif n'a pas
+    // répondu. Il est moins sûr, mais il vaut mieux qu'une facturation à zéro.
+    const consommeMs =
+      resteMs === null
+        ? Date.now() - new Date(grant.startedAt).getTime()
+        : grant.minutes * 60_000 - resteMs;
+
     return {
-      consumedMinutes: Math.min(grant.minutes, Math.max(0, Math.round(elapsedMs / 60_000))),
+      consumedMinutes: Math.min(grant.minutes, Math.max(0, Math.round(consommeMs / 60_000))),
     };
   }
 

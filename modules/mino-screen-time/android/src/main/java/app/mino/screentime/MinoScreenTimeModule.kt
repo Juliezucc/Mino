@@ -4,6 +4,7 @@ import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
 import android.os.Process
+import android.os.SystemClock
 import android.provider.Settings
 import androidx.core.content.edit
 import expo.modules.kotlin.modules.Module
@@ -87,24 +88,29 @@ class MinoScreenTimeModule : Module() {
     // ------------------------------------------------------------ bouclier
 
     AsyncFunction("shield") {
-      prefs.edit { remove(DEADLINE) }
+      prefs.edit { remove(DEADLINE); remove(DEADLINE_MONOTONE) }
       ShieldWatcher.start(context)
     }
 
     AsyncFunction("unshield") { until: Double ->
       val deadline = until.toLong()
-      if (deadline > System.currentTimeMillis() + 60_000) {
-        prefs.edit { putLong(DEADLINE, deadline) }
+      val reste = deadline - System.currentTimeMillis()
+      if (reste > 60_000) {
+        prefs.edit {
+          putLong(DEADLINE, deadline)
+          // La même échéance, mesurée à l'horloge monotone. Voir `echue()` :
+          // c'est ce qui empêche de rallonger une session en reculant l'heure.
+          putLong(DEADLINE_MONOTONE, SystemClock.elapsedRealtime() + reste)
+        }
         // Le service continue de tourner : c'est LUI qui reposera le bouclier à
-        // l'échéance, y compris si Mino a été balayé hors de l'écran. Le
-        // service redémarre au démarrage du téléphone (voir le manifeste).
+        // l'échéance, y compris si Mino a été balayé hors de l'écran. Et
+        // `BootReceiver` le relance après un redémarrage.
         ShieldWatcher.start(context)
       }
     }
 
     AsyncFunction("remaining") {
-      val deadline = prefs.getLong(DEADLINE, 0L)
-      val reste = deadline - System.currentTimeMillis()
+      val reste = restant(prefs)
       if (reste > 0) reste.toDouble() else 0.0
     }
   }
@@ -124,5 +130,39 @@ class MinoScreenTimeModule : Module() {
   companion object {
     const val PACKAGES = "mino.packages"
     const val DEADLINE = "mino.deadline"
+    const val DEADLINE_MONOTONE = "mino.deadline.monotone"
+
+    /**
+     * Ce qui reste de la session, en millisecondes — et pourquoi deux horloges.
+     *
+     * `System.currentTimeMillis()` est l'heure du téléphone, et l'heure du
+     * téléphone se règle. Reculer l'horloge de deux heures rallongeait la
+     * session de deux heures : le contournement le plus simple qui soit, à la
+     * portée de n'importe quel enfant qui sait ouvrir les réglages.
+     *
+     * `SystemClock.elapsedRealtime()` compte depuis le démarrage et ne se règle
+     * pas. Elle a un seul défaut, qui est de repartir de zéro au redémarrage —
+     * et c'est exactement le bon défaut : après un redémarrage l'échéance
+     * monotone est forcément dans le futur, donc elle ne dit plus rien, et on
+     * retombe sur l'horloge murale. Le reste du temps, elle a le dernier mot.
+     *
+     * On prend donc la plus courte des deux. Reculer l'heure ne donne plus une
+     * minute. L'avancer termine la session plus tôt — c'est perdant pour
+     * l'enfant, et on n'a rien à corriger là.
+     */
+    fun restant(prefs: android.content.SharedPreferences): Long {
+      val mur = prefs.getLong(DEADLINE, 0L)
+      if (mur == 0L) return 0L
+      val resteMur = mur - System.currentTimeMillis()
+
+      val monotone = prefs.getLong(DEADLINE_MONOTONE, 0L)
+      if (monotone == 0L) return resteMur
+      val resteMonotone = monotone - SystemClock.elapsedRealtime()
+
+      return minOf(resteMur, resteMonotone)
+    }
+
+    /** `true` quand la session est finie, quelle que soit l'horloge consultée. */
+    fun echue(prefs: android.content.SharedPreferences): Boolean = restant(prefs) <= 0L
   }
 }

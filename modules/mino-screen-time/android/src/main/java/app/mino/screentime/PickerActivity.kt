@@ -17,13 +17,28 @@ import androidx.core.content.edit
  * l'appareil, ne part dans aucune requête, et n'est écrite que dans les
  * préférences locales du module.
  *
- * On ne montre que les applications lançables, et on écarte Mino lui-même —
- * un bouclier qui recouvre Mino empêcherait l'enfant de gagner du temps, ce qui
- * serait à la fois absurde et sans issue.
+ * On ne montre que les applications lançables, et on en écarte deux.
+ *
+ * MINO LUI-MÊME. Un bouclier qui recouvre Mino empêcherait l'enfant de déclarer
+ * une mission, donc de gagner du temps, donc de lever le bouclier : l'écran qui
+ * permet de tout défaire serait derrière l'écran. Sans issue. Sur iOS le
+ * système s'en charge tout seul — une application autorisée par FamilyControls
+ * est exemptée d'office, y compris quand le parent coche une catégorie entière.
+ * Android n'offre aucune garantie de ce genre, c'est à nous de la tenir, et on
+ * la tient à deux endroits : ici, et dans `ShieldWatcher` où le dégât se
+ * produirait.
+ *
+ * LE COMPOSEUR TÉLÉPHONIQUE, pour une raison qui n'a rien à voir : un enfant
+ * doit pouvoir appeler. Aucun temps d'écran mérité ne vaut un écran posé
+ * par-dessus un appel au 15.
  */
 class PickerActivity : Activity() {
   override fun onCreate(saved: Bundle?) {
     super.onCreate(saved)
+
+    val composeur = runCatching {
+      (getSystemService(TELECOM_SERVICE) as android.telecom.TelecomManager).defaultDialerPackage
+    }.getOrNull()
 
     val pm = packageManager
     val lancables = pm.queryIntentActivities(
@@ -32,7 +47,7 @@ class PickerActivity : Activity() {
     )
       .map { it.activityInfo.packageName }
       .distinct()
-      .filter { it != packageName }
+      .filter { it != packageName && it != composeur }
       .map { it to (nomLisible(pm, it) ?: it) }
       .sortedBy { it.second.lowercase() }
 

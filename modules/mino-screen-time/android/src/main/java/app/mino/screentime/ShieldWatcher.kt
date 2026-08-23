@@ -65,11 +65,16 @@ class ShieldWatcher : Service() {
 
   private fun verifier() {
     val deadline = prefs.getLong(MinoScreenTimeModule.DEADLINE, 0L)
-    val leve = deadline > System.currentTimeMillis()
+    val leve = deadline != 0L && !MinoScreenTimeModule.echue(prefs)
 
     // L'échéance vient de passer : on nettoie, pour que `remaining()` dise la
     // vérité et que l'écran parent ne montre pas une session finie.
-    if (!leve && deadline != 0L) prefs.edit { remove(MinoScreenTimeModule.DEADLINE) }
+    if (!leve && deadline != 0L) {
+      prefs.edit {
+        remove(MinoScreenTimeModule.DEADLINE)
+        remove(MinoScreenTimeModule.DEADLINE_MONOTONE)
+      }
+    }
 
     if (leve) {
       retirerOverlay()
@@ -77,9 +82,49 @@ class ShieldWatcher : Service() {
     }
 
     val paquet = auPremierPlan()
+
+    // MINO NE SE BOUCLE JAMAIS LUI-MÊME. Sur iOS, le système s'en charge : une
+    // application autorisée par FamilyControls est exemptée d'office, y compris
+    // quand le parent coche une catégorie entière. Android n'offre aucune
+    // garantie de ce genre — c'est à nous de la tenir.
+    //
+    // Le sélecteur écarte déjà Mino de la liste, mais le sélecteur n'est pas
+    // l'endroit où le dégât se produit : c'est ici. Une préférence héritée
+    // d'une version antérieure, une restauration de sauvegarde, une faute de
+    // frappe dans une migration, et l'écran se poserait par-dessus Mino. Un
+    // enfant ne pourrait alors plus déclarer une mission, donc plus jamais
+    // gagner de temps, donc plus jamais lever le bouclier — et l'écran qui
+    // permet de tout défaire serait précisément derrière l'écran. Sans issue,
+    // sur l'appareil de l'enfant.
+    //
+    // Une ligne, à l'endroit où elle ne peut pas être contournée.
+    //
+    // LE TÉLÉPHONE NON PLUS, et pour une raison qui n'a rien à voir avec le
+    // confort : un enfant doit pouvoir appeler. Aucun temps d'écran mérité ne
+    // vaut un écran posé par-dessus un appel au 15. Le sélecteur ne propose
+    // déjà pas le composeur ; ici on refuse de le recouvrir même si son nom
+    // arrivait dans la liste par un autre chemin.
+    if (paquet == packageName || paquet == composeur()) {
+      retirerOverlay()
+      return
+    }
+
     val encadrees = prefs.getStringSet(MinoScreenTimeModule.PACKAGES, emptySet()) ?: emptySet()
     if (paquet != null && encadrees.contains(paquet)) poserOverlay() else retirerOverlay()
   }
+
+  /**
+   * Le composeur par défaut du téléphone, s'il y en a un.
+   *
+   * `TelecomManager.getDefaultDialerPackage()` rend celui que l'utilisateur a
+   * choisi, et non celui du constructeur : sur un appareil où le parent a
+   * installé un autre composeur, c'est bien celui-là qu'il faut épargner. Une
+   * tablette sans téléphonie ne rend rien, et il n'y a alors rien à épargner.
+   */
+  private fun composeur(): String? = runCatching {
+    (getSystemService(Context.TELECOM_SERVICE) as android.telecom.TelecomManager)
+      .defaultDialerPackage
+  }.getOrNull()
 
   /** Ce qui est au premier plan, d'après les statistiques d'usage du système. */
   private fun auPremierPlan(): String? {

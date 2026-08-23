@@ -28,5 +28,23 @@
       android:name=".PickerActivity"
       android:exported="false"
       android:label="Applications à encadrer" />
+
+    <!--
+      `exported="true"` est obligatoire ici : c'est le SYSTÈME qui émet la
+      diffusion, donc un émetteur extérieur à l'application. Sans lui, Android
+      ne délivre rien et le bouclier ne revient jamais après un redémarrage.
+      L'exposition est sans danger — le récepteur ne lit aucune donnée de
+      l'intention et se contente de démarrer un service interne.
+    -->
+    <receiver
+      android:name=".BootReceiver"
+      android:exported="true"
+      android:enabled="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+      </intent-filter>
+    </receiver>
   </application>
 </manifest>

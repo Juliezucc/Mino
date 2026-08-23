@@ -95,6 +95,45 @@ où c'est testable.
 `unshield` prend une **échéance** et non une durée : l'extension doit pouvoir
 agir seule, sans réseau et sans l'application — c'est tout le point.
 
+### Mino ne se bouclera jamais lui-même
+
+C'est la panne la plus grave que ce module puisse produire, et la seule qui
+n'ait aucune issue : si le bouclier recouvrait Mino, l'enfant ne pourrait plus
+déclarer de mission, donc plus jamais gagner de temps, donc plus jamais lever
+le bouclier — et l'écran qui permet de tout défaire serait derrière l'écran.
+Sur l'appareil de l'enfant, personne ne s'en sortirait.
+
+Les deux systèmes s'en protègent, mais pas du tout de la même façon.
+
+**iOS le garantit tout seul, et c'est officiel.** Une application autorisée par
+FamilyControls est exemptée d'office : « *All apps authorized in FamilyControls
+are exempt from being blocked or shielded through ManagedSettings, so it's not
+possible for an app to block or shield itself* »
+([forums Apple](https://developer.apple.com/forums/thread/783310)). Cela vaut y
+compris quand le parent coche une catégorie entière — c'est ce qu'on observe
+chez les concurrents, et c'est pour cela qu'il n'y a **aucune ligne de code**
+ici pour s'en prémunir : il n'y en a pas besoin, et il n'y en aurait pas de
+possible, une application ne pouvant pas obtenir son propre `ApplicationToken`.
+
+**Android ne garantit rien, donc on le tient à la main**, et à deux endroits
+plutôt qu'un :
+
+- `PickerActivity` retire Mino de la liste proposée au parent ;
+- `ShieldWatcher` refuse de poser l'écran par-dessus Mino, quoi que contiennent
+  les préférences.
+
+Le second n'est pas une redondance décorative : le sélecteur n'est pas
+l'endroit où le dégât se produit. Une préférence héritée d'une version
+antérieure, une restauration de sauvegarde ou une migration maladroite
+suffiraient à faire entrer le nom du paquet dans la liste sans jamais repasser
+par le sélecteur.
+
+Le **composeur téléphonique** est écarté aux deux mêmes endroits, pour une
+raison qui n'a rien à voir avec le produit : un enfant doit pouvoir appeler.
+Aucun temps d'écran mérité ne vaut un écran posé par-dessus un appel au 15.
+
+---
+
 **Mino ne voit jamais quelles applications un enfant a installées sur iOS.**
 `FamilyActivitySelection` ne contient que des jetons opaques, chiffrés par le
 système. Sur Android, Mino voit la liste — elle ne quitte jamais l'appareil et
