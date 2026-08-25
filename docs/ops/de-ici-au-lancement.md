@@ -18,19 +18,41 @@ travaillant plus. Les étapes 1 à 5 se font donc le même jour, même si les
 
 ## Aujourd'hui — les cinq démarches qui commandent tout
 
-### 1. Enregistrer `minoapp.fr` · vous · 15 min
+### 1. Enregistrer `minoapp.fr`, et y mettre un vrai site · vous · 15 min + 1 jour
 
-**À faire en premier, avant même la demande Apple.** L'identifiant de
-l'application en dérive (`fr.minoapp.mino`), et la demande Family Controls se
-dépose **par identifiant** : déposer avec le mauvais oblige à tout redéposer.
+**À faire en premier, avant même la demande Apple**, pour trois raisons qui
+convergent toutes vers ce domaine.
 
-Enregistrez-le au nom d'**Agence Wheb**, pas à titre personnel, puis ouvrez-y
-`contact@` et `privacy@`.
+**a) L'identifiant de l'application en dérive** (`fr.minoapp.mino`), et la
+demande Family Controls se dépose **par identifiant** : déposer avec le mauvais
+oblige à tout redéposer.
 
-> `mino.app` appartient à un tiers. La politique de confidentialité et les CGV
-> y renvoyaient : ces adresses n'auraient jamais reçu un seul message, alors
-> qu'elles sont légalement obligatoires. C'est corrigé dans le dépôt, mais le
-> domaine doit exister pour que ce soit vrai.
+**b) Les adresses légales.** `mino.app` appartient à un tiers, et la politique
+de confidentialité comme les CGV y renvoyaient : ces adresses n'auraient jamais
+reçu un seul message, alors qu'elles sont légalement obligatoires. C'est
+corrigé dans le dépôt, mais le domaine doit exister pour que ce soit vrai.
+Ouvrez-y `contact@` et `privacy@`.
+
+**c) Apple l'exige deux fois pour l'inscription société**, et c'est le point
+qui se découvre trop tard :
+
+> « A work email address: Your work email address needs to be associated with
+> your organization's domain name. »
+>
+> « A website: Your organization's website must be publicly available and
+> functional, and its domain name must be associated with your organization.
+> Links to social media webpages or websites that contain minimal content or
+> display a message from a domain registrar won't be accepted. »
+>
+> — [Apple, *Program enrollment*](https://developer.apple.com/help/account/membership/program-enrollment/)
+
+Autrement dit : **une page « domaine réservé » ou un lien Instagram sont
+explicitement refusés.** Il faut un site publiquement accessible, avec du
+contenu, sur le domaine de la société. Une page de présentation de Mino avec la
+politique de confidentialité et les CGV suffit — et cette politique doit de
+toute façon être en ligne pour l'étape 17.
+
+Enregistrez le domaine au nom d'**Agence Wheb**, pas à titre personnel.
 
 ### 2. Déposer la demande Family Controls · vous · 1 h → réponse en semaines
 
@@ -67,7 +89,25 @@ bancaire, donc pas de produits d'abonnement.
 
 ### 4. Ouvrir les comptes développeurs · vous · 1 h
 
-- **Apple Developer Program** — 99 $/an. Peut se faire dès l'étape 3 lancée.
+**Il n'y a pas de « compte Apple Developer » séparé** : on *inscrit* un compte
+Apple existant au programme. Mais n'inscrivez pas le vôtre.
+
+Créez un compte Apple dédié sur une adresse du domaine — `apple@minoapp.fr`
+par exemple — avec l'**authentification à deux facteurs** activée, et
+inscrivez celui-là. Trois raisons :
+
+- Apple **exige** que l'adresse soit sur le domaine de la société (étape 1).
+- Ce compte devient le **titulaire** : c'est lui qui signe les accords
+  bancaires et fiscaux. Le transférer plus tard est long et pénible.
+- Votre compte Apple personnel porte votre iCloud, vos photos, et le partage
+  familial de vos propres enfants. Mélanger cela avec l'entreprise — et avec un
+  produit de contrôle parental que vous allez tester sur ces mêmes appareils —
+  est une source d'ennuis dont aucun n'est intéressant.
+
+Il faut aussi avoir **l'autorité légale d'engager la société**. Comme
+présidente d'Agence Wheb, vous l'avez.
+
+- **Apple Developer Program** — 99 $/an, inscription *Organization*.
 - **Google Play Console** — 25 $ une fois.
 
 ### 5. Signer l'accord *Paid Apps* · vous · 30 min, dès le D-U-N-S reçu
