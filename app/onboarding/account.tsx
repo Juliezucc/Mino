@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot';
 import { Button, Field, Screen, ScreenHeader, Text } from '@/components/ui';
+import { getAuthService } from '@/services/auth';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
@@ -22,12 +23,38 @@ export default function CreateAccount() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [aConfirmer, setAConfirmer] = useState(false);
+  /**
+   * L'adresse du compte déjà ouvert, s'il y en a un.
+   *
+   * On arrive ici avec une session en cours plus souvent qu'on ne l'imagine :
+   * il suffit d'avoir confirmé son adresse après coup, ou d'avoir refermé
+   * l'application entre le compte et la famille. `who.tsx` propose alors
+   * « Créer ma famille », qui mène ici. Sans ce test, l'écran redemandait une
+   * adresse et un mot de passe pour un compte qui existe déjà — et l'envoi
+   * échouait à tous les coups.
+   */
+  const [compteOuvert, setCompteOuvert] = useState<string | null>(null);
+
+  useEffect(() => {
+    let vivant = true;
+    getAuthService()
+      .session()
+      .then((s) => {
+        if (vivant && s.kind === 'parent') setCompteOuvert(s.email);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivant = false;
+    };
+  }, []);
 
   const submit = async () => {
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = 'Indique ton prénom.';
-    if (!EMAIL_RE.test(email.trim())) next.email = 'Adresse e-mail invalide.';
-    if (password.length < 8) next.password = 'Au moins 8 caractères.';
+    if (!compteOuvert) {
+      if (!EMAIL_RE.test(email.trim())) next.email = 'Adresse e-mail invalide.';
+      if (password.length < 8) next.password = 'Au moins 8 caractères.';
+    }
     if (!/^\d{4}$/.test(pin)) next.pin = 'Le code parent doit contenir 4 chiffres.';
     // A PIN identical to the last digits of the password helps nobody.
     if (/^(\d)\1{3}$/.test(pin) || pin === '1234' || pin === '0000') {
@@ -45,8 +72,8 @@ export default function CreateAccount() {
     setLoading(true);
     const result = await createAccount({
       parentName: name.trim(),
-      email: email.trim(),
-      password,
+      email: compteOuvert ?? email.trim(),
+      password: compteOuvert ? undefined : password,
       pin,
       // L'instant du consentement, pas seulement le fait qu'il ait eu lieu :
       // c'est la date qui vaut preuve.
@@ -100,8 +127,12 @@ export default function CreateAccount() {
     >
       <Screen>
         <ScreenHeader
-          title="Créer mon compte"
-          subtitle="Le compte appartient au parent. Aucun e-mail n’est demandé aux enfants."
+          title={compteOuvert ? 'Créer ma famille' : 'Créer mon compte'}
+          subtitle={
+            compteOuvert
+              ? `Votre compte ${compteOuvert} est déjà ouvert. Il ne reste que la famille à créer.`
+              : 'Le compte appartient au parent. Aucun e-mail n’est demandé aux enfants.'
+          }
         />
 
         <View style={styles.form}>
@@ -113,37 +144,41 @@ export default function CreateAccount() {
             autoCapitalize="words"
             error={errors.name}
           />
-          <Field
-            label="Mon e-mail"
-            placeholder="julie@exemple.fr"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            autoComplete="email"
-            textContentType="emailAddress"
-            error={errors.email}
-          />
-          <Field
-            label="Mon mot de passe"
-            placeholder="8 caractères minimum"
-            value={password}
-            onChangeText={setPassword}
-            autoCapitalize="none"
-            secureTextEntry
-            // Dire au système qu'il s'agit d'un mot de passe NEUF, et le voilà
-            // qui en propose un fort, l'enregistre et le remplira tout seul à
-            // la prochaine connexion. Sans ces deux lignes, on demande à un
-            // parent pressé d'en inventer un — et il ressort celui qu'il
-            // utilise partout, c'est-à-dire souvent celui que la protection
-            // contre les fuites va refuser. La friction ne venait pas de la
-            // protection : elle venait de l'invention.
-            autoComplete="new-password"
-            textContentType="newPassword"
-            hint="Il protège votre compte. Le code à 4 chiffres, lui, protège l’espace parent sur les appareils de la famille."
-            error={errors.password}
-          />
+          {compteOuvert ? null : (
+            <>
+              <Field
+                label="Mon e-mail"
+                placeholder="julie@exemple.fr"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                autoComplete="email"
+                textContentType="emailAddress"
+                error={errors.email}
+              />
+              <Field
+                label="Mon mot de passe"
+                placeholder="8 caractères minimum"
+                value={password}
+                onChangeText={setPassword}
+                autoCapitalize="none"
+                secureTextEntry
+                // Dire au système qu'il s'agit d'un mot de passe NEUF, et le
+                // voilà qui en propose un fort, l'enregistre et le remplira
+                // tout seul à la prochaine connexion. Sans ces deux lignes, on
+                // demande à un parent pressé d'en inventer un — et il ressort
+                // celui qu'il utilise partout, c'est-à-dire souvent celui que
+                // la protection contre les fuites va refuser. La friction ne
+                // venait pas de la protection : elle venait de l'invention.
+                autoComplete="new-password"
+                textContentType="newPassword"
+                hint="Il protège votre compte. Le code à 4 chiffres, lui, protège l’espace parent sur les appareils de la famille."
+                error={errors.password}
+              />
+            </>
+          )}
           <Field
             label="Code parent (4 chiffres)"
             placeholder="••••"

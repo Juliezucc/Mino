@@ -75,7 +75,8 @@ interface MinoState {
   createAccount: (input: {
     parentName: string;
     email: string;
-    password: string;
+    /** Absent quand le compte existe déjà : il ne reste alors que la famille à créer. */
+    password?: string;
     pin: string;
     familyName?: string;
     consentAt: ISODate;
@@ -419,17 +420,35 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async createAccount({ parentName, email, password, pin, familyName, consentAt }) {
-      // The account first: without an identity there is nothing to attach a
-      // family to, and every row the backend stores is scoped by it.
-      const signUp = await getAuthService().signUp({ email, password });
-      if (!signUp.ok) return signUp;
+      /**
+       * Un compte sans famille n'est pas un cas tordu : c'est l'état de tout
+       * parent qui confirme son adresse plus tard, ou qui referme
+       * l'application entre les deux écrans. Il se connecte, n'a rien à
+       * ouvrir, et le seul bouton qu'on lui propose l'envoie ici.
+       *
+       * Le renvoyer vers `signUp` était une impasse fermée à double tour : son
+       * adresse est prise, et une adresse prise reçoit exprès la même réponse
+       * évasive que n'importe quelle autre — il ne pouvait donc même pas
+       * apprendre pourquoi. On saute l'inscription et on ne crée que ce qui
+       * manque.
+       */
+      const ouverte = await getAuthService().session();
+      if (ouverte.kind !== 'parent') {
+        if (!password) return { ok: false, reason: 'Choisissez un mot de passe.' };
+        // The account first: without an identity there is nothing to attach a
+        // family to, and every row the backend stores is scoped by it.
+        const signUp = await getAuthService().signUp({ email, password });
+        if (!signUp.ok) return signUp;
+      }
 
       const pinSet = await getAuthService().setParentPin(pin);
       if (!pinSet.ok) return pinSet;
 
       const data = buildEmptyFamily({
         parentName,
-        email,
+        // L'adresse du compte ouvert fait foi sur celle qui a été tapée : c'est
+        // elle que la base rattachera aux lignes de cette famille.
+        email: ouverte.email ?? email,
         familyName: familyName?.trim() || `Famille de ${parentName}`,
         consentAt,
       });
