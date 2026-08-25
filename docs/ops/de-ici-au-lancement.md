@@ -1,309 +1,243 @@
 # D'ici au lancement
 
-Le chemin complet, dans l'ordre où il se parcourt. Chaque étape dit **qui la
-fait** — vous ou moi — et **combien de temps elle prend en vrai**, délai
-d'attente compris.
+**Dix-sept étapes, dans l'ordre où on les fait.** Chacune dit qui la fait,
+combien elle prend, et ce qu'elle débloque.
 
-Une seule règle d'ordre, et tout le document en découle : **ce qui dépend d'un
-tiers se lance en premier**, parce que c'est le seul temps qu'on ne peut pas
-rattraper en travaillant plus.
+Une seule règle explique cet ordre : **ce qui dépend d'un tiers se lance en
+premier**, parce que c'est le seul temps qu'on ne peut pas rattraper en
+travaillant plus. Les étapes 1 à 5 se font donc le même jour, même si les
+étapes 6 et suivantes semblent plus urgentes.
 
 > Les autres documents restent la référence de leur sujet :
 > `mise-en-route.md` pour brancher Supabase, `capacite.md` pour les chiffres
 > mesurés, `paiements.md` pour les rails de facturation,
-> `modules/mino-screen-time/README.md` pour le blocage natif. Celui-ci les
-> ordonne, il ne les remplace pas.
+> `apple-family-controls.md` pour le dossier Apple. Celui-ci les ordonne, il ne
+> les remplace pas.
 
 ---
 
-## Phase 0 — Aujourd'hui, avant tout le reste
+## Aujourd'hui — les cinq démarches qui commandent tout
 
-Deux démarches dont le délai ne dépend **pas** de nous. Tant qu'elles ne sont
-pas déposées, tout le reste attend derrière.
+### 1. Enregistrer `minoapp.fr` · vous · 15 min
 
-### 0.1 La demande Family Controls · vous · 1 h, puis plusieurs semaines
+**À faire en premier, avant même la demande Apple.** L'identifiant de
+l'application en dérive (`fr.minoapp.mino`), et la demande Family Controls se
+dépose **par identifiant** : déposer avec le mauvais oblige à tout redéposer.
+
+Enregistrez-le au nom d'**Agence Wheb**, pas à titre personnel, puis ouvrez-y
+`contact@` et `privacy@`.
+
+> `mino.app` appartient à un tiers. La politique de confidentialité et les CGV
+> y renvoyaient : ces adresses n'auraient jamais reçu un seul message, alors
+> qu'elles sont légalement obligatoires. C'est corrigé dans le dépôt, mais le
+> domaine doit exister pour que ce soit vrai.
+
+### 2. Déposer la demande Family Controls · vous · 1 h → réponse en semaines
+
+**https://developer.apple.com/contact/request/family-controls-distribution**
 
 C'est **le seul point du projet où un « non » venu de l'extérieur coûte le
-produit tel qu'il est décrit.** Apple accorde l'habilitation
-`com.apple.developer.family-controls` à sa discrétion, sur dossier, sans délai
-garanti. Sans elle, Mino compte le temps mais ne ferme rien.
+produit tel qu'il est décrit.** D'où sa place ici : le délai n'est pas garanti,
+et certains développeurs attendent des mois.
 
-Le dossier se dépose depuis le compte développeur Apple (formulaire de demande
-d'habilitation). Ce qu'il faut dire, et ne pas broder :
+**Deux demandes, pas une** — l'entitlement se demande par bundle, et l'extension
+en est un à part entière :
 
-- Mino est un outil de **contrôle parental**, installé par le parent, sur
-  l'appareil de son enfant, avec l'autorisation du parent.
-- L'habilitation sert à **poser et lever un bouclier** sur les applications que
-  le parent a lui-même choisies dans le sélecteur du système.
-- Mino ne voit **jamais** quelles applications l'enfant a installées : la
-  sélection ne contient que des jetons opaques, chiffrés par iOS.
-- Pas de publicité, pas de géolocalisation, pas de collecte à des fins
-  marketing côté enfant.
+| Cible | Bundle |
+|---|---|
+| L'application | `fr.minoapp.mino` |
+| L'extension de surveillance | `fr.minoapp.mino.MinoShieldMonitor` |
 
-Voir `docs/apple-family-controls.md` pour le détail.
+Déposer la première et oublier la seconde donne une application qui passe la
+revue et dont le bouclier ne se repose **jamais** à l'échéance.
 
-> **À faire même si vous hésitez encore sur le reste.** C'est gratuit, ça ne
-> vous engage à rien, et ça tourne pendant que vous travaillez.
+Le texte du dossier est prêt dans `docs/apple-family-controls.md` : il suffit de
+l'adapter. Ce qu'Apple juge, en une phrase : *est-ce un vrai produit de contrôle
+parental, ou un moyen détourné de surveiller quelqu'un ?*
 
-### 0.2 Le numéro D-U-N-S et les contrats · vous · 1 h, puis 2 à 5 semaines
+> L'entitlement de **développement**, lui, se coche seul dans le portail, sans
+> demande. On peut donc compiler et tester tout de suite. C'est celui de
+> **distribution** — TestFlight et App Store — qui passe par ce dossier.
 
-Le D-U-N-S identifie l'entreprise auprès d'Apple. Il est **gratuit** — ne payez
-jamais pour l'obtenir — et se demande sur le site de Dun & Bradstreet. Comptez
-une à deux semaines, parfois plus.
+### 3. Demander le numéro D-U-N-S · vous · 30 min → 1 à 2 semaines
 
-Ensuite, et **seulement ensuite** :
+Il identifie Agence Wheb auprès d'Apple. Il est **gratuit** : ne payez jamais
+pour l'obtenir. Sans lui, pas de compte développeur société, donc pas de contrat
+bancaire, donc pas de produits d'abonnement.
 
-- **Apple** : Apple Developer Program (99 $/an), puis dans App Store Connect,
-  l'accord **Paid Apps** — coordonnées bancaires et informations fiscales.
-- **Google** : compte développeur Play (25 $ une fois), puis le profil de
-  paiement.
+### 4. Ouvrir les comptes développeurs · vous · 1 h
 
-**Pourquoi ça bloque tout le commercial** : sans l'accord Paid Apps signé, vous
-ne pouvez même pas **créer** les produits d'abonnement dans App Store Connect.
-Donc pas de test d'achat, donc pas de soumission.
+- **Apple Developer Program** — 99 $/an. Peut se faire dès l'étape 3 lancée.
+- **Google Play Console** — 25 $ une fois.
+
+### 5. Signer l'accord *Paid Apps* · vous · 30 min, dès le D-U-N-S reçu
+
+Dans App Store Connect : *Agreements, Tax, and Banking*. Coordonnées bancaires
+et informations fiscales. Même chose côté Google avec le profil de paiement.
+
+> **C'est ce qui bloque tout le commercial** : sans cet accord actif, vous ne
+> pouvez même pas *créer* les produits d'abonnement. Donc pas de test d'achat,
+> donc pas de soumission.
 
 ---
 
-## Phase 1 — Mettre Supabase en état de production
+## Pendant l'attente — mettre le serveur en état
 
-Pendant que les démarches tournent. Rien ici ne dépend d'Apple.
+Rien ici ne dépend d'Apple. À faire dans les jours qui suivent.
 
-### 1.1 Le projet et le schéma · vous · 30 min
+### 6. Créer le projet Supabase et poser le schéma · vous · 30 min
 
-Suivez `mise-en-route.md`, partie B, de B1 à B6. Trois points à ne pas rater :
+`mise-en-route.md`, partie B, de B1 à B6. Trois points à ne pas rater :
 
-- **Région Europe** (Francfort ou Paris). C'est le seul choix irréversible.
-- Les deux réglages d'authentification de **B4** — « Confirm email » et les
-  deux *Redirect URLs*. Ils ne se voient pas tant qu'on ne s'en sert pas.
-- La clé `service_role` ne doit **jamais** entrer dans l'application ni dans le
-  dépôt.
+- **Région Europe** (Paris ou Francfort). Seul choix irréversible.
+- Les deux réglages d'authentification de **B4** : « Confirm email » et les deux
+  *Redirect URLs*. Ils ne se voient pas tant qu'on ne s'en sert pas.
+- La clé `service_role` n'entre **jamais** dans l'application ni dans le dépôt.
 
-### 1.2 Passer au plan Pro · vous · 10 min · 25 $/mois
+### 7. Passer au plan Pro · vous · 10 min · 25 $/mois
 
 **Pas pour un quota — pour les sauvegardes.** Le plan gratuit n'en a aucune.
-Pas une. Faire tourner de vraies familles là-dessus n'est pas un risque
-technique, c'est un risque d'entreprise.
+Faire tourner de vraies familles là-dessus n'est pas un risque technique, c'est
+un risque d'entreprise. Trois familles payantes couvrent l'abonnement.
 
-À 25 $ le mois contre 9,90 € l'abonnement, **trois familles payantes le
-couvrent**.
+### 8. Restaurer une sauvegarde, en vrai, une fois · vous · 1 h
 
-### 1.3 Faire une restauration en vrai, une fois · vous · 1 h
+L'étape que tout le monde saute, et la seule qui prouve quelque chose :
 
-L'étape que tout le monde saute, et la seule qui prouve quelque chose.
-
-1. Créez une famille de test avec quelques enfants et missions.
+1. Créez une famille de test avec des enfants et des missions.
 2. Notez ce qu'elle contient.
-3. Restaurez la sauvegarde de la veille depuis le tableau de bord.
-4. Vérifiez que la famille est revenue **exactement** comme vous l'aviez notée.
+3. Restaurez la sauvegarde de la veille.
+4. Vérifiez qu'elle est revenue **exactement** comme notée.
 
-Une sauvegarde qu'on n'a jamais restaurée est une hypothèse, pas un filet.
+Une sauvegarde jamais restaurée est une hypothèse, pas un filet.
 
-### 1.4 Les travaux de nuit · vous · 20 min
+### 9. Activer les travaux de nuit · vous · 20 min
 
-`mise-en-route.md` **B8**. À faire **après** 1.2 et 1.3, jamais avant : deux de
-ces quatre travaux **suppriment** des lignes, et on ne lance pas une
-suppression automatique sur une base qu'on ne sait pas restaurer.
+`mise-en-route.md` **B8**.
 
-### 1.5 Un vrai serveur d'envoi d'e-mails · vous · 1 h
+> **Après les étapes 7 et 8, jamais avant.** Deux de ces quatre travaux
+> **suppriment** des lignes, et on ne lance pas une suppression automatique sur
+> une base qu'on ne sait pas restaurer.
 
-Le service intégré de Supabase est bridé à quelques envois par heure et n'est
-**pas fait pour la production**. Prenez un expéditeur européen — Scaleway,
-Brevo, OVH — et renseignez-le dans **Project Settings → Auth → SMTP Settings**.
+### 10. Brancher un vrai serveur d'e-mails, puis réactiver la confirmation · vous · 1 h
 
-Puis **réactivez « Confirm email »**. Tant qu'il est désactivé, n'importe qui
-peut créer un compte avec l'adresse de quelqu'un d'autre. Acceptable entre
-vous et vos enfants ; plus du tout à la première famille inconnue.
+Le service intégré de Supabase est bridé à quelques envois par heure. Prenez un
+expéditeur européen — Scaleway, Brevo, OVH — dans *Project Settings → Auth →
+SMTP Settings*, puis **réactivez « Confirm email »**.
 
-### 1.6 Une surveillance qui réveille · vous · 20 min
+> Tant que la confirmation est désactivée, n'importe qui peut créer un compte
+> avec l'adresse de quelqu'un d'autre. Acceptable entre vous et vos enfants ;
+> plus du tout à la première famille inconnue. **Cette étape doit être faite
+> avant la première famille extérieure**, pas avant la soumission.
 
-Un tableau de bord qu'il faut penser à consulter ne sert à rien à 3 h du matin.
+### 11. Poser une surveillance qui réveille · vous · 20 min
+
 UptimeRobot ou équivalent, qui **envoie un message** quand la base ne répond
-plus. Vous êtes seule à gérer : c'est la différence entre apprendre une panne
-et l'apprendre par un client.
+plus. Un tableau de bord qu'il faut penser à consulter ne sert à rien à 3 h du
+matin, et vous êtes seule à gérer.
 
 ---
 
-## Phase 2 — La première compilation native
+## Quand l'entitlement de développement est en place — compiler
 
-Là, il faut votre Mac. Rien de ce qui suit ne se fait ailleurs.
+### 12. Installer Xcode · vous · une demi-journée
 
-### 2.1 Ce qu'il faut · vous · une demi-journée
+Xcode 15+, depuis le Mac App Store. C'est long à télécharger : lancez-le la
+veille.
 
-- **Xcode 15+**, depuis le Mac App Store. C'est long à télécharger, lancez-le
-  la veille.
-- L'habilitation de 0.1 **accordée**. Sans elle le module se charge et
-  l'autorisation est refusée à l'exécution.
-
-### 2.2 La *development build* · moi, puis vous · 1 à 2 jours
-
-Le blocage n'est pas du JavaScript : **Expo Go ne peut pas le charger, par
-construction**. Il faut une build de développement.
+### 13. Faire la première *development build* · moi, puis vous · 1 à 2 jours
 
 ```bash
 npx expo prebuild
 npx eas build --profile development --platform ios
 ```
 
-**Ce que la première compilation trouvera** : une signature qui a bougé, un
-import manquant, une API dépréciée. C'est normal et c'est rapide — ce qui prend
-du temps, c'est l'architecture, et elle est là. **Aucune ligne de Swift ni de
-Kotlin de ce dossier n'a jamais été compilée**, et il faut l'aborder en le
-sachant.
+Le blocage n'est pas du JavaScript : **Expo Go ne peut pas le charger, par
+construction.**
 
-### 2.3 La cible d'extension, à créer à la main · moi avec vous · 2 h
+> **Aucune ligne de Swift ni de Kotlin de ce dossier n'a jamais été compilée.**
+> La première compilation trouvera des choses : une signature qui a bougé, un
+> import manquant, une API dépréciée. C'est normal et rapide — ce qui prend du
+> temps, c'est l'architecture, et elle est là.
 
-`ios/MinoShieldMonitor.swift` **ne fait pas partie de l'application** : il doit
-vivre dans une cible *Device Activity Monitor Extension* nommée
-`MinoShieldMonitor`, créée dans Xcode.
+### 14. Créer la cible d'extension dans Xcode · moi avec vous · 2 h
 
-C'est elle que le système réveille à l'échéance pour reposer le bouclier. Sans
-elle, **un enfant qui ferme Mino garde son écran ouvert indéfiniment**, et le
-produit ne tient pas sa seule promesse.
+`MinoShieldMonitor.swift` **ne fait pas partie de l'application** : il doit
+vivre dans une cible *Device Activity Monitor Extension*, avec son propre bundle
+et son propre profil. Il faut aussi activer le groupe d'applications
+`group.fr.minoapp.mino` sur l'application **et** sur l'extension : c'est leur
+seule mémoire commune.
 
-Il faut aussi activer le groupe d'applications `group.fr.minoapp.mino` sur
-l'application **et** sur l'extension : c'est leur seule mémoire commune.
+> Sans cette cible, **un enfant qui ferme Mino garde son écran ouvert
+> indéfiniment**, et le produit ne tient pas sa seule promesse.
 
-### 2.4 Ce qu'il faut éprouver sur l'appareil · vous · 1 h
+### 15. Éprouver le blocage sur un vrai appareil · vous · 1 h
 
-Quatre choses que seul un vrai téléphone peut dire :
+Quatre choses que seul un téléphone peut dire :
 
 1. Le bouclier se pose et se lève.
 2. **Fermer Mino ne rouvre pas les écrans** — c'est l'extension qui répond.
 3. **Redémarrer le téléphone ne supprime pas le bouclier.**
-4. Sur Android, **reculer l'horloge ne rallonge pas la session** et ne fait pas
+4. Sur Android, **reculer l'horloge** ne rallonge pas la session et ne fait pas
    facturer zéro minute.
 
-Les trois dernières sont des défauts que j'ai corrigés sans pouvoir les
-vérifier autrement que par le raisonnement et les tests JavaScript.
+Les trois dernières sont des défauts corrigés sans avoir pu les vérifier
+autrement que par le raisonnement et les tests JavaScript.
 
 ---
 
-## Phase 3 — Brancher le paiement
+## Quand l'accord Paid Apps est actif — le paiement
 
-**Avant la soumission, jamais après.** Apple ouvre la page Abonnement pendant
-la revue et appuie sur le bouton. Si la feuille de paiement ne s'ouvre pas,
-c'est un refus.
+**Le paiement se branche ici, avant la soumission.** Apple ouvre la page
+Abonnement pendant la revue et appuie sur le bouton : si la feuille de paiement
+ne s'ouvre pas, c'est un refus. C'est pour cela que ces trois étapes viennent
+avant l'étape 17, et non après.
 
-### 3.1 Ce qui existe déjà
+### 16. Créer les produits, brancher le module, tester en bac à sable
 
-| | |
-|---|---|
-| Le contrat avec la boutique (`native.ts`) | ✅ |
-| Les fonctions serveur qui vérifient les reçus | ✅ |
-| Le webhook Stripe pour le web | ✅ |
-| Le jeton qui relie un achat à une famille | ✅ |
-| **Le module d'achat natif** | ❌ à écrire |
+**a) Les produits · vous · 1 h.** App Store Connect → Abonnements → un groupe,
+deux produits : mensuel 9,90 € et annuel 79 €. Les mêmes dans Play Console. Les
+identifiants doivent correspondre à ce que le code attend — je vous les donne au
+moment de brancher.
 
-`setNativeStore()` existe et n'est appelé nulle part : toute la plomberie
-attend une implémentation.
+**b) Le module d'achat · moi · 2 à 3 jours.** RevenueCat ou `expo-iap`, derrière
+le contrat déjà écrit. Tout le reste existe : les fonctions serveur qui
+vérifient les reçus, le webhook Stripe, le jeton qui relie un achat à une
+famille. Seul `setNativeStore()` attend une implémentation.
 
-### 3.2 Créer les produits · vous · 1 h
+**c) `EXPO_PUBLIC_BILLING_API_URL` · vous · 2 min.**
+`https://<référence>.supabase.co/functions/v1`. Sans elle, le rail boutique ne
+s'active pas **même une fois le module branché**.
 
-Une fois l'accord Paid Apps signé (0.2) :
-
-- **App Store Connect** → Abonnements → un groupe, deux produits : mensuel
-  9,90 € et annuel 79 €.
-- **Play Console** → Abonnements → les deux mêmes.
-- Les identifiants doivent correspondre à ceux que le code attend — je vous les
-  donnerai au moment de brancher.
-
-### 3.3 Le module d'achat · moi · 2 à 3 jours
-
-RevenueCat ou `expo-iap`, derrière le contrat déjà défini. Rien du reste de
-l'application ne saura lequel.
-
-Deux choses qu'Apple exige explicitement, et qui sont déjà prévues dans le
-contrat : le bouton **« Restaurer mes achats »** (un client qui change de
-téléphone doit retrouver son abonnement sans repayer), et le fait que
-**l'annulation ne se fasse pas dans l'app** — c'est une décision qui appartient
-aux réglages du téléphone.
-
-### 3.4 `EXPO_PUBLIC_BILLING_API_URL` · vous · 2 min
-
-L'adresse des fonctions Edge du projet :
-`https://<référence>.supabase.co/functions/v1`.
-
-Sans elle, le rail boutique ne s'active pas **même une fois le module branché**
-— et on conclurait à tort que le paiement ne marche pas.
-
-### 3.5 Tester l'achat en bac à sable · vous · 1 h
-
-Avec un compte de test Sandbox. Vérifiez les trois chemins, pas seulement le
-premier :
-
-1. L'achat aboutit et l'abonnement devient actif.
-2. **Restaurer** sur un deuxième appareil retrouve l'abonnement.
-3. Un achat **annulé en cours de route** ne laisse rien d'actif.
+**d) Le test en bac à sable · vous · 1 h.** Les trois chemins, pas seulement le
+premier : l'achat aboutit ; **restaurer** sur un deuxième appareil retrouve
+l'abonnement ; un achat **annulé en cours de route** ne laisse rien d'actif.
 
 ---
 
-## Phase 4 — Soumettre
+## Quand l'entitlement de distribution est accordé — publier
 
-### 4.1 Ce que les deux boutiques demandent · vous · 1 jour
+### 17. Préparer la fiche et soumettre · vous · 1 jour → 1 à 7 jours de revue
 
-- Captures d'écran (`npm run captures` en produit un jeu à jour).
+- Captures d'écran — `npm run captures` en produit un jeu à jour.
 - Description, mots-clés, catégorie.
 - **Politique de confidentialité** accessible publiquement en ligne.
 - Le questionnaire de confidentialité — répondez-y avec la politique sous les
-  yeux, les deux doivent dire la même chose.
-- Un **compte de démonstration** pour l'examinateur, avec des données déjà
-  dedans. Un examinateur qui tombe sur un écran vide refuse.
+  yeux : les deux doivent dire la même chose.
+- Un **compte de démonstration** avec des données dedans. Un examinateur qui
+  tombe sur un écran vide refuse.
 
-### 4.2 Les deux points qui font refuser · à préparer
+Deux points qui font refuser, et qui se préparent :
 
-**Apple, règle 5.1.1(v)** — suppression du compte depuis l'application. C'est
-fait (**Réglages → Gérer mon compte**), mais l'examinateur doit pouvoir la
-trouver : indiquez-lui le chemin dans les notes de revue.
+**Apple, règle 5.1.1(v)** — la suppression du compte depuis l'application. Elle
+existe (*Réglages → Gérer mon compte*), mais l'examinateur doit la trouver :
+indiquez-lui le chemin dans les notes de revue.
 
 **Google, autorisations restreintes** — `PACKAGE_USAGE_STATS` et
-`SYSTEM_ALERT_WINDOW` demandent une déclaration écrite. Le refus de la fiche
-est un **risque réel, pas théorique**. La justification doit dire précisément
-que Mino est un outil de contrôle parental installé par le parent sur
-l'appareil de son enfant, et pourquoi ces deux autorisations sont
-indispensables à cette fonction. Voir
-`modules/mino-screen-time/README.md`.
-
----
-
-## Phase 5 — Quand les abonnements arrivent
-
-Les chiffres qui suivent sont **mesurés**, pas estimés : voir `capacite.md`.
-
-### Les seuils à surveiller
-
-| Ce qui cède en premier | Vers |
-|---|---|
-| **Connexions temps réel simultanées** (500 au Pro) | 1 500 à 3 500 familles |
-| Taille de la base (8 Go au Pro) | ~16 000 familles |
-| Puissance de la machine (*Micro* incluse) | quelques milliers |
-
-**Les connexions simultanées cèdent les premières, et de loin.** C'est le
-premier chiffre à regarder dans le tableau de bord Supabase, dès les premières
-centaines de familles — c'est la seule grandeur qu'on n'ait pas pu mesurer
-d'avance, parce qu'elle dépend de combien d'appareils ont l'application ouverte
-**au même instant**.
-
-Le remède est un réglage, pas une réécriture : on achète des connexions
-supplémentaires (20 à 30 $/mois) et on passe l'instance de *Micro* à *Small* ou
-*Medium* (15 à 60 $ de plus).
-
-### Ce que ça coûte, en proportion
-
-À 10 000 familles : **60 à 115 $ par mois de serveur**, contre 99 000 € de
-chiffre d'affaires mensuel. Le serveur pèse **environ un dixième de pour cent
-du revenu**. Ce n'est pas là qu'est le risque.
-
-### Ce qui reste à construire quand ça grossira
-
-Aucun de ces points ne bloque le lancement, tous deviennent utiles vers quelques
-centaines de familles :
-
-- **Régénérer le code famille** et retirer un appareil appairé.
-- **`app_config`** : un interrupteur distant pour éteindre une fonctionnalité
-  sans publier une nouvelle version.
-- **`expo-updates`** : corriger un défaut JavaScript sans repasser par la revue.
-- Le compagnon éteint par défaut, ou l'accord de traitement signé.
-- La cinquième tâche de nuit : `purge_companion_messages()`.
+`SYSTEM_ALERT_WINDOW` demandent une déclaration écrite. Le refus de la fiche est
+un **risque réel, pas théorique**. La justification doit dire précisément que
+Mino est un outil de contrôle parental installé par le parent sur l'appareil de
+son enfant, et pourquoi ces deux autorisations sont indispensables.
 
 ---
 
@@ -311,28 +245,46 @@ centaines de familles :
 
 | | Votre temps | Attente externe |
 |---|---|---|
-| Phase 0 — démarches | 2 h | **2 à 6 semaines** |
-| Phase 1 — Supabase | ½ journée | — |
-| Phase 2 — build native | 1 journée | quelques heures de compilation |
-| Phase 3 — paiement | 2 h | — |
-| Phase 4 — soumission | 1 journée | **1 à 7 jours de revue** |
+| Étapes 1-5 — démarches | 3 h | **2 à 6 semaines** |
+| Étapes 6-11 — serveur | ½ journée | — |
+| Étapes 12-15 — compilation | 1 journée | quelques heures |
+| Étape 16 — paiement | 2 h | — |
+| Étape 17 — soumission | 1 journée | **1 à 7 jours de revue** |
 
 **Mon travail** : 4 à 6 jours, essentiellement le module d'achat et
 l'accompagnement de la première compilation.
 
-**Le chemin critique n'est pas le code.** C'est le D-U-N-S, les contrats
-bancaires et l'habilitation Family Controls — d'où la Phase 0, et d'où
-l'insistance à la lancer aujourd'hui.
+**Le chemin critique n'est pas le code.** Ce sont les étapes 2, 3 et 5 — d'où
+l'insistance à les lancer aujourd'hui, avant tout le reste.
 
 ---
 
-## Ce qu'il ne faut pas faire
+## Après le lancement — les seuils à surveiller
 
-- **Soumettre sans le paiement.** Refus immédiat.
-- **Ouvrir au public avec « Confirm email » désactivé.** N'importe qui créerait
-  un compte avec l'adresse d'un autre.
-- **Lancer les travaux de nuit avant d'avoir restauré une sauvegarde.** Deux
-  d'entre eux suppriment des lignes.
-- **Attendre l'habilitation Family Controls pour commencer le reste.** Elle
-  tourne toute seule.
-- **Payer pour un numéro D-U-N-S.** Il est gratuit.
+Ces chiffres sont **mesurés**, pas estimés (`capacite.md`).
+
+| Ce qui cède en premier | Vers |
+|---|---|
+| **Connexions temps réel simultanées** (500 au Pro) | 1 500 – 3 500 familles |
+| Taille de la base (8 Go au Pro) | ~16 000 familles |
+| Puissance de la machine (*Micro* incluse) | quelques milliers |
+
+**Les connexions simultanées cèdent les premières, et de loin.** C'est le
+premier chiffre à regarder dans le tableau de bord, dès les premières centaines
+de familles : c'est la seule grandeur qu'on n'ait pas pu mesurer d'avance, parce
+qu'elle dépend de combien d'appareils ont l'application ouverte *au même
+instant*. Le remède est un réglage — des connexions supplémentaires (20 à
+30 $/mois) et une instance *Small* ou *Medium* (15 à 60 $ de plus).
+
+À 10 000 familles : **60 à 115 $ par mois** de serveur contre 99 000 € de
+chiffre d'affaires. Environ **un dixième de pour cent du revenu**. Ce n'est pas
+là qu'est le risque.
+
+### Ce qui reste à construire, sans bloquer le lancement
+
+- Régénérer le code famille, retirer un appareil appairé.
+- `app_config` — un interrupteur distant pour éteindre une fonctionnalité sans
+  publier une version.
+- `expo-updates` — corriger un défaut JavaScript sans repasser par la revue.
+- Le compagnon éteint par défaut, ou l'accord de traitement signé.
+- La cinquième tâche de nuit : `purge_companion_messages()`.
