@@ -3,6 +3,49 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { AuthResult, AuthService, NO_SESSION, Session } from './AuthService';
 
 /**
+ * Les seules causes d'échec qu'on a le droit de nommer.
+ *
+ * La règle de la maison est de répondre la même phrase quoi qu'il arrive, pour
+ * qu'on ne puisse pas apprendre, en essayant des adresses, lesquelles ont un
+ * compte. Ces trois-là échappent à la règle sans l'affaiblir : aucune ne
+ * dépend de l'adresse essayée. Un mot de passe ayant fuité a fui pour tout le
+ * monde ; des inscriptions fermées le sont pour tout le monde ; un quota
+ * d'envoi épuisé l'est pour tout le monde.
+ *
+ * Tout le reste — adresse libre, adresse déjà prise, adresse malformée —
+ * continue de recevoir la réponse indifférenciée, et doit continuer.
+ */
+const MESSAGE_PAR_CODE: Record<string, { reason: string; field?: 'email' | 'password' }> = {
+  weak_password: {
+    field: 'password',
+    reason:
+      'Ce mot de passe est apparu dans une fuite connue. Choisissez-en un autre, qui ne serve nulle part ailleurs.',
+  },
+  signup_disabled: {
+    reason: 'Les inscriptions sont fermées pour le moment. Réessayez un peu plus tard.',
+  },
+  over_email_send_rate_limit: {
+    reason: 'Trop de messages envoyés en peu de temps. Attendez quelques minutes et réessayez.',
+  },
+};
+
+/**
+ * L'erreur brute ne doit jamais atteindre un parent — mais la faire
+ * disparaître tout à fait rend la moindre panne indiagnosticable.
+ *
+ * Une clé d'API erronée, un projet en pause, des inscriptions fermées et une
+ * adresse déjà prise produisent tous la même phrase à l'écran, par
+ * construction. En développement, la vraie cause passe donc dans la console :
+ * c'est la différence entre lire « Invalid API key » et chercher une heure du
+ * côté de l'adresse, qui n'y était pour rien.
+ */
+function trace(ou: string, error: { message: string; code?: string } | null): void {
+  if (__DEV__ && error) {
+    console.warn(`[auth] ${ou} — ${error.code ?? 'sans code'} : ${error.message}`);
+  }
+}
+
+/**
  * Real accounts, on Supabase.
  *
  * Two rules run through every method here.
@@ -74,7 +117,15 @@ export class SupabaseAuthService implements AuthService {
       email: email.trim().toLowerCase(),
       password,
     });
+    trace('signUp', error);
     if (error) {
+      // Trois causes n'apprennent RIEN sur l'adresse, et se taire à leur sujet
+      // ne protège donc personne — cela se contente d'envoyer le parent
+      // corriger un champ intact. Le mot de passe refusé était le pire des
+      // trois : il n'existe aucune façon de deviner, en regardant l'écran, que
+      // c'est la protection contre les fuites qui vient de parler.
+      const dit = MESSAGE_PAR_CODE[error.code ?? ''];
+      if (dit) return { ok: false, ...dit };
       // Deliberately the same message whether the address is free or taken.
       return { ok: false, reason: 'Impossible de créer le compte. Vérifiez l’adresse et réessayez.' };
     }
@@ -93,6 +144,7 @@ export class SupabaseAuthService implements AuthService {
       email: email.trim().toLowerCase(),
       password,
     });
+    trace('signIn', error);
     if (error) return { ok: false, reason: 'E-mail ou mot de passe incorrect.' };
     return { ok: true };
   }
@@ -130,7 +182,18 @@ export class SupabaseAuthService implements AuthService {
 
   async setPassword(password: string): Promise<AuthResult> {
     const { error } = await this.client.auth.updateUser({ password });
+    trace('setPassword', error);
     if (error) {
+      // Deux causes viennent bien du mot de passe, et les confondre avec un
+      // lien expiré est une impasse : le parent redemande un lien, en reçoit
+      // un valable, repose le même mot de passe, et lit la même phrase. Il
+      // peut recommencer indéfiniment sans jamais rien apprendre.
+      if (error.code === 'weak_password') {
+        return { ok: false, field: 'password', reason: MESSAGE_PAR_CODE.weak_password.reason };
+      }
+      if (error.code === 'same_password') {
+        return { ok: false, field: 'password', reason: 'C’est déjà votre mot de passe actuel.' };
+      }
       // La cause la plus fréquente n'est pas le mot de passe : c'est un lien
       // ouvert trop tard, donc une session de récupération expirée.
       return {

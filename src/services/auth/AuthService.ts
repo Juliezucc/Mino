@@ -28,6 +28,16 @@ export interface AuthResult {
   ok: boolean;
   /** Ready to show to a parent: never a raw provider error. */
   reason?: string;
+  /**
+   * Le champ à mettre en cause, quand ce n'est pas celui que l'écran suppose.
+   *
+   * L'écran d'inscription posait l'erreur sous l'adresse, quelle qu'elle soit.
+   * C'était sans conséquence tant que la seule cause possible était l'adresse
+   * — puis la protection contre les mots de passe ayant fuité est entrée en
+   * service, et le parent s'est retrouvé à corriger encore et encore le seul
+   * champ qui n'avait rien à se reprocher.
+   */
+  field?: 'email' | 'password';
 }
 
 export interface AuthService {

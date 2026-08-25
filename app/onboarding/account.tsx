@@ -53,7 +53,10 @@ export default function CreateAccount() {
     setLoading(false);
 
     if (!result.ok) {
-      setErrors({ email: result.reason ?? 'Impossible de créer le compte.' });
+      // `field` dit quel champ est en cause quand ce n'est pas l'adresse — un
+      // mot de passe refusé, par exemple. Sans lui, l'erreur s'affichait sous
+      // l'e-mail et le parent corrigeait indéfiniment un champ intact.
+      setErrors({ [result.field ?? 'email']: result.reason ?? 'Impossible de créer le compte.' });
       return;
     }
     router.replace('/onboarding/child');

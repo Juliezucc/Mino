@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
-import { LocalAuthService } from '@/services/auth';
+import { LocalAuthService, SupabaseAuthService } from '@/services/auth';
 
 /**
  * The parent PIN is the shortest secret in the product and the one a child is
@@ -105,5 +105,67 @@ describe('autorité parentale', () => {
       email: 'claire@exemple.fr',
     });
     expect(data.parents[0].consentAt).toBeUndefined();
+  });
+});
+
+/**
+ * Répondre la même phrase à toutes les causes protège la liste des clients —
+ * et, poussé trop loin, enferme le parent : il corrige indéfiniment le champ
+ * qu'on lui désigne, qui n'est pas celui qui a échoué.
+ */
+describe('les causes d’échec qu’on a le droit de nommer', () => {
+  const service = (error: { message: string; code?: string } | null) =>
+    new SupabaseAuthService({
+      auth: {
+        signUp: async () => ({ data: { session: null }, error }),
+        updateUser: async () => ({ data: { user: null }, error }),
+      },
+    } as never);
+
+  beforeEach(() => {
+    // `trace()` écrit la cause réelle en développement, et jest est un
+    // environnement de développement : sans cela chaque cas ci-dessous
+    // salirait la sortie.
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it('désigne le mot de passe, et non l’adresse, quand c’est lui qui a fui', async () => {
+    const r = await service({ message: 'Password is known to be weak', code: 'weak_password' })
+      .signUp({ email: 'claire@exemple.fr', password: 'motdepasse' });
+
+    expect(r.ok).toBe(false);
+    // Sans ce champ, l'écran d'inscription posait l'erreur sous l'e-mail.
+    expect(r.field).toBe('password');
+    expect(r.reason).toMatch(/fuite/);
+  });
+
+  it('dit qu’un lien de récupération est encore valable quand c’est le mot de passe qui est refusé', async () => {
+    const r = await service({ message: 'Password is known to be weak', code: 'weak_password' })
+      .setPassword('motdepasse');
+
+    // L'ancienne version répondait « ce lien n'est plus valable » : le parent
+    // en redemandait un, reposait le même mot de passe, relisait la même
+    // phrase, et pouvait recommencer sans fin.
+    expect(r.reason).not.toMatch(/lien/);
+    expect(r.field).toBe('password');
+  });
+
+  it('ne dit toujours rien de l’adresse quand elle est déjà prise', async () => {
+    const r = await service({ message: 'User already registered', code: 'user_already_exists' })
+      .signUp({ email: 'claire@exemple.fr', password: 'Un-Mot-De-Passe-2026' });
+
+    // « Cette adresse a déjà un compte » est la liste des clients offerte à
+    // qui essaie des adresses. Elle doit rester indiscernable d'une adresse
+    // libre — c'est la règle, et elle ne bouge pas.
+    expect(r.reason).toBe('Impossible de créer le compte. Vérifiez l’adresse et réessayez.');
+    expect(r.field).toBeUndefined();
+  });
+
+  it('renvoie un lien expiré vers la connexion, comme avant', async () => {
+    const r = await service({ message: 'Auth session missing', code: 'session_not_found' })
+      .setPassword('Un-Mot-De-Passe-2026');
+
+    expect(r.reason).toMatch(/lien/);
   });
 });
