@@ -7,12 +7,28 @@
     // `scripts/export-faq.mjs`, qui exécute le fichier hors de Metro et ne
     // résout donc pas l'alias `@/`. La FAQ doit rester chargeable seule —
     // c'est elle qui alimente le site et l'outil de support.
+    //
+    // Le reste de ce fichier est réécrit automatiquement par `expo start` :
+    // il gère lui-même `include`, et y remet `.expo/types` le jour où il les
+    // génère. Ne pas lutter — mais remettre ce commentaire s'il l'efface.
     "allowImportingTsExtensions": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     },
-    "types": ["jest", "node"]
+    "types": [
+      "jest",
+      "node"
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
-  "exclude": ["node_modules", "dist", "supabase/functions"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "supabase/functions"
+  ]
 }
