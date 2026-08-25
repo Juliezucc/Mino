@@ -991,11 +991,27 @@ alter table parent_secrets enable row level security;
 
 create extension if not exists pgcrypto;
 
+/**
+ * `public, extensions`, et pas `public` seul — sans quoi le code parent ne peut
+ * pas s'enregistrer du tout.
+ *
+ * `crypt()` et `gen_salt()` viennent de pgcrypto. Sur un PostgreSQL nu,
+ * l'extension s'installe dans `public` et tout va bien ; sur Supabase, elle vit
+ * dans un schéma à part, `extensions`, et un `search_path` qui ne le mentionne
+ * pas ne trouve donc aucune de ses fonctions. La création de famille échouait
+ * sur « Impossible d'enregistrer le code », et seulement en production : le
+ * banc d'essai, lui, montait un PostgreSQL nu.
+ *
+ * `set search_path` est obligatoire sur une fonction `security definer` — sans
+ * lui, l'appelant choisit où la fonction va chercher ses tables, ce qui revient
+ * à lui prêter les droits du propriétaire. On l'élargit donc du strict
+ * nécessaire, et pas d'un schéma de plus.
+ */
 create or replace function set_parent_pin(p_pin text)
 returns boolean
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 begin
   if auth.uid() is null or p_pin !~ '^[0-9]{4}$' then
@@ -1024,7 +1040,8 @@ create or replace function verify_parent_pin(p_pin text)
 returns boolean
 language plpgsql
 security definer
-set search_path = public
+-- `extensions` pour `crypt()` : voir `set_parent_pin` juste au-dessus.
+set search_path = public, extensions
 as $$
 declare
   v_secret parent_secrets%rowtype;

@@ -11,6 +11,22 @@
  * `npm run test:sql`.
  */
 
+/**
+ * pgcrypto vit dans `extensions`, comme chez Supabase — et pas dans `public`,
+ * comme sur un PostgreSQL nu.
+ *
+ * Ce détail n'en est pas un : une fonction `security definer` doit fixer son
+ * `search_path`, et celle qui enregistre le code parent le fixait à `public`
+ * seul. Elle trouvait donc `crypt()` ici, où l'extension était installée par
+ * défaut, et ne la trouvait nulle part en production. Le banc d'essai
+ * approuvait un schéma qui ne pouvait pas fonctionner.
+ *
+ * Installer l'extension là où Supabase la met est ce qui rend ce banc capable
+ * de dire non.
+ */
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+
 create schema if not exists auth;
 
 -- Les colonnes que le schéma Mino lit réellement, et rien de plus. Chez
