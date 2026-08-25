@@ -24,6 +24,16 @@ export default function CreateAccount() {
   const [loading, setLoading] = useState(false);
   const [aConfirmer, setAConfirmer] = useState(false);
   /**
+   * Ce qui n'a sa place sous aucun champ.
+   *
+   * Les erreurs étaient toutes rangées sous un champ, et par défaut sous
+   * l'e-mail. Le jour où l'écran a cessé d'afficher l'e-mail — quand le compte
+   * existe déjà — ces messages-là ont cessé d'exister : le bouton semblait ne
+   * rien faire. Une erreur rangée sous un champ qu'on n'affiche pas est une
+   * erreur qu'on a supprimée.
+   */
+  const [erreur, setErreur] = useState<string | null>(null);
+  /**
    * L'adresse du compte déjà ouvert, s'il y en a un.
    *
    * On arrive ici avec une session en cours plus souvent qu'on ne l'imagine :
@@ -67,29 +77,48 @@ export default function CreateAccount() {
     // fait pas — et ne pas pouvoir le prouver le jour où on le demande.
     if (!consent) next.consent = 'Cochez cette case pour continuer.';
     setErrors(next);
+    setErreur(null);
     if (Object.keys(next).length > 0) return;
 
     setLoading(true);
-    const result = await createAccount({
-      parentName: name.trim(),
-      email: compteOuvert ?? email.trim(),
-      password: compteOuvert ? undefined : password,
-      pin,
-      // L'instant du consentement, pas seulement le fait qu'il ait eu lieu :
-      // c'est la date qui vaut preuve.
-      consentAt: new Date().toISOString(),
-    });
-    setLoading(false);
+    try {
+      const result = await createAccount({
+        parentName: name.trim(),
+        email: compteOuvert ?? email.trim(),
+        password: compteOuvert ? undefined : password,
+        pin,
+        // L'instant du consentement, pas seulement le fait qu'il ait eu lieu :
+        // c'est la date qui vaut preuve.
+        consentAt: new Date().toISOString(),
+      });
 
-    if (result.pending) return setAConfirmer(true);
-    if (!result.ok) {
-      // `field` dit quel champ est en cause quand ce n'est pas l'adresse — un
-      // mot de passe refusé, par exemple. Sans lui, l'erreur s'affichait sous
-      // l'e-mail et le parent corrigeait indéfiniment un champ intact.
-      setErrors({ [result.field ?? 'email']: result.reason ?? 'Impossible de créer le compte.' });
-      return;
+      if (result.pending) return setAConfirmer(true);
+      if (!result.ok) {
+        const texte = result.reason ?? 'Impossible de créer le compte.';
+        // `field` dit quel champ est en cause quand ce n'est pas l'adresse — un
+        // mot de passe refusé, par exemple. Sans lui, l'erreur s'affichait sous
+        // l'e-mail et le parent corrigeait indéfiniment un champ intact.
+        //
+        // Encore faut-il que ce champ soit à l'écran : quand le compte existe
+        // déjà, l'e-mail et le mot de passe n'y sont plus, et le message allait
+        // se ranger derrière deux champs absents.
+        if (compteOuvert || !result.field) setErreur(texte);
+        else setErrors({ [result.field]: texte });
+        return;
+      }
+      router.replace('/onboarding/child');
+    } catch (e) {
+      // Sans ce filet, une exception laissait le bouton tourner sans fin et
+      // sans un mot — l'écran le plus difficile à signaler, parce qu'il n'y a
+      // rien à raconter au support.
+      setErreur(
+        e instanceof Error && e.message
+          ? e.message
+          : 'Impossible de créer la famille. Vérifiez votre connexion et réessayez.',
+      );
+    } finally {
+      setLoading(false);
     }
-    router.replace('/onboarding/child');
   };
 
   /**
@@ -238,6 +267,12 @@ export default function CreateAccount() {
         {errors.consent ? (
           <Text variant="caption" color={colors.dangerInk}>
             {errors.consent}
+          </Text>
+        ) : null}
+
+        {erreur ? (
+          <Text variant="caption" color={colors.dangerInk} center>
+            {erreur}
           </Text>
         ) : null}
 
