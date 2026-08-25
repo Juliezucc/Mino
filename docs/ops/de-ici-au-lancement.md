@@ -256,6 +256,14 @@ Le service intégré de Supabase est bridé à quelques envois par heure. Prenez
 expéditeur européen — Scaleway, Brevo, OVH — dans *Project Settings → Auth →
 SMTP Settings*, puis **réactivez « Confirm email »**.
 
+`emails.md` contient la marche à suivre complète, et surtout **les trois
+modèles de messages traduits** : ceux de Supabase sont en anglais, et un parent
+français qui reçoit « *Confirm your signup* » ne clique pas.
+
+> Commencez cette étape **tôt** même si vous la finissez tard : ce qui prend du
+> temps n'est pas le réglage, ce sont les enregistrements DNS et leur
+> propagation. Le reste peut avancer pendant ce temps.
+
 > Tant que la confirmation est désactivée, n'importe qui peut créer un compte
 > avec l'adresse de quelqu'un d'autre. Acceptable entre vous et vos enfants ;
 > plus du tout à la première famille inconnue. **Cette étape doit être faite

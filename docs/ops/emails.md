@@ -1,0 +1,245 @@
+# Les e-mails que Supabase envoie
+
+Trois messages partent automatiquement, et aucun n'est écrit par l'application :
+c'est Supabase qui les compose, à partir de modèles stockés dans le tableau de
+bord. **Ils sont en anglais par défaut.**
+
+Un parent français qui reçoit « *Confirm your signup — Follow this link to
+confirm your user* » ne clique pas. Il ne se dit pas que c'est une erreur de
+configuration : il se dit que c'est du hameçonnage. Le compte reste non
+confirmé, et personne ne saura jamais pourquoi cette famille n'est pas revenue.
+
+Ce fichier contient les trois modèles en français, prêts à coller.
+
+---
+
+## Où les coller
+
+**Authentication → Emails → Templates.** Un onglet par modèle. Pour chacun :
+remplacer le **Subject heading** et tout le corps HTML, puis **Save**.
+
+Trois modèles seulement nous concernent :
+
+| Onglet Supabase | Quand il part | Écran d'arrivée |
+| --- | --- | --- |
+| **Confirm signup** | à la création d'un compte parent | l'application |
+| **Reset password** | « mot de passe oublié » | `mino://mot-de-passe` |
+| **Change email address** | changement d'adresse dans Réglages | `mino://login` |
+
+Les autres onglets — *Magic Link*, *Invite user*, *Reauthentication* — ne sont
+jamais déclenchés par Mino. Les laisser tels quels ne présente aucun risque :
+un modèle qui ne part jamais ne dérange personne.
+
+---
+
+## Deux règles qui expliquent la forme de ces modèles
+
+**Aucune image, aucune police distante.** Pas par pauvreté graphique : une image
+hébergée ailleurs est un mouchard. Elle dit à qui la sert que ce parent-là a
+ouvert ce message-là, à cette heure-là. Le cahier des charges interdit le
+pistage marketing ; il serait absurde de le réintroduire par le pied de page
+d'un e-mail. Aucune ressource externe signifie aussi aucune image cassée chez
+les clients de messagerie qui les bloquent — c'est-à-dire la plupart.
+
+**Tout est en style *inline*.** Les clients de messagerie — Outlook au premier
+rang — jettent les feuilles de style. Ce qui n'est pas écrit sur la balise
+elle-même n'existe pas.
+
+`{{ .ConfirmationURL }}` est remplacé par Supabase au moment de l'envoi. Ne pas
+y toucher, espaces compris.
+
+---
+
+## 1. Confirm signup
+
+**Subject heading :**
+
+```
+Confirmez votre adresse — Mino
+```
+
+```html
+<div style="margin:0;padding:24px 12px;background:#F2F6FF;font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:24px;padding:32px 28px;">
+
+    <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#1A1D2E;">Mino</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#5B6079;">Grandir, une mission à la fois.</p>
+
+    <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#1A1D2E;">
+      Bienvenue. Il reste une chose à faire pour ouvrir votre espace parent :
+      confirmer que cette adresse est bien la vôtre.
+    </p>
+
+    <p style="margin:0 0 24px;text-align:center;">
+      <a href="{{ .ConfirmationURL }}"
+         style="display:inline-block;background:#4EB6FF;color:#FFFFFF;text-decoration:none;font-size:17px;font-weight:800;padding:16px 32px;border-radius:9999px;">
+        Confirmer mon adresse
+      </a>
+    </p>
+
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:#5B6079;">
+      Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
+      <span style="color:#0065AC;word-break:break-all;">{{ .ConfirmationURL }}</span>
+    </p>
+
+    <p style="margin:0;padding-top:20px;border-top:1px solid #EDF2FE;font-size:13px;line-height:1.6;color:#5B6079;">
+      Vous n'avez pas créé de compte Mino ? Ignorez ce message : sans ce clic,
+      aucun compte ne sera ouvert à votre adresse.
+    </p>
+
+  </div>
+</div>
+```
+
+---
+
+## 2. Reset password
+
+Ce lien ramène vers `mino://mot-de-passe`, l'écran de l'application où le
+parent choisit son nouveau mot de passe. **Il n'ouvre donc rien sur un
+ordinateur** — d'où la phrase qui le dit, plutôt qu'un parent devant une page
+blanche.
+
+**Subject heading :**
+
+```
+Votre nouveau mot de passe Mino
+```
+
+```html
+<div style="margin:0;padding:24px 12px;background:#F2F6FF;font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:24px;padding:32px 28px;">
+
+    <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#1A1D2E;">Mino</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#5B6079;">Grandir, une mission à la fois.</p>
+
+    <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#1A1D2E;">
+      Vous avez demandé à changer votre mot de passe. Ce bouton ouvre Mino sur
+      l'écran qui vous permet d'en choisir un nouveau.
+    </p>
+
+    <p style="margin:0 0 20px;text-align:center;">
+      <a href="{{ .ConfirmationURL }}"
+         style="display:inline-block;background:#7A7CFF;color:#FFFFFF;text-decoration:none;font-size:17px;font-weight:800;padding:16px 32px;border-radius:9999px;">
+        Choisir un nouveau mot de passe
+      </a>
+    </p>
+
+    <p style="margin:0 0 24px;padding:14px 16px;background:#F7F9FF;border-radius:16px;font-size:14px;line-height:1.6;color:#1A1D2E;">
+      Ce lien ouvre l'application Mino : appuyez dessus depuis le téléphone ou
+      la tablette où elle est installée. Il expire au bout d'une heure.
+    </p>
+
+    <p style="margin:0;padding-top:20px;border-top:1px solid #EDF2FE;font-size:13px;line-height:1.6;color:#5B6079;">
+      Vous n'avez rien demandé ? Ignorez ce message. Votre mot de passe actuel
+      reste valable, et personne n'a eu accès à votre compte.
+    </p>
+
+  </div>
+</div>
+```
+
+---
+
+## 3. Change email address
+
+Supabase envoie ce message **aux deux adresses** — l'ancienne et la nouvelle —
+et exige un clic sur chacune, parce que *Secure email change* est activé. C'est
+volontaire : quelqu'un qui prendrait la main sur un compte ouvert ne pourrait
+pas en changer l'adresse sans accéder aussi à l'ancienne boîte.
+
+Le modèle doit donc être lisible dans les deux cas, sans savoir lequel des deux
+il est. D'où `{{ .Email }}` et `{{ .NewEmail }}`, tous deux affichés.
+
+**Subject heading :**
+
+```
+Confirmez le changement d'adresse — Mino
+```
+
+```html
+<div style="margin:0;padding:24px 12px;background:#F2F6FF;font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:24px;padding:32px 28px;">
+
+    <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#1A1D2E;">Mino</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#5B6079;">Grandir, une mission à la fois.</p>
+
+    <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#1A1D2E;">
+      Une demande a été faite pour déplacer votre compte Mino de
+      <strong style="color:#0065AC;">{{ .Email }}</strong> vers
+      <strong style="color:#0065AC;">{{ .NewEmail }}</strong>.
+    </p>
+
+    <p style="margin:0 0 20px;font-size:16px;line-height:1.6;color:#1A1D2E;">
+      Par sécurité, ce message part aux deux adresses : le changement ne prendra
+      effet que lorsque les deux auront confirmé.
+    </p>
+
+    <p style="margin:0 0 24px;text-align:center;">
+      <a href="{{ .ConfirmationURL }}"
+         style="display:inline-block;background:#2BC98A;color:#FFFFFF;text-decoration:none;font-size:17px;font-weight:800;padding:16px 32px;border-radius:9999px;">
+        Confirmer le changement
+      </a>
+    </p>
+
+    <p style="margin:0;padding-top:20px;border-top:1px solid #EDF2FE;font-size:13px;line-height:1.6;color:#5B6079;">
+      Vous n'avez rien demandé ? Ne cliquez pas, et écrivez-nous à
+      <span style="color:#0065AC;">contact@minoapp.fr</span> : sans les deux
+      confirmations, votre adresse ne change pas.
+    </p>
+
+  </div>
+</div>
+```
+
+---
+
+## L'expéditeur
+
+Le service intégré de Supabase est bridé à quelques envois par heure et n'est
+pas destiné à la production — c'est écrit dans leur propre documentation. Il
+faut un expéditeur à soi, **européen** puisqu'il verra transiter les adresses
+de tous les parents : Brevo, Scaleway ou OVH font l'affaire.
+
+**Authentication → Emails → SMTP Settings.**
+
+| Champ | Valeur |
+| --- | --- |
+| Sender email | `bonjour@minoapp.fr` |
+| Sender name | `Mino` |
+| Host / Port | ceux de l'expéditeur, port **587** |
+| Username / Password | la **clé SMTP** de l'expéditeur, pas le mot de passe du compte |
+
+Puis **Authentication → Rate Limits** : le plafond d'e-mails par heure est bas
+par défaut. Le monter une fois l'expéditeur en place, sans quoi une journée de
+plusieurs inscriptions se fait couper au milieu.
+
+### Le domaine doit être vérifié, et c'est ce qui prend du temps
+
+Trois enregistrements DNS à poser sur `minoapp.fr`, chez l'hébergeur :
+
+- **SPF** — dit quels serveurs ont le droit d'écrire en votre nom ;
+- **DKIM** — signe chaque message, pour qu'on ne puisse pas l'imiter ;
+- **DMARC** — dit quoi faire des messages qui échouent aux deux premiers.
+
+Sans eux, les mails partent quand même — **et arrivent dans les spams.** Un
+parent qui ne reçoit pas sa confirmation ne réclame pas : il s'en va.
+
+La propagation prend de quelques minutes à quelques heures. C'est la raison
+pour laquelle cette étape se commence tôt et se termine plus tard, pendant
+qu'on fait autre chose.
+
+### L'ordre, parce qu'il compte
+
+1. « Confirm email » **désactivé** — sinon plus aucun compte ne peut être créé
+   pendant toute la mise en place, y compris pour vos propres essais.
+2. Le compte chez l'expéditeur, les trois DNS.
+3. Le domaine vérifié : les identifiants SMTP dans Supabase, les trois modèles
+   collés, **un e-mail de test qu'on vérifie reçu en boîte de réception** — pas
+   « envoyé sans erreur », *reçu*.
+4. **Alors** « Confirm email » réactivé.
+
+L'étape 4 doit être franchie **avant la première famille qui n'est pas la
+vôtre**. Sans confirmation, n'importe qui peut ouvrir un compte avec l'adresse
+d'un autre. Entre vous et vos enfants, c'est sans conséquence. Avec un inconnu,
+non.
