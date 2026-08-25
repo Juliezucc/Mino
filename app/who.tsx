@@ -6,6 +6,7 @@ import { Icon } from '@/components/icons/Icon';
 import { Mascot } from '@/components/mascot';
 import { Avatar, Button, Card, Logo, Screen, Text, TimeCapsules } from '@/components/ui';
 import { balanceOf } from '@/domain/ledger';
+import { getAuthService } from '@/services/auth';
 import { unitOf } from '@/domain/ageBand';
 import { formatTime } from '@/domain/minos';
 import { useFamily } from '@/store/selectors';
@@ -19,11 +20,28 @@ export default function Who() {
   const selectChild = useMinoStore((s) => s.selectChild);
   const lockParent = useMinoStore((s) => s.lockParent);
 
+  /**
+   * Y a-t-il un parent connecté ? La réponse change ce qu'il faut lui proposer
+   * quand il n'y a rien à ouvrir, et les deux cas n'ont rien à voir.
+   */
+  const [connecte, setConnecte] = React.useState<boolean | null>(null);
+
   React.useEffect(() => {
     // Leaving a profile always re-locks the parent area.
     lockParent();
     selectChild(null);
   }, [lockParent, selectChild]);
+
+  React.useEffect(() => {
+    let vivant = true;
+    getAuthService()
+      .session()
+      .then((s) => vivant && setConnecte(s.kind === 'parent'))
+      .catch(() => vivant && setConnecte(false));
+    return () => {
+      vivant = false;
+    };
+  }, []);
 
   /**
    * Aucune famille sur cet appareil.
@@ -44,11 +62,18 @@ export default function Who() {
           Rien à ouvrir sur cet appareil
         </Text>
         <Text variant="body" color={colors.textMuted} center>
-          Votre famille n’a pas été trouvée ici. Si vous venez de vous connecter, vérifiez votre
-          connexion et réessayez ; sinon, créez votre famille ou rattachez cet appareil avec le
-          code.
+          {connecte === false
+            ? 'Aucun compte n’est ouvert sur cet appareil. Connectez-vous pour retrouver votre famille, créez-en une, ou rattachez cet appareil avec le code.'
+            : 'Votre famille n’a pas été trouvée ici. Si vous venez de vous connecter, vérifiez votre connexion et réessayez ; sinon, créez votre famille ou rattachez cet appareil avec le code.'}
         </Text>
-        <Button label="Créer ma famille" onPress={() => router.replace('/onboarding/account')} />
+        {connecte === false ? (
+          <Button label="Se connecter" onPress={() => router.replace('/login')} />
+        ) : null}
+        <Button
+          label="Créer ma famille"
+          variant={connecte === false ? 'secondary' : 'primary'}
+          onPress={() => router.replace('/onboarding/account')}
+        />
         <Button
           label="J’ai un code famille"
           icon="🔑"
