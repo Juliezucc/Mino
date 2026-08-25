@@ -7,7 +7,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "test": "jest",
+    "test": "TZ=Europe/Paris jest",
     "test:sql": "node scripts/test-sql.mjs",
     "test:charge": "node scripts/load-test.mjs",
     "test:trafic": "node scripts/egress.mjs",
