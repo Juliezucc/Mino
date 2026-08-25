@@ -38,6 +38,17 @@ export interface AuthResult {
    * champ qui n'avait rien à se reprocher.
    */
   field?: 'email' | 'password';
+  /**
+   * Le compte existe déjà : il attend seulement d'être confirmé.
+   *
+   * Ce n'est pas un échec, malgré `ok: false` — c'est un échec à *continuer*,
+   * et l'écran doit le traiter comme tel. Sans ce drapeau, le parent lisait
+   * une bonne nouvelle en rouge sous son adresse et n'avait qu'une seule idée
+   * : recommencer. Or recommencer est la seule chose qui ne marchera jamais,
+   * puisque l'adresse est maintenant prise — et la réponse à une adresse prise
+   * est, volontairement, indiscernable de n'importe quelle autre.
+   */
+  pending?: boolean;
 }
 
 export interface AuthService {

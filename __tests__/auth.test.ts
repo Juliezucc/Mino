@@ -122,6 +122,22 @@ describe('les causes d’échec qu’on a le droit de nommer', () => {
       },
     } as never);
 
+  it('distingue « le compte attend sa confirmation » d’un échec', async () => {
+    // Supabase ne rend aucune erreur quand « Confirm email » est actif : il
+    // crée le compte et n'ouvre pas de session. Sans `pending`, l'écran posait
+    // cette bonne nouvelle en rouge sous l'e-mail, au-dessus d'un formulaire
+    // intact — donc au-dessus d'une invitation à recommencer, seule issue qui
+    // ne pouvait plus marcher puisque l'adresse venait d'être prise.
+    const r = await service(null).signUp({
+      email: 'claire@exemple.fr',
+      password: 'Un-Mot-De-Passe-2026',
+    });
+
+    expect(r.ok).toBe(false);
+    expect(r.pending).toBe(true);
+    expect(r.field).toBeUndefined();
+  });
+
   beforeEach(() => {
     // `trace()` écrit la cause réelle en développement, et jest est un
     // environnement de développement : sans cela chaque cas ci-dessous

@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 
+import { Mascot } from '@/components/mascot';
 import { Button, Field, Screen, ScreenHeader, Text } from '@/components/ui';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
@@ -20,6 +21,7 @@ export default function CreateAccount() {
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [aConfirmer, setAConfirmer] = useState(false);
 
   const submit = async () => {
     const next: Record<string, string> = {};
@@ -52,6 +54,7 @@ export default function CreateAccount() {
     });
     setLoading(false);
 
+    if (result.pending) return setAConfirmer(true);
     if (!result.ok) {
       // `field` dit quel champ est en cause quand ce n'est pas l'adresse — un
       // mot de passe refusé, par exemple. Sans lui, l'erreur s'affichait sous
@@ -61,6 +64,34 @@ export default function CreateAccount() {
     }
     router.replace('/onboarding/child');
   };
+
+  /**
+   * Le compte est créé et attend sa confirmation. C'est une bonne nouvelle, et
+   * elle s'affichait en rouge sous le champ e-mail, au-dessus d'un formulaire
+   * intact et d'un bouton « Continuer » — c'est-à-dire au-dessus d'une invitation
+   * à recommencer. Recommencer était pourtant la seule issue impossible :
+   * l'adresse venait d'être prise, et une adresse prise reçoit exprès la même
+   * réponse évasive que n'importe quelle autre. Le parent tournait en rond
+   * jusqu'à abandonner, avec un compte parfaitement valable qui l'attendait.
+   */
+  if (aConfirmer) {
+    return (
+      <Screen contentStyle={styles.centre}>
+        <Mascot expression="happy" size={140} />
+        <Text variant="hero" center>
+          Vérifiez vos e-mails
+        </Text>
+        <Text variant="body" color={colors.textMuted} center>
+          Votre compte est créé. Nous venons d’envoyer un lien de confirmation à{' '}
+          {email.trim()}. Ouvrez-le, puis revenez vous connecter.
+        </Text>
+        <Text variant="caption" color={colors.textSubtle} center>
+          Le message met parfois une minute à arriver. Pensez aux indésirables.
+        </Text>
+        <Button label="Se connecter" onPress={() => router.replace('/login')} />
+      </Screen>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -188,6 +219,7 @@ export default function CreateAccount() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  centre: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.lg },
   form: { gap: spacing.lg },
   consent: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   // 28 points, et non 20 : la case se coche avec un pouce, sur un écran tenu

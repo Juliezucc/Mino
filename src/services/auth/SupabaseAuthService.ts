@@ -132,6 +132,7 @@ export class SupabaseAuthService implements AuthService {
     if (!data.session) {
       return {
         ok: false,
+        pending: true,
         reason:
           'Votre compte est créé. Ouvrez le lien de confirmation envoyé à votre adresse, puis connectez-vous.',
       };
