@@ -106,10 +106,15 @@ reçu un seul message, alors qu'elles sont légalement obligatoires. Ouvrez
 > — [Apple, *Program enrollment*](https://developer.apple.com/help/account/membership/program-enrollment/)
 
 Le site vitrine existe déjà — présentation, politique de confidentialité, CGV,
-mentions légales, médiateur. **Il doit être déployé sur `minoapp.fr`** : un
-hébergement chez un tiers ne satisfait pas l'exigence d'Apple, qui demande le
-domaine de la société. Et ses adresses de contact doivent être corrigées avant
-la mise en ligne.
+mentions légales, médiateur. Il doit être déployé sur `minoapp.fr`, avec ses
+adresses de contact corrigées.
+
+> **Attention à ne pas confondre les deux domaines.** L'exigence de site
+> public d'Apple porte sur le site de **l'organisation qui s'inscrit** —
+> Agence Wheb, donc `wheb-agence.fr`, qui existe déjà. `minoapp.fr` est le
+> domaine du **produit** : il porte l'identifiant de bundle, les adresses de
+> contact de l'application, et l'URL de la politique de confidentialité que
+> réclameront les deux boutiques à la soumission.
 
 Enregistrez le domaine au nom d'**Agence Wheb**, pas à titre personnel.
 
@@ -118,10 +123,21 @@ Enregistrez le domaine au nom d'**Agence Wheb**, pas à titre personnel.
 **Il n'existe pas de « compte Apple Developer » séparé** : on *inscrit* un
 compte Apple existant au programme. Mais n'inscrivez pas le vôtre.
 
-Créez un compte Apple dédié sur une adresse du domaine — `apple@minoapp.fr` —
-avec l'**authentification à deux facteurs** activée. Trois raisons :
+**Sur le domaine de la SOCIÉTÉ, pas celui du produit.** Ce point mérite
+qu'on s'y arrête, parce qu'il se trompe facilement : Apple demande une adresse
+et un site associés à **l'organisation qui s'inscrit**. L'organisation est
+*Agence Wheb*, pas *Minoapp*. C'est donc **`wheb-agence.fr`** qu'il faut
+utiliser — et son site, déjà en ligne, satisfait du même coup l'exigence du
+site public.
 
-- Apple **exige** que l'adresse soit sur le domaine de la société (étape 3).
+`minoapp.fr` garde son rôle, qui est ailleurs : l'identifiant de bundle, les
+adresses de contact **de l'application**, et l'URL publique de la politique de
+confidentialité pour les deux boutiques. Deux domaines, deux fonctions.
+
+Créez donc un compte Apple dédié sur une adresse d'Agence Wheb — par exemple
+`apple@wheb-agence.fr` — avec l'**authentification à deux facteurs** activée.
+Deux raisons de ne pas prendre votre compte personnel :
+
 - Ce compte devient le **titulaire** : c'est lui qui signe les accords
   bancaires et fiscaux. Le transférer plus tard est long et pénible.
 - Votre compte Apple personnel porte votre iCloud, vos photos et le partage
