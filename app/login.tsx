@@ -74,6 +74,8 @@ export default function Login() {
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
+            autoComplete="email"
+            textContentType="emailAddress"
           />
           <Field
             label="Mon mot de passe"
@@ -82,6 +84,10 @@ export default function Login() {
             onChangeText={setPassword}
             autoCapitalize="none"
             secureTextEntry
+            // « current », et non « new » : c'est ce qui fait remplir le mot de
+            // passe déjà enregistré au lieu d'en proposer un autre.
+            autoComplete="current-password"
+            textContentType="password"
             error={error ?? undefined}
           />
         </View>

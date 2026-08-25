@@ -88,7 +88,10 @@ export default function CreateAccount() {
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
+            autoComplete="email"
+            textContentType="emailAddress"
             error={errors.email}
           />
           <Field
@@ -98,6 +101,15 @@ export default function CreateAccount() {
             onChangeText={setPassword}
             autoCapitalize="none"
             secureTextEntry
+            // Dire au système qu'il s'agit d'un mot de passe NEUF, et le voilà
+            // qui en propose un fort, l'enregistre et le remplira tout seul à
+            // la prochaine connexion. Sans ces deux lignes, on demande à un
+            // parent pressé d'en inventer un — et il ressort celui qu'il
+            // utilise partout, c'est-à-dire souvent celui que la protection
+            // contre les fuites va refuser. La friction ne venait pas de la
+            // protection : elle venait de l'invention.
+            autoComplete="new-password"
+            textContentType="newPassword"
             hint="Il protège votre compte. Le code à 4 chiffres, lui, protège l’espace parent sur les appareils de la famille."
             error={errors.password}
           />
@@ -109,6 +121,13 @@ export default function CreateAccount() {
             keyboardType="number-pad"
             secureTextEntry
             maxLength={4}
+            // Surtout PAS un mot de passe : sans ce démenti, le trousseau
+            // propose d'enregistrer le code parent à la place de celui du
+            // compte — deux champs masqués sur le même écran, il choisit le
+            // dernier. Le parent se retrouve alors avec quatre chiffres
+            // remplis automatiquement dans le champ mot de passe.
+            autoComplete="off"
+            textContentType="none"
             hint="Il protège l’espace parent : les enfants ne doivent pas le connaître."
             error={errors.pin}
           />
