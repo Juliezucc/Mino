@@ -208,11 +208,30 @@ Rien ici ne dépend d'Apple. À faire dans les jours qui suivent.
 
 ### 9. Passer au plan Pro · vous · 10 min · 25 $/mois
 
-**Pas pour un quota — pour les sauvegardes.** Le plan gratuit n'en a aucune.
-Faire tourner de vraies familles là-dessus n'est pas un risque technique, c'est
-un risque d'entreprise. Trois familles payantes couvrent l'abonnement.
+**Pas maintenant.** Le plan gratuit suffit pour le développement et vos propres
+essais — c'est exactement ce pour quoi il est fait, et rien dans nos volumes ne
+l'inquiète avant plusieurs centaines de familles (`capacite.md`).
+
+**Le déclencheur est la première famille qui n'est pas la vôtre.** Pas la
+première mission, pas le premier test, pas la soumission : la première famille
+extérieure dont les données comptent.
+
+Et le motif n'est pas un quota, c'est l'absence totale de sauvegarde sur le
+plan gratuit. Faire tourner de vraies familles là-dessus n'est pas un risque
+technique, c'est un risque d'entreprise. Trois familles payantes couvrent
+l'abonnement.
+
+> Cette étape était placée juste après la création du projet dans une version
+> antérieure de ce document, ce qui revenait à faire payer un serveur de
+> production pendant des semaines de développement. C'était une erreur, et elle
+> contredisait `capacite.md`, qui dit depuis le début « gratuit pendant le
+> développement, Pro dès la première famille qui paie ».
 
 ### 10. Restaurer une sauvegarde, en vrai, une fois · vous · 1 h
+
+> Dépend de l'étape 9 : le plan gratuit n'a aucune sauvegarde à restaurer, et
+> la première sauvegarde quotidienne n'existe que le lendemain du passage au
+> Pro. À faire donc le jour où vous passez au Pro, pas avant.
 
 L'étape que tout le monde saute, et la seule qui prouve quelque chose :
 
