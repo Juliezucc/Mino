@@ -1,12 +1,12 @@
 # D'ici au lancement
 
-**Dix-sept étapes, dans l'ordre où on les fait.** Chacune dit qui la fait,
+**Dix-neuf étapes, dans l'ordre où on les fait.** Chacune dit qui la fait,
 combien elle prend, et ce qu'elle débloque.
 
 Une seule règle explique cet ordre : **ce qui dépend d'un tiers se lance en
 premier**, parce que c'est le seul temps qu'on ne peut pas rattraper en
-travaillant plus. Les étapes 1 à 5 se font donc le même jour, même si les
-étapes 6 et suivantes semblent plus urgentes.
+travaillant plus. Les étapes 1 à 3 se font donc le même jour, même si les
+suivantes semblent plus urgentes.
 
 > Les autres documents restent la référence de leur sujet :
 > `mise-en-route.md` pour brancher Supabase, `capacite.md` pour les chiffres
@@ -16,25 +16,58 @@ travaillant plus. Les étapes 1 à 5 se font donc le même jour, même si les
 
 ---
 
-## Aujourd'hui — les cinq démarches qui commandent tout
+## Aujourd'hui — les sept démarches qui commandent tout
 
-### 1. Enregistrer `minoapp.fr`, et y mettre un vrai site · vous · 15 min + 1 jour
+**L'ordre a été corrigé le 25/08/2026.** La version précédente plaçait la
+demande Family Controls en deuxième position : c'était faux. Le formulaire
+exige d'être connecté à un compte développeur, qui exige l'inscription société,
+qui exige le D-U-N-S, le domaine et un site en ligne. La demande arrive donc
+**après**, pas avant.
 
-**À faire en premier, avant même la demande Apple**, pour trois raisons qui
-convergent toutes vers ce domaine.
+### 1. Vérifier que « Mino » est libre, puis le déposer · vous · 1 h + 190 €
+
+**Avant d'acheter le moindre domaine.** Si « Mino » est déjà déposé comme
+marque pour du logiciel, tout change : le nom, le domaine, l'identifiant de
+bundle, la fiche des boutiques, et tous les documents. Autant l'apprendre le
+premier jour.
+
+**La recherche est gratuite et immédiate** : base Marques de l'INPI sur
+[inpi.fr](https://www.inpi.fr). Regardez surtout la **classe 9** (logiciels) et
+la **classe 42** (services informatiques) — ce sont celles qui couvrent Mino.
+
+Le dépôt coûte **190 € pour une classe, puis 40 € par classe supplémentaire**.
+Comptez cinq à six mois pour le certificat, mais **la protection court depuis le
+jour du dépôt** : déposer tôt protège tôt, et l'attente n'empêche rien.
+
+> Je ne suis pas juriste. Sur le choix exact des classes et sur une recherche
+> de similitudes — les marques proches, pas seulement identiques — un conseil
+> en propriété industrielle facture quelques centaines d'euros et voit ce
+> qu'une recherche à l'œil nu manque.
+
+### 2. Demander le numéro D-U-N-S · vous · 30 min → 1 à 2 semaines
+
+**Le même jour, en parallèle du reste : c'est le plus long des délais, et il ne
+dépend de rien.** Il identifie Agence Wheb auprès d'Apple.
+
+Il est **gratuit** : ne payez jamais pour l'obtenir.
+
+Sans lui : pas d'inscription société, donc pas de compte développeur, donc ni
+demande Family Controls, ni contrat bancaire, ni produits d'abonnement. C'est
+la première pierre de toute la chaîne Apple.
+
+### 3. Enregistrer `minoapp.fr` et mettre le site en ligne · vous · 15 min + 1 jour
+
+En parallèle du D-U-N-S. Trois raisons convergent vers ce domaine.
 
 **a) L'identifiant de l'application en dérive** (`fr.minoapp.mino`), et la
-demande Family Controls se dépose **par identifiant** : déposer avec le mauvais
-oblige à tout redéposer.
+demande Family Controls se dépose **par identifiant**.
 
 **b) Les adresses légales.** `mino.app` appartient à un tiers, et la politique
 de confidentialité comme les CGV y renvoyaient : ces adresses n'auraient jamais
-reçu un seul message, alors qu'elles sont légalement obligatoires. C'est
-corrigé dans le dépôt, mais le domaine doit exister pour que ce soit vrai.
-Ouvrez-y `contact@` et `privacy@`.
+reçu un seul message, alors qu'elles sont légalement obligatoires. Ouvrez
+`contact@` et `privacy@` sur le nouveau domaine.
 
-**c) Apple l'exige deux fois pour l'inscription société**, et c'est le point
-qui se découvre trop tard :
+**c) Apple l'exige deux fois pour l'inscription société :**
 
 > « A work email address: Your work email address needs to be associated with
 > your organization's domain name. »
@@ -46,24 +79,49 @@ qui se découvre trop tard :
 >
 > — [Apple, *Program enrollment*](https://developer.apple.com/help/account/membership/program-enrollment/)
 
-Autrement dit : **une page « domaine réservé » ou un lien Instagram sont
-explicitement refusés.** Il faut un site publiquement accessible, avec du
-contenu, sur le domaine de la société. Une page de présentation de Mino avec la
-politique de confidentialité et les CGV suffit — et cette politique doit de
-toute façon être en ligne pour l'étape 17.
+Le site vitrine existe déjà — présentation, politique de confidentialité, CGV,
+mentions légales, médiateur. **Il doit être déployé sur `minoapp.fr`** : un
+hébergement chez un tiers ne satisfait pas l'exigence d'Apple, qui demande le
+domaine de la société. Et ses adresses de contact doivent être corrigées avant
+la mise en ligne.
 
 Enregistrez le domaine au nom d'**Agence Wheb**, pas à titre personnel.
 
-### 2. Déposer la demande Family Controls · vous · 1 h → réponse en semaines
+### 4. Créer le compte Apple de la société · vous · 30 min
+
+**Il n'existe pas de « compte Apple Developer » séparé** : on *inscrit* un
+compte Apple existant au programme. Mais n'inscrivez pas le vôtre.
+
+Créez un compte Apple dédié sur une adresse du domaine — `apple@minoapp.fr` —
+avec l'**authentification à deux facteurs** activée. Trois raisons :
+
+- Apple **exige** que l'adresse soit sur le domaine de la société (étape 3).
+- Ce compte devient le **titulaire** : c'est lui qui signe les accords
+  bancaires et fiscaux. Le transférer plus tard est long et pénible.
+- Votre compte Apple personnel porte votre iCloud, vos photos et le partage
+  familial de vos propres enfants — ceux-là mêmes sur lesquels vous allez
+  tester un produit de contrôle parental.
+
+### 5. S'inscrire au programme développeur · vous · 1 h, dès le D-U-N-S reçu
+
+- **Apple Developer Program** — 99 $/an, inscription **Organization**. Il faut
+  le D-U-N-S (étape 2), l'adresse et le site sur le domaine (étape 3), et
+  l'autorité légale d'engager la société — que vous avez comme présidente.
+- **Google Play Console** — 25 $ une fois.
+
+### 6. Déposer la demande Family Controls · vous · 1 h → réponse en semaines
 
 **https://developer.apple.com/contact/request/family-controls-distribution**
 
-C'est **le seul point du projet où un « non » venu de l'extérieur coûte le
-produit tel qu'il est décrit.** D'où sa place ici : le délai n'est pas garanti,
-et certains développeurs attendent des mois.
+Le formulaire demande de se connecter : d'où sa place **après** l'étape 5, et
+non avant. C'est la correction d'ordre annoncée en tête de section.
 
-**Deux demandes, pas une** — l'entitlement se demande par bundle, et l'extension
-en est un à part entière :
+C'est **le seul point du projet où un « non » venu de l'extérieur coûte le
+produit tel qu'il est décrit.** Le délai n'est pas garanti, et certains
+développeurs attendent des mois — d'où l'urgence de tout ce qui précède.
+
+**Deux demandes, pas une** — l'entitlement se demande par bundle, et
+l'extension en est un à part entière :
 
 | Cible | Bundle |
 |---|---|
@@ -73,47 +131,19 @@ en est un à part entière :
 Déposer la première et oublier la seconde donne une application qui passe la
 revue et dont le bouclier ne se repose **jamais** à l'échéance.
 
-Le texte du dossier est prêt dans `docs/apple-family-controls.md` : il suffit de
-l'adapter. Ce qu'Apple juge, en une phrase : *est-ce un vrai produit de contrôle
-parental, ou un moyen détourné de surveiller quelqu'un ?*
+Le texte du dossier est prêt dans `docs/apple-family-controls.md`. Ce qu'Apple
+juge, en une phrase : *est-ce un vrai produit de contrôle parental, ou un moyen
+détourné de surveiller quelqu'un ?*
 
-> L'entitlement de **développement**, lui, se coche seul dans le portail, sans
-> demande. On peut donc compiler et tester tout de suite. C'est celui de
-> **distribution** — TestFlight et App Store — qui passe par ce dossier.
+> L'entitlement de **développement**, lui, se coche seul dans le portail une
+> fois inscrite, sans dossier. On peut donc compiler et tester sans attendre la
+> réponse. C'est celui de **distribution** — TestFlight et App Store — qui
+> passe par ce formulaire.
 
-### 3. Demander le numéro D-U-N-S · vous · 30 min → 1 à 2 semaines
-
-Il identifie Agence Wheb auprès d'Apple. Il est **gratuit** : ne payez jamais
-pour l'obtenir. Sans lui, pas de compte développeur société, donc pas de contrat
-bancaire, donc pas de produits d'abonnement.
-
-### 4. Ouvrir les comptes développeurs · vous · 1 h
-
-**Il n'y a pas de « compte Apple Developer » séparé** : on *inscrit* un compte
-Apple existant au programme. Mais n'inscrivez pas le vôtre.
-
-Créez un compte Apple dédié sur une adresse du domaine — `apple@minoapp.fr`
-par exemple — avec l'**authentification à deux facteurs** activée, et
-inscrivez celui-là. Trois raisons :
-
-- Apple **exige** que l'adresse soit sur le domaine de la société (étape 1).
-- Ce compte devient le **titulaire** : c'est lui qui signe les accords
-  bancaires et fiscaux. Le transférer plus tard est long et pénible.
-- Votre compte Apple personnel porte votre iCloud, vos photos, et le partage
-  familial de vos propres enfants. Mélanger cela avec l'entreprise — et avec un
-  produit de contrôle parental que vous allez tester sur ces mêmes appareils —
-  est une source d'ennuis dont aucun n'est intéressant.
-
-Il faut aussi avoir **l'autorité légale d'engager la société**. Comme
-présidente d'Agence Wheb, vous l'avez.
-
-- **Apple Developer Program** — 99 $/an, inscription *Organization*.
-- **Google Play Console** — 25 $ une fois.
-
-### 5. Signer l'accord *Paid Apps* · vous · 30 min, dès le D-U-N-S reçu
+### 7. Signer l'accord *Paid Apps* · vous · 30 min
 
 Dans App Store Connect : *Agreements, Tax, and Banking*. Coordonnées bancaires
-et informations fiscales. Même chose côté Google avec le profil de paiement.
+et informations fiscales. Même chose côté Google.
 
 > **C'est ce qui bloque tout le commercial** : sans cet accord actif, vous ne
 > pouvez même pas *créer* les produits d'abonnement. Donc pas de test d'achat,
@@ -125,7 +155,7 @@ et informations fiscales. Même chose côté Google avec le profil de paiement.
 
 Rien ici ne dépend d'Apple. À faire dans les jours qui suivent.
 
-### 6. Créer le projet Supabase et poser le schéma · vous · 30 min
+### 8. Créer le projet Supabase et poser le schéma · vous · 30 min
 
 `mise-en-route.md`, partie B, de B1 à B6. Trois points à ne pas rater :
 
@@ -134,13 +164,13 @@ Rien ici ne dépend d'Apple. À faire dans les jours qui suivent.
   *Redirect URLs*. Ils ne se voient pas tant qu'on ne s'en sert pas.
 - La clé `service_role` n'entre **jamais** dans l'application ni dans le dépôt.
 
-### 7. Passer au plan Pro · vous · 10 min · 25 $/mois
+### 9. Passer au plan Pro · vous · 10 min · 25 $/mois
 
 **Pas pour un quota — pour les sauvegardes.** Le plan gratuit n'en a aucune.
 Faire tourner de vraies familles là-dessus n'est pas un risque technique, c'est
 un risque d'entreprise. Trois familles payantes couvrent l'abonnement.
 
-### 8. Restaurer une sauvegarde, en vrai, une fois · vous · 1 h
+### 10. Restaurer une sauvegarde, en vrai, une fois · vous · 1 h
 
 L'étape que tout le monde saute, et la seule qui prouve quelque chose :
 
@@ -151,7 +181,7 @@ L'étape que tout le monde saute, et la seule qui prouve quelque chose :
 
 Une sauvegarde jamais restaurée est une hypothèse, pas un filet.
 
-### 9. Activer les travaux de nuit · vous · 20 min
+### 11. Activer les travaux de nuit · vous · 20 min
 
 `mise-en-route.md` **B8**.
 
@@ -159,7 +189,7 @@ Une sauvegarde jamais restaurée est une hypothèse, pas un filet.
 > **suppriment** des lignes, et on ne lance pas une suppression automatique sur
 > une base qu'on ne sait pas restaurer.
 
-### 10. Brancher un vrai serveur d'e-mails, puis réactiver la confirmation · vous · 1 h
+### 12. Brancher un vrai serveur d'e-mails, puis réactiver la confirmation · vous · 1 h
 
 Le service intégré de Supabase est bridé à quelques envois par heure. Prenez un
 expéditeur européen — Scaleway, Brevo, OVH — dans *Project Settings → Auth →
@@ -170,7 +200,7 @@ SMTP Settings*, puis **réactivez « Confirm email »**.
 > plus du tout à la première famille inconnue. **Cette étape doit être faite
 > avant la première famille extérieure**, pas avant la soumission.
 
-### 11. Poser une surveillance qui réveille · vous · 20 min
+### 13. Poser une surveillance qui réveille · vous · 20 min
 
 UptimeRobot ou équivalent, qui **envoie un message** quand la base ne répond
 plus. Un tableau de bord qu'il faut penser à consulter ne sert à rien à 3 h du
@@ -180,12 +210,12 @@ matin, et vous êtes seule à gérer.
 
 ## Quand l'entitlement de développement est en place — compiler
 
-### 12. Installer Xcode · vous · une demi-journée
+### 14. Installer Xcode · vous · une demi-journée
 
 Xcode 15+, depuis le Mac App Store. C'est long à télécharger : lancez-le la
 veille.
 
-### 13. Faire la première *development build* · moi, puis vous · 1 à 2 jours
+### 15. Faire la première *development build* · moi, puis vous · 1 à 2 jours
 
 ```bash
 npx expo prebuild
@@ -200,7 +230,7 @@ construction.**
 > import manquant, une API dépréciée. C'est normal et rapide — ce qui prend du
 > temps, c'est l'architecture, et elle est là.
 
-### 14. Créer la cible d'extension dans Xcode · moi avec vous · 2 h
+### 16. Créer la cible d'extension dans Xcode · moi avec vous · 2 h
 
 `MinoShieldMonitor.swift` **ne fait pas partie de l'application** : il doit
 vivre dans une cible *Device Activity Monitor Extension*, avec son propre bundle
@@ -211,7 +241,7 @@ seule mémoire commune.
 > Sans cette cible, **un enfant qui ferme Mino garde son écran ouvert
 > indéfiniment**, et le produit ne tient pas sa seule promesse.
 
-### 15. Éprouver le blocage sur un vrai appareil · vous · 1 h
+### 17. Éprouver le blocage sur un vrai appareil · vous · 1 h
 
 Quatre choses que seul un téléphone peut dire :
 
@@ -233,7 +263,7 @@ Abonnement pendant la revue et appuie sur le bouton : si la feuille de paiement
 ne s'ouvre pas, c'est un refus. C'est pour cela que ces trois étapes viennent
 avant l'étape 17, et non après.
 
-### 16. Créer les produits, brancher le module, tester en bac à sable
+### 18. Créer les produits, brancher le module, tester en bac à sable
 
 **a) Les produits · vous · 1 h.** App Store Connect → Abonnements → un groupe,
 deux produits : mensuel 9,90 € et annuel 79 €. Les mêmes dans Play Console. Les
@@ -257,7 +287,7 @@ l'abonnement ; un achat **annulé en cours de route** ne laisse rien d'actif.
 
 ## Quand l'entitlement de distribution est accordé — publier
 
-### 17. Préparer la fiche et soumettre · vous · 1 jour → 1 à 7 jours de revue
+### 19. Préparer la fiche et soumettre · vous · 1 jour → 1 à 7 jours de revue
 
 - Captures d'écran — `npm run captures` en produit un jeu à jour.
 - Description, mots-clés, catégorie.
@@ -285,16 +315,16 @@ son enfant, et pourquoi ces deux autorisations sont indispensables.
 
 | | Votre temps | Attente externe |
 |---|---|---|
-| Étapes 1-5 — démarches | 3 h | **2 à 6 semaines** |
-| Étapes 6-11 — serveur | ½ journée | — |
-| Étapes 12-15 — compilation | 1 journée | quelques heures |
-| Étape 16 — paiement | 2 h | — |
-| Étape 17 — soumission | 1 journée | **1 à 7 jours de revue** |
+| Étapes 1-7 — démarches | 4 h | **2 à 6 semaines** |
+| Étapes 8-13 — serveur | ½ journée | — |
+| Étapes 14-17 — compilation | 1 journée | quelques heures |
+| Étape 18 — paiement | 2 h | — |
+| Étape 19 — soumission | 1 journée | **1 à 7 jours de revue** |
 
 **Mon travail** : 4 à 6 jours, essentiellement le module d'achat et
 l'accompagnement de la première compilation.
 
-**Le chemin critique n'est pas le code.** Ce sont les étapes 2, 3 et 5 — d'où
+**Le chemin critique n'est pas le code.** Ce sont les étapes 1, 2 et 5 — d'où
 l'insistance à les lancer aujourd'hui, avant tout le reste.
 
 ---
