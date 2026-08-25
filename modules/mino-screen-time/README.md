@@ -49,7 +49,7 @@ npx eas build --profile development --platform ios
    reposer le bouclier — sans elle, un enfant qui ferme Mino garde son écran
    ouvert indéfiniment, et le produit ne tient pas sa seule promesse.
 
-5. **Un groupe d'applications** `group.fr.agencewheb.mino`, activé sur
+5. **Un groupe d'applications** `group.fr.minoapp.mino`, activé sur
    l'application **et** sur l'extension. C'est leur seule mémoire commune : la
    sélection d'applications et l'échéance y transitent.
 

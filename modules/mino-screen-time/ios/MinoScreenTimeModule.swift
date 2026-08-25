@@ -35,7 +35,7 @@ public class MinoScreenTimeModule: Module {
     UserDefaults(suiteName: MinoScreenTimeModule.appGroup)
   }
 
-  static let appGroup = "group.fr.agencewheb.mino"
+  static let appGroup = "group.fr.minoapp.mino"
   private static let selectionKey = "mino.selection"
   private static let deadlineKey = "mino.deadline"
   private static let activityName = DeviceActivityName("mino.session")

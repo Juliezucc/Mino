@@ -20,13 +20,13 @@ import Foundation
  réveille l'extension à l'heure dite, sans réseau et sans nous.
 
  L'extension ne partage avec l'application que deux choses, par le groupe
- `group.fr.agencewheb.mino` : la sélection d'applications, et le magasin de
+ `group.fr.minoapp.mino` : la sélection d'applications, et le magasin de
  réglages `mino.shield`. Elle ne sait rien du reste, et n'a besoin de rien
  d'autre.
  */
 class MinoShieldMonitor: DeviceActivityMonitor {
   private let store = ManagedSettingsStore(named: .init("mino.shield"))
-  private static let appGroup = "group.fr.agencewheb.mino"
+  private static let appGroup = "group.fr.minoapp.mino"
   private static let selectionKey = "mino.selection"
   private static let deadlineKey = "mino.deadline"
 

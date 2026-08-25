@@ -44,8 +44,8 @@ export const OPERATOR = {
   /** Confirmed by the operator against the VAT certificate. */
   vatNumber: 'FR67103231460',
   publisher: 'Julie Zucherman',
-  email: 'contact@mino.app',
-  privacyEmail: 'privacy@mino.app',
+  email: 'contact@minoapp.fr',
+  privacyEmail: 'privacy@minoapp.fr',
   host: 'Supabase (hébergement et base de données, région européenne)',
   /**
    * Le médiateur de la consommation, obligatoire pour toute vente aux

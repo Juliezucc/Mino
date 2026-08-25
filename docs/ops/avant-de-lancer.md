@@ -74,17 +74,23 @@ prix — donc le produit de repli s'écrit **avant** de savoir, à froid.
 
 Neuf points. Sept sont des décisions de quelques heures.
 
-### 2.1 L'identifiant de bundle
+### 2.1 L'identifiant de bundle — tranché le 25/08/2026
 
-`app.json` déclare `fr.mino.app` — le reverse-DNS de `app.mino.fr`, un domaine
-que rien ne revendique, alors que la société est Agence Wheb et que le produit
-tourne autour de `mino.app`. **Définitif à la première publication** : en
-changer plus tard veut dire une nouvelle fiche, avis et classement perdus.
+**`fr.minoapp.mino`**, le reverse-DNS de `minoapp.fr`.
 
-Deux options défendables : `fr.agencewheb.mino` (le reverse-DNS de la société
-vendeuse, indépendant de tout domaine), ou garder `fr.mino.app` en enregistrant
-`app.mino.fr` au nom d'Agence Wheb **le même jour**. Ce qui n'est pas
-défendable, c'est de publier sans avoir tranché.
+L'ancien `fr.mino.app` était le reverse-DNS de `app.mino.fr`, un domaine que
+rien ne revendiquait. Et `mino.app` — que la politique de confidentialité et
+les CGV donnaient comme adresse de contact — **appartient à quelqu'un
+d'autre** : ces adresses n'auraient jamais reçu un seul message, alors qu'elles
+sont légalement obligatoires.
+
+Tout pointe désormais vers `minoapp.fr` : l'identifiant, le groupe
+d'applications (`group.fr.minoapp.mino`), et les deux adresses de contact.
+
+> **Ce qui reste à faire, et qui ne peut pas attendre** : enregistrer
+> `minoapp.fr` au nom d'Agence Wheb, puis y ouvrir `contact@` et `privacy@`.
+> Tant que le domaine n'est pas à vous, les documents légaux promettent une
+> adresse qui n'existe pas.
 
 ### 2.2 La région Supabase, et un domaine à vous devant
 

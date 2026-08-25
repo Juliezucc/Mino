@@ -79,7 +79,7 @@ se change à un endroit.
       et courant, et le risque qu'il soit déjà pris dans ces classes est réel.
       À faire avant la communication publique, pas après — déposer une marque
       qu'on utilise déjà et qui appartient à un autre est la pire séquence.
-- [ ] **Nom de domaine** : vérifier que `mino.app` (ou le domaine retenu) est
+- [ ] **Nom de domaine** : enregistrer `minoapp.fr` (`mino.app` appartient à un tiers) et vérifier qu'il est
       enregistré **au nom de la société**, jamais au nom personnel d'une
       personne physique, et avec le renouvellement automatique activé.
 - [ ] **Cession de droits d'auteur pour toute contribution extérieure.** Un
@@ -104,7 +104,7 @@ dernière.
 | Supabase | Base, authentification, fonctions | | |
 | Stripe | Paiements | Agence Wheb | |
 | GitHub | Code source | | |
-| Registrar (domaine) | mino.app | | |
+| Registrar (domaine) | minoapp.fr | | |
 | Boîte e-mail | contact@, privacy@ | | |
 | Expo / EAS | Compilation des applications | | |
 

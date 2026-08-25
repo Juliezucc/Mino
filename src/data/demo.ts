@@ -37,7 +37,7 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
     id: createId('parent'),
     familyId: family.id,
     displayName: 'Julie',
-    email: 'julie@mino.app',
+    email: 'julie@minoapp.fr',
     createdAt: at(now, 8),
   };
 

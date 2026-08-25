@@ -11,12 +11,51 @@ l'instruction. Déposez la demande d'abord.
 
 ## Où déposer
 
-Le formulaire est accessible depuis le portail développeur Apple, dans la
-section des demandes d'entitlements additionnels, avec l'identifiant d'équipe et
-le bundle identifier de l'application. Le libellé et l'emplacement exacts
-bougent d'une refonte à l'autre du portail : cherchez « Family Controls
-Distribution » depuis votre compte, et si le formulaire est introuvable, passez
-par le support développeur.
+**https://developer.apple.com/contact/request/family-controls-distribution**
+
+(vérifié le 25 août 2026 ; si l'adresse a bougé, chercher « Family Controls
+Distribution » depuis le compte développeur.)
+
+### Deux entitlements, pas un
+
+C'est le point qui se rate, et il coûte une semaine quand on le découvre tard.
+
+| | À quoi il sert | Comment on l'obtient |
+|---|---|---|
+| **Development** | Compiler et tester sur son propre appareil | Se coche dans le portail, **sans demande** |
+| **Distribution** | TestFlight **et** App Store | **Sur dossier**, formulaire ci-dessus |
+
+On peut donc commencer à développer immédiatement avec le premier. Mais rien ne
+part chez un testeur, ni chez Apple, sans le second.
+
+### Une demande PAR bundle identifier
+
+Et l'extension compte comme un bundle à part entière. Il faut donc **deux
+demandes** :
+
+| Cible | Bundle identifier |
+|---|---|
+| L'application | `fr.minoapp.mino` |
+| L'extension de surveillance | `fr.minoapp.mino.MinoShieldMonitor` |
+
+Déposer la première et oublier la seconde donne une application qui passe la
+revue et dont le bouclier ne se repose jamais à l'échéance — c'est-à-dire le
+défaut le plus grave possible, découvert après publication.
+
+### Combien de temps
+
+De quelques jours ouvrés à plusieurs semaines, sans délai garanti et sans accusé
+de réception fiable. Des développeurs rapportent des demandes restées sans
+réponse pendant des mois. **C'est la raison pour laquelle cette demande se
+dépose avant tout le reste**, et non parce qu'elle serait longue à écrire.
+
+### Ce qu'Apple refuse
+
+Le dossier est jugé sur une seule question : *est-ce un vrai produit de contrôle
+parental, ou un moyen détourné de surveiller quelqu'un ?* Sont refusées les
+applications qui collectent des statistiques d'usage à des fins publicitaires,
+et celles dont le contrôle parental n'est pas la fonction principale mais un
+prétexte.
 
 ## Ce qu'Apple veut savoir
 

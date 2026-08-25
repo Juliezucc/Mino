@@ -15,13 +15,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "fr.mino.app",
+      "bundleIdentifier": "fr.minoapp.mino",
       "infoPlist": {
         "NSUserTrackingUsageDescription": "Mino ne suit personne : aucune publicité, aucun traceur."
       }
     },
     "android": {
-      "package": "fr.mino.app",
+      "package": "fr.minoapp.mino",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F2F6FF"

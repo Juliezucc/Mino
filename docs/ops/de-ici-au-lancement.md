@@ -160,7 +160,7 @@ C'est elle que le système réveille à l'échéance pour reposer le bouclier. S
 elle, **un enfant qui ferme Mino garde son écran ouvert indéfiniment**, et le
 produit ne tient pas sa seule promesse.
 
-Il faut aussi activer le groupe d'applications `group.fr.agencewheb.mino` sur
+Il faut aussi activer le groupe d'applications `group.fr.minoapp.mino` sur
 l'application **et** sur l'extension : c'est leur seule mémoire commune.
 
 ### 2.4 Ce qu'il faut éprouver sur l'appareil · vous · 1 h
