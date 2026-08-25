@@ -151,6 +151,15 @@ interface MinoState {
   rejectCompletion: (completionId: ID) => Promise<void>;
   markCelebrated: (completionId: ID) => Promise<void>;
 
+  /**
+   * Ouvrir une fenêtre pendant laquelle l'écran ne coûte rien : mercredi
+   * après-midi, vacances, anniversaire. Rien n'est écrit au grand livre.
+   */
+  addFreeWindow: (input: actions.FreeWindowInput) => Promise<ID>;
+  /** Suspendre sans perdre : les vacances reviennent. */
+  toggleFreeWindow: (windowId: ID) => Promise<void>;
+  removeFreeWindow: (windowId: ID) => Promise<void>;
+
   addDevice: (input: { label: string; kind: DeviceKind }) => Promise<ID>;
   removeDevice: (deviceId: ID) => Promise<void>;
 
@@ -688,6 +697,31 @@ export const useMinoStore = create<MinoState>((set, get) => {
         const completion = next.completions.find((c) => c.id === completionId);
         return { data: next, upsert: completion ? { completions: [completion] } : undefined };
       });
+    },
+
+    async addFreeWindow(input) {
+      const id = await commit<ID>('freeWindow.created', (data) => {
+        const out = actions.createFreeWindow(data, input);
+        return { data: out.data, result: out.window.id, upsert: { freeWindows: [out.window] } };
+      });
+      return id!;
+    },
+
+    async toggleFreeWindow(windowId) {
+      await commit('freeWindow.updated', (data) => {
+        const next = actions.toggleFreeWindow(data, windowId);
+        const window = next.freeWindows.find((f) => f.id === windowId);
+        return { data: next, upsert: window ? { freeWindows: [window] } : undefined };
+      });
+    },
+
+    async removeFreeWindow(windowId) {
+      await commit('freeWindow.removed', (data) => ({
+        data: actions.removeFreeWindow(data, windowId),
+        // Suppression franche : contrairement à un appareil, une plage passée
+        // n'est désignée par aucune session ni aucune transaction.
+        deleteFreeWindowId: windowId,
+      }));
     },
 
     async addDevice(input) {

@@ -1,4 +1,13 @@
 import { createId } from './id';
+import {
+  FreeWindow,
+  FreeWindowInput,
+  heure,
+  openWindowAt,
+  valideFenetre,
+} from './freeWindows';
+
+export type { FreeWindowInput } from './freeWindows';
 import { balanceOf } from './ledger';
 import { missionsForChild } from './missions';
 import { Device, DeviceKind } from './devices';
@@ -398,11 +407,92 @@ export function removeDevice(data: FamilyData, deviceId: ID): FamilyData {
   };
 }
 
+/* ------------------------------------------------------- plages libres */
+
+/**
+ * Ouvrir une fenêtre pendant laquelle l'écran ne coûte rien.
+ *
+ * Aucune transaction n'est écrite, ni ici ni au moment où la plage s'ouvre.
+ * C'est LA règle de la fonctionnalité : le solde d'un enfant est exactement le
+ * même avant et après le mercredi après-midi. Voir `domain/freeWindows`.
+ */
+export function createFreeWindow(
+  data: FamilyData,
+  input: FreeWindowInput,
+  now: Date = new Date(),
+): { data: FamilyData; window: FreeWindow } {
+  const probleme = valideFenetre(input);
+  if (probleme) throw new DomainError(probleme);
+
+  const window: FreeWindow = {
+    id: createId('fw'),
+    familyId: data.family.id,
+    label: input.label.trim(),
+    childIds: input.childIds,
+    days: input.days,
+    ...(input.date ? { date: input.date } : {}),
+    startMinute: input.startMinute,
+    endMinute: input.endMinute,
+    enabled: true,
+    createdAt: iso(now),
+  };
+  return { data: { ...data, freeWindows: [...(data.freeWindows ?? []), window] }, window };
+}
+
+/**
+ * Suspendre une plage sans la perdre.
+ *
+ * Les vacances reviennent : effacer « Vacances de février » pour le rouvrir en
+ * avril oblige à tout ressaisir, et un réglage pénible à reposer finit par ne
+ * plus être posé du tout.
+ */
+export function toggleFreeWindow(data: FamilyData, windowId: ID): FamilyData {
+  return {
+    ...data,
+    freeWindows: (data.freeWindows ?? []).map((f) =>
+      f.id === windowId ? { ...f, enabled: !f.enabled } : f,
+    ),
+  };
+}
+
+/**
+ * Supprimer pour de bon — contrairement à un appareil, qu'on archive.
+ *
+ * Une plage passée ne raconte rien : aucune session, aucune transaction, aucun
+ * historique ne la désigne. La garder archivée n'encombrerait que la liste que
+ * le parent essaie de relire.
+ */
+export function removeFreeWindow(data: FamilyData, windowId: ID): FamilyData {
+  return {
+    ...data,
+    freeWindows: (data.freeWindows ?? []).filter((f) => f.id !== windowId),
+  };
+}
+
 export function startSession(
   data: FamilyData,
   params: { childId: ID; minutes: number; deviceId?: ID },
   now: Date = new Date(),
 ): { data: FamilyData; session: ScreenTimeSession } {
+  /**
+   * Pendant une plage libre, on ne dépense rien.
+   *
+   * L'écran est déjà ouvert : lancer une session ferait payer des minutes pour
+   * obtenir ce qu'on a déjà. Rien ne le signalerait — l'enfant appuie, le
+   * compteur descend, et personne ne comprend pourquoi le solde a fondu un
+   * mercredi.
+   *
+   * Le contrôle vient AVANT celui du solde : « tu n'as pas assez de temps »
+   * serait une réponse fausse et décourageante à un enfant dont l'écran est
+   * ouvert de toute façon.
+   */
+  const ouverte = openWindowAt(data.freeWindows ?? [], params.childId, now);
+  if (ouverte && params.deviceId === undefined) {
+    throw new DomainError(
+      `C'est ouvert jusqu'à ${heure(ouverte.endMinute)} — tu n'as pas besoin de tes minos.`,
+    );
+  }
+
   const available = balanceOf(data.transactions, params.childId);
   if (params.minutes <= 0) throw new DomainError('Choisis une durée.');
   if (params.minutes > available) throw new DomainError("Tu n'as pas assez de temps.");

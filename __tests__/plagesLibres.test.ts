@@ -1,3 +1,5 @@
+import { buildDemoFamily as buildDemoFamille } from '@/data/demo';
+import { startSession } from '@/domain/actions';
 import {
   FreeWindow,
   decritFenetre,
@@ -7,6 +9,7 @@ import {
   prochaineOuverture,
   valideFenetre,
 } from '@/domain/freeWindows';
+import { balanceOf } from '@/domain/ledger';
 
 /**
  * Les plages libres, et les trois façons de les rater.
@@ -190,5 +193,69 @@ describe('ce que le parent lit dans sa liste', () => {
   it('écrit une date en toutes lettres, sans décalage', () => {
     const dit = decritFenetre(fenetre({ days: [], date: '2026-08-26' }));
     expect(dit).toMatch(/26 août/);
+  });
+});
+
+/**
+ * La règle qui protège le compteur, et celle qui protège le solde.
+ *
+ * Ces deux-là ne se voient pas à l'écran : elles se voient au relevé, un mois
+ * plus tard, quand un parent ne comprend pas pourquoi les minutes de son
+ * enfant ont fondu un mercredi.
+ */
+describe('une plage libre ne coûte rien', () => {
+  function famille() {
+    const data = buildDemoFamille(new Date('2026-08-26T10:00:00'));
+    return data;
+  }
+
+  it('REFUSE DE LANCER UNE SESSION PENDANT UNE PLAGE OUVERTE', () => {
+    // L'écran est déjà ouvert : dépenser des minos pour l'obtenir serait payer
+    // deux fois. Rien ne le signalerait — l'enfant appuie, le compteur descend.
+    const data = famille();
+    const noah = data.children[0];
+
+    expect(() =>
+      startSession(data, { childId: noah.id, minutes: 20 }, MERCREDI_15H),
+    ).toThrow(/C'est ouvert jusqu'à 16:00/);
+  });
+
+  it('laisse lancer une session hors de la plage', () => {
+    const data = famille();
+    const noah = data.children[0];
+
+    const out = startSession(data, { childId: noah.id, minutes: 20 }, MERCREDI_10H);
+    expect(out.session.status).toBe('running');
+  });
+
+  it('LE SOLDE EST LE MÊME AVANT ET APRÈS LA PLAGE', () => {
+    // La règle fondatrice. Une plage n'est ni un gain ni une dépense : si elle
+    // créditait, le compteur cesserait de vouloir dire « ce que j'ai mérité ».
+    const data = famille();
+    const noah = data.children[0];
+
+    const avant = balanceOf(data.transactions, noah.id);
+    const pendant = openWindowAt(data.freeWindows, noah.id, MERCREDI_15H);
+    expect(pendant).not.toBeNull();
+
+    // Rien dans le domaine n'écrit de transaction à l'ouverture d'une plage :
+    // le document est le même objet, aux transactions près, qui n'ont pas bougé.
+    expect(balanceOf(data.transactions, noah.id)).toBe(avant);
+  });
+
+  it('n’empêche pas de demander un écran que Mino ne pilote pas', () => {
+    // Une plage libre lève le bouclier de CET appareil. La console du salon,
+    // elle, n'est pilotée par personne : la demande passe toujours par un
+    // parent, et il n'y a rien à court-circuiter.
+    const data = famille();
+    const noah = data.children[0];
+    const console = data.devices[0];
+
+    const out = startSession(
+      data,
+      { childId: noah.id, minutes: 20, deviceId: console.id },
+      MERCREDI_15H,
+    );
+    expect(out.session.status).toBe('requested');
   });
 });

@@ -6,6 +6,7 @@ import { AnimatedMascot, MascotAnimation } from '@/components/mascot';
 import { MascotExpression } from '@/components/mascot/types';
 import { Button, Card, MinutesBadge, Screen, Text, TimeRing } from '@/components/ui';
 import { unitOf } from '@/domain/ageBand';
+import { heure, openWindowAt } from '@/domain/freeWindows';
 import { pendingBonus } from '@/domain/bonus';
 import { lastSeenBonus } from '@/data/seenBonus';
 import { useBalanceDetail, useChildMissions, useActiveChild, useFamily } from '@/store/selectors';
@@ -18,6 +19,14 @@ export default function ChildHome() {
   const balance = useBalanceDetail(child?.id);
   const missions = useChildMissions(child?.id);
   const data = useFamily();
+  /**
+   * La plage libre en cours, s'il y en a une.
+   *
+   * Recalculée à chaque rendu et non figée au montage : une plage s'ouvre à
+   * une heure précise, et un enfant peut très bien avoir l'écran allumé à ce
+   * moment-là — c'est même le cas le plus fréquent un mercredi.
+   */
+  const plageOuverte = openWindowAt(data?.freeWindows ?? [], child?.id ?? null);
 
   /**
    * Un bonus reçu se fête ici.
@@ -114,6 +123,29 @@ export default function ChildHome() {
         )}
       </View>
 
+      {/*
+        C'est ouvert — et l'enfant doit le savoir AVANT de regarder son
+        compteur.
+
+        Sans cette carte, il verrait ses minos, appuierait sur « utiliser mon
+        temps », et recevrait un refus qu'il ne comprendrait pas : son écran
+        est déjà ouvert. On le lui dit donc en premier, en disant aussi
+        l'essentiel — ça ne coûte rien.
+      */}
+      {plageOuverte ? (
+        <Card background={colors.mintSoft} elevation="none" style={styles.plage}>
+          <Text variant="cardTitle">🗓️ C’est ouvert !</Text>
+          <Text variant="body">
+            {`${plageOuverte.label} — jusqu’à ${heure(plageOuverte.endMinute)}.`}
+          </Text>
+          <Text variant="body" color={colors.textMuted}>
+            {unit === 'minos'
+              ? 'Tu peux jouer sans utiliser tes minos : ils t’attendent pour plus tard.'
+              : 'Tes minutes ne sont pas décomptées pendant ce moment.'}
+          </Text>
+        </Card>
+      ) : null}
+
       <Card style={styles.ringCard} elevation="soft">
         <TimeRing minutes={balance.minutes} unit={unit} />
         {balance.earnedToday > 0 ? (
@@ -160,6 +192,7 @@ const styles = StyleSheet.create({
   content: { paddingTop: spacing.lg, paddingBottom: tabBarSpace, gap: spacing.lg },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   headerTexts: { flex: 1, gap: spacing.xs },
+  plage: { gap: spacing.xs },
   ringCard: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.xl },
   earned: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   waitingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

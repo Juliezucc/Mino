@@ -236,6 +236,15 @@ export default function ParentSettings() {
           variant="secondary"
           onPress={() => router.push('/parent/blocage')}
         />
+        {/* Le pendant du blocage : les moments où l'on ouvre sans faire gagner.
+            Rangé ici plutôt qu'ailleurs parce qu'un parent qui vient régler le
+            blocage est précisément celui qui pense « oui, mais le mercredi ». */}
+        <Button
+          label="Plages libres"
+          icon="🗓️"
+          variant="secondary"
+          onPress={() => router.push('/parent/plages')}
+        />
         <Text variant="caption" color={colors.textSubtle}>
         </Text>
       </Card>
