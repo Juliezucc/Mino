@@ -93,8 +93,12 @@ Quatre choses ne peuvent pas fonctionner dans ce mode, pour des raisons de
 plateforme et non de code :
 
 - **Le blocage réel des écrans.** Le minuteur descend honnêtement, mais ne
-  verrouille aucune application : le module natif iOS (Family Controls) reste à
-  écrire. Voir `docs/apple-family-controls.md`.
+  verrouille aucune application. Le module natif est écrit
+  (`modules/mino-screen-time/`) — mais il n'est **pas du JavaScript**, et Expo
+  Go ne peut pas le charger, par construction. Il demande une *development
+  build*, un Mac avec Xcode, et l'habilitation Family Controls accordée par
+  Apple. Voir `modules/mino-screen-time/README.md` et
+  `docs/apple-family-controls.md`.
 - **Le deuxième appareil.** Sans serveur, il n'y a qu'un téléphone : pas de code
   famille, pas de synchronisation entre le téléphone du parent et la tablette de
   l'enfant. C'est l'objet de la partie B.
