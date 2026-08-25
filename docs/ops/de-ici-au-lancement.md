@@ -44,16 +44,42 @@ jour du dépôt** : déposer tôt protège tôt, et l'attente n'empêche rien.
 > en propriété industrielle facture quelques centaines d'euros et voit ce
 > qu'une recherche à l'œil nu manque.
 
-### 2. Demander le numéro D-U-N-S · vous · 30 min → 1 à 2 semaines
+### 2. **Chercher** le numéro D-U-N-S avant d'en demander un · vous · 15 min
 
-**Le même jour, en parallèle du reste : c'est le plus long des délais, et il ne
-dépend de rien.** Il identifie Agence Wheb auprès d'Apple.
+**https://developer.apple.com/enroll/duns-lookup/**
 
-Il est **gratuit** : ne payez jamais pour l'obtenir.
+Le SIREN, le SIRET et le numéro de TVA sont des identifiants **français**,
+attribués par l'INSEE. Apple ne les utilise pas — ni pour la France, ni pour
+aucun pays. Elle n'utilise que le **D-U-N-S**, attribué par Dun & Bradstreet,
+une société américaine dont la base sert d'annuaire mondial des entreprises.
 
-Sans lui : pas d'inscription société, donc pas de compte développeur, donc ni
-demande Family Controls, ni contrat bancaire, ni produits d'abonnement. C'est
-la première pierre de toute la chaîne Apple.
+Avoir un SIREN ne donne donc pas de D-U-N-S : ce sont deux registres distincts.
+
+**Mais il y a de bonnes chances qu'il existe déjà.** D&B alimente sa base à
+partir des registres publics, et attribue souvent un numéro sans que
+l'entreprise l'ait demandé :
+
+> « D&B may have already assigned your organization a free D‑U‑N‑S Number.
+> Before enrolling, look up your organization to see if you have a D‑U‑N‑S
+> Number. »
+
+**Cherchez donc avant de demander.** S'il existe, le délai tombe à zéro.
+
+Saisissez l'identité **exactement telle qu'elle figure au RCS** :
+*AGENCE WHEB, 47 rue Vivienne, 75002 Paris*.
+
+S'il n'existe pas, la demande est gratuite et Apple annonce **jusqu'à 5 jours
+ouvrés** pour recevoir le numéro, puis **jusqu'à 2 jours ouvrés** pour qu'Apple
+le reçoive de D&B. Sept jours ouvrés au pire, pas deux semaines.
+
+> Agence Wheb est immatriculée depuis avril 2026. Une société récente n'est pas
+> toujours encore remontée dans la base de D&B : si la recherche ne rend rien,
+> ce n'est pas une anomalie, c'est le cas courant pour une jeune entreprise.
+> D&B peut aussi vous appeler pour vérifier — gardez le Kbis sous la main.
+
+Sans ce numéro : pas d'inscription société, donc pas de compte développeur,
+donc ni demande Family Controls, ni contrat bancaire, ni produits d'abonnement.
+C'est la première pierre de toute la chaîne Apple.
 
 ### 3. Enregistrer `minoapp.fr` et mettre le site en ligne · vous · 15 min + 1 jour
 
@@ -315,7 +341,7 @@ son enfant, et pourquoi ces deux autorisations sont indispensables.
 
 | | Votre temps | Attente externe |
 |---|---|---|
-| Étapes 1-7 — démarches | 4 h | **2 à 6 semaines** |
+| Étapes 1-7 — démarches | 4 h | **1 à 5 semaines** |
 | Étapes 8-13 — serveur | ½ journée | — |
 | Étapes 14-17 — compilation | 1 journée | quelques heures |
 | Étape 18 — paiement | 2 h | — |
