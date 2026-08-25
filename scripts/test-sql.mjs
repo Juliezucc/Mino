@@ -82,13 +82,14 @@ try {
   // suppression qui déborderait ne doit pas pouvoir faire échouer un autre
   // fichier pour une raison qu'on mettrait une heure à comprendre.
   const compte = pg.file('supabase/test/compte.sql');
-  const lines = `${out.stderr}${companion.stderr}${realtime.stderr}${plans.stderr}${retention.stderr}${compte.stderr}`
+  const plages = pg.file('supabase/test/plages.sql');
+  const lines = `${out.stderr}${companion.stderr}${realtime.stderr}${plans.stderr}${retention.stderr}${compte.stderr}${plages.stderr}`
     .split('\n')
     .filter((l) => l.includes('ok ·') || l.includes('ÉCHEC'))
     .map((l) => l.replace(/^.*NOTICE:\s+/, '').replace(/^.*ERROR:\s+/, '❌ '));
   console.log(lines.join('\n'));
 
-  if ([out, companion, realtime, plans, retention, compte].some((r) => r.status !== 0)) {
+  if ([out, companion, realtime, plans, retention, compte, plages].some((r) => r.status !== 0)) {
     console.error('\nUne tentative est passée. Voir ci-dessus.');
     process.exit(1);
   }

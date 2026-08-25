@@ -18,6 +18,9 @@ export type ChangeKind =
   | 'completion.approved'
   | 'completion.rejected'
   | 'completion.celebrated'
+  | 'freeWindow.created'
+  | 'freeWindow.updated'
+  | 'freeWindow.removed'
   | 'session.started'
   | 'session.ended'
   | 'balance.adjusted';
@@ -28,6 +31,12 @@ export interface ChangeEvent {
   upsert?: Partial<FamilyData>;
   /** Child removed by the action (cascades on the backend). */
   deleteChildId?: ID;
+  /**
+   * Plage libre supprimée. Une suppression franche et non un `enabled: false` :
+   * suspendre et supprimer sont deux gestes différents, et le parent qui range
+   * sa liste doit pouvoir faire le second.
+   */
+  deleteFreeWindowId?: ID;
 }
 
 /**

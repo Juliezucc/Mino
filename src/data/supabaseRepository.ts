@@ -13,6 +13,7 @@ import {
   ScreenTimeSession,
   ScreenTimeTransaction,
 } from '@/domain/types';
+import { FreeWindow } from '@/domain/freeWindows';
 import { ScreenTimeAuthorization } from '@/services/screenTime';
 
 import { withOpeningBalances } from '@/domain/ledger';
@@ -45,6 +46,7 @@ const TABLES = {
   transactions: 'screen_time_transactions',
   sessions: 'screen_time_sessions',
   devices: 'devices',
+  freeWindows: 'free_windows',
 } as const;
 
 /* ----------------------------------------------------------------- mapping */
@@ -221,6 +223,36 @@ const sessionToRow = (s: ScreenTimeSession) => ({
   consumed_minutes: s.consumedMinutes ?? null,
 });
 
+/**
+ * `child_ids` est un tableau nullable, et `null` n'y est pas un oubli : c'est
+ * « toute la fratrie ». Le confondre avec un tableau vide ouvrirait la plage à
+ * personne, ce qui est exactement l'inverse de ce que le parent a demandé.
+ */
+const rowToFreeWindow = (r: any): FreeWindow => ({
+  id: r.id,
+  familyId: r.family_id,
+  label: r.label,
+  childIds: r.child_ids ?? null,
+  days: r.days ?? [],
+  date: r.on_date ?? undefined,
+  startMinute: r.start_minute,
+  endMinute: r.end_minute,
+  enabled: r.enabled,
+  createdAt: r.created_at,
+});
+const freeWindowToRow = (f: FreeWindow) => ({
+  id: f.id,
+  family_id: f.familyId,
+  label: f.label,
+  child_ids: f.childIds,
+  days: f.days,
+  on_date: f.date ?? null,
+  start_minute: f.startMinute,
+  end_minute: f.endMinute,
+  enabled: f.enabled,
+  created_at: f.createdAt,
+});
+
 const rowToDevice = (r: any): Device => ({
   id: r.id,
   familyId: r.family_id,
@@ -287,12 +319,13 @@ class SupabaseRepository implements MinoRepository {
 
     const window = since(HISTORY_DAYS);
 
-    const [parents, children, missions, assignments, devices] = await Promise.all([
+    const [parents, children, missions, assignments, devices, freeWindows] = await Promise.all([
       fetch(TABLES.parents),
       fetch(TABLES.children),
       fetch(TABLES.missions),
       fetch(TABLES.assignments),
       fetch(TABLES.devices),
+      fetch(TABLES.freeWindows),
     ]);
 
     const [recentCompletions, pendingCompletions, recentTransactions, recentSessions, liveSessions, balances] =
@@ -325,6 +358,7 @@ class SupabaseRepository implements MinoRepository {
       transactions: withOpeningBalances(transactions, balances, family.id, window),
       sessions: mergeById(recentSessions, liveSessions).map(rowToSession),
       devices: devices.map(rowToDevice),
+      freeWindows: freeWindows.map(rowToFreeWindow),
     };
   }
 
@@ -374,6 +408,14 @@ class SupabaseRepository implements MinoRepository {
       if (res.error) throw res.error;
     }
 
+    if (change.deleteFreeWindowId) {
+      const res = await this.client
+        .from(TABLES.freeWindows)
+        .delete()
+        .eq('id', change.deleteFreeWindowId);
+      if (res.error) throw res.error;
+    }
+
     const touched = change.upsert;
     if (!touched) return;
 
@@ -401,6 +443,7 @@ class SupabaseRepository implements MinoRepository {
     push(TABLES.transactions, (data.transactions ?? []).map(transactionToRow));
     push(TABLES.sessions, (data.sessions ?? []).map(sessionToRow));
     push(TABLES.devices, (data.devices ?? []).map(deviceToRow));
+    push(TABLES.freeWindows, (data.freeWindows ?? []).map(freeWindowToRow));
 
     await Promise.all(jobs);
   }

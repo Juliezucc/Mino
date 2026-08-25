@@ -7,8 +7,10 @@
  */
 
 import { Device } from './devices';
+import { FreeWindow } from './freeWindows';
 
 export type { Device } from './devices';
+export type { FreeWindow } from './freeWindows';
 
 export type ID = string;
 /** ISO-8601 string. Stored as text so the model stays JSON/Postgres friendly. */
@@ -222,4 +224,9 @@ export interface FamilyData {
   sessions: ScreenTimeSession[];
   /** The family's other screens, declared by the parent. See `domain/devices`. */
   devices: Device[];
+  /**
+   * Les fenêtres pendant lesquelles l'écran est ouvert sans avoir été gagné.
+   * Voir `domain/freeWindows` — elles n'écrivent jamais au grand livre.
+   */
+  freeWindows: FreeWindow[];
 }

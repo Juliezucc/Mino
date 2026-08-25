@@ -97,6 +97,54 @@ create table if not exists devices (
   created_at timestamptz not null default now()
 );
 
+/**
+ * Les plages libres : du temps d'écran qu'on n'a pas eu à gagner.
+ *
+ * Mercredi après-midi, vacances, anniversaire. Rien ici ne touche au grand
+ * livre — une plage n'est ni un gain ni une dépense, et le solde d'un enfant
+ * est exactement le même avant et après. Voir `src/domain/freeWindows.ts`.
+ *
+ * `child_ids` NULL veut dire « toute la fratrie », et ce n'est pas un oubli :
+ * c'est le cas courant, et l'écrire ainsi évite qu'un petit frère arrivé
+ * ensuite se retrouve exclu d'une plage que personne ne pensera à rouvrir.
+ * Un tableau VIDE, lui, n'ouvrirait à personne — d'où la contrainte qui le
+ * refuse plutôt que de laisser un réglage sans effet.
+ *
+ * Les bornes sont des minutes depuis minuit, en HEURE LOCALE de la famille.
+ * « Mercredi 14 h », pour une famille, c'est mercredi 14 h là où elle est.
+ * La contrainte `fin > début` interdit de traverser minuit : 22 h → 7 h
+ * n'est pas une permission, c'est un couvre-feu — la fonctionnalité inverse,
+ * qui n'a rien à faire dans le même objet.
+ */
+create table if not exists free_windows (
+  id           text primary key,
+  family_id    text not null references families (id) on delete cascade,
+  label        text not null check (btrim(label) <> ''),
+  child_ids    text[],
+  days         smallint[] not null default '{}',
+  on_date      date,
+  start_minute int not null check (start_minute >= 0 and start_minute <= 1440),
+  end_minute   int not null check (end_minute   >= 0 and end_minute   <= 1440),
+  enabled      boolean not null default true,
+  created_at   timestamptz not null default now(),
+
+  constraint free_window_fin_apres_debut check (end_minute > start_minute),
+  -- Une plage se répète certains jours, OU n'arrive qu'une fois. Pas les deux,
+  -- et pas ni l'une ni l'autre — ce dernier cas ne s'ouvrirait jamais.
+  constraint free_window_jours_ou_date check (
+    (on_date is null     and array_length(days, 1) is not null) or
+    (on_date is not null and array_length(days, 1) is null)
+  ),
+  constraint free_window_jours_valides check (
+    days <@ array[0,1,2,3,4,5,6]::smallint[]
+  ),
+  constraint free_window_enfants_non_vides check (
+    child_ids is null or array_length(child_ids, 1) is not null
+  )
+);
+
+create index if not exists idx_free_windows_family on free_windows (family_id);
+
 create table if not exists missions (
   id         text primary key,
   family_id  text not null references families (id) on delete cascade,
@@ -364,6 +412,7 @@ alter table mission_completions     enable row level security;
 alter table screen_time_transactions enable row level security;
 alter table screen_time_sessions    enable row level security;
 alter table devices                 enable row level security;
+alter table free_windows            enable row level security;
 
 -- families -------------------------------------------------------------
 drop policy if exists families_select on families;
@@ -835,6 +884,31 @@ create policy missions_select on missions
 
 drop policy if exists missions_write on missions;
 create policy missions_write on missions
+  for all
+  using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])) and auth_is_parent())
+  with check (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])) and auth_is_parent());
+
+/**
+ * Les plages libres : lues par tout le monde, écrites par les parents seuls.
+ *
+ * L'appareil de l'enfant DOIT les lire — c'est ainsi qu'il sait que son écran
+ * est ouvert le mercredi après-midi, et qu'il évite de lui faire dépenser des
+ * minutes pour un temps qu'il a déjà.
+ *
+ * Mais une plage libre est du temps d'écran gratuit. Laisser un appareil
+ * enfant en écrire une reviendrait à lui laisser s'accorder l'accès permanent
+ * en une ligne — « tous les jours, de 00 h 00 à 23 h 59 » — et le produit
+ * entier ne voudrait plus rien dire. C'est la même frontière que pour les
+ * missions, et pour la même raison.
+ */
+drop policy if exists free_windows_family_access on free_windows;
+
+drop policy if exists free_windows_select on free_windows;
+create policy free_windows_select on free_windows
+  for select using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
+
+drop policy if exists free_windows_write on free_windows;
+create policy free_windows_write on free_windows
   for all
   using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])) and auth_is_parent())
   with check (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])) and auth_is_parent());

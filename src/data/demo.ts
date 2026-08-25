@@ -253,6 +253,21 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
         createdAt: at(now, 8),
       },
     ],
+    // Une plage libre dans la démo, parce qu'une fonctionnalité qu'on ne voit
+    // pas en essayant l'application n'existe pas pour celui qui l'essaie.
+    freeWindows: [
+      {
+        id: createId('fw'),
+        familyId: family.id,
+        label: 'Mercredi après-midi',
+        childIds: null,
+        days: [3],
+        startMinute: 14 * 60,
+        endMinute: 16 * 60,
+        enabled: true,
+        createdAt: at(now, 8),
+      },
+    ],
   };
 }
 
@@ -286,5 +301,6 @@ export function buildEmptyFamily(
     transactions: [],
     sessions: [],
     devices: [],
+    freeWindows: [],
   };
 }
