@@ -733,6 +733,26 @@ create table if not exists join_attempts (
 
 create index if not exists idx_join_attempts_user on join_attempts (user_id, attempted_at desc);
 
+/**
+ * Verrouillée, et SANS politique : personne n'y touche directement.
+ *
+ * Cette table est le compteur qui empêche un script de balayer l'espace des
+ * codes famille. Elle était la seule du schéma sans RLS — donc ouverte en
+ * lecture ET EN SUPPRESSION à tout appareil connecté, l'appareil d'un enfant
+ * compris. Il suffisait d'effacer ses propres lignes entre deux essais pour
+ * que la limite ne compte plus jamais : la protection s'annulait elle-même,
+ * et rien ne l'aurait signalé.
+ *
+ * Aucune politique n'est ajoutée, et c'est volontaire — RLS active sans
+ * politique veut dire « personne ». `join_family()` est `security definer` :
+ * elle s'exécute avec les droits de son propriétaire, qui outrepasse la RLS,
+ * et reste donc seule à pouvoir compter, insérer et purger.
+ *
+ * Trouvé en vérifiant la base réelle après application : 21 tables, 20 avec
+ * RLS. C'est l'écart d'une seule qui a mis la puce à l'oreille.
+ */
+alter table join_attempts enable row level security;
+
 -- A child's device attaching itself to a family.
 --
 -- RLS deliberately hides a family from anyone outside it, so the client cannot
