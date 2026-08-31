@@ -264,10 +264,28 @@ export class SupabaseAuthService implements AuthService {
     return { ok: true };
   }
 
+  /**
+   * `set_parent_pin` répond de DEUX façons, et on n'en lisait qu'une.
+   *
+   * Une erreur, quand l'appel casse. Mais aussi un `false` tranquille, sans la
+   * moindre erreur, quand la fonction refuse : pas de session ouverte, ou un
+   * code qui n'est pas quatre chiffres. Ce `false` était jeté — on répondait
+   * donc « c'est enregistré » à un parent dont le code n'existait nulle part,
+   * et l'espace parent devenait inouvrable sans que rien ne l'ait annoncé.
+   */
   async setParentPin(pin: string): Promise<AuthResult> {
     if (!/^\d{4}$/.test(pin)) return { ok: false, reason: 'Le code doit contenir 4 chiffres.' };
-    const { error } = await this.client.rpc('set_parent_pin', { p_pin: pin });
-    if (error) return { ok: false, reason: 'Impossible d’enregistrer le code.' };
+    const { data, error } = await this.client.rpc('set_parent_pin', { p_pin: pin });
+    trace('setParentPin', error);
+    if (error) {
+      return { ok: false, reason: `Impossible d’enregistrer le code : ${error.message}` };
+    }
+    if (data === false) {
+      return {
+        ok: false,
+        reason: 'Le serveur a refusé le code parent. Reconnectez-vous et réessayez.',
+      };
+    }
     return { ok: true };
   }
 
@@ -278,6 +296,7 @@ export class SupabaseAuthService implements AuthService {
 
   async verifyParentPin(pin: string): Promise<AuthResult> {
     const { data, error } = await this.client.rpc('verify_parent_pin', { p_pin: pin });
+    trace('verifyParentPin', error);
     if (error) return { ok: false, reason: 'Vérification impossible. Réessayez.' };
     if (data === true) return { ok: true };
     // The server answers false both for a wrong code and for too many tries;
