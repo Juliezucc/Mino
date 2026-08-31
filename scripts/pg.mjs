@@ -10,7 +10,7 @@
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -85,9 +85,41 @@ export function startPostgres({ db = 'mino', settings = {} } = {}) {
   const opts = ['-k ' + dir, '-h ""']
     .concat(Object.entries(settings).map(([k, v]) => `-c ${k}=${v}`))
     .join(' ');
-  run(`${BIN}/pg_ctl`, ['-D', data, '-l', join(dir, 'log'), '-o', `'${opts}'`, 'start'], {
-    stdio: 'ignore',
-  });
+
+  /**
+   * Les apostrophes autour des options ne valent QUE pour le chemin `su`.
+   *
+   * `su … -c` reçoit une chaîne unique, remise à un shell : sans elles, les
+   * options se découpent aux espaces. `execFileSync`, lui, passe chaque
+   * argument tel quel — les apostrophes y restaient littérales, et `pg_ctl`
+   * transmettait à `postgres` un unique argument `'-k /tmp/… -h ""'`,
+   * apostrophes comprises. Le serveur refusait de démarrer.
+   *
+   * Ce défaut ne se voyait jamais en root, où l'on passe par `su` : c'est
+   * exactement le cas de la machine qui l'a écrit. Sur le runner GitHub et sur
+   * un Mac de développement, où l'on est un utilisateur ordinaire, `test:sql`
+   * n'a donc jamais pu tourner — et la vérification la plus précieuse du
+   * dépôt était rouge sans que personne ne lise pourquoi.
+   */
+  const optionsPourPgCtl = asPostgres ? `'${opts}'` : opts;
+
+  try {
+    run(`${BIN}/pg_ctl`, ['-D', data, '-l', join(dir, 'log'), '-o', optionsPourPgCtl, 'start'], {
+      stdio: 'ignore',
+    });
+  } catch (error) {
+    // `pg_ctl` écrit la vraie raison dans son journal, et nulle part ailleurs.
+    // Sans ces quelques lignes, il ne restait que « Command failed » suivi de
+    // la commande — de quoi chercher longtemps.
+    console.error(String(error.message || error));
+    try {
+      console.error('\n--- journal de PostgreSQL ---');
+      console.error(readFileSync(join(dir, 'log'), 'utf8'));
+    } catch {
+      console.error('(aucun journal : le serveur n\'a même pas été lancé)');
+    }
+    throw error;
+  }
   started = true;
 
   // `su … -c` reçoit UNE chaîne passée au shell : tout ce qui y entre doit être
