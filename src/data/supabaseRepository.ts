@@ -299,7 +299,9 @@ function mergeById<T extends { id: string }>(...groups: T[][]): T[] {
   return [...seen.values()];
 }
 
-class SupabaseRepository implements MinoRepository {
+/** Exportée pour `__tests__/ecriture-famille.test.ts`, qui la construit sur un
+ *  client factice — la fabrique publique, elle, exige une vraie configuration. */
+export class SupabaseRepository implements MinoRepository {
   readonly name = 'supabase';
 
   constructor(private readonly client: SupabaseClient) {}
@@ -422,30 +424,55 @@ class SupabaseRepository implements MinoRepository {
     await this.upsertAll({ ...emptyPartial, ...touched } as Partial<FamilyData>);
   }
 
+  /**
+   * Écrire dans l'ordre des dépendances, et pas tout à la fois.
+   *
+   * Cette méthode envoyait les dix tables en parallèle. `parents`, `children`
+   * et `missions` référencent pourtant `families`, et `mission_completions`
+   * référence `mission_assignments` : quand la ligne fille arrivait avant sa
+   * mère, la base la refusait pour clé étrangère absente.
+   *
+   * C'est une course, donc ça passait ou ça cassait selon l'ordre d'arrivée
+   * des requêtes — selon le réseau, autrement dit. Elle ne se voyait jamais
+   * sur une connexion rapide et locale, et bloquait la création de famille
+   * ailleurs. Le pire genre de défaut : celui qui marche chez celui qui
+   * l'écrit.
+   *
+   * On garde le parallélisme là où il est sûr : à l'intérieur d'une vague.
+   * Quatre allers-retours au lieu d'un, sur la seule opération qui n'arrive
+   * qu'une fois par famille.
+   */
   private async upsertAll(data: Partial<FamilyData>): Promise<void> {
-    const jobs: Promise<unknown>[] = [];
-    const push = (table: string, rows: unknown[]) => {
+    const envoie = async (table: string, rows: unknown[]) => {
       if (rows.length === 0) return;
-      jobs.push(
-        (async () => {
-          const res = await this.client.from(table).upsert(rows as never);
-          if (res.error) throw res.error;
-        })(),
-      );
+      const res = await this.client.from(table).upsert(rows as never);
+      if (res.error) throw res.error;
     };
 
-    if (data.family) push(TABLES.families, [familyToRow(data.family)]);
-    push(TABLES.parents, (data.parents ?? []).map(parentToRow));
-    push(TABLES.children, (data.children ?? []).map(childToRow));
-    push(TABLES.missions, (data.missions ?? []).map(missionToRow));
-    push(TABLES.assignments, (data.assignments ?? []).map(assignmentToRow));
-    push(TABLES.completions, (data.completions ?? []).map(completionToRow));
-    push(TABLES.transactions, (data.transactions ?? []).map(transactionToRow));
-    push(TABLES.sessions, (data.sessions ?? []).map(sessionToRow));
-    push(TABLES.devices, (data.devices ?? []).map(deviceToRow));
-    push(TABLES.freeWindows, (data.freeWindows ?? []).map(freeWindowToRow));
+    const vagues: [string, unknown[]][][] = [
+      // La famille d'abord : tout le reste s'y rattache.
+      [[TABLES.families, data.family ? [familyToRow(data.family)] : []]],
+      // Ce qui ne dépend que d'elle.
+      [
+        [TABLES.parents, (data.parents ?? []).map(parentToRow)],
+        [TABLES.children, (data.children ?? []).map(childToRow)],
+        [TABLES.missions, (data.missions ?? []).map(missionToRow)],
+        [TABLES.devices, (data.devices ?? []).map(deviceToRow)],
+        [TABLES.freeWindows, (data.freeWindows ?? []).map(freeWindowToRow)],
+      ],
+      // Ce qui dépend d'un enfant, d'une mission ou d'un appareil.
+      [
+        [TABLES.assignments, (data.assignments ?? []).map(assignmentToRow)],
+        [TABLES.transactions, (data.transactions ?? []).map(transactionToRow)],
+        [TABLES.sessions, (data.sessions ?? []).map(sessionToRow)],
+      ],
+      // Et ce qui dépend d'une attribution.
+      [[TABLES.completions, (data.completions ?? []).map(completionToRow)]],
+    ];
 
-    await Promise.all(jobs);
+    for (const vague of vagues) {
+      await Promise.all(vague.map(([table, rows]) => envoie(table, rows)));
+    }
   }
 
   async clear(): Promise<void> {

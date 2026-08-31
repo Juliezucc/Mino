@@ -77,7 +77,8 @@ interface MinoState {
     email: string;
     /** Absent quand le compte existe déjà : il ne reste alors que la famille à créer. */
     password?: string;
-    pin: string;
+    /** Absent quand un code parent a déjà été posé — on ne le redemande pas. */
+    pin?: string;
     familyName?: string;
     consentAt: ISODate;
   }) => Promise<AuthResult>;
@@ -441,8 +442,13 @@ export const useMinoStore = create<MinoState>((set, get) => {
         if (!signUp.ok) return signUp;
       }
 
-      const pinSet = await getAuthService().setParentPin(pin);
-      if (!pinSet.ok) return pinSet;
+      // Pas de code à poser quand il y en a déjà un : le redemander à quelqu'un
+      // qui vient de le choisir à l'inscription n'apporte rien, et lui laisse
+      // croire que le premier n'a pas été retenu.
+      if (pin) {
+        const pinSet = await getAuthService().setParentPin(pin);
+        if (!pinSet.ok) return pinSet;
+      }
 
       const data = buildEmptyFamily({
         parentName,

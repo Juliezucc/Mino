@@ -10,6 +10,20 @@ import { colors, spacing } from '@/theme';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Le message d'une exception, d'où qu'elle vienne.
+ *
+ * Les erreurs de la base ne sont pas des `Error` : PostgREST rend un objet nu
+ * `{ message, details, hint, code }`, et `e instanceof Error` y répond non.
+ * On lisait donc un message par défaut à la place du seul texte utile.
+ */
+function phraseDErreur(e: unknown): string {
+  const dit = (e as { message?: unknown } | null)?.message;
+  return typeof dit === 'string' && dit.trim()
+    ? dit
+    : 'Impossible de créer la famille. Vérifiez votre connexion et réessayez.';
+}
+
 /** Step 1 of onboarding: the parent account. Children never create an account. */
 export default function CreateAccount() {
   const router = useRouter();
@@ -44,13 +58,24 @@ export default function CreateAccount() {
    * échouait à tous les coups.
    */
   const [compteOuvert, setCompteOuvert] = useState<string | null>(null);
+  /**
+   * Un code parent est-il déjà posé sur ce compte ?
+   *
+   * Il l'est dès l'inscription. Le redemander à l'écran suivant ne protège
+   * rien et laisse croire que le premier n'a pas été retenu — c'est ce qu'a
+   * signalé la première personne à conduire le parcours en entier.
+   */
+  const [codeDejaPose, setCodeDejaPose] = useState(false);
 
   useEffect(() => {
     let vivant = true;
     getAuthService()
       .session()
-      .then((s) => {
-        if (vivant && s.kind === 'parent') setCompteOuvert(s.email);
+      .then(async (s) => {
+        if (!vivant || s.kind !== 'parent') return;
+        setCompteOuvert(s.email);
+        const pose = await getAuthService().hasParentPin();
+        if (vivant) setCodeDejaPose(pose);
       })
       .catch(() => undefined);
     return () => {
@@ -65,10 +90,12 @@ export default function CreateAccount() {
       if (!EMAIL_RE.test(email.trim())) next.email = 'Adresse e-mail invalide.';
       if (password.length < 8) next.password = 'Au moins 8 caractères.';
     }
-    if (!/^\d{4}$/.test(pin)) next.pin = 'Le code parent doit contenir 4 chiffres.';
-    // A PIN identical to the last digits of the password helps nobody.
-    if (/^(\d)\1{3}$/.test(pin) || pin === '1234' || pin === '0000') {
-      next.pin = 'Trop facile à deviner. Choisissez autre chose.';
+    if (!codeDejaPose) {
+      if (!/^\d{4}$/.test(pin)) next.pin = 'Le code parent doit contenir 4 chiffres.';
+      // A PIN identical to the last digits of the password helps nobody.
+      if (/^(\d)\1{3}$/.test(pin) || pin === '1234' || pin === '0000') {
+        next.pin = 'Trop facile à deviner. Choisissez autre chose.';
+      }
     }
     // Le seul consentement qui ne se rattrape jamais. Mino encadre le temps
     // d'écran d'un enfant : c'est le titulaire de l'autorité parentale qui
@@ -86,7 +113,7 @@ export default function CreateAccount() {
         parentName: name.trim(),
         email: compteOuvert ?? email.trim(),
         password: compteOuvert ? undefined : password,
-        pin,
+        pin: codeDejaPose ? undefined : pin,
         // L'instant du consentement, pas seulement le fait qu'il ait eu lieu :
         // c'est la date qui vaut preuve.
         consentAt: new Date().toISOString(),
@@ -111,11 +138,13 @@ export default function CreateAccount() {
       // Sans ce filet, une exception laissait le bouton tourner sans fin et
       // sans un mot — l'écran le plus difficile à signaler, parce qu'il n'y a
       // rien à raconter au support.
-      setErreur(
-        e instanceof Error && e.message
-          ? e.message
-          : 'Impossible de créer la famille. Vérifiez votre connexion et réessayez.',
-      );
+      //
+      // Et sans `phraseDErreur`, le filet lui-même était muet : une erreur de
+      // PostgREST n'est pas une `Error`, c'est un objet nu. Le seul message
+      // qui existait — celui qui nommait la table et la contrainte en cause —
+      // était jeté au profit d'un « vérifiez votre connexion » qui envoyait
+      // chercher une panne de réseau là où il n'y en avait aucune.
+      setErreur(phraseDErreur(e));
     } finally {
       setLoading(false);
     }
@@ -208,24 +237,26 @@ export default function CreateAccount() {
               />
             </>
           )}
-          <Field
-            label="Code parent (4 chiffres)"
-            placeholder="••••"
-            value={pin}
-            onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 4))}
-            keyboardType="number-pad"
-            secureTextEntry
-            maxLength={4}
-            // Surtout PAS un mot de passe : sans ce démenti, le trousseau
-            // propose d'enregistrer le code parent à la place de celui du
-            // compte — deux champs masqués sur le même écran, il choisit le
-            // dernier. Le parent se retrouve alors avec quatre chiffres
-            // remplis automatiquement dans le champ mot de passe.
-            autoComplete="off"
-            textContentType="none"
-            hint="Il protège l’espace parent : les enfants ne doivent pas le connaître."
-            error={errors.pin}
-          />
+          {codeDejaPose ? null : (
+            <Field
+              label="Code parent (4 chiffres)"
+              placeholder="••••"
+              value={pin}
+              onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 4))}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={4}
+              // Surtout PAS un mot de passe : sans ce démenti, le trousseau
+              // propose d'enregistrer le code parent à la place de celui du
+              // compte — deux champs masqués sur le même écran, il choisit le
+              // dernier. Le parent se retrouve alors avec quatre chiffres
+              // remplis automatiquement dans le champ mot de passe.
+              autoComplete="off"
+              textContentType="none"
+              hint="Il protège l’espace parent : les enfants ne doivent pas le connaître."
+              error={errors.pin}
+            />
+          )}
         </View>
 
         <Pressable
