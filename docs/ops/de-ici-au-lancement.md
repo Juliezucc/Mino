@@ -162,16 +162,24 @@ C'est **le seul point du projet où un « non » venu de l'extérieur coûte le
 produit tel qu'il est décrit.** Le délai n'est pas garanti, et certains
 développeurs attendent des mois — d'où l'urgence de tout ce qui précède.
 
-**Deux demandes, pas une** — l'entitlement se demande par bundle, et
-l'extension en est un à part entière :
+**Une seule demande** : l'entitlement de distribution s'attache au **compte**,
+pas à un identifiant. Le formulaire ne comporte aucun champ pour désigner une
+application — nom, adresse et Team ID sont pré-remplis, et c'est tout.
+
+Ce qui se fait bien **deux fois**, en revanche, c'est l'entitlement de
+*développement*, à cocher identifiant par identifiant dans *Certificates,
+Identifiers & Profiles* :
 
 | Cible | Bundle |
 |---|---|
 | L'application | `fr.minoapp.mino` |
 | L'extension de surveillance | `fr.minoapp.mino.MinoShieldMonitor` |
 
-Déposer la première et oublier la seconde donne une application qui passe la
-revue et dont le bouclier ne se repose **jamais** à l'échéance.
+Cocher le premier et oublier le second donne une application qui compile et
+dont le bouclier ne se repose **jamais** à l'échéance. Sur chacun, cocher
+« Family Controls (Development) » et **pas** « Family Controls App and Website
+Usage » : celui-là sert à rapporter ce que l'enfant consulte, ce que Mino ne
+fait pas et affirme ne pas faire dans son dossier.
 
 Le texte du dossier est prêt dans `docs/apple-family-controls.md`. Ce qu'Apple
 juge, en une phrase : *est-ce un vrai produit de contrôle parental, ou un moyen

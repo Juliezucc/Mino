@@ -28,19 +28,30 @@ C'est le point qui se rate, et il coûte une semaine quand on le découvre tard.
 On peut donc commencer à développer immédiatement avec le premier. Mais rien ne
 part chez un testeur, ni chez Apple, sans le second.
 
-### Une demande PAR bundle identifier
+### Une seule demande, pour tout le compte
 
-Et l'extension compte comme un bundle à part entière. Il faut donc **deux
-demandes** :
+**Corrigé le 31/08/2026, sur pièce.** Ce document affirmait qu'il fallait une
+demande par bundle identifier, et donc deux : l'application et l'extension. Le
+formulaire dit le contraire, dans son propre en-tête :
 
-| Cible | Bundle identifier |
-|---|---|
-| L'application | `fr.minoapp.mino` |
-| L'extension de surveillance | `fr.minoapp.mino.MinoShieldMonitor` |
+> *Once assigned to your **developer account**, you can build apps that use the
+> capabilities of the Family Controls Framework.*
 
-Déposer la première et oublier la seconde donne une application qui passe la
-revue et dont le bouclier ne se repose jamais à l'échéance — c'est-à-dire le
-défaut le plus grave possible, découvert après publication.
+Il ne comporte d'ailleurs aucun champ pour désigner une application : nom,
+adresse et Team ID sont pré-remplis depuis le compte, et rien d'autre n'est
+demandé. L'autorisation s'attache à l'équipe, pas à un identifiant — donc
+l'extension `fr.minoapp.mino.MinoShieldMonitor` est couverte par la même
+demande que `fr.minoapp.mino`, puisqu'elles appartiennent au même compte.
+
+D'où venait l'erreur : l'entitlement de **développement**, lui, se coche bien
+identifiant par identifiant dans *Certificates, Identifiers & Profiles* — et il
+faut effectivement le cocher sur les DEUX, l'application et l'extension. C'est
+cette manipulation-là qui se fait deux fois, pas la demande.
+
+| | Portée | Où |
+|---|---|---|
+| **Development** | par identifiant, à cocher **deux fois** | Identifiers → Capabilities |
+| **Distribution** | par **compte**, une seule demande | le formulaire ci-dessus |
 
 ### Combien de temps
 
