@@ -46,6 +46,18 @@ function trace(ou: string, error: { message: string; code?: string } | null): vo
 }
 
 /**
+ * Les réponses qui signifient « ce compte n'existe plus », par opposition à
+ * « je n'ai pas pu joindre le serveur ».
+ *
+ * La distinction est tout le sujet : la première doit fermer la session, la
+ * seconde ne doit surtout pas — un parent hors réseau reste un parent.
+ */
+function DISPARU(error: { code?: string; status?: number }): boolean {
+  const codes = ['user_not_found', 'session_not_found', 'bad_jwt', 'refresh_token_not_found'];
+  return codes.includes(error.code ?? '') || error.status === 401 || error.status === 403;
+}
+
+/**
  * Real accounts, on Supabase.
  *
  * Two rules run through every method here.
@@ -66,16 +78,49 @@ export class SupabaseAuthService implements AuthService {
 
   constructor(private readonly client: SupabaseClient) {}
 
+  /**
+   * Demander au serveur qui est là, et pas seulement au disque.
+   *
+   * `getSession()` ne fait que relire le jeton rangé sur l'appareil. Il ne
+   * prouve rien : un jeton reste lisible et bien formé longtemps après que le
+   * compte qu'il désigne a disparu — supprimé depuis un autre appareil,
+   * révoqué, ou effacé de la base. L'application affirmait donc « ce parent
+   * est connecté » sur la seule foi d'un fichier local.
+   *
+   * Le dégât ne se voit qu'ensuite, et jamais là où il est. Chaque écriture
+   * part avec l'identité d'un utilisateur inexistant, et la base la refuse
+   * pour clé étrangère absente. « Impossible d'enregistrer le code » : le
+   * parent lit une panne de code parent là où il n'a plus de compte du tout.
+   *
+   * `getUser()` interroge le serveur. On ne ferme la session que sur les
+   * réponses qui disent que le compte n'est plus là — jamais sur une panne de
+   * réseau, sans quoi on déconnecterait un parent dans le métro.
+   */
   async session(): Promise<Session> {
-    const { data } = await this.client.auth.getSession();
-    const user = data.session?.user;
-    if (!user) return NO_SESSION;
-    return {
+    const { data: local } = await this.client.auth.getSession();
+    const range = local.session?.user;
+    if (!range) return NO_SESSION;
+
+    const decrire = (user: { id: string; email?: string | null }): Session => ({
       // An anonymous user is a child's device; a real e-mail is a parent.
       kind: user.email ? 'parent' : 'device',
       userId: user.id,
       email: user.email ?? null,
-    };
+    });
+
+    const { data, error } = await this.client.auth.getUser();
+    if (!error && data.user) return decrire(data.user);
+
+    if (error && DISPARU(error)) {
+      trace('session', error);
+      // Le jeton ne vaut plus rien : le garder ne ferait que rejouer la même
+      // panne à chaque écran.
+      await this.client.auth.signOut().catch(() => undefined);
+      return NO_SESSION;
+    }
+
+    // Réseau injoignable : on s'en tient à ce que l'appareil sait.
+    return decrire(range);
   }
 
   onChange(listener: (session: Session) => void): () => void {

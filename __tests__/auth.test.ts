@@ -122,6 +122,43 @@ describe('les causes d’échec qu’on a le droit de nommer', () => {
       },
     } as never);
 
+  /**
+   * Le service construit ici avec une session locale et une réponse serveur
+   * choisie : c'est tout ce dont on a besoin pour éprouver `session()`.
+   */
+  const avecJeton = (reponse: { data: unknown; error: unknown }) =>
+    new SupabaseAuthService({
+      auth: {
+        getSession: async () => ({
+          data: { session: { user: { id: 'u-1', email: 'claire@exemple.fr' } } },
+        }),
+        getUser: async () => reponse,
+        signOut: async () => ({ error: null }),
+      },
+    } as never);
+
+  it('ferme la session quand le compte a disparu du serveur', async () => {
+    // Un jeton reste lisible et bien formé longtemps après que le compte qu'il
+    // désigne a été supprimé. L'application le prenait pour argent comptant,
+    // puis toutes ses écritures partaient avec l'identité d'un utilisateur
+    // inexistant — et la base les refusait pour clé étrangère absente, très
+    // loin de l'endroit où le mal avait commencé.
+    const s = await avecJeton({ data: { user: null }, error: { code: 'user_not_found', status: 403 } }).session();
+    expect(s.kind).toBe('none');
+    expect(s.userId).toBeNull();
+  });
+
+  it('mais garde le parent connecté quand c’est le réseau qui manque', async () => {
+    // La distinction est tout le sujet : déconnecter quelqu'un parce que son
+    // train est passé sous un tunnel serait pire que le défaut réparé.
+    const s = await avecJeton({
+      data: { user: null },
+      error: { message: 'Failed to fetch' },
+    }).session();
+    expect(s.kind).toBe('parent');
+    expect(s.email).toBe('claire@exemple.fr');
+  });
+
   it('distingue « le compte attend sa confirmation » d’un échec', async () => {
     // Supabase ne rend aucune erreur quand « Confirm email » est actif : il
     // crée le compte et n'ouvre pas de session. Sans `pending`, l'écran posait
