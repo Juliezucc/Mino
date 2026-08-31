@@ -23,9 +23,13 @@ const REASONS = [
 /**
  * A gift, outside of any mission.
  *
- * Always positive: a "bonus" that could also take time away would be a
- * punishment wearing a nicer name, and Mino never takes back what was earned.
- * Corrections live on the child's own page, named for what they are.
+ * Toujours positif : un « bonus » qui pourrait aussi retirer du temps serait
+ * une punition sous un plus joli nom, et Mino ne reprend pas ce qui a été
+ * gagné. Retirer des minutes reste possible — c'est parfois nécessaire — mais
+ * ailleurs, et sous son vrai nom : la section « Ajustement » de la fiche de
+ * l'enfant. La note en bas de cet écran y envoie explicitement ; elle disait
+ * auparavant que l'opération « y est nommée pour ce qu'elle est », ce qui
+ * énonçait le principe sans jamais dire où aller.
  */
 export default function BonusScreen() {
   const router = useRouter();
@@ -152,8 +156,9 @@ export default function BonusScreen() {
 
       <Card elevation="none" background={colors.surfaceMuted}>
         <Text variant="caption" color={colors.textMuted}>
-          Un bonus n’enlève jamais de temps. Pour corriger une erreur, passez par la fiche de
-          l’enfant : l’opération y est nommée pour ce qu’elle est, et tracée dans l’historique.
+          Un bonus ajoute des minutes, il n’en retire jamais. Pour en retirer, ouvrez la fiche de
+          l’enfant, section « Ajustement » : chaque retrait y est inscrit dans l’historique, avec
+          sa date et sa raison.
         </Text>
       </Card>
     </Screen>
