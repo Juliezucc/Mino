@@ -152,16 +152,22 @@ Deux raisons de ne pas prendre votre compte personnel :
   l'autorité légale d'engager la société — que vous avez comme présidente.
 - **Google Play Console** — 25 $ une fois.
 
-### 6. Déposer la demande Family Controls · vous · 1 h → réponse en semaines
+### 6. Déposer la demande Family Controls · ✅ fait le 31/08/2026, en 5 min
 
 **https://developer.apple.com/contact/request/family-controls-distribution**
 
 Le formulaire demande de se connecter : d'où sa place **après** l'étape 5, et
 non avant. C'est la correction d'ordre annoncée en tête de section.
 
-C'est **le seul point du projet où un « non » venu de l'extérieur coûte le
-produit tel qu'il est décrit.** Le délai n'est pas garanti, et certains
-développeurs attendent des mois — d'où l'urgence de tout ce qui précède.
+C'était **le seul point du projet où un « non » venu de l'extérieur coûtait le
+produit tel qu'il est décrit** — et cette étape était donnée pour longue,
+certains développeurs attendant des mois.
+
+**Accordé en cinq minutes**, par e-mail automatique, sans dossier à plaider :
+le formulaire ne demande que le nom, l'adresse et le Team ID, tous pré-remplis.
+Le risque le plus lourd du projet est retiré. Voir `apple-family-controls.md`
+pour ce qui reste vrai — le texte du dossier décrit le produit tel qu'il doit
+le rester, et c'est la revue App Store qui le vérifiera.
 
 **Une seule demande** : l'entitlement de distribution s'attache au **compte**,
 pas à un identifiant. Le formulaire ne comporte aucun champ pour désigner une

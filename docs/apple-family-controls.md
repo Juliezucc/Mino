@@ -1,13 +1,35 @@
 # Demande d'autorisation Family Controls (Apple)
 
 Pour que Mino verrouille et déverrouille réellement les applications sur iPhone
-et iPad, Apple doit nous accorder l'entitlement **`com.apple.developer.family-controls`**
-en mode distribution. Il n'est pas attribué automatiquement : il se demande, et
-la réponse prend du temps.
+et iPad, Apple doit accorder l'entitlement
+**`com.apple.developer.family-controls`** en mode distribution.
 
-**C'est le chemin critique du projet.** Tout le reste — le module natif, le
-passage en development build, la version Android — peut avancer pendant
-l'instruction. Déposez la demande d'abord.
+## ✅ Accordé le 31 août 2026, en cinq minutes
+
+**Compte Agence Wheb, Team ID `C8F2CKP8SZ`.** Le formulaire ne demande rien
+d'autre que le nom, l'adresse et le Team ID — tous trois pré-remplis depuis le
+compte. Aucun dossier à plaider, aucune application à désigner. La réponse est
+arrivée par e-mail dans la foulée :
+
+> *The entitlement for Family Controls (Distribution) has been assigned to your
+> account, and you can now configure this capability for eligible apps.*
+
+**Ce document annonçait des semaines, voire des mois, et désignait cette
+démarche comme le chemin critique du projet.** C'était l'état de l'art
+rapporté par les développeurs, et ce n'est plus vrai — Apple semble avoir
+rendu l'attribution automatique pour les comptes Organization éligibles. Le
+dossier écrit plus bas n'a pas servi.
+
+Ce qui reste vrai, et qu'il faut garder : **le texte du dossier décrit le
+produit tel qu'il doit rester.** Il affirme que Mino ne collecte aucune
+statistique d'usage et ne rapporte pas au parent ce que l'enfant consulte. La
+revue App Store, elle, vérifiera cette promesse — et c'est là, pas ici, que se
+joue désormais le vrai examen.
+
+> **Ne pas généraliser à partir d'un cas.** L'attribution a été immédiate pour
+> ce compte, ce jour-là. Un autre compte, une autre année, une autre catégorie
+> déclarée peuvent donner autre chose. Ce qui est certain : la démarche est
+> gratuite, dure cinq minutes, et se fait donc tôt de toute façon.
 
 ## Où déposer
 
@@ -53,12 +75,12 @@ cette manipulation-là qui se fait deux fois, pas la demande.
 | **Development** | par identifiant, à cocher **deux fois** | Identifiers → Capabilities |
 | **Distribution** | par **compte**, une seule demande | le formulaire ci-dessus |
 
-### Combien de temps
+### Combien de temps — mesuré : immédiat
 
-De quelques jours ouvrés à plusieurs semaines, sans délai garanti et sans accusé
-de réception fiable. Des développeurs rapportent des demandes restées sans
-réponse pendant des mois. **C'est la raison pour laquelle cette demande se
-dépose avant tout le reste**, et non parce qu'elle serait longue à écrire.
+Attendu : de quelques jours ouvrés à plusieurs semaines, sans délai garanti,
+des développeurs rapportant des demandes restées sans réponse pendant des mois.
+
+Constaté le 31/08/2026 : **quelques minutes**, par e-mail automatique.
 
 ### Ce qu'Apple refuse
 
