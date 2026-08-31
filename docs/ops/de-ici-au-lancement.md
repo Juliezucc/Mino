@@ -85,8 +85,9 @@ C'est la première pierre de toute la chaîne Apple.
 
 En parallèle du D-U-N-S. Trois raisons convergent vers ce domaine.
 
-**a) L'identifiant de l'application en dérive** (`fr.minoapp.mino`), et la
-demande Family Controls se dépose **par identifiant**.
+**a) L'identifiant de l'application en dérive** (`fr.minoapp.mino`), et c'est
+sur lui que se coche l'entitlement Family Controls de développement — sur celui
+de l'extension aussi.
 
 **b) Les adresses légales.** `mino.app` appartient à un tiers, et la politique
 de confidentialité comme les CGV y renvoyaient : ces adresses n'auraient jamais
