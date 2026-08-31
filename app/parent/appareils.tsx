@@ -73,7 +73,7 @@ export default function DevicesScreen() {
 
       <Card background={colors.blueSoft} elevation="none" style={styles.intro}>
         <Text variant="bodyStrong" color={colors.blueInk}>
-          Un seul écran est automatique : le téléphone ou la tablette où Mino est installé.
+          Un seul écran est automatique : l’appareil où Mino est installé.
         </Text>
         <Text variant="body" color={colors.textMuted}>
           Mino existe sur iPhone, iPad et Android. Sur un de ces appareils, votre enfant lance

@@ -71,7 +71,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Installez Mino sur l’appareil de l’enfant',
         body: [
-          'Sur sa tablette ou son téléphone, téléchargez Mino depuis l’App Store ou le Play Store. Ne vous connectez pas avec votre compte : il n’y en a pas besoin.',
+          'Sur son appareil à lui, téléchargez Mino depuis l’App Store ou le Play Store. Ne vous connectez pas avec votre compte : il n’y en a pas besoin.',
           'Si l’appareil est partagé entre plusieurs enfants, une seule installation suffit — chacun choisira son profil au lancement.',
         ],
         outside: true,
@@ -264,7 +264,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Un seul écran est automatique',
         body: [
-          'Celui où Mino est installé. Là, votre enfant lance son temps lui-même et le minuteur démarre aussitôt — c’est le fonctionnement normal, celui du téléphone ou de la tablette.',
+          'Celui où Mino est installé. Là, votre enfant lance son temps lui-même et le minuteur démarre aussitôt — c’est le fonctionnement normal, celui de son appareil.',
           'Une Nintendo Switch, une PlayStation, une télévision ou l’ordinateur familial n’ouvrent leur temps de jeu à aucune application extérieure. Il n’existe aucun moyen, pour Mino, de démarrer ou d’arrêter une console. Plutôt que d’ignorer ces écrans — souvent les seuls chez les plus jeunes — Mino en fait un échange encadré.',
         ],
       },

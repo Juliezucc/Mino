@@ -47,7 +47,7 @@ export function FirstStepCard({ child, familyCode }: Props) {
 
       <View style={styles.code}>
         <Text variant="caption" color={colors.textMuted} center>
-          Sur sa tablette à lui : installez Mino, puis « J’ai un code famille »
+          Sur son appareil à lui : installez Mino, puis « J’ai un code famille »
         </Text>
         <Text variant="title" color={colors.blueInk} center>
           {familyCode}

@@ -66,7 +66,7 @@ export const FAQ: FaqEntry[] = [
     id: 'installer-appareil-enfant',
     question: 'Comment installer Mino sur l’appareil de mon enfant ?',
     answer:
-      'Installez Mino depuis l’App Store ou le Play Store sur son téléphone ou sa tablette, ouvrez l’application et choisissez « J’ai un code famille ». Votre code se trouve dans Réglages, sur votre propre téléphone. Le système vous demandera ensuite l’autorisation d’un adulte : c’est normal, c’est ce qui permet de vraiment débloquer le temps d’écran.',
+      'Installez Mino depuis l’App Store ou le Play Store sur son appareil, ouvrez l’application et choisissez « J’ai un code famille ». Votre code se trouve dans Réglages, sur votre propre téléphone. Le système vous demandera ensuite l’autorisation d’un adulte : c’est normal, c’est ce qui permet de vraiment débloquer le temps d’écran.',
     category: 'installation',
     keywords: ['installer', 'installation', 'appareil enfant', 'telephone enfant', 'tablette', 'configurer', 'demarrer', 'commencer'],
     guide: 'appareil-enfant',
@@ -313,7 +313,7 @@ export const FAQ: FaqEntry[] = [
     id: 'enfant-connait-code-parent',
     question: 'Mon enfant a vu mon code parent',
     answer:
-      'Changez-le depuis Réglages, « Gérer mon compte », section Code parent. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis sa tablette, même en cherchant.',
+      'Changez-le depuis Réglages, « Gérer mon compte », section Code parent. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis son appareil, même en cherchant.',
     category: 'compte',
     keywords: ['code decouvert', 'changer code', 'espionne', 'securite code'],
   },
@@ -469,7 +469,7 @@ export const FAQ: FaqEntry[] = [
     id: 'appareil-partage-profils',
     question: 'Mon enfant peut changer de profil et prendre celui de son frère',
     answer:
-      'Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> ». Mino s’ouvrira toujours sur son profil, et il faudra votre code parent pour en changer. Laissez « Partagé » pour une tablette familiale : chacun retrouve alors le dernier profil utilisé, et peut en changer librement.',
+      'Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> ». Mino s’ouvrira toujours sur son profil, et il faudra votre code parent pour en changer. Laissez « Partagé » pour un appareil familial : chacun retrouve alors le dernier profil utilisé, et peut en changer librement.',
     category: 'compte',
     keywords: ['changer de profil', 'profil', 'frere', 'soeur', 'tablette partagee', 'verrouiller', 'prendre les minos'],
     route: '/parent/(tabs)/reglages',

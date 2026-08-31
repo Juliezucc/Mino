@@ -152,7 +152,7 @@ export default function JoinFamily() {
                 C’est l’appareil de qui ?
               </Text>
               <Text variant="body" color={colors.textMuted} center>
-                Si c’est ta tablette à toi, choisis-toi : Mino s’ouvrira toujours sur ton profil.
+                Si c’est ton appareil à toi, choisis-toi : Mino s’ouvrira toujours sur ton profil.
                 Si vous êtes plusieurs dessus, choisis « Appareil partagé ».
               </Text>
             </View>
