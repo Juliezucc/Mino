@@ -400,7 +400,7 @@ export class SupabaseRepository implements MinoRepository {
 
   async persist(data: FamilyData, change: ChangeEvent): Promise<void> {
     if (change.kind === 'bootstrap') {
-      await this.upsertAll(data);
+      await this.upsertAll(data, 'creation');
       return;
     }
 
@@ -425,36 +425,52 @@ export class SupabaseRepository implements MinoRepository {
   }
 
   /**
-   * Écrire dans l'ordre des dépendances, et pas tout à la fois.
+   * Écrire dans l'ordre des dépendances — et, la première fois, sans `upsert`.
    *
-   * Cette méthode envoyait les dix tables en parallèle. `parents`, `children`
-   * et `missions` référencent pourtant `families`, et `mission_completions`
-   * référence `mission_assignments` : quand la ligne fille arrivait avant sa
-   * mère, la base la refusait pour clé étrangère absente.
+   * Deux règles se sont révélées ici, chacune par une panne.
    *
-   * C'est une course, donc ça passait ou ça cassait selon l'ordre d'arrivée
-   * des requêtes — selon le réseau, autrement dit. Elle ne se voyait jamais
-   * sur une connexion rapide et locale, et bloquait la création de famille
-   * ailleurs. Le pire genre de défaut : celui qui marche chez celui qui
-   * l'écrit.
+   * L'ORDRE. Cette méthode envoyait les dix tables en parallèle. `parents`,
+   * `children` et `missions` référencent pourtant `families`, et
+   * `completions` référence `assignments` : quand la ligne fille arrivait
+   * avant sa mère, la base la refusait pour clé étrangère absente. C'était une
+   * course, tranchée par le réseau — invisible sur une connexion rapide,
+   * c'est-à-dire chez qui l'écrit.
    *
-   * On garde le parallélisme là où il est sûr : à l'intérieur d'une vague.
-   * Quatre allers-retours au lieu d'un, sur la seule opération qui n'arrive
-   * qu'une fois par famille.
+   * LA MANIÈRE, et c'est la plus retorse. `upsert` produit un
+   * `INSERT ... ON CONFLICT DO UPDATE`, et PostgreSQL applique alors à la
+   * ligne neuve la clause de la politique de MISE À JOUR — laquelle exige,
+   * partout, d'appartenir déjà à la famille. Une famille qu'on vient
+   * d'inventer n'appartient à personne : la base répondait
+   * « new row violates row-level security policy », et la création d'une
+   * famille sur Supabase n'a jamais pu aboutir une seule fois. Un `insert`
+   * simple, lui, ne consulte que la politique d'insertion — celle qui a été
+   * écrite pour ce cas, et qui l'autorise.
+   *
+   * D'où la séparation : `creation` insère, `mise a jour` fusionne. Et d'où
+   * `parents` seul dans sa vague — c'est cette ligne-là qui fait entrer le
+   * compte dans la famille, donc rien de ce qui exige d'y appartenir ne peut
+   * partir avant qu'elle soit écrite.
    */
-  private async upsertAll(data: Partial<FamilyData>): Promise<void> {
+  private async upsertAll(
+    data: Partial<FamilyData>,
+    mode: 'creation' | 'mise a jour' = 'mise a jour',
+  ): Promise<void> {
     const envoie = async (table: string, rows: unknown[]) => {
       if (rows.length === 0) return;
-      const res = await this.client.from(table).upsert(rows as never);
+      const cible = this.client.from(table);
+      const res =
+        mode === 'creation' ? await cible.insert(rows as never) : await cible.upsert(rows as never);
       if (res.error) throw res.error;
     };
 
     const vagues: [string, unknown[]][][] = [
       // La famille d'abord : tout le reste s'y rattache.
       [[TABLES.families, data.family ? [familyToRow(data.family)] : []]],
-      // Ce qui ne dépend que d'elle.
+      // Puis le parent, SEUL : c'est lui qui rattache le compte à la famille,
+      // et donc lui qui rend possible tout ce qui suit.
+      [[TABLES.parents, (data.parents ?? []).map(parentToRow)]],
+      // Ce qui ne dépend que de la famille.
       [
-        [TABLES.parents, (data.parents ?? []).map(parentToRow)],
         [TABLES.children, (data.children ?? []).map(childToRow)],
         [TABLES.missions, (data.missions ?? []).map(missionToRow)],
         [TABLES.devices, (data.devices ?? []).map(deviceToRow)],

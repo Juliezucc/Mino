@@ -1,6 +1,24 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 
+import * as Linking from 'expo-linking';
+
 import { AuthResult, AuthService, NO_SESSION, Session } from './AuthService';
+
+/**
+ * L'adresse à laquelle un lien reçu par e-mail doit ramener.
+ *
+ * `mino://…` sur un téléphone, `http://localhost:8081/…` dans un navigateur —
+ * et c'est `expo-linking` qui sait laquelle, pas nous. Écrire `mino://` en dur
+ * marchait sur l'appareil et nulle part ailleurs : sur le web, le lien ne
+ * menait à rien du tout, ce qui est exactement là où l'on mesure ces
+ * choses-là.
+ *
+ * Chaque adresse produite ici doit être ajoutée aux « Redirect URLs » du
+ * projet Supabase, sinon il refuse de rediriger.
+ */
+function adresseDeRetour(chemin: string): string {
+  return Linking.createURL(`/${chemin}`);
+}
 
 /**
  * Les seules causes d'échec qu'on a le droit de nommer.
@@ -161,6 +179,19 @@ export class SupabaseAuthService implements AuthService {
     const { data, error } = await this.client.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
+      /**
+       * Où le lien de confirmation ramène.
+       *
+       * Sans cette ligne, il retombait sur l'« URL du site » du projet
+       * Supabase, c'est-à-dire l'accueil de Mino : quatre boutons dont aucun ne
+       * correspondait à ce que le parent venait de faire. `mino://confirme`
+       * ouvre la session portée par le lien et l'emmène droit à sa famille.
+       *
+       * L'adresse doit figurer dans les « Redirect URLs » du projet, comme
+       * celles du mot de passe — Supabase refuse toute autre destination, et
+       * c'est précisément ce qui empêche de détourner le lien.
+       */
+      options: { emailRedirectTo: adresseDeRetour('confirme') },
     });
     trace('signUp', error);
     if (error) {
@@ -191,6 +222,26 @@ export class SupabaseAuthService implements AuthService {
       password,
     });
     trace('signIn', error);
+    /**
+     * « E-mail ou mot de passe incorrect » était faux, et coûteux.
+     *
+     * Le parent venait de taper les deux correctement : il ne lui manquait que
+     * le clic dans sa boîte mail. On l'envoyait donc vérifier deux champs
+     * justes, puis demander un nouveau mot de passe, puis recréer un compte —
+     * tout sauf la seule chose à faire.
+     *
+     * C'est bien la seule cause qu'on nomme ici, et elle apprend en effet
+     * qu'un compte existe à cette adresse. On l'accepte : le compte n'est pas
+     * ouvert pour autant — il faut toujours le mot de passe — et une porte
+     * dont on ignore pourquoi elle résiste n'est pas une porte, c'est un mur.
+     */
+    if (error?.code === 'email_not_confirmed') {
+      return {
+        ok: false,
+        reason:
+          'Votre adresse n’est pas encore confirmée. Ouvrez le lien que nous vous avons envoyé, puis revenez.',
+      };
+    }
     if (error) return { ok: false, reason: 'E-mail ou mot de passe incorrect.' };
     return { ok: true };
   }
@@ -264,7 +315,7 @@ export class SupabaseAuthService implements AuthService {
    */
   async requestPasswordReset(email: string): Promise<AuthResult> {
     await this.client.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-      redirectTo: 'mino://mot-de-passe',
+      redirectTo: adresseDeRetour('mot-de-passe'),
     });
     // Always the same answer: anything else says whether the account exists.
     return { ok: true };
@@ -280,7 +331,7 @@ export class SupabaseAuthService implements AuthService {
   async changeEmail(email: string): Promise<AuthResult> {
     const { error } = await this.client.auth.updateUser(
       { email: email.trim().toLowerCase() },
-      { emailRedirectTo: 'mino://login' },
+      { emailRedirectTo: adresseDeRetour('login') },
     );
     if (error) {
       return { ok: false, reason: 'Impossible de changer l’adresse. Vérifiez-la et réessayez.' };

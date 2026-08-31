@@ -59,6 +59,16 @@ jest.mock('expo-crypto', () => ({
   },
 }));
 
+/**
+ * `createURL` a besoin du manifeste d'Expo pour connaître le schéma de
+ * l'application, et il n'y a pas de manifeste sous Jest. On rend ici ce qu'il
+ * rendrait sur un appareil — le schéma déclaré dans `app.json`.
+ */
+jest.mock('expo-linking', () => ({
+  createURL: (chemin: string) => `mino://${String(chemin).replace(/^\//, '')}`,
+  useURL: () => null,
+}));
+
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(async () => undefined),
   notificationAsync: jest.fn(async () => undefined),

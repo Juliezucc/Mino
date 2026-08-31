@@ -22,20 +22,20 @@ import type { Child, FamilyData } from '@/domain/types';
  */
 function clientFactice(retardDeLaFamille = 5) {
   const arrivees: string[] = [];
-  const client = {
-    from(table: string) {
-      return {
-        async upsert() {
-          if (table === 'families') {
-            await new Promise((r) => setTimeout(r, retardDeLaFamille));
-          }
-          arrivees.push(table);
-          return { error: null };
-        },
-      };
-    },
+  const verbes: string[] = [];
+  const ecrire = (table: string, verbe: string) => async () => {
+    verbes.push(verbe);
+    if (table === 'families') await new Promise((r) => setTimeout(r, retardDeLaFamille));
+    arrivees.push(table);
+    return { error: null };
   };
-  return { arrivees, client: client as never };
+  const client = {
+    from: (table: string) => ({
+      insert: ecrire(table, 'insert'),
+      upsert: ecrire(table, 'upsert'),
+    }),
+  };
+  return { arrivees, verbes, client: client as never };
 }
 
 describe('écrire une famille', () => {
@@ -60,20 +60,48 @@ describe('écrire une famille', () => {
     };
   };
 
-  it('écrit la famille avant tout ce qui s’y rattache', async () => {
+  it('écrit la famille, puis le parent, puis le reste', async () => {
     const { arrivees, client } = clientFactice();
     await new SupabaseRepository(client).persist(famille(), { kind: 'bootstrap' });
 
-    const familleArrivee = arrivees.indexOf('families');
-    expect(familleArrivee).toBeGreaterThanOrEqual(0);
-    expect(familleArrivee).toBeLessThan(arrivees.indexOf('parents'));
-    expect(familleArrivee).toBeLessThan(arrivees.indexOf('children'));
+    const rang = (t: string) => arrivees.indexOf(t);
+    expect(rang('families')).toBeGreaterThanOrEqual(0);
+    expect(rang('families')).toBeLessThan(rang('parents'));
+    // La ligne parent est ce qui rattache le compte à la famille : rien de ce
+    // qui exige d'y appartenir ne peut partir avant elle.
+    expect(rang('parents')).toBeLessThan(rang('children'));
+  });
+
+  it('crée par insertion, jamais par fusion', async () => {
+    // `upsert` produit un `INSERT ... ON CONFLICT DO UPDATE`, et PostgreSQL
+    // applique alors à la ligne neuve la clause de la politique de MISE À
+    // JOUR — laquelle exige d'appartenir déjà à la famille. Une famille qu'on
+    // vient d'inventer n'appartient à personne : la base répondait « new row
+    // violates row-level security policy », et aucune famille n'a jamais pu
+    // être créée sur Supabase. Voir `supabase/test/creation.sql`.
+    const { verbes, client } = clientFactice(0);
+    await new SupabaseRepository(client).persist(famille(), { kind: 'bootstrap' });
+
+    expect(verbes).not.toContain('upsert');
+    expect(new Set(verbes)).toEqual(new Set(['insert']));
+  });
+
+  it('mais corrige par fusion tout ce qui suit', async () => {
+    // Une écriture ordinaire doit pouvoir rectifier une ligne existante sans
+    // savoir si elle existe. Seule la PREMIÈRE devait changer de manière.
+    const { verbes, client } = clientFactice(0);
+    const data = famille();
+    await new SupabaseRepository(client).persist(data, {
+      kind: 'family.updated',
+      upsert: { children: data.children },
+    });
+
+    expect(verbes).toEqual(['upsert']);
   });
 
   it('remonte l’erreur de la base plutôt que de l’avaler', async () => {
-    const client = {
-      from: () => ({ upsert: async () => ({ error: { message: 'clé étrangère absente' } }) }),
-    } as never;
+    const echoue = async () => ({ error: { message: 'clé étrangère absente' } });
+    const client = { from: () => ({ insert: echoue, upsert: echoue }) } as never;
 
     await expect(
       new SupabaseRepository(client).persist(famille(), { kind: 'bootstrap' }),

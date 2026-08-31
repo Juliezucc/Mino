@@ -83,6 +83,9 @@ export default function CreateAccount() {
     };
   }, []);
 
+  /** Le code parent appartient à la création de la famille, pas à celle du compte. */
+  const demandeLeCode = Boolean(compteOuvert) && !codeDejaPose;
+
   const submit = async () => {
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = 'Indique ton prénom.';
@@ -90,7 +93,15 @@ export default function CreateAccount() {
       if (!EMAIL_RE.test(email.trim())) next.email = 'Adresse e-mail invalide.';
       if (password.length < 8) next.password = 'Au moins 8 caractères.';
     }
-    if (!codeDejaPose) {
+    /**
+     * Le code parent ne se demande qu'à la création de la FAMILLE.
+     *
+     * Il était réclamé dès l'inscription, à côté du mot de passe : deux
+     * secrets à inventer et à retenir sur le même écran, avant même d'avoir
+     * compris à quoi sert le second. Il n'a pourtant de sens qu'une fois qu'il
+     * y a une famille et des appareils à protéger.
+     */
+    if (demandeLeCode) {
       if (!/^\d{4}$/.test(pin)) next.pin = 'Le code parent doit contenir 4 chiffres.';
       // A PIN identical to the last digits of the password helps nobody.
       if (/^(\d)\1{3}$/.test(pin) || pin === '1234' || pin === '0000') {
@@ -113,7 +124,7 @@ export default function CreateAccount() {
         parentName: name.trim(),
         email: compteOuvert ?? email.trim(),
         password: compteOuvert ? undefined : password,
-        pin: codeDejaPose ? undefined : pin,
+        pin: demandeLeCode ? pin : undefined,
         // L'instant du consentement, pas seulement le fait qu'il ait eu lieu :
         // c'est la date qui vaut preuve.
         consentAt: new Date().toISOString(),
@@ -232,12 +243,12 @@ export default function CreateAccount() {
                 // venait pas de la protection : elle venait de l'invention.
                 autoComplete="new-password"
                 textContentType="newPassword"
-                hint="Il protège votre compte. Le code à 4 chiffres, lui, protège l’espace parent sur les appareils de la famille."
+                hint="C’est le seul mot de passe de Mino. Il ne se tape que sur votre téléphone."
                 error={errors.password}
               />
             </>
           )}
-          {codeDejaPose ? null : (
+          {demandeLeCode ? (
             <Field
               label="Code parent (4 chiffres)"
               placeholder="••••"
@@ -256,7 +267,7 @@ export default function CreateAccount() {
               hint="Il protège l’espace parent : les enfants ne doivent pas le connaître."
               error={errors.pin}
             />
-          )}
+          ) : null}
         </View>
 
         <Pressable

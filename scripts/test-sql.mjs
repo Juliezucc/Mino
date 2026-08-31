@@ -84,7 +84,8 @@ try {
   const compte = pg.file('supabase/test/compte.sql');
   const plages = pg.file('supabase/test/plages.sql');
   const codeParent = pg.file('supabase/test/code-parent.sql');
-  const lines = `${out.stderr}${companion.stderr}${realtime.stderr}${plans.stderr}${retention.stderr}${compte.stderr}${plages.stderr}${codeParent.stderr}`
+  const creation = pg.file('supabase/test/creation.sql');
+  const lines = `${out.stderr}${companion.stderr}${realtime.stderr}${plans.stderr}${retention.stderr}${compte.stderr}${plages.stderr}${codeParent.stderr}${creation.stderr}`
     .split('\n')
     // `ERROR:` autant que `ÉCHEC` : un fichier de test peut mourir sur une
     // faute SQL au lieu d'échouer sur une assertion — une fonction absente,
@@ -95,7 +96,7 @@ try {
     .map((l) => l.replace(/^.*NOTICE:\s+/, '').replace(/^.*ERROR:\s+/, '❌ '));
   console.log(lines.join('\n'));
 
-  if ([out, companion, realtime, plans, retention, compte, plages, codeParent].some((r) => r.status !== 0)) {
+  if ([out, companion, realtime, plans, retention, compte, plages, codeParent, creation].some((r) => r.status !== 0)) {
     console.error('\nUne tentative est passée. Voir ci-dessus.');
     process.exit(1);
   }
