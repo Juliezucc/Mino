@@ -1,5 +1,9 @@
 # Fiches App Store et Play Store
 
+> Les **questionnaires** — confidentialité, classification par âge, catégorie,
+> notes à l'examinateur — sont dans `docs/ops/fiche-app-store.md`. Ce
+> document-ci ne couvre que les textes qui se lisent.
+
 Le trafic le mieux qualifié qui existe, et il est gratuit : un parent qui tape
 « temps d'écran enfant » est déjà convaincu du problème.
 
@@ -30,22 +34,36 @@ le reste.**
 
 ## App Store
 
-**Nom** (30 caractères) :
-`Mino — Temps d'écran gagné`
+**Nom** (30 caractères) — **réservé le 31/08/2026** :
+`Mino : une mission à la fois`
+
+> Ce document proposait `Mino — Temps d'écran gagné`. Deux choses l'ont écarté.
+> D'abord « Mino » seul était déjà pris sur l'App Store, ce qu'on n'apprend
+> qu'au moment de créer la fiche. Ensuite Julie a préféré la seconde moitié du
+> slogan, et c'est son produit.
+>
+> Le coût est réel et vaut d'être écrit : le nom est le champ le plus
+> lourdement indexé, et celui-ci dépense ses 28 caractères en marque plutôt
+> qu'en mots-clés. Le sous-titre le compense. À rejuger sur les chiffres après
+> trois mois — un nom se change à chaque version.
 
 **Sous-titre** (30 caractères) :
-`Missions, minutes, écrans`
+`Contrôle parental et écrans`
 
 Le sous-titre est indexé au même titre que le nom : y placer des mots, pas un
-slogan. Le slogan « Grandir, une mission à la fois » a sa place dans la première
-capture d'écran, pas ici.
+slogan. Le nom portant désormais le slogan, c'est ici que doivent tenir les
+termes qu'un parent tape réellement.
 
 **Mots-clés** (100 caractères, séparés par des virgules, sans espaces, sans
 répéter ceux du nom) :
 
 ```
-controle,parental,ecran,enfant,famille,taches,routine,recompense,limiter,bloquer,ado
+temps,ecran,enfant,famille,taches,routine,recompense,limiter,bloquer,ado,devoirs
 ```
+
+« controle » et « parental » sont sortis de la liste : ils sont maintenant dans
+le sous-titre, et Apple interdit de répéter dans les mots-clés ce qui figure
+déjà dans le nom ou le sous-titre — la place gagnée sert à d'autres termes.
 
 **Texte promotionnel** (170 caractères, modifiable sans nouvelle version — à
 utiliser pour la saison) :
@@ -57,7 +75,7 @@ utiliser pour la saison) :
 
 ## Play Store
 
-**Titre** (30) : `Mino — Temps d'écran gagné`
+**Titre** (30) : `Mino : une mission à la fois`
 
 **Description courte** (80) :
 > Votre enfant gagne son temps d'écran en faisant ses missions du quotidien.
