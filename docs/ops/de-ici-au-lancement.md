@@ -197,6 +197,29 @@ détourné de surveiller quelqu'un ?*
 > réponse. C'est celui de **distribution** — TestFlight et App Store — qui
 > passe par ce formulaire.
 
+### 6 bis. Le nom sur l'App Store · ✅ fait le 31/08/2026
+
+**« Mino » seul était déjà pris.** Les noms sont uniques sur tout l'App Store,
+attribués au premier qui les réserve, et la vérification n'a lieu qu'au moment
+de créer la fiche — donc après tout le reste.
+
+Retenu : **`Mino : une mission à la fois`** (28 caractères sur 30 autorisés).
+La règle d'Apple porte sur la chaîne exacte : « Mino » suivi d'un descriptif
+reste disponible, et sous l'icône d'un iPhone l'utilisateur lit « Mino » de
+toute façon, le nom y étant tronqué.
+
+Rien d'autre ne bouge : bundle `fr.minoapp.mino`, domaine `minoapp.fr`, et à
+l'intérieur du produit le nom reste Mino partout.
+
+Les mots-clés de recherche n'ont pas à tenir dans le nom : l'App Store a trois
+champs distincts — nom (30), sous-titre (30), mots-clés (100, invisibles). À
+remplir au moment de la fiche.
+
+> **À vérifier avant le dépôt de marque de l'étape 1** : quelle est
+> l'application « Mino » déjà publiée, qui l'édite et depuis quel pays. Un
+> logiciel européen du même nom est une antériorité qui peut fonder une
+> opposition — 190 € et six mois valent bien cinq minutes de recherche.
+
 ### 7. Signer l'accord *Paid Apps* · vous · 30 min
 
 Dans App Store Connect : *Agreements, Tax, and Banking*. Coordonnées bancaires
