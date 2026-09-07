@@ -231,6 +231,22 @@ et informations fiscales. Même chose côté Google.
 
 ---
 
+## ✅ La boucle du produit, vérifiée contre Supabase le 07/09/2026
+
+Mission créée par le parent, déclarée par l'enfant, confirmée par le parent,
+minutes créditées — **et le solde qui tient après rechargement de la page**.
+
+Ce dernier point est le seul qui prouve quelque chose : il sépare une valeur
+affichée à l'écran d'une ligne écrite au grand livre. Tout ce qui précédait dans
+ce projet avait été vérifié en local, contre le dépôt sur l'appareil ; c'est ce
+malentendu qui a laissé passer, jusqu'au 31/08, une création de famille qui
+n'avait jamais pu aboutir une seule fois contre le vrai serveur.
+
+**Règle qui en découle** : « vérifié » ne veut rien dire tant qu'on n'a pas dit
+contre quoi.
+
+---
+
 ## Pendant l'attente — mettre le serveur en état
 
 Rien ici ne dépend d'Apple. À faire dans les jours qui suivent.
