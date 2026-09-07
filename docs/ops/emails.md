@@ -32,6 +32,41 @@ un modèle qui ne part jamais ne dérange personne.
 
 ---
 
+## Le réglage sans lequel aucun de ces liens n'ouvre l'application
+
+**Authentication → URL Configuration → Redirect URLs.** Il faut y déclarer les
+adresses de retour, une par ligne :
+
+```
+mino://**
+exp+mino://**
+http://localhost:8081/**
+http://localhost:8082/**
+```
+
+Et, le jour venu, l'adresse du site.
+
+**Ce qui se passe quand elles manquent, et pourquoi c'est déroutant.**
+L'application demande bien à Supabase de revenir vers `mino://confirme` — c'est
+ce que fait `adresseDeRetour()` dans `SupabaseAuthService`. Mais Supabase
+**refuse silencieusement** toute adresse de retour absente de cette liste, et
+lui substitue l'« URL du site » du projet. Sur un ordinateur, cette URL est
+souvent le serveur de développement, et le lien semble marcher. Sur un
+téléphone, elle ne mène nulle part : le parent tape sur le lien de son e-mail,
+Safari s'ouvre sur une longue adresse `…supabase.co/auth/v1/verify?token=…`,
+et **rien ne se passe**. Le compte est pourtant confirmé — c'est le retour qui
+manque, pas la confirmation.
+
+Aucun message d'erreur n'est émis, ni côté application, ni dans les journaux
+d'authentification. C'est un réglage de tableau de bord, et il ne se devine
+depuis aucune ligne de code.
+
+> Le même réglage conditionne le lien de **réinitialisation du mot de passe**,
+> qui est autrement plus grave : un parent qui ne peut pas se reconnecter est un
+> parent qui écrit au support, ou qui s'en va.
+
+---
+
 ## Deux règles qui expliquent la forme de ces modèles
 
 **Aucune image, aucune police distante.** Pas par pauvreté graphique : une image
