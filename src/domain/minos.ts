@@ -71,3 +71,32 @@ export function formatTime(
 export function unitLabel(minutes: number, unit: TimeUnit): string {
   return unit === 'minos' ? minoUnit(Math.round(minutes)) : 'min';
 }
+
+/**
+ * Les paliers ronds proposés à l'enfant pour dépenser son temps.
+ *
+ * Trois valeurs commodes, et rien de plus : dix, vingt, trente.
+ */
+export const PALIERS = [10, 20, 30];
+
+/**
+ * Ce qu'un enfant peut réellement demander, et **toujours** son solde entier.
+ *
+ * L'écran filtrait les paliers par le solde : `PALIERS.filter(p => p <= solde)`.
+ * Avec 15 minutes gagnées, seul `10` survivait — et les cinq autres devenaient
+ * inatteignables. L'enfant les voyait affichées, comptées, gagnées, et ne
+ * pouvait pas les prendre tant qu'il n'atteignait pas vingt.
+ *
+ * Ce n'est pas un détail d'interface. Tout le produit repose sur une promesse
+ * tenue à la minute près : ce que tu gagnes est à toi. Un reliquat qu'on ne
+ * peut pas dépenser est une promesse retirée en silence — et l'enfant qui
+ * compte s'en aperçoit avant nous.
+ *
+ * D'où : les paliers strictement en dessous du solde, puis le solde lui-même.
+ * 15 → 10 et 15. 45 → 10, 20, 30 et 45. 7 → 7. Rien du tout à zéro, plutôt
+ * qu'une pastille « 0 mino » qui inviterait à démarrer une séance vide.
+ */
+export function dureesPour(solde: number): number[] {
+  if (solde <= 0) return [];
+  return [...PALIERS.filter((palier) => palier < solde), solde];
+}

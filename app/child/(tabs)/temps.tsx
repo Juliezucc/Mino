@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AnimatedMascot } from '@/components/mascot';
 import { Button, Card, Chip, MinutesBadge, Screen, Text, TimeCapsules, TimeRing } from '@/components/ui';
 import { unitOf } from '@/domain/ageBand';
-import { formatTime } from '@/domain/minos';
+import { dureesPour, formatTime } from '@/domain/minos';
 import { activeDevices, deviceIcon, describeDevice } from '@/domain/devices';
 import { getScreenTimeService } from '@/services/screenTime';
 import {
@@ -17,8 +17,6 @@ import {
 } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing, tabBarSpace } from '@/theme';
-
-const DURATIONS = [10, 20, 30];
 
 /** "Mon temps": how much I own, on which screen I want it, and how to start. */
 export default function ChildTime() {
@@ -39,7 +37,7 @@ export default function ChildTime() {
   if (!child || !balance) return null;
 
   const unit = unitOf(child);
-  const options = DURATIONS.filter((d) => d <= balance.minutes);
+  const options = dureesPour(balance.minutes);
   const devices = activeDevices(family?.devices);
   // Every declared device is a screen a parent has to start, and so is any
   // session at all when the family asked for approval.
@@ -203,7 +201,7 @@ export default function ChildTime() {
             COMBIEN ?
           </Text>
           <View style={styles.durations}>
-            {(options.length > 0 ? options : [balance.minutes]).map((value) => (
+            {options.map((value) => (
               <Chip
                 key={value}
                 label={formatTime(value, unit)}
