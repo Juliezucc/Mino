@@ -67,6 +67,11 @@ jest.mock('expo-crypto', () => ({
 jest.mock('expo-linking', () => ({
   createURL: (chemin: string) => `mino://${String(chemin).replace(/^\//, '')}`,
   useURL: () => null,
+  // `lienEntrant` s'y abonne dès son import ; sans ces deux-là, tout fichier
+  // qui le charge — directement ou par la racine de l'application — échouerait
+  // au chargement plutôt qu'à l'assertion.
+  addEventListener: () => ({ remove: () => undefined }),
+  getInitialURL: async () => null,
 }));
 
 jest.mock('expo-haptics', () => ({

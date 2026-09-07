@@ -6,6 +6,7 @@ import { StyleSheet } from 'react-native';
 import { Mascot } from '@/components/mascot';
 import { Button, Screen, Text } from '@/components/ui';
 import { getAuthService } from '@/services/auth';
+import { dernierLien, oublierLien } from '@/services/auth/lienEntrant';
 import { colors, spacing } from '@/theme';
 
 /**
@@ -29,16 +30,28 @@ import { colors, spacing } from '@/theme';
  */
 export default function Confirme() {
   const router = useRouter();
-  const url = Linking.useURL();
+  // `useURL()` seul ne suffit pas : quand Mino est déjà ouvert, l'adresse
+  // arrive AVANT que cet écran ne soit monté, et le crochet la manque. Voir
+  // `lienEntrant`, qui écoute dès le chargement du paquet.
+  const vu = Linking.useURL();
+  const url = vu ?? dernierLien();
   const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!url) return;
     let vivant = true;
+
+    // Aucun lien, nulle part : il n'y a rien à consommer, et attendre
+    // indéfiniment sous « un instant… » est la pire des réponses.
+    if (!url) {
+      setErreur('Ce lien est incomplet. Demandez-en un nouveau depuis la connexion.');
+      return;
+    }
+
     getAuthService()
       .resumeFromLink(url)
       .then((r) => {
         if (!vivant) return;
+        oublierLien();
         // `replace` et non `push` : revenir en arrière sur un lien déjà
         // consommé ne mène nulle part.
         if (r.ok) router.replace('/onboarding/account');

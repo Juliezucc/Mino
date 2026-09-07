@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { Mascot } from '@/components/mascot';
 import { Button, Field, Screen, ScreenHeader, Text } from '@/components/ui';
 import { getAuthService } from '@/services/auth';
+import { dernierLien, oublierLien } from '@/services/auth/lienEntrant';
 import { colors, spacing } from '@/theme';
 
 /**
@@ -37,15 +38,25 @@ export default function NouveauMotDePasse() {
   const [fait, setFait] = useState(false);
   const [envoi, setEnvoi] = useState(false);
   const [pret, setPret] = useState(false);
-  const url = Linking.useURL();
+  // Voir `lienEntrant` : quand Mino est déjà ouvert, l'adresse arrive avant que
+  // cet écran ne soit monté, et `useURL()` la manque. Un parent qui ne peut pas
+  // reposer son mot de passe est un parent qui s'en va.
+  const vu = Linking.useURL();
+  const url = vu ?? dernierLien();
 
   useEffect(() => {
-    if (!url) return;
     let vivant = true;
+
+    if (!url) {
+      setErreur('Ce lien est incomplet. Demandez-en un nouveau depuis la connexion.');
+      return;
+    }
+
     getAuthService()
       .resumeFromLink(url)
       .then((r) => {
         if (!vivant) return;
+        oublierLien();
         if (r.ok) setPret(true);
         else setErreur(r.reason ?? 'Ce lien n’est plus valable.');
       })

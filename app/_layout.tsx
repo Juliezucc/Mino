@@ -17,6 +17,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ErrorToast } from '@/features/ErrorToast';
 import { getDiagnosticsService } from '@/services/diagnostics';
+// Importé pour son effet, et il n'y a rien d'autre à en faire ici : le module
+// s'abonne aux liens entrants dès le chargement du paquet, c'est-à-dire avant
+// qu'un écran puisse être monté. C'est la seule position d'où l'on ne peut pas
+// rater le lien de confirmation d'un parent qui a Mino déjà ouvert.
+import '@/services/auth/lienEntrant';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors } from '@/theme';
 
