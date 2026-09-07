@@ -68,7 +68,12 @@ Ce qui est déjà préparé dans le dépôt, et qu'il n'y a donc pas à refaire 
   `targets/MinoShieldMonitor/expo-target.config.js` — plus rien à créer à la
   main ;
 - `expo-iap` porte son propre plugin, qui ajoute le pod StoreKit et
-  l'autorisation de facturation Android.
+  l'autorisation de facturation Android ;
+- `expo-dev-client` est une dépendance du projet. Le profil `development`
+  d'`eas.json` le suppose depuis toujours ; il n'était installé nulle part, et
+  EAS proposait de l'ajouter lui-même en cours de compilation — c'est-à-dire de
+  réécrire `package-lock.json` sur la machine, ce qui relance le cycle des
+  `git pull` bloqués. Mieux vaut qu'il entre par le verrou.
 
 > **Le `prebuild` de ce document a déjà été joué à blanc**, sur Linux, et le
 > projet produit a été relu ligne à ligne. Ce qui a été vérifié, et qu'il n'y a
