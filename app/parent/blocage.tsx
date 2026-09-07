@@ -232,13 +232,21 @@ export default function ShieldSetup() {
                 appareil — c’est lui qui demandera votre code, et qui empêchera votre enfant
                 de retirer le blocage.
               </Text>
+              {/* La méprise que produit le Partage familial, et qui coûte un
+                  quart d'heure : la page « Temps d'écran » d'un iPhone de
+                  parent propose aussi les enfants du groupe. On règle alors
+                  consciencieusement le mauvais appareil.                     */}
+              <Text variant="body" color={colors.textMuted}>
+                Si la page vous propose les membres de votre famille, ne choisissez personne :
+                restez sur les réglages de cet appareil-ci, celui que votre enfant utilise.
+              </Text>
 
               <View style={styles.steps}>
                 {[
                   'Quittez Mino et ouvrez l’app Réglages — l’icône grise en forme de rouage.',
-                  'Descendez jusqu’à « Temps d’écran », puis activez-le.',
-                  'Choisissez un code que votre enfant ne connaît pas.',
-                  'Revenez ici et appuyez de nouveau sur Autoriser Mino.',
+                  'Touchez « Temps d’écran ». S’il vous propose de l’activer, activez-le ; s’il est déjà actif, passez à la suite.',
+                  'Faites défiler jusqu’en bas de cette page, jusqu’à « Verrouiller les réglages du temps d’écran ». Choisissez un code à 4 chiffres que votre enfant ne connaît pas.',
+                  'Revenez dans Mino et appuyez de nouveau sur « C’est fait, réessayer ».',
                 ].map((etape, index) => (
                   <View key={etape} style={styles.step}>
                     <View style={styles.number}>
