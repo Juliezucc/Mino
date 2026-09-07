@@ -24,26 +24,53 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  /**
+   * Deux messages, et pas un seul — c'est la correction, et elle vaut d'être
+   * expliquée.
+   *
+   * Tout arrivait dans `error`, qui est branché sur le champ du **mot de
+   * passe**. « Indiquez d'abord votre adresse e-mail » s'affichait donc sous le
+   * mot de passe, à quelqu'un qui venait de toucher « mot de passe oublié » et
+   * qui regardait le haut de l'écran. De son point de vue, rien ne se passait.
+   */
+  const [erreurEmail, setErreurEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [envoiLien, setEnvoiLien] = useState(false);
 
   const submit = async () => {
-    if (!EMAIL_RE.test(email.trim())) return setError('Adresse e-mail invalide.');
+    setErreurEmail(null);
+    if (!EMAIL_RE.test(email.trim())) return setErreurEmail('Adresse e-mail invalide.');
     setLoading(true);
     setError(null);
     const result = await signIn({ email: email.trim(), password });
     setLoading(false);
 
-    if (!result.ok) return setError(result.reason ?? 'Connexion impossible.');
-    router.replace('/who');
+    if (result.ok) return router.replace('/who');
+    const dit = result.reason ?? 'Connexion impossible.';
+    if (result.field === 'email') setErreurEmail(dit);
+    else setError(dit);
   };
 
   const reset = async () => {
-    if (!EMAIL_RE.test(email.trim())) return setError('Indiquez d’abord votre adresse e-mail.');
     setError(null);
-    await getAuthService().requestPasswordReset(email.trim());
-    setNotice('Si un compte existe pour cette adresse, un lien vient d’être envoyé.');
+    setNotice(null);
+    setErreurEmail(null);
+    if (!EMAIL_RE.test(email.trim())) {
+      return setErreurEmail('Indiquez d’abord votre adresse e-mail, ci-dessus.');
+    }
+    // Un envoi de courriel prend une seconde ou deux. Sans témoin, le bouton
+    // paraît mort et on le touche trois fois — ce qui déclenche la limite
+    // d'envoi de Supabase, et fait échouer les trois.
+    setEnvoiLien(true);
+    await getAuthService()
+      .requestPasswordReset(email.trim())
+      .catch(() => undefined);
+    setEnvoiLien(false);
+    setNotice(
+      'Si un compte existe pour cette adresse, un lien vient d’être envoyé. Pensez à regarder dans les indésirables.',
+    );
   };
 
   return (
@@ -76,6 +103,7 @@ export default function Login() {
             keyboardType="email-address"
             autoComplete="email"
             textContentType="emailAddress"
+            error={erreurEmail ?? undefined}
           />
           <Field
             label="Mon mot de passe"
@@ -99,6 +127,7 @@ export default function Login() {
           variant="ghost"
           haptic={false}
           onPress={reset}
+          loading={envoiLien}
         />
 
         {notice ? (
