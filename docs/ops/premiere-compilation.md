@@ -23,7 +23,13 @@ l'architecture — elle est là et elle a été pensée. Le reste se règle.
 
 ### La version minimale d'iOS, et pourquoi elle est écrite quelque part
 
-**iOS 16.0**, fixé dans `app.json` par `expo-build-properties`.
+**iOS 16.4**, fixé dans `app.json` par `expo-build-properties`.
+
+> 16.0 d'abord, refusé au premier démarrage : le SDK 57 exige au moins 16.4, et
+> le plugin bloque `expo start` en entier plutôt que d'avertir. Sans
+> conséquence pour la portée — 16.4 est une mise à jour de mars 2023 que tous
+> les appareils capables de faire tourner 16.0 ont reçue. Ce sont les mêmes
+> iPhone, à partir du 8.
 
 Ce n'était nulle part avant, et l'oubli aurait coûté cher : le module exige
 iOS 16 — c'est la version où `ManagedSettings` et `DeviceActivity` tiennent
@@ -131,7 +137,7 @@ Puis :
    fait foi ; celui que Xcode génère est un squelette vide.
 2. Cible `MinoShieldMonitor` → **Signing & Capabilities** → **+ Capability** →
    **App Groups** → cochez `group.fr.minoapp.mino`.
-3. Cible `MinoShieldMonitor` → **General** → *Minimum Deployments* : **iOS 16.0**.
+3. Cible `MinoShieldMonitor` → **General** → *Minimum Deployments* : **iOS 16.4**.
 
 > Le groupe d'applications est leur **seule mémoire commune**. La sélection
 > d'applications et l'échéance y transitent. S'il manque sur l'une des deux
