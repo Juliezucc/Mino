@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 import {
@@ -680,7 +681,29 @@ export function getSupabaseClient(): SupabaseClient | null {
   if (!isSupabaseConfigured) return null;
   if (!client) {
     client = createClient(URL!, ANON_KEY!, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false,
+        /**
+         * OÙ la session est enregistrée — et sans cette ligne, nulle part.
+         *
+         * `persistSession: true` ne dit que « garde-la » ; il ne dit pas où.
+         * Faute de précision, `supabase-js` cherche `localStorage`, qui
+         * n'existe pas en React Native, et se rabat sur une mémoire vive qui
+         * meurt avec l'application.
+         *
+         * Conséquence, sur téléphone uniquement : **fermer Mino déconnectait.**
+         * Le parent retrouvait l'accueil et ses quatre boutons, et l'enfant —
+         * qui n'a ni adresse ni mot de passe — se retrouvait devant un écran de
+         * connexion qu'il ne peut pas franchir. C'est-à-dire un produit qui
+         * cesse de fonctionner à la première fermeture.
+         *
+         * Sur le web, `localStorage` existe : la session tenait, et le défaut
+         * était rigoureusement invisible.
+         */
+        storage: AsyncStorage,
+      },
     });
   }
   return client;

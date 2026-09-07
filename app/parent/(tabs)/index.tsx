@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icons/Icon';
 import { Mascot } from '@/components/mascot';
@@ -75,7 +75,28 @@ export default function ParentHome() {
                 : 'Tout est à jour.'}
           </Text>
         </View>
-        <Mascot expression={waiting > 0 ? 'motivated' : 'happy'} size={72} />
+        {/* ------------------------------------------- revenir chez l'enfant
+
+            La seule sortie de l'espace parent vivait dans Réglages, sous deux
+            écrans. Un parent qui vient de valider une mission veut rendre le
+            téléphone à son enfant, tout de suite — et ne trouvant rien, il
+            ferme l'application. C'est ce qui a été observé.
+
+            La mascotte est le seul élément fixe de cet en-tête : elle devient
+            le chemin du retour. Le mot sous elle n'est pas décoratif — sans
+            lui, personne ne devine qu'un dessin se touche.                  */}
+        <Pressable
+          onPress={() => router.replace('/who')}
+          accessibilityRole="button"
+          accessibilityLabel="Changer de profil, quitter l’espace parent"
+          style={({ pressed }) => [styles.sortie, pressed && styles.presse]}
+          hitSlop={8}
+        >
+          <Mascot expression={waiting > 0 ? 'motivated' : 'happy'} size={72} />
+          <Text variant="caption" color={colors.textMuted} center>
+            Changer de profil
+          </Text>
+        </Pressable>
       </View>
 
       {/* Un verrou qu'on découvre en appuyant sur un bouton met en colère :
@@ -227,6 +248,8 @@ export default function ParentHome() {
 }
 
 const styles = StyleSheet.create({
+  sortie: { alignItems: 'center', gap: spacing.xs, maxWidth: 96 },
+  presse: { opacity: 0.7 },
   content: { paddingTop: spacing.lg, paddingBottom: tabBarSpace, gap: spacing.xl },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   headerTexts: { flex: 1, gap: spacing.xs },
