@@ -18,4 +18,5 @@ export const SQL_FILES = [
   ['companion.sql', 'budget et conversations de Mino'],
   ['retention.sql', 'ce qu’on garde, et combien de temps'],
   ['compte.sql', 'quitter : suppression du compte'],
+  ['notifications.sql', 'jetons de notification'],
 ];

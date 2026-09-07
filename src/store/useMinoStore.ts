@@ -21,6 +21,11 @@ import { AvatarKey, FamilyData, ID, ISODate, RepeatRule } from '@/domain/types';
 import * as notify from '@/domain/notifications';
 import { AuthResult, getAuthService } from '@/services/auth';
 import { getNotificationService } from '@/services/notifications';
+import {
+  poserJetonPush,
+  pousserAuxAutres,
+  retirerJetonPush,
+} from '@/services/notifications/jetonPush';
 import { getScreenTimeService } from '@/services/screenTime';
 import { CheckoutOutcome, getBillingService } from '@/services/billing';
 
@@ -321,10 +326,33 @@ export const useMinoStore = create<MinoState>((set, get) => {
    */
   async function announce(payload: notify.NotificationPayload | null) {
     if (!payload) return;
-    if (!notify.shouldDeliver(payload, get().notifications)) return;
-    await getNotificationService()
-      .schedule(payload)
-      .catch(() => null);
+
+    // Sur CET appareil : selon les préférences d'ici, et les heures calmes.
+    if (notify.shouldDeliver(payload, get().notifications)) {
+      await getNotificationService()
+        .schedule(payload)
+        .catch(() => null);
+    }
+
+    /**
+     * Et sur les AUTRES appareils de la famille — ce qui manquait entièrement.
+     *
+     * Tout partait localement, c'est-à-dire à la seule personne déjà au
+     * courant : l'appareil qui vient d'agir. Un enfant terminait une mission à
+     * 19 h et le parent l'apprenait en rouvrant Mino ; le parent validait à
+     * 21 h et l'enfant le découvrait le lendemain. Or un enfant qui attend
+     * jusqu'au lendemain cesse de relier l'effort à la récompense — la seule
+     * chose que ce produit existe pour relier.
+     *
+     * Hors du `if` ci-dessus, à dessein : les préférences lues là sont celles
+     * de CE téléphone, et elles n'ont pas à décider du silence de quelqu'un
+     * d'autre. Un parent qui a coupé ses notifications ne doit pas priver son
+     * enfant des siennes.
+     *
+     * Et jamais bloquant : une notification perdue ne doit pas faire échouer ce
+     * qui l'a provoquée. La mission est validée, les minos sont crédités.
+     */
+    void pousserAuxAutres(payload).catch(() => undefined);
   }
 
   return {
@@ -367,6 +395,9 @@ export const useMinoStore = create<MinoState>((set, get) => {
       }
 
       publish(data, { status: 'ready', device, offline });
+      // L'appareil se déclare joignable dès qu'on sait de quelle famille il
+      // est. Silencieux et sans effet s'il n'y a pas de permission.
+      if (data) void poserJetonPush(data.family.id).catch(() => undefined);
       if (data) await get().loadBilling();
       if (data) void get().reportShield();
     },
@@ -469,6 +500,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
       if (!result.ok) return result;
       const data = await get().repository.load();
       publish(data, { status: 'ready', activeChildId: null, parentUnlocked: true });
+      if (data) void poserJetonPush(data.family.id).catch(() => undefined);
       if (data) await get().loadBilling();
       return { ok: true };
     },
@@ -483,6 +515,10 @@ export const useMinoStore = create<MinoState>((set, get) => {
      * Une frontière de compte qui tient une demi-seconde ne tient pas.
      */
     async signOut() {
+      // Avant la déconnexion, tant qu'on a encore le droit d'écrire : un
+      // téléphone revendu ne doit plus recevoir de notifications portant le
+      // prénom d'un enfant.
+      await retirerJetonPush().catch(() => undefined);
       await getAuthService().signOut();
       publish(null, {
         activeChildId: null,

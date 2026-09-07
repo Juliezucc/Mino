@@ -122,3 +122,64 @@ export function rowToReferral(row: Record<string, unknown>) {
     rejectionReason: row.rejection_reason ?? undefined,
   };
 }
+
+/**
+ * Qui appelle — parent OU appareil d'enfant.
+ *
+ * `familyOfCaller` ne reconnaît que les parents, et c'est une propriété de
+ * sécurité là où elle est utilisée : seul un parent peut acheter un abonnement
+ * ou faire valoir un achat. Mais la notification part des deux côtés — c'est
+ * l'appareil de l'enfant qui prévient le parent qu'une mission attend — et il
+ * fallait donc un second résolveur, qui dit aussi **ce qu'est** l'appelant.
+ *
+ * `child_id` n'a de sens que pour un appareil : c'est le profil qu'il affiche,
+ * et il permet de n'écrire qu'à l'appareil de l'enfant concerné plutôt qu'à
+ * toute la fratrie.
+ */
+export async function appelant(request: Request): Promise<{
+  familyId: string;
+  userId: string;
+  role: 'parent' | 'device';
+  childId: string | null;
+} | null> {
+  const header = request.headers.get('Authorization');
+  if (!header?.startsWith('Bearer ')) return null;
+
+  const anon = createClient(env('SUPABASE_URL'), env('SUPABASE_ANON_KEY'), {
+    global: { headers: { Authorization: header } },
+    auth: { persistSession: false },
+  });
+
+  const { data: auth } = await anon.auth.getUser();
+  if (!auth.user) return null;
+  const db = admin();
+
+  const { data: parent } = await db
+    .from('parents')
+    .select('family_id')
+    .eq('user_id', auth.user.id)
+    .maybeSingle();
+
+  if (parent) {
+    return {
+      familyId: parent.family_id as string,
+      userId: auth.user.id,
+      role: 'parent',
+      childId: null,
+    };
+  }
+
+  const { data: device } = await db
+    .from('family_devices')
+    .select('family_id, child_id')
+    .eq('user_id', auth.user.id)
+    .maybeSingle();
+
+  if (!device) return null;
+  return {
+    familyId: device.family_id as string,
+    userId: auth.user.id,
+    role: 'device',
+    childId: (device.child_id as string | null) ?? null,
+  };
+}
