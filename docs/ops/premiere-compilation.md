@@ -131,7 +131,23 @@ npx eas-cli@latest login
 Le compte est gratuit. La file d'attente gratuite est lente aux heures pleines —
 comptez de vingt minutes à une heure par compilation.
 
-### 2. Donner à EAS l'adresse du serveur
+### 2. Rattacher le dépôt à un projet EAS
+
+```bash
+npx eas-cli@latest init
+```
+
+Il demande à quel compte rattacher le projet, puis écrit deux valeurs dans
+`app.json` : `owner` et `extra.eas.projectId`. **Ce sont des modifications à
+committer** — sans elles, chaque machine repartirait sur un projet EAS
+différent.
+
+> **Une commande à la fois.** Les commandes qui suivent posent des questions, et
+> un terminal où l'on a collé plusieurs lignes d'un coup donne les lignes
+> suivantes comme réponses aux questions. Le résultat est illisible et il faut
+> tout reprendre.
+
+### 3. Donner à EAS l'adresse du serveur
 
 **L'étape qu'on oublie, et qui produit une application qui s'installe et ne
 fonctionne pas.** `.env` n'est pas versionné — c'est délibéré — et EAS ne
@@ -143,10 +159,10 @@ téléphone, et c'est la RLS qui protège les données, pas elle. Elles sont
 simplement rangées chez EAS plutôt que dans le dépôt.
 
 ```bash
-npx eas-cli@latest env:create --environment development \
+npx eas-cli@latest env:set --environment development \
   --name EXPO_PUBLIC_SUPABASE_URL --value "https://<référence>.supabase.co" --visibility plaintext
 
-npx eas-cli@latest env:create --environment development \
+npx eas-cli@latest env:set --environment development \
   --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "<la clé anon>" --visibility plaintext
 ```
 
@@ -156,11 +172,18 @@ sous *Project settings → API*.
 > **Jamais la clé `service_role`.** Ni ici, ni dans le dépôt, ni dans
 > l'application. Elle contourne toutes les règles de sécurité.
 
+> **La clé doit être exactement celle de `.env`.** Supabase en propose
+> aujourd'hui deux formes pour le même projet — l'ancienne, un JWT qui commence
+> par `eyJ`, et la nouvelle, qui commence par `sb_publishable_`. Les deux
+> peuvent marcher, jusqu'au jour où l'ancienne est révoquée du côté de Supabase
+> et où le binaire déjà publié cesse de joindre le serveur. Reprendre celle qui
+> fonctionne aujourd'hui sur la machine est la seule règle sûre.
+
 Plus tard, pour un binaire d'App Store, refaire les deux commandes avec
 `--environment production` — et y ajouter `EXPO_PUBLIC_BILLING_API_URL`, sans
 quoi le rail boutique ne s'active pas.
 
-### 3. Lancer la première compilation
+### 4. Lancer la première compilation
 
 ```bash
 npx eas-cli@latest build --profile development --platform ios
@@ -185,7 +208,7 @@ vrai module de blocage.
 > se recharge alors sans recompiler, et vous ne repassez par EAS que lorsque le
 > code natif change.
 
-### 4. Faire confiance au développeur
+### 5. Faire confiance au développeur
 
 Au premier lancement, l'iPhone demande d'autoriser un développeur inconnu :
 *Réglages → Général → VPN et gestion de l'appareil → faire confiance*.
