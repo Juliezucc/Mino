@@ -19,6 +19,47 @@ import { CORS, admin, env, fail, json } from '../_shared/mino.ts';
 const DAILY_EXCHANGES = 20;
 
 /**
+ * Ce qu'il reste d'échanges aujourd'hui — lu directement, et surtout pas par
+ * `companion_left`.
+ *
+ * **Le défaut que cela répare, et il rendait le compagnon inutilisable.**
+ * `companion_left` est une fonction `security definer` écrite pour être appelée
+ * par le CLIENT : elle vérifie que l'enfant demandé appartient bien à la
+ * famille de `auth.uid()`. Appelée d'ici, avec la clé de service, il n'y a
+ * aucune identité — `auth.uid()` est nul, la clause de garde ne trouve rien, et
+ * la fonction ne rend aucune ligne.
+ *
+ * Le `?? 0` qui suivait transformait ce néant en « zéro échange restant », et
+ * Mino disait au revoir au PREMIER message. Chaque jour, à chaque enfant. Ni
+ * l'un ni l'autre n'était visible tant que la fonction n'était pas déployée :
+ * sans elle, l'application se rabattait sur ses réponses écrites à la main.
+ *
+ * La vérification d'appartenance a déjà eu lieu plus haut, quand `child` a été
+ * résolu. La relire ici ne protégeait de rien ; elle cassait tout.
+ *
+ * En cas de doute, on répond « il reste du temps ». C'est le vrai garde-fou qui
+ * borne les écritures — `companion_consume`, atomique — et cette valeur-ci ne
+ * sert qu'à choisir le moment de l'au revoir. Se tromper vers le silence est la
+ * pire des deux erreurs : c'est exactement celle qu'on vient de corriger.
+ */
+async function restant(childId: string, budget = DAILY_EXCHANGES): Promise<number> {
+  // `current_date` côté base et cette date-ci sont toutes deux en UTC : c'est
+  // le fuseau des projets Supabase, et `companion_consume` écrit la ligne avec
+  // le premier. Les deux doivent rester d'accord.
+  const jour = new Date().toISOString().slice(0, 10);
+  const { data, error } = await admin()
+    .from('companion_usage')
+    .select('exchanges')
+    .eq('child_id', childId)
+    .eq('day', jour)
+    .maybeSingle();
+
+  if (error) return budget;
+  return Math.max(0, budget - Number(data?.exchanges ?? 0));
+}
+
+
+/**
  * La marge laissée aux alertes au-delà du budget du jour.
  *
  * Une alerte reçoit **toujours** sa réponse, budget épuisé ou non : un enfant
@@ -250,16 +291,14 @@ Deno.serve(async (request) => {
   // danger ne doit pas se heurter à un quota.
   if (safety === 'alert') {
     if (record) await remember({ ...child, role: 'mino', text: ALERT_REPLY, safety });
-    const { data: left } = await admin().rpc('companion_left', { p_child_id: child.childId });
-    return json({ text: ALERT_REPLY, safety, left: left ?? 0, closed: false });
+    return json({ text: ALERT_REPLY, safety, left: await restant(child.childId), closed: false });
   }
 
   if (!record) {
     return json({ text: CLOSED, safety, left: 0, closed: true });
   }
 
-  const { data: left } = await admin().rpc('companion_left', { p_child_id: child.childId });
-  const remaining = typeof left === 'number' ? left : 0;
+  const remaining = await restant(child.childId);
 
   // Dernier échange du jour : Mino dit au revoir lui-même, sans appeler le
   // modèle. Un au revoir est trop important pour être tiré au sort.

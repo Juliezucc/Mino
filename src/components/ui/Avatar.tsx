@@ -97,6 +97,9 @@ export function Avatar({ avatarKey, size = 56, style, selected }: Props) {
           transition={0}
         />
       ) : (
+        // La hauteur de ligne n'est pas fixée ici à dessein : `Text` laisse la
+        // plateforme la calculer dès qu'une taille est imposée sans elle. C'est
+        // ce qui rend l'animal entier — il était coupé à sa moitié basse.
         <Text style={{ fontSize: size * 0.5 }}>{avatar.emoji}</Text>
       )}
     </View>
