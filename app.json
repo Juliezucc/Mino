@@ -16,6 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "fr.minoapp.mino",
+      "appleTeamId": "C8F2CKP8SZ",
       "infoPlist": {
         "NSUserTrackingUsageDescription": "Mino ne suit personne : aucune publicité, aucun traceur."
       },
@@ -51,6 +52,7 @@
         }
       ],
       "expo-iap",
+      "@bacons/apple-targets",
       [
         "expo-build-properties",
         {

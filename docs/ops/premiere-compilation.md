@@ -11,11 +11,22 @@ l'architecture — elle est là et elle a été pensée. Le reste se règle.
 
 ---
 
-## Ce qu'il faut avoir
+## Deux voies, et il faut choisir la première
+
+**Sans Mac — EAS compile dans le nuage.** C'est la voie recommandée, et elle
+n'existait pas quand ce document a été écrit : la cible d'extension devait alors
+être créée à la main dans Xcode, ce qu'EAS ne peut évidemment pas faire.
+Maintenant qu'elle est décrite dans `targets/`, EAS produit un binaire
+**complet**, bouclier compris.
+
+**Avec un Mac et Xcode 16+**, si vous en avez un. C'est plus rapide en boucle
+courte, et c'est le seul moyen de lire une erreur de compilation Swift dans son
+contexte. Rien n'oblige à commencer par là.
+
+Dans les deux cas :
 
 | | |
 |---|---|
-| Un Mac avec **Xcode 16+** | le blocage iOS ne se compile nulle part ailleurs |
 | Un **iPhone physique** | FamilyControls ne fonctionne pas dans le simulateur, jamais |
 | Le compte développeur | fait — Team ID `C8F2CKP8SZ` |
 | L'entitlement Family Controls | fait — développement **et** distribution |
@@ -49,51 +60,106 @@ Ce qui est déjà préparé dans le dépôt, et qu'il n'y a donc pas à refaire 
 - `app.json` porte l'habilitation `com.apple.developer.family-controls`, le
   groupe `group.fr.minoapp.mino` et la version minimale d'iOS ;
 - le manifeste Android du module déclare ses cinq autorisations ;
-- `MinoShieldMonitor.swift` est **exclu** du podspec, à dessein : il appartient
-  à la cible d'extension, pas à l'application. Compilé dans l'application, il ne
-  serait jamais réveillé par le système, et le bouclier ne reviendrait jamais
-  seul ;
+- le podspec ne compile **que** `MinoScreenTimeModule.swift` : ce qui repose le
+  bouclier vit dans `targets/MinoShieldMonitor/`, parce que c'est une extension
+  et pas l'application. Compilé dans l'application, il ne serait jamais réveillé
+  par le système, et le bouclier ne reviendrait jamais seul ;
+- **la cible d'extension est décrite**, dans
+  `targets/MinoShieldMonitor/expo-target.config.js` — plus rien à créer à la
+  main ;
 - `expo-iap` porte son propre plugin, qui ajoute le pod StoreKit et
   l'autorisation de facturation Android.
 
-> **Le `prebuild` de ce document a déjà été joué à blanc**, sur Linux, pour
-> vérifier que la chaîne de plugins produit un projet cohérent : l'habilitation
-> Family Controls et le groupe d'applications sont bien dans
-> `ios/Mino/Mino.entitlements`, la cible est bien en 16.4 partout, et le pod
-> d'`expo-iap` est bien ajouté. Le dossier `ios/` a ensuite été supprimé — il
-> doit naître sur votre Mac, avec CocoaPods, pas ici.
+> **Le `prebuild` de ce document a déjà été joué à blanc**, sur Linux, et le
+> projet produit a été relu ligne à ligne. Ce qui a été vérifié, et qu'il n'y a
+> donc pas lieu de redouter :
+>
+> - deux cibles, `com.apple.product-type.application` et
+>   `com.apple.product-type.app-extension` ;
+> - les identifiants `fr.minoapp.mino` et `fr.minoapp.mino.MinoShieldMonitor`,
+>   ceux-là mêmes qui sont déclarés chez Apple ;
+> - l'`.appex` embarqué dans la phase *Embed Foundation Extensions* — sans
+>   quoi l'extension ne partirait pas avec l'application ;
+> - `com.apple.developer.family-controls` et le groupe d'applications sur les
+>   **deux** cibles ;
+> - 16.4 partout, et le pod d'`expo-iap` ajouté.
+>
+> Le dossier `ios/` a ensuite été supprimé : il est jetable, et se régénère.
 
 ---
 
-## Le piège à connaître AVANT de commencer
+## Le piège qui n'existe plus
 
-`npx expo prebuild` **régénère `ios/` de zéro**. La cible d'extension que vous
-allez créer à la main dans Xcode y vit — donc un `prebuild --clean` la détruit,
-silencieusement, et l'application continue de compiler sans elle. Le bouclier ne
-se repose plus à l'échéance, et rien ne le dit.
+> Ce paragraphe décrivait jusqu'ici le danger principal du projet. Il est
+> conservé parce qu'il explique pourquoi les choses sont disposées ainsi.
 
-Deux façons de s'en protéger, et il faut choisir maintenant :
+`npx expo prebuild` **régénère `ios/` de zéro**. La cible d'extension devait
+être créée à la main dans Xcode, et elle vivait là : un `prebuild` la
+détruisait, silencieusement, l'application continuait de compiler sans elle, le
+bouclier ne se reposait plus à l'échéance et rien ne le disait. Il fallait
+choisir entre versionner `ios/` — donc quitter le flux managé — et écrire un
+plugin, estimé à plusieurs jours.
 
-**A — Générer une fois, puis versionner `ios/` et `android/`.** On quitte le
-flux managé : `app.json` cesse d'être la source de vérité pour la configuration
-native, et toute modification se fait désormais dans Xcode. C'est ce que font la
-plupart des projets qui ont besoin d'une cible sur mesure.
+**Aucun des deux n'est nécessaire.** La cible est décrite dans
+`targets/MinoShieldMonitor/expo-target.config.js` et reconstruite à chaque
+prebuild par `@bacons/apple-targets`, qui connaît le type
+`device-activity-monitor`. Ce qui en découle est plus important que le confort :
 
-**B — Écrire un plugin de configuration Expo** qui ajoute la cible d'extension à
-chaque `prebuild`. Plus propre, et plusieurs jours de travail : manipuler un
-projet Xcode par programme n'est simple pour personne.
+- `prebuild` peut être relancé autant qu'on veut, `ios/` reste jetable ;
+- **il n'y a plus besoin de Mac pour obtenir un binaire complet.** EAS compile
+  sur du matériel Apple, dans le nuage, extension comprise. C'est la voie
+  décrite plus bas, et c'est désormais la voie recommandée.
 
-**Recommandation : A pour la première compilation**, parce que l'objectif du
-jour est de savoir si ce code fonctionne, pas de bâtir une chaîne de production.
-B se justifiera le jour où l'on régénérera souvent — et à ce moment-là on saura
-exactement ce que le plugin doit produire, ce qui n'est pas le cas aujourd'hui.
+Deux choses ne sont pas libres, et se paient cher si on y touche sans savoir :
 
-> Une fois `ios/` versionné, **ne relancez plus jamais `expo prebuild`** sans
-> savoir ce que vous perdez. Écrivez-le dans le README si nécessaire.
+| | |
+|---|---|
+| Le nom de la classe | `DeviceActivityMonitorExtension`. L'`Info.plist` de l'extension désigne sa classe principale par `$(PRODUCT_MODULE_NAME).DeviceActivityMonitorExtension`. La renommer donne une extension que le système installe, planifie et réveille — et qui ne trouve rien à exécuter. |
+| Le groupe d'applications | Repris de `app.json` par le fichier de configuration, à dessein. C'est la **seule mémoire commune** de l'application et de l'extension : la sélection d'applications et l'échéance y transitent. Désaccordés, l'extension se réveille à l'heure et ne trouve rien à reposer. |
 
 ---
 
-## iOS, pas à pas
+## iOS sans Mac — la voie recommandée
+
+### 1. Ouvrir un compte EAS et se connecter
+
+```bash
+cd ~/Mino
+npm install -g eas-cli
+eas login
+```
+
+Le compte est gratuit. La file d'attente gratuite est lente aux heures pleines —
+comptez de vingt minutes à une heure par compilation.
+
+### 2. Lancer la première compilation
+
+```bash
+eas build --profile development --platform ios
+```
+
+EAS demandera de se connecter à votre compte Apple pour créer les certificats et
+les profils. **Laissez-le faire** : il lui faut des profils pour les *deux*
+identifiants, et les fabriquer à la main est long et sans intérêt.
+
+Ce qu'il produit est un **build de développement** : l'application complète,
+extension comprise, installable sur votre iPhone par le lien ou le QR code
+qu'EAS affiche à la fin. Ce n'est pas Expo Go — c'est le vrai binaire, avec le
+vrai module de blocage.
+
+> **Ce que ce build n'a pas** : le rechargement à chaud d'Expo Go n'existe que
+> si vous lancez `npx expo start --dev-client` à côté. Faites-le : le JavaScript
+> se recharge alors sans recompiler, et vous ne repassez par EAS que lorsque le
+> code natif change.
+
+### 3. Faire confiance au développeur
+
+Au premier lancement, l'iPhone demande d'autoriser un développeur inconnu :
+*Réglages → Général → VPN et gestion de l'appareil → faire confiance*.
+
+---
+
+## iOS avec un Mac — plus rapide en boucle courte
 
 ### 1. Générer le projet natif
 
@@ -102,8 +168,8 @@ cd ~/Mino
 npx expo prebuild --platform ios
 ```
 
-Un dossier `ios/` apparaît. Il contient un projet Xcode, un `Podfile` et les
-dépendances installées.
+Un dossier `ios/` apparaît, **avec la cible d'extension déjà dedans** : c'est
+tout l'objet de `targets/MinoShieldMonitor/`. Il est jetable et se régénère.
 
 ### 2. Ouvrir le bon fichier
 
@@ -114,50 +180,27 @@ open ios/Mino.xcworkspace
 **Le `.xcworkspace`, pas le `.xcodeproj`.** Ouvrir le second compile sans les
 CocoaPods et produit une cascade d'erreurs incompréhensibles.
 
-### 3. Signer l'application
+### 3. Signer les deux cibles
 
-Cible **Mino** → onglet **Signing & Capabilities** :
+Cibles **Mino** *et* **MinoShieldMonitor** → onglet **Signing & Capabilities** :
 
 - *Team* : **Agence Wheb**
 - *Automatically manage signing* : coché
-- Vérifiez la présence de **Family Controls** et de **App Groups** avec
-  `group.fr.minoapp.mino`. Ils viennent de `app.json` ; s'ils manquent,
-  ajoutez-les par **+ Capability**.
 
-### 4. Créer la cible d'extension
+Les habilitations, elles, sont déjà là — Family Controls et le groupe
+`group.fr.minoapp.mino` sur les deux cibles. Elles viennent d'`app.json` et de
+`expo-target.config.js` ; il n'y a rien à cocher.
 
-C'est l'étape qui n'existe pas ailleurs et qui décide de tout.
+### 4. Modifier le Swift au bon endroit
 
-**File → New → Target… → iOS → Device Activity Monitor Extension**
-
-| Champ | Valeur |
-|---|---|
-| Product Name | `MinoShieldMonitor` |
-| Team | Agence Wheb |
-| Bundle Identifier | `fr.minoapp.mino.MinoShieldMonitor` |
-| Embed in Application | Mino |
-
-Xcode propose d'activer le schéma : **acceptez**.
-
-Puis :
-
-1. **Remplacez tout le contenu** du fichier généré par celui de
-   `modules/mino-screen-time/ios/MinoShieldMonitor.swift`. Le fichier du dépôt
-   fait foi ; celui que Xcode génère est un squelette vide.
-2. Cible `MinoShieldMonitor` → **Signing & Capabilities** → **+ Capability** →
-   **App Groups** → cochez `group.fr.minoapp.mino`.
-3. Cible `MinoShieldMonitor` → **General** → *Minimum Deployments* : **iOS 16.4**.
-
-> Le groupe d'applications est leur **seule mémoire commune**. La sélection
-> d'applications et l'échéance y transitent. S'il manque sur l'une des deux
-> cibles, l'extension se réveille bien à l'heure et ne trouve rien à reposer.
+Dans Xcode, l'extension apparaît sous un dossier `MinoShieldMonitor`. **Les
+fichiers qu'on y édite sont ceux de `targets/MinoShieldMonitor/`**, hors de
+`ios/` : ils survivent donc au prochain `prebuild`. C'est exactement ce qu'on
+veut, et c'est l'inverse de ce que faisait ce document avant.
 
 ### 5. Lancer sur un vrai iPhone
 
 Branchez le téléphone, choisissez-le comme destination, **⌘R**.
-
-Au premier lancement, l'iPhone demandera d'autoriser un développeur inconnu :
-*Réglages → Général → VPN et gestion de l'appareil → faire confiance*.
 
 ### 6. Vérifier que le blocage vit
 
@@ -226,23 +269,18 @@ l'y emmener, et c'est ce qui se vérifie ici.
 
 ---
 
-## Si vous préférez ne pas installer Xcode tout de suite
+## Ce qui a changé, et pourquoi ce document a été refait
 
-EAS compile dans le cloud. `eas.json` est prêt.
+Ce document disait, jusqu'à peu : *« EAS ne remplace pas Xcode ici, il le
+précède »* — parce qu'EAS compile ce que produit `prebuild`, et que `prebuild`
+ne pouvait pas connaître une cible créée à la main dans Xcode. Un build EAS
+donnait donc l'application **sans le bouclier qui se repose seul** : utile pour
+essayer le reste du produit, inutile pour valider le blocage.
 
-```bash
-npm install -g eas-cli
-eas login
-eas build --profile development --platform ios
-```
-
-**Mais la cible d'extension n'existera pas.** EAS compile ce que produit
-`prebuild`, et `prebuild` ne connaît pas la cible que vous n'avez pas encore
-créée à la main. Un build EAS aujourd'hui donne donc l'application **sans le
-bouclier qui se repose seul** — utile pour tester le reste du produit sur un
-téléphone, insuffisant pour valider le blocage.
-
-Autrement dit : EAS ne remplace pas Xcode ici, il le précède.
+C'était vrai, et ce ne l'est plus. `@bacons/apple-targets` sait décrire une
+cible `device-activity-monitor`, `targets/MinoShieldMonitor/` la décrit, et
+`prebuild` la reconstruit à chaque fois. EAS compile donc maintenant un binaire
+complet. **Le Mac n'est plus un prérequis, seulement un confort.**
 
 ---
 

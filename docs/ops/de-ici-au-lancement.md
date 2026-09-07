@@ -353,16 +353,20 @@ construction.**
 > import manquant, une API dépréciée. C'est normal et rapide — ce qui prend du
 > temps, c'est l'architecture, et elle est là.
 
-### 16. Créer la cible d'extension dans Xcode · moi avec vous · 2 h
+### 16. La cible d'extension · fait
 
-`MinoShieldMonitor.swift` **ne fait pas partie de l'application** : il doit
-vivre dans une cible *Device Activity Monitor Extension*, avec son propre bundle
-et son propre profil. Il faut aussi activer le groupe d'applications
-`group.fr.minoapp.mino` sur l'application **et** sur l'extension : c'est leur
-seule mémoire commune.
+Cette étape demandait deux heures dans Xcode, sur un Mac, et devait être refaite
+à chaque `prebuild`. Elle est désormais **décrite** dans
+`targets/MinoShieldMonitor/expo-target.config.js` et reconstruite à chaque fois
+par `@bacons/apple-targets`.
 
 > Sans cette cible, **un enfant qui ferme Mino garde son écran ouvert
-> indéfiniment**, et le produit ne tient pas sa seule promesse.
+> indéfiniment**, et le produit ne tient pas sa seule promesse. C'est pour cela
+> qu'il valait mieux qu'elle cesse de dépendre d'une suite de clics dans une
+> fenêtre.
+
+Conséquence sur l'étape 15 : **le Mac n'est plus un prérequis.** EAS compile un
+binaire complet, extension comprise. Voir `premiere-compilation.md`.
 
 ### 17. Éprouver le blocage sur un vrai appareil · vous · 1 h
 

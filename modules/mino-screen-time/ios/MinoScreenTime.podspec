@@ -21,9 +21,9 @@ Pod::Spec.new do |s|
     'SWIFT_COMPILATION_MODE' => 'wholemodule'
   }
 
-  # `MinoShieldMonitor.swift` est exclu à dessein : il appartient à la cible
-  # d'extension `MinoShieldMonitor`, pas à l'application. Compilé ici, il ne
-  # serait jamais réveillé par le système — et le bouclier ne reviendrait
-  # jamais tout seul.
+  # Un seul fichier, et c'est délibéré. Ce qui repose le bouclier vit dans
+  # `targets/MinoShieldMonitor/` : c'est une cible d'extension, pas
+  # l'application. Compilé ici, il ne serait jamais réveillé par le système —
+  # et le bouclier ne reviendrait jamais tout seul.
   s.source_files = 'MinoScreenTimeModule.swift'
 end

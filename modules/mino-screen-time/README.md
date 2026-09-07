@@ -42,16 +42,20 @@ npx expo prebuild            # génère ios/ et android/
 npx eas build --profile development --platform ios
 ```
 
-4. **Une cible d'extension, à créer à la main dans Xcode.**
-   `ios/MinoShieldMonitor.swift` **ne fait pas partie de l'application** : il
-   doit vivre dans une cible *Device Activity Monitor Extension* nommée
-   `MinoShieldMonitor`. C'est elle que le système réveille à l'échéance pour
-   reposer le bouclier — sans elle, un enfant qui ferme Mino garde son écran
-   ouvert indéfiniment, et le produit ne tient pas sa seule promesse.
+4. **Une cible d'extension**, qui vit hors de ce dossier :
+   `targets/MinoShieldMonitor/`. Ce qui repose le bouclier **ne fait pas partie
+   de l'application** — c'est une extension *Device Activity Monitor*, que le
+   système réveille à l'échéance. Sans elle, un enfant qui ferme Mino garde son
+   écran ouvert indéfiniment, et le produit ne tient pas sa seule promesse.
 
-5. **Un groupe d'applications** `group.fr.minoapp.mino`, activé sur
-   l'application **et** sur l'extension. C'est leur seule mémoire commune : la
-   sélection d'applications et l'échéance y transitent.
+   Elle était à créer à la main dans Xcode, et à refaire après chaque
+   `prebuild`. Elle est maintenant décrite dans `expo-target.config.js` et
+   reconstruite à chaque fois — d'où le fait qu'un build EAS suffise, sans Mac.
+
+5. **Un groupe d'applications** `group.fr.minoapp.mino`, sur l'application
+   **et** sur l'extension. C'est leur seule mémoire commune : la sélection
+   d'applications et l'échéance y transitent. Le fichier de configuration de la
+   cible le reprend d'`app.json`, pour qu'ils ne puissent pas se désaccorder.
 
 ---
 

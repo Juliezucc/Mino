@@ -6,13 +6,17 @@ import Foundation
 /**
  Ce qui repose le bouclier quand Mino n'est plus là.
 
- **CE FICHIER NE FAIT PAS PARTIE DE L'APPLICATION.** Il doit être compilé dans
- une CIBLE D'EXTENSION distincte, de type *Device Activity Monitor Extension*,
- nommée `MinoShieldMonitor`. Laissé dans la cible principale, il ne sera jamais
- réveillé et le bouclier ne reviendra jamais tout seul — c'est-à-dire que le
- produit ne tiendra pas sa seule promesse.
+ **CE FICHIER NE FAIT PAS PARTIE DE L'APPLICATION.** Il est compilé dans une
+ cible d'extension distincte, `MinoShieldMonitor`, décrite juste à côté dans
+ `expo-target.config.js`. Compilé dans l'application, il ne serait jamais
+ réveillé par le système — et le bouclier ne reviendrait jamais tout seul,
+ c'est-à-dire que le produit ne tiendrait pas sa seule promesse.
 
- Voir `docs/blocage-ecrans.md` pour la marche à suivre dans Xcode.
+ **Le nom de la classe n'est pas libre.** L'`Info.plist` d'une extension
+ *Device Activity Monitor* désigne sa classe principale par
+ `$(PRODUCT_MODULE_NAME).DeviceActivityMonitorExtension`. La renommer, c'est
+ obtenir une extension que le système installe, planifie, réveille — et qui ne
+ trouve rien à exécuter.
 
  Pourquoi une extension et pas un minuteur dans l'application : un enfant qui
  balaie Mino hors de l'écran, ou un iPhone qui met l'application en veille,
@@ -24,7 +28,7 @@ import Foundation
  réglages `mino.shield`. Elle ne sait rien du reste, et n'a besoin de rien
  d'autre.
  */
-class MinoShieldMonitor: DeviceActivityMonitor {
+class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private let store = ManagedSettingsStore(named: .init("mino.shield"))
   private static let appGroup = "group.fr.minoapp.mino"
   private static let selectionKey = "mino.selection"
