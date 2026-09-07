@@ -125,18 +125,51 @@ Deux choses ne sont pas libres, et se paient cher si on y touche sans savoir :
 
 ```bash
 cd ~/Mino
-npm install -g eas-cli
-eas login
+npx eas-cli@latest login
 ```
 
 Le compte est gratuit. La file d'attente gratuite est lente aux heures pleines —
 comptez de vingt minutes à une heure par compilation.
 
-### 2. Lancer la première compilation
+### 2. Donner à EAS l'adresse du serveur
+
+**L'étape qu'on oublie, et qui produit une application qui s'installe et ne
+fonctionne pas.** `.env` n'est pas versionné — c'est délibéré — et EAS ne
+téléverse pas ce que `.gitignore` exclut. Sans ces deux valeurs, le binaire part
+sans savoir où joindre Supabase : il s'ouvre, et rien ne se charge.
+
+Elles ne sont pas secrètes : la clé `anon` est faite pour vivre dans le
+téléphone, et c'est la RLS qui protège les données, pas elle. Elles sont
+simplement rangées chez EAS plutôt que dans le dépôt.
 
 ```bash
-eas build --profile development --platform ios
+npx eas-cli@latest env:create --environment development \
+  --name EXPO_PUBLIC_SUPABASE_URL --value "https://<référence>.supabase.co" --visibility plaintext
+
+npx eas-cli@latest env:create --environment development \
+  --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "<la clé anon>" --visibility plaintext
 ```
+
+Les deux valeurs sont dans votre `.env`, et dans le tableau de bord Supabase
+sous *Project settings → API*.
+
+> **Jamais la clé `service_role`.** Ni ici, ni dans le dépôt, ni dans
+> l'application. Elle contourne toutes les règles de sécurité.
+
+Plus tard, pour un binaire d'App Store, refaire les deux commandes avec
+`--environment production` — et y ajouter `EXPO_PUBLIC_BILLING_API_URL`, sans
+quoi le rail boutique ne s'active pas.
+
+### 3. Lancer la première compilation
+
+```bash
+npx eas-cli@latest build --profile development --platform ios
+```
+
+> **`npx` plutôt qu'une installation globale.** `npm install -g eas-cli` échoue
+> sur un macOS où `/usr/local/lib/node_modules` n'appartient pas à
+> l'utilisateur — c'est le cas par défaut. On pourrait passer par `sudo` ;
+> `npx` évite la question, et prend toujours la dernière version.
 
 EAS demandera de se connecter à votre compte Apple pour créer les certificats et
 les profils. **Laissez-le faire** : il lui faut des profils pour les *deux*
@@ -152,7 +185,7 @@ vrai module de blocage.
 > se recharge alors sans recompiler, et vous ne repassez par EAS que lorsque le
 > code natif change.
 
-### 3. Faire confiance au développeur
+### 4. Faire confiance au développeur
 
 Au premier lancement, l'iPhone demande d'autoriser un développeur inconnu :
 *Réglages → Général → VPN et gestion de l'appareil → faire confiance*.

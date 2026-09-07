@@ -35,9 +35,27 @@ Ce scénario est couvert par un test automatisé de bout en bout
 ## Démarrer
 
 ```bash
-npm install
+npm ci
 npm start          # puis « i » pour iOS, « a » pour Android, « w » pour le web
 ```
+
+### Mettre à jour : `npm ci`, jamais `npm install`
+
+```bash
+git pull && npm ci
+```
+
+`npm install` **réécrit `package-lock.json`** dès que la version de npm diffère
+un peu de celle qui l'a produit. Le fichier modifié bloque alors le `git pull`
+suivant — « *Your local changes would be overwritten by merge* » —, on le jette,
+on tire, on réinstalle, et la boucle recommence à chaque fois.
+
+`npm ci` installe exactement ce que le verrou décrit et **n'y touche pas**. Il
+efface `node_modules` d'abord, donc il est un peu plus lent, et c'est tout ce
+qu'il coûte.
+
+> Si le blocage est déjà là : `git checkout -- package-lock.json` puis
+> `git pull`. Le fichier est reconstruit par l'installation qui suit.
 
 Pour essayer sur un vrai téléphone, puis brancher le serveur : **[docs/ops/mise-en-route.md](docs/ops/mise-en-route.md)**
 — pas à pas, sans rien supposer d'acquis.
