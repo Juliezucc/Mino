@@ -255,3 +255,73 @@ describe('l’horloge reculée', () => {
     expect(natif.calls).toContain('shield');
   });
 });
+
+/**
+ * Ce qui doit se passer quand le blocage refuse de se lever.
+ *
+ * Le cas n'était pas théorique : `DeviceActivity` refuse tout intervalle de
+ * moins de quinze minutes, et Mino vend des séances de cinq. Le module iOS
+ * programmait le retour du bouclier, l'échec était avalé par un `try?`, et le
+ * bouclier partait à terre pour ne jamais revenir. Il programme désormais AVANT
+ * de lever, et lève une exception s'il ne peut pas.
+ *
+ * Reste la question de ce côté-ci : que devient la séance déjà ouverte dans le
+ * grand livre ? Elle doit se refermer sans rien débiter — c'est la propriété
+ * vérifiée ici, et c'est elle qui rend la rattrapage de `temps.tsx` sûr.
+ */
+describe('quand le blocage ne se lève pas', () => {
+  it('la séance refermée aussitôt ne débite rien', () => {
+    const debut = new Date('2026-08-20T10:00:00.000Z');
+    const data = buildDemoFamily(debut);
+    const enfant = data.children[0];
+
+    const ouverte = startSession(data, { childId: enfant.id, minutes: 5 }, debut);
+    const avant = balanceOf(ouverte.data.transactions, enfant.id);
+
+    // Refermée dans la seconde, comme le fait l'écran quand `grant` échoue.
+    const fermee = endSession(
+      ouverte.data,
+      { sessionId: ouverte.session.id, status: 'stopped' },
+      new Date(debut.getTime() + 200),
+    );
+
+    expect(fermee.transaction).toBeUndefined();
+    expect(balanceOf(fermee.data.transactions, enfant.id)).toBe(avant);
+    expect(fermee.session.status).toBe('stopped');
+    expect(fermee.session.consumedMinutes).toBe(0);
+  });
+
+  it('le module natif remonte l’échec au lieu de le taire', async () => {
+    // C'était l'autre moitié du défaut : `unshield` avalait l'erreur, et
+    // l'application croyait la séance ouverte alors que rien ne l'était.
+    const natif = {
+      async authorizationStatus() {
+        return 'approved' as const;
+      },
+      async requestAuthorization() {
+        return 'approved' as const;
+      },
+      async presentPicker() {
+        return { count: 7 };
+      },
+      async selectionCount() {
+        return { count: 7 };
+      },
+      async shield() {},
+      async unshield() {
+        throw new Error('Le système a refusé de programmer le retour du blocage');
+      },
+      async remaining() {
+        return 0;
+      },
+    };
+    const service = new DeviceManagedScreenTimeService(natif);
+
+    await expect(
+      service.grant({ sessionId: 'ses_3', childId: 'c1', minutes: 5 }),
+    ).rejects.toThrow('refusé');
+    // Et la séance ne laisse aucune trace : l'écran ne doit pas se croire
+    // ouvert sur une séance que le natif a refusé d'ouvrir.
+    expect(await service.status('c1')).toEqual({ active: false, remainingSeconds: 0 });
+  });
+});

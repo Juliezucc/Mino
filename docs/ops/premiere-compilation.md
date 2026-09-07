@@ -174,10 +174,39 @@ Ce que vous devez pouvoir observer, dans l'ordre :
 4. une session démarrée les rouvre pour la durée exacte ;
 5. **fermez Mino**, attendez l'échéance : le bouclier revient. C'est
    l'extension qui l'a reposé, et c'est la seule preuve qui compte.
+6. **recommencez avec une séance de cinq minutes.** C'est un chemin différent
+   dans le code, et c'est celui qui était cassé.
 
 Le point 5 est le produit. Les quatre premiers peuvent marcher sans lui, et
 donneraient une application qui tient sa promesse tant que l'enfant ne pense pas
 à fermer l'application.
+
+### Pourquoi le point 6 est séparé du point 5
+
+`DeviceActivity` **refuse tout intervalle de moins de quinze minutes**
+(`MonitoringError.intervalTooShort`). Mino vend des séances de cinq — c'est même
+le cœur du produit : un enfant qui a sept minos doit pouvoir en dépenser sept.
+
+Le module programmait donc un intervalle trop court, le système le refusait, un
+`try?` avalait l'erreur, et le bouclier était déjà à terre. L'enfant obtenait un
+téléphone ouvert **pour toujours**, pendant que l'application affichait son
+minuteur comme si de rien n'était. Une longue séance, elle, fonctionnait très
+bien — d'où l'importance d'essayer les deux.
+
+Ce qui a été corrigé, et qu'il faut savoir avant de lire le code : l'intervalle
+dure désormais le plancher de quinze minutes, et c'est l'`warningTime` qui tombe
+à l'heure réelle — le remède qu'Apple indique lui-même dans la suggestion
+attachée à cette erreur. L'extension repose le bouclier sur
+`intervalWillEndWarning`, et `intervalDidEnd` le repose de toute façon un peu
+plus tard, en filet.
+
+Et surtout : **on programme le retour avant de lever**, jamais l'inverse. Si le
+système refuse, rien n'est levé et l'application le dit — l'enfant lit
+« impossible de démarrer » et sa séance est refermée sans qu'aucune minute ne
+lui soit débitée.
+
+Concrètement, au point 6, deux choses à regarder à cinq minutes d'intervalle :
+le bouclier revient bien, et le solde de l'enfant a bien baissé de cinq.
 
 ---
 

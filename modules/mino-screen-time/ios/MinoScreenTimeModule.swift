@@ -3,6 +3,7 @@ import FamilyControls
 import ManagedSettings
 import DeviceActivity
 import SwiftUI
+import UIKit
 
 /**
  Le bouclier, et rien d'autre.
@@ -39,6 +40,10 @@ public class MinoScreenTimeModule: Module {
   private static let selectionKey = "mino.selection"
   private static let deadlineKey = "mino.deadline"
   private static let activityName = DeviceActivityName("mino.session")
+
+  /// Le plancher qu'impose `DeviceActivity` à tout intervalle surveillé.
+  /// Quinze minutes, et il n'est pas négociable — voir `unshield`.
+  private static let plancherIntervalle: TimeInterval = 15 * 60
 
   public func definition() -> ModuleDefinition {
     Name("MinoScreenTime")
@@ -87,27 +92,69 @@ public class MinoScreenTimeModule: Module {
       DeviceActivityCenter().stopMonitoring([Self.activityName])
     }
 
+    /**
+     Lever le bouclier pour une durée — et surtout, garantir son retour.
+
+     DEUX RÈGLES SONT NÉES D'UN DÉFAUT, et elles sont l'essentiel de cette
+     fonction.
+
+     **1. On programme le retour AVANT de lever.** L'ordre inverse paraît
+     naturel et il est catastrophique : si le système refuse la programmation,
+     le bouclier est déjà à terre et plus rien ne le relève. L'enfant obtient un
+     téléphone ouvert pour toujours, et l'application continue d'afficher son
+     minuteur comme si de rien n'était.
+
+     **2. `DeviceActivity` refuse tout intervalle de moins de quinze minutes**
+     (`MonitoringError.intervalTooShort`). Or Mino vend des séances de cinq
+     minutes — c'est même le cœur du produit : un enfant qui a sept minos doit
+     pouvoir en dépenser sept. Une séance courte était donc programmée, refusée,
+     l'erreur avalée par un `try?`, et le bouclier ne revenait jamais.
+
+     Le remède est celui qu'Apple indique lui-même dans la suggestion attachée à
+     cette erreur : l'intervalle dure le plancher de quinze minutes, et c'est
+     l'AVERTISSEMENT (`warningTime`) qui tombe à l'heure réelle. L'extension
+     repose le bouclier là. Et si l'avertissement manquait, la fin d'intervalle
+     le repose de toute façon : au pire l'enfant garde dix minutes de trop, au
+     lieu de les garder toutes.
+     */
     AsyncFunction("unshield") { (until: Double) in
       // Rien à lever si l'échéance est déjà passée : mieux vaut ne rien faire
       // que d'ouvrir pour une durée nulle et laisser le bouclier tombé.
       let deadline = Date(timeIntervalSince1970: until / 1000)
-      guard deadline > Date().addingTimeInterval(60) else { return }
+      let debut = Date()
+      guard deadline > debut.addingTimeInterval(60) else { return }
 
+      let duree = deadline.timeIntervalSince(debut)
+      let courte = duree < Self.plancherIntervalle
+      let fin = courte ? debut.addingTimeInterval(Self.plancherIntervalle) : deadline
+
+      let calendar = Calendar.current
+      let schedule = DeviceActivitySchedule(
+        intervalStart: calendar.dateComponents([.hour, .minute, .second], from: debut),
+        intervalEnd: calendar.dateComponents([.hour, .minute, .second], from: fin),
+        repeats: false,
+        // Compté depuis la FIN de l'intervalle : pour une séance de cinq
+        // minutes, dix minutes d'avertissement placent le rappel à la
+        // cinquième. Pour une séance assez longue, pas d'avertissement du tout.
+        warningTime: courte
+          ? Self.composantes(of: Self.plancherIntervalle - duree)
+          : nil
+      )
+
+      let center = DeviceActivityCenter()
+      center.stopMonitoring([Self.activityName])
+      do {
+        try center.startMonitoring(Self.activityName, during: schedule)
+      } catch {
+        // Le bouclier n'a pas bougé : on ne lève rien, et l'application
+        // l'apprend au lieu de croire la séance ouverte.
+        throw ProgrammationRefusee(error.localizedDescription)
+      }
+
+      // Et seulement maintenant.
       self.store.shield.applications = nil
       self.store.shield.applicationCategories = nil
       self.shared?.set(deadline.timeIntervalSince1970, forKey: Self.deadlineKey)
-
-      // L'extension se réveille à la fin de l'intervalle et repose le bouclier,
-      // que Mino soit ouvert, fermé ou tué.
-      let calendar = Calendar.current
-      let schedule = DeviceActivitySchedule(
-        intervalStart: calendar.dateComponents([.hour, .minute, .second], from: Date()),
-        intervalEnd: calendar.dateComponents([.hour, .minute, .second], from: deadline),
-        repeats: false
-      )
-      let center = DeviceActivityCenter()
-      center.stopMonitoring([Self.activityName])
-      try? center.startMonitoring(Self.activityName, during: schedule)
     }
 
     AsyncFunction("remaining") { () -> Double in
@@ -143,6 +190,13 @@ public class MinoScreenTimeModule: Module {
 
   private static func count(of selection: FamilyActivitySelection) -> Int {
     selection.applicationTokens.count + selection.categoryTokens.count
+  }
+
+  /// Une durée, exprimée comme `DeviceActivitySchedule` attend son
+  /// avertissement : des composantes de calendrier, et non des secondes.
+  private static func composantes(of duree: TimeInterval) -> DateComponents {
+    let secondes = max(1, Int(duree.rounded()))
+    return DateComponents(minute: secondes / 60, second: secondes % 60)
   }
 
   private static func describe(_ status: AuthorizationStatus) -> String {
@@ -183,6 +237,19 @@ public class MinoScreenTimeModule: Module {
       hosting = controller
       root.present(controller, animated: true)
     }
+  }
+}
+
+/**
+ Le système a refusé de programmer le retour du bouclier.
+
+ Elle remonte jusqu'au JavaScript, qui annule alors la séance : mieux vaut un
+ enfant qui lit « impossible de démarrer » qu'un enfant débité de ses minutes
+ devant des applications restées fermées — ou, pire, ouvertes pour toujours.
+ */
+private final class ProgrammationRefusee: GenericException<String> {
+  override var reason: String {
+    "Le système a refusé de programmer le retour du blocage : \(param)"
   }
 }
 

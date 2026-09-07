@@ -54,7 +54,20 @@ Le fonctionnement visé, une fois en place :
 Plus aucune limite quotidienne à estimer à l'avance : le temps disponible est
 exactement celui que l'enfant a gagné.
 
-**Les trois choses à savoir avant de s'y engager :**
+**Les quatre choses à savoir avant de s'y engager :**
+
+- **Un `DeviceActivitySchedule` ne peut pas durer moins de quinze minutes**
+  (`MonitoringError.intervalTooShort`), et Mino vend des séances de cinq. Le
+  point 3 ci-dessus est donc plus subtil qu'il n'en a l'air : pour une séance
+  courte, l'intervalle programmé dure le plancher d'un quart d'heure, et c'est
+  l'`warningTime` — placé à l'heure réelle — qui rappelle l'extension au bon
+  moment. C'est le remède qu'Apple indique lui-même dans la suggestion attachée
+  à cette erreur.
+
+  Le corollaire vaut d'être écrit une fois : **on programme le retour du
+  bouclier avant de le lever**, jamais l'inverse. Sinon un refus du système
+  laisse le bouclier à terre sans que rien ne puisse le relever — et le minuteur
+  de l'application continue de tourner comme si tout allait bien.
 
 - **L'autorisation `com.apple.developer.family-controls` se demande à Apple.**
   Elle n'est pas accordée automatiquement : il faut déposer une demande décrivant

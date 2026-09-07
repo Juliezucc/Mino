@@ -35,6 +35,24 @@ class MinoShieldMonitor: DeviceActivityMonitor {
     reshield()
   }
 
+  /**
+   Le rappel des séances courtes, et la raison pour laquelle elles existent.
+
+   `DeviceActivity` refuse tout intervalle de moins de quinze minutes. Or une
+   séance de cinq minutes est exactement ce que Mino vend. L'application
+   programme donc un intervalle d'un quart d'heure et demande un
+   AVERTISSEMENT placé à l'heure réelle : c'est ici qu'il tombe, et c'est ici
+   que le bouclier revient pour une séance courte.
+
+   `intervalDidEnd` repose de toute façon, un peu plus tard. Ce n'est pas une
+   redondance inutile : si l'avertissement manquait, l'enfant garderait dix
+   minutes de trop — pas toutes.
+   */
+  override func intervalWillEndWarning(for activity: DeviceActivityName) {
+    super.intervalWillEndWarning(for: activity)
+    reshield()
+  }
+
   /// Ceinture et bretelles : si le système annule l'intervalle pour une raison
   /// qui lui appartient, on repose quand même. Une session qui se termine mal
   /// doit se terminer fermée, jamais ouverte.

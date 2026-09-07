@@ -36,6 +36,7 @@ export default function ChildTime() {
   const running = useRunningSession(child?.id);
   const requested = useRequestedSession(child?.id);
   const startSession = useMinoStore((s) => s.startSession);
+  const endSession = useMinoStore((s) => s.endSession);
 
   // `null` means this very device, the only screen Mino drives by itself.
   const [deviceId, setDeviceId] = useState<string | null>(null);
@@ -70,7 +71,20 @@ export default function ChildTime() {
       if (supervised) return; // The screen switches to "waiting" on its own.
 
       // The service seam: today an in-app timer, tomorrow real app unblocking.
-      await getScreenTimeService().grant({ sessionId, childId: child.id, minutes });
+      try {
+        await getScreenTimeService().grant({ sessionId, childId: child.id, minutes });
+      } catch (e) {
+        /**
+         * Le blocage n'a pas été levé, donc la séance n'a jamais commencé.
+         *
+         * La refermer tout de suite est ce qui empêche le pire enchaînement :
+         * une séance ouverte dans le grand livre, des minutes qui s'écoulent, et
+         * des applications restées fermées. Fermée à la seconde, elle ne débite
+         * rien — `endSession` ne facture que le temps écoulé, et il est nul.
+         */
+        await endSession(sessionId, 'stopped').catch(() => undefined);
+        throw e;
+      }
       router.push({ pathname: '/child/session', params: { sessionId } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de démarrer.');
