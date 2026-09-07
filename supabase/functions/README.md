@@ -46,12 +46,26 @@ supabase secrets set \
   STRIPE_WEBHOOK_SECRET=whsec_… \
   STRIPE_PRICE_MONTHLY=price_… \
   STRIPE_PRICE_YEARLY=price_… \
-  APP_URL=https://mino.app \
-  APP_ORIGIN=https://mino.app
+  APP_URL=https://minoapp.fr \
+  APP_ORIGIN=https://minoapp.fr
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY` sont injectées
 automatiquement par Supabase.
+
+> **`mino.app` appartient à un tiers.** Ces deux lignes le portaient, et ce
+> n'était pas une coquille de documentation : `APP_URL` compose les
+> `success_url` et `cancel_url` envoyées à Stripe. Un parent qui venait de
+> payer aurait été renvoyé sur `https://mino.app/abonnement/merci`,
+> c'est-à-dire chez quelqu'un d'autre — avec, dans l'adresse, l'identifiant de
+> sa session de paiement. `APP_ORIGIN`, lui, ouvre le `Access-Control-Allow-Origin`
+> des fonctions.
+>
+> **Deux choses à vérifier avant le premier paiement réel :**
+> `supabase secrets list` doit montrer `minoapp.fr` sur les deux, et le site
+> doit répondre sur `/abonnement/merci` et `/abonnement`. Sans ces deux pages,
+> le client atterrit sur une 404 la seconde après avoir payé — c'est le pire
+> endroit du parcours pour en rencontrer une.
 
 ## 3. Déployer
 
