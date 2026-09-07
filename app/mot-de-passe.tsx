@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { Mascot } from '@/components/mascot';
 import { Button, Field, Screen, ScreenHeader, Text } from '@/components/ui';
 import { getAuthService } from '@/services/auth';
+import { useMinoStore } from '@/store/useMinoStore';
 import { attendreLien, oublierLien } from '@/services/auth/lienEntrant';
 import { colors, spacing } from '@/theme';
 
@@ -38,6 +39,7 @@ export default function NouveauMotDePasse() {
   const [fait, setFait] = useState(false);
   const [envoi, setEnvoi] = useState(false);
   const [pret, setPret] = useState(false);
+  const bootstrap = useMinoStore((s) => s.bootstrap);
   // Voir `lienEntrant` : quand Mino est déjà ouvert, l'adresse arrive avant que
   // cet écran ne soit monté, et `useURL()` la manque. Un parent qui ne peut pas
   // reposer son mot de passe est un parent qui s'en va.
@@ -84,6 +86,19 @@ export default function NouveauMotDePasse() {
         resultat.reason ?? 'Ce lien n’est plus valable. Demandez-en un nouveau depuis la connexion.',
       );
     }
+
+    /**
+     * Aller chercher la famille — sans quoi le parent atterrit sur « Rien à
+     * ouvrir sur cet appareil ».
+     *
+     * `signIn` charge la famille dans le magasin ; ce chemin-ci n'y passe
+     * jamais. Il ouvre la session par le lien du courriel, pose le nouveau mot
+     * de passe, et personne n'a jamais demandé les données. L'écran suivant lit
+     * donc un magasin vide et annonce qu'il n'y a rien ici — à quelqu'un qui
+     * vient de reprendre la main sur son compte, et qui a toutes les raisons de
+     * croire qu'il a tout perdu.
+     */
+    await bootstrap().catch(() => undefined);
     setFait(true);
   };
 

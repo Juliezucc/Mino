@@ -7,6 +7,7 @@ import { Mascot } from '@/components/mascot';
 import { Button, Screen, Text } from '@/components/ui';
 import { getAuthService } from '@/services/auth';
 import { attendreLien, oublierLien } from '@/services/auth/lienEntrant';
+import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
 /**
@@ -34,6 +35,7 @@ export default function Confirme() {
   // arrive AVANT que cet écran ne soit monté, et le crochet la manque. Voir
   // `lienEntrant`, qui écoute dès le chargement du paquet.
   const vu = Linking.useURL();
+  const bootstrap = useMinoStore((s) => s.bootstrap);
   const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,16 +57,36 @@ export default function Confirme() {
       const r = await getAuthService().resumeFromLink(url);
       if (!vivant) return;
       oublierLien();
+      if (!r.ok) {
+        setErreur(r.reason ?? 'Ce lien n’est plus valable.');
+        return;
+      }
+
+      /**
+       * Aller chercher la famille avant de décider où aller.
+       *
+       * `signIn` charge le magasin ; ce chemin-ci n'y passe pas — il ouvre la
+       * session à partir du lien, et personne n'a jamais demandé les données.
+       * Sans cela, l'écran suivant lit un magasin vide.
+       *
+       * Et c'est ce qui permet d'envoyer chacun au bon endroit : « créer ma
+       * famille » pour une inscription neuve, l'écran des profils pour
+       * quelqu'un qui en a déjà une — un parent qui confirme une adresse
+       * changée, par exemple. Lui proposer de créer sa famille une seconde
+       * fois est le meilleur moyen de lui faire croire qu'il a tout perdu.
+       */
+      await bootstrap().catch(() => undefined);
+      if (!vivant) return;
+
       // `replace` et non `push` : revenir en arrière sur un lien déjà consommé
       // ne mène nulle part.
-      if (r.ok) router.replace('/onboarding/account');
-      else setErreur(r.reason ?? 'Ce lien n’est plus valable.');
+      router.replace(useMinoStore.getState().data ? '/who' : '/onboarding/account');
     })().catch(() => vivant && setErreur('Ce lien n’est plus valable.'));
 
     return () => {
       vivant = false;
     };
-  }, [vu, router]);
+  }, [vu, router, bootstrap]);
 
   return (
     <Screen contentStyle={styles.centre}>
