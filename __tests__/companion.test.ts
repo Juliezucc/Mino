@@ -251,6 +251,46 @@ describe('la première phrase', () => {
 
     expect(greeting(ctx)).toContain('Ranger ma chambre');
   });
+
+  /**
+   * Le défaut vu sur un vrai téléphone : Mino annonçait « plus de temps
+   * d'écran pour aujourd'hui » à un enfant qui en avait encore cinq. Et quand
+   * l'enfant corrigeait, il insistait — la consigne du modèle affirmait la même
+   * chose que la première phrase.
+   *
+   * L'écran est atteignable à tout moment. C'est le seul endroit où Mino peut
+   * contredire ce que l'enfant sait être vrai, et c'est donc le seul où il n'a
+   * pas le droit de supposer.
+   */
+  it('ne prétend pas que le temps est fini quand il en reste', () => {
+    const ctx = buildContext({ child: child(), balance: 5, missions: [], used: 0, day: 1 });
+    const hello = greeting(ctx);
+
+    expect(hello).not.toContain('Plus de temps');
+    expect(hello).toContain('5');
+    expect(hello).toContain('Noah');
+  });
+
+  it('et la consigne du modèle le lui interdit aussi', () => {
+    // La première phrase vient de nous, la suite vient du modèle : les deux
+    // doivent dire la même chose, sans quoi Mino se contredit au deuxième
+    // message.
+    expect(SYSTEM_PROMPT).toMatch(/n'affirmes JAMAIS|n’affirmes JAMAIS/);
+  });
+
+  it('rebondit sur une mission en attente même avec du temps restant', () => {
+    const ctx = buildContext({
+      child: child(),
+      balance: 12,
+      missions: [cm('m1', 'Ranger ma chambre', 'pending')],
+      used: 0,
+      day: 1,
+    });
+
+    const hello = greeting(ctx);
+    expect(hello).toContain('Ranger ma chambre');
+    expect(hello).not.toContain('Plus de temps');
+  });
 });
 
 /**

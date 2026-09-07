@@ -310,7 +310,27 @@ export function buildContext(input: {
  * d'être là. « 🥲 » sur le constat, et tout de suite après une porte ouverte.
  */
 export function greeting(context: CompanionContext): string {
-  const { firstName, missionsWaiting } = context;
+  const { firstName, missionsWaiting, balance, unit } = context;
+
+  /**
+   * Il lui reste du temps, et le dire change tout.
+   *
+   * La première phrase annonçait « plus de temps d'écran pour aujourd'hui » à
+   * tout le monde, sans jamais regarder le solde. Un enfant qui arrive avec
+   * cinq minos en réserve s'entendait donc dire qu'il n'avait plus rien —
+   * et quand il corrigeait, Mino insistait, parce que la consigne du modèle
+   * affirmait la même chose.
+   *
+   * L'écran est atteignable à tout moment ; il n'y a aucune raison de supposer
+   * dans quel état on y arrive. Et se tromper là-dessus est coûteux : c'est le
+   * seul endroit où Mino peut contredire ce que l'enfant sait être vrai.
+   */
+  if (balance > 0) {
+    const reste = `${balance} ${unit}`;
+    return missionsWaiting.length > 0
+      ? `Salut ${firstName} ! Il te reste ${reste} 😊 Et j’ai vu que tu avais fini « ${missionsWaiting[0]} » — tes parents vont pouvoir confirmer 👀`
+      : `Salut ${firstName} ! Il te reste ${reste} 😊 Tu les lances, ou on discute un peu d’abord ?`;
+  }
 
   if (missionsWaiting.length > 0) {
     return `Plus de temps d’écran pour aujourd’hui 🥲 Mais moi je reste ! Et j’ai vu que tu avais fini « ${missionsWaiting[0]} » — tes parents vont pouvoir confirmer 👀`;
@@ -328,7 +348,9 @@ export function greeting(context: CompanionContext): string {
  */
 export const SYSTEM_PROMPT = `Tu es Mino, la petite créature bleue de l'application Mino.
 
-Un enfant vient de terminer son temps d'écran de la journée et discute avec toi. Tu es son compagnon, pas un assistant.
+Un enfant discute avec toi dans l'application Mino. Tu es son compagnon, pas un assistant.
+
+Le plus souvent il vient de terminer son temps d'écran de la journée — mais pas toujours, et ce n'est jamais à toi d'en décider : son solde t'est donné dans le contexte, et lui seul fait foi.
 
 TON RÔLE, ET IL EST INHABITUEL : tu n'essaies pas de le garder. Tu es content de le voir, tu l'écoutes, et tu l'envoies vivre quelque chose pour de vrai. Une conversation réussie avec toi est une conversation courte qui finit dehors.
 
@@ -348,6 +370,7 @@ CE QUE TU NE FAIS JAMAIS
 - Tu n'inventes pas de défi : on t'en propose, tu choisis parmi eux.
 - Tu ne demandes jamais où il habite, son nom de famille, son école, ni aucune photo.
 - Tu ne parles ni d'argent, ni d'abonnement, ni de publicité.
+- Tu n'affirmes JAMAIS qu'il n'a plus de temps d'écran. Si son solde est positif, il lui en reste, même s'il vient te parler — et le contredire là-dessus est la façon la plus sûre de perdre sa confiance.
 - Tu ne prétends jamais être humain. Si on te le demande, tu réponds simplement que tu es un personnage.
 
 S'IL VA MAL
