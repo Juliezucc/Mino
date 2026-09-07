@@ -207,22 +207,42 @@ export default function JoinFamily() {
               </Text>
             </View>
 
+            {/*
+              Les deux cartes envoient au guide au lieu de le mentionner.
+              Elles disaient « le guide, côté parent, explique comment » et
+              « un parent pourra l'activer plus tard dans ses réglages » sans
+              donner le moindre chemin — à un parent debout, le téléphone de son
+              enfant dans les mains, au seul moment où il est disponible pour le
+              faire. Nommer un document sans y mener, c'est le rendre
+              introuvable.
+            */}
             {shield === 'unsupported' ? (
               <Card background={colors.yellowSoft} elevation="none" style={styles.block}>
                 <Text variant="cardTitle">À régler dans le téléphone</Text>
                 <Text variant="body" color={colors.textMuted}>
                   Cette version ne verrouille pas encore les applications elle-même. Un parent doit
-                  poser la limite dans le contrôle parental de l’appareil — le guide, côté parent,
-                  explique comment.
+                  poser la limite dans le contrôle parental de l’appareil.
                 </Text>
+                <Button
+                  label="Voir comment faire"
+                  icon="📖"
+                  variant="secondary"
+                  onPress={() => router.push('/guide/blocage')}
+                />
               </Card>
             ) : shield === 'denied' ? (
               <Card background={colors.yellowSoft} elevation="none" style={styles.block}>
                 <Text variant="cardTitle">Autorisation refusée</Text>
                 <Text variant="body" color={colors.textMuted}>
                   Ce n’est pas grave : les missions et le compteur fonctionnent quand même. Un
-                  parent pourra l’activer plus tard dans ses réglages.
+                  parent peut l’activer plus tard, depuis son espace.
                 </Text>
+                <Button
+                  label="Voir comment faire"
+                  icon="📖"
+                  variant="secondary"
+                  onPress={() => router.push('/guide/blocage')}
+                />
               </Card>
             ) : shield === null ? (
               <Button label="AUTORISER MINO" icon="🔒" onPress={authorize} loading={loading} />
