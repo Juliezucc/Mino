@@ -50,6 +50,7 @@ export default function Celebration() {
    * s'ouvre parfois sur une complétion qui vient d'arriver et que le magasin
    * n'a pas encore reprise.
    */
+  const fermeRef = useRef(false);
   const lotRef = useRef<Celebration | null>(null);
   if (!lotRef.current && data && child) {
     lotRef.current = celebrationFor(data, child.id, completionId);
@@ -86,7 +87,13 @@ export default function Celebration() {
   const missionDe = (completion: MissionCompletion) =>
     data?.missions.find((m) => m.id === completion.missionId);
 
+  // Une seule fermeture, même sur trois appuis : un enfant de cinq ans qui
+  // trouve qu'il ne se passe rien tape plusieurs fois, et deux `back()`
+  // remonteraient d'un écran de trop — il se retrouverait ailleurs que là d'où
+  // il vient.
   const close = () => {
+    if (fermeRef.current) return;
+    fermeRef.current = true;
     if (router.canGoBack()) router.back();
     else router.replace('/child');
   };

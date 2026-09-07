@@ -1,4 +1,4 @@
-import { canSwitchFreely, profileToOpen } from '@/data/deviceProfile';
+import { profileToOpen } from '@/data/deviceProfile';
 
 const children = [{ id: 'noah' }, { id: 'elliott' }];
 
@@ -33,8 +33,16 @@ describe('le profil de l’appareil', () => {
     expect(profileToOpen({ lockedChildId: 'parti', lastChildId: 'elliott' }, children)).toBe('elliott');
   });
 
-  it('ne laisse changer de profil librement que sur un appareil partagé', () => {
-    expect(canSwitchFreely({ lockedChildId: null, lastChildId: 'noah' })).toBe(true);
-    expect(canSwitchFreely({ lockedChildId: 'noah', lastChildId: 'noah' })).toBe(false);
+  /**
+   * Un appareil réservé rouvre toujours sur son enfant — c'est tout ce que le
+   * réservage fait désormais.
+   *
+   * Il demandait aussi le code parent pour changer de profil. À l'usage, cela
+   * produisait deux codes d'affilée : un pour atteindre le sélecteur, un autre
+   * pour l'espace parent, que le sélecteur venait de reverrouiller. Changer de
+   * profil ne se paie plus d'un code ; l'espace parent, si.
+   */
+  it('rouvre sur l’enfant réservé, quel que soit le dernier profil ouvert', () => {
+    expect(profileToOpen({ lockedChildId: 'noah', lastChildId: 'elliott' }, children)).toBe('noah');
   });
 });

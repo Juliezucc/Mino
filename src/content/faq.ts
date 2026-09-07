@@ -469,7 +469,7 @@ export const FAQ: FaqEntry[] = [
     id: 'appareil-partage-profils',
     question: 'Mon enfant peut changer de profil et prendre celui de son frère',
     answer:
-      'Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> ». Mino s’ouvrira toujours sur son profil, et il faudra votre code parent pour en changer. Laissez « Partagé » pour un appareil familial : chacun retrouve alors le dernier profil utilisé, et peut en changer librement.',
+      'Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> » : Mino s’ouvrira toujours sur son profil, sans passer par le sélecteur. Changer de profil reste possible et ne demande pas votre code — c’est votre espace parent qui est protégé, pas le choix du profil. Une minute prise sur le compte d’un frère apparaît de toute façon dans son historique, à la seconde près.',
     category: 'compte',
     keywords: ['changer de profil', 'profil', 'frere', 'soeur', 'tablette partagee', 'verrouiller', 'prendre les minos'],
     route: '/parent/(tabs)/reglages',

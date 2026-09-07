@@ -23,14 +23,22 @@ import { ID } from '@/domain/types';
  *
  * D'où deux modes, choisis par le parent, appareil par appareil :
  *
- *   • **réservé** — « cet appareil est à Noah ». Il s'ouvre directement sur
- *     Noah, et en changer demande le code parent. C'est le modèle un appareil,
- *     un enfant, mais sans en faire une fatalité.
+ *   • **réservé** — « cet appareil est à Noah ». Il s'ouvre toujours sur Noah,
+ *     quel que soit le dernier profil utilisé.
  *
  *   • **partagé** — la tablette de la maison. Elle rouvre sur le dernier profil
- *     utilisé, et on en change librement. Un appareil partagé est un appareil
- *     où les enfants se voient : c'est inhérent, et le parent le choisit en
- *     connaissance de cause.
+ *     utilisé.
+ *
+ * **Ce que ce réglage ne fait plus, et pourquoi.** Sur un appareil réservé,
+ * changer de profil demandait le code parent. L'intention était bonne — les
+ * minos d'un frère sont à une touche — mais à l'usage elle produisait une
+ * scène absurde : le parent tapait son code pour atteindre le sélecteur, puis
+ * touchait « Espace parent » et se voyait redemander le même code aussitôt (le
+ * sélecteur reverrouille l'espace parent en s'ouvrant, à juste titre). Le
+ * premier code n'ouvrait donc rien : il ne servait qu'à passer une porte.
+ *
+ * Un changement de profil n'est pas un accès aux réglages, et il ne se paie
+ * plus d'un code. Ce qui est protégé, c'est l'espace parent — lui seul.
  */
 
 const KEY = 'mino.device.profile.v1';
@@ -77,9 +85,4 @@ export async function writeDeviceProfile(patch: Partial<DeviceProfile>): Promise
 export function profileToOpen(profile: DeviceProfile, children: { id: ID }[]): ID | null {
   const exists = (id: ID | null) => (id && children.some((c) => c.id === id) ? id : null);
   return exists(profile.lockedChildId) ?? exists(profile.lastChildId);
-}
-
-/** Peut-on quitter ce profil sans demander le code parent ? */
-export function canSwitchFreely(profile: DeviceProfile): boolean {
-  return profile.lockedChildId === null;
 }

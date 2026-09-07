@@ -69,7 +69,7 @@ export default function JoinFamily() {
    * Elle ne l'était pas : choisir un enfant et choisir « Appareil partagé »
    * faisaient exactement la même chose, la question était posée pour rien. Or
    * c'est tout l'intérêt de cet écran — sur la tablette de Noah, Mino doit
-   * rouvrir sur Noah, et changer de profil doit passer par le code parent.
+   * rouvrir sur Noah, sans passer par le sélecteur.
    *
    * Le réglage reste modifiable dans Réglages : un enfant qui répondrait «
    * partagé » pour s'ouvrir les minos de son frère n'a rien gagné de

@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -16,14 +16,16 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
 export default function ParentPin() {
   const router = useRouter();
   /**
-   * Où aller une fois le code accepté.
+   * Une seule destination : l'espace parent.
    *
-   * Par défaut l'espace parent, mais l'écran sert aussi de barrière ailleurs :
-   * sur un appareil réservé à un enfant, changer de profil demande le code, et
-   * mène alors au sélecteur et non aux réglages.
+   * L'écran acceptait un paramètre `then` et servait aussi de barrière au
+   * changement de profil sur un appareil réservé. C'est ce qui produisait deux
+   * codes d'affilée : le premier menait au sélecteur, lequel reverrouille
+   * l'espace parent en s'ouvrant, si bien que le second était redemandé
+   * aussitôt. Changer de profil ne coûte plus de code ; ce code-ci n'ouvre donc
+   * plus qu'une porte, la seule qui le mérite.
    */
-  const { then } = useLocalSearchParams<{ then?: string }>();
-  const destination = then === '/who' ? '/who' : '/parent';
+  const destination = '/parent';
   const parent = useParent();
   const unlockParent = useMinoStore((s) => s.unlockParent);
 
@@ -126,9 +128,12 @@ export default function ParentPin() {
 
   return (
     <Screen scroll={false} contentStyle={styles.content}>
-      {/* Revenir en arrière ne doit jamais contourner la barrière : sur un
-          appareil réservé, la croix ramène à l'enfant, pas au sélecteur. */}
-      <ScreenHeader closeIcon onBack={() => router.replace(then === '/who' ? '/child' : '/who')} />
+      {/* Renoncer ramène d'où l'on vient — l'espace enfant ou le sélecteur —
+          et jamais ailleurs : une croix qui déplace est une croix qui piège. */}
+      <ScreenHeader
+        closeIcon
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/who'))}
+      />
 
       <View style={styles.head}>
         <Text variant="title" center>

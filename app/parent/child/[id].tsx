@@ -165,7 +165,22 @@ export default function ParentChildDetail() {
             </Text>
           </Card>
         ) : (
-          missions.map((item) => <MissionCard key={item.mission.id} item={item} />)
+          // Ouvrable ici aussi : c'est l'écran où un parent regarde ce que fait
+          // son enfant, donc celui où il se dit « celle-là vaut cinq minutes,
+          // pas quinze ». L'envoyer chercher la mission dans l'autre onglet
+          // pour la même pensée, c'est la lui faire abandonner.
+          missions.map((item) => (
+            <MissionCard
+              key={item.mission.id}
+              item={item}
+              onPress={() =>
+                router.push({
+                  pathname: '/parent/mission/[id]',
+                  params: { id: item.mission.id },
+                })
+              }
+            />
+          ))
         )}
       </View>
 

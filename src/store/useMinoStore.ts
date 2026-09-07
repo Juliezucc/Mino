@@ -7,7 +7,6 @@ import { ChangeEvent, MinoRepository } from '@/data/repository';
 import {
   DeviceProfile,
   NO_DEVICE_PROFILE,
-  canSwitchFreely,
   profileToOpen,
   readDeviceProfile,
   writeDeviceProfile,
