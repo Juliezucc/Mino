@@ -2,6 +2,7 @@
   "expo": {
     "name": "Mino",
     "slug": "mino",
+    "owner": "juliemino",
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "mino",
@@ -17,6 +18,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "fr.minoapp.mino",
       "appleTeamId": "C8F2CKP8SZ",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "NSUserTrackingUsageDescription": "Mino ne suit personne : aucune publicité, aucun traceur."
       },
@@ -70,6 +74,11 @@
     },
     "description": "Grandir, une mission à la fois. Les enfants gagnent leur temps d’écran en accomplissant de petites responsabilités du quotidien.",
     "primaryColor": "#4EB6FF",
-    "backgroundColor": "#F2F6FF"
+    "backgroundColor": "#F2F6FF",
+    "extra": {
+      "eas": {
+        "projectId": "8dccb862-cd00-4967-91fc-ac260e156380"
+      }
+    }
   }
 }
