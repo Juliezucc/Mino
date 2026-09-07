@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
@@ -126,10 +127,53 @@ class ShieldWatcher : Service() {
       .defaultDialerPackage
   }.getOrNull()
 
-  /** Ce qui est au premier plan, d'après les statistiques d'usage du système. */
+  /**
+   * Ce qui est au premier plan — par les ÉVÉNEMENTS, pas par les statistiques.
+   *
+   * La version précédente demandait `queryUsageStats` sur les dix dernières
+   * secondes et gardait l'application au `lastTimeUsed` le plus récent. C'est le
+   * raccourci qu'on trouve partout, et il a deux défauts qu'on ne voit qu'à
+   * l'usage : `queryUsageStats` rend des seaux **agrégés** — sur un intervalle
+   * de dix secondes, Android rend en réalité le seau du jour entier — et
+   * `lastTimeUsed` n'est pas rafraîchi à la seconde, ni de la même façon selon
+   * le constructeur. Le bouclier arrivait donc avec plusieurs secondes de
+   * retard, et sur certains appareils pas du tout.
+   *
+   * `queryEvents` dit exactement ce qui est passé au premier plan et à quelle
+   * milliseconde. On lit les événements survenus **depuis la lecture
+   * précédente** — une seconde de données à chaque tour, rien de plus — et on
+   * garde le dernier connu entre deux tours : un enfant qui reste dix minutes
+   * dans la même application ne produit aucun événement, et c'est normal.
+   *
+   * Le repli sur les statistiques ne sert qu'au tout premier tour, quand on
+   * n'a encore rien vu passer.
+   */
+  private var dernierPaquet: String? = null
+  private var derniereLecture = 0L
+
   private fun auPremierPlan(): String? {
     val usage = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
     val maintenant = System.currentTimeMillis()
+    // `coerceIn` : l'horloge du téléphone se règle, et une borne de départ
+    // postérieure à la borne d'arrivée rendrait une liste vide pour toujours.
+    val depuis = (if (derniereLecture == 0L) maintenant - 60_000 else derniereLecture)
+      .coerceIn(maintenant - 60_000, maintenant)
+
+    val evenements = usage.queryEvents(depuis, maintenant)
+    val evenement = UsageEvents.Event()
+    while (evenements.hasNextEvent()) {
+      evenements.getNextEvent(evenement)
+      // `MOVE_TO_FOREGROUND` plutôt que `ACTIVITY_RESUMED`, qui porte la même
+      // valeur mais n'existe qu'à partir d'Android 10. Le module descend à 24.
+      @Suppress("DEPRECATION")
+      if (evenement.eventType == UsageEvents.Event.MOVE_TO_FOREGROUND) {
+        dernierPaquet = evenement.packageName
+      }
+    }
+    derniereLecture = maintenant
+
+    if (dernierPaquet != null) return dernierPaquet
+
     val stats = usage.queryUsageStats(
       UsageStatsManager.INTERVAL_DAILY,
       maintenant - 10_000,
