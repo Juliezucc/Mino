@@ -875,6 +875,53 @@ create policy mission_completions_update on mission_completions
   for update using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])) and auth_is_parent())
   with check (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])) and auth_is_parent());
 
+/**
+ * Marquer une célébration comme vue — la seule modification qu'un appareil
+ * d'enfant ait le droit de faire sur sa complétion.
+ *
+ * La politique ci-dessus a raison : un enfant ne doit jamais pouvoir toucher au
+ * statut d'une complétion ni au montant crédité. Mais `celebrated_at` n'est
+ * rien de tout cela — c'est un drapeau d'affichage, qui empêche les confettis
+ * de se rejouer au prochain lancement.
+ *
+ * Sans cette fonction, l'écran de fête tentait une mise à jour ordinaire depuis
+ * l'appareil de l'enfant, la base la refusait, et le magasin annulait toute
+ * l'opération en annonçant « Rien n'a été enregistré ». Les minutes, elles,
+ * étaient bien écrites : l'enfant lisait donc « +5 minos » et « rien n'a été
+ * enregistré » sur le même écran, et l'une des deux phrases était fausse.
+ *
+ * `security definer`, donc au-dessus de la RLS — d'où le soin porté à ce
+ * qu'elle ne puisse rien faire d'autre. Elle ne prend qu'un identifiant, ne
+ * touche qu'une colonne, exige que la complétion appartienne à une famille de
+ * l'appelant, et ne repasse jamais sur une célébration déjà marquée.
+ */
+create or replace function mark_celebrated(p_completion_id text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_touche int;
+begin
+  if auth.uid() is null then
+    return false;
+  end if;
+
+  update mission_completions
+     set celebrated_at = now()
+   where id = p_completion_id
+     and celebrated_at is null
+     and family_id = any (coalesce(auth_family_ids_array(), '{}'::text[]));
+
+  get diagnostics v_touche = row_count;
+  return v_touche > 0;
+end;
+$$;
+
+revoke all on function mark_celebrated(text) from public, anon;
+grant execute on function mark_celebrated(text) to authenticated;
+
 -- Transactions: a child's device may spend time, never grant it.
 drop policy if exists screen_time_transactions_family_access on screen_time_transactions;
 

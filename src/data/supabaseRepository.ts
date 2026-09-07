@@ -404,6 +404,27 @@ export class SupabaseRepository implements MinoRepository {
       return;
     }
 
+    /**
+     * Marquer la fête comme vue passe par une fonction, pas par une écriture.
+     *
+     * `mission_completions_update` n'autorise qu'un parent, et c'est juste : un
+     * enfant ne doit jamais pouvoir toucher au statut d'une complétion ni au
+     * montant crédité. Mais l'écran de fête tourne sur l'appareil de l'enfant,
+     * et `celebrated_at` n'est qu'un drapeau d'affichage.
+     *
+     * L'écriture ordinaire était donc refusée, le magasin annulait toute
+     * l'opération, et l'enfant lisait « +5 minos » et « Rien n'a été
+     * enregistré » sur le même écran. Les minutes étaient pourtant bien là :
+     * seule la fête ne se marquait pas.
+     */
+    if (change.kind === 'completion.celebrated') {
+      const id = change.upsert?.completions?.[0]?.id;
+      if (!id) return;
+      const res = await this.client.rpc('mark_celebrated', { p_completion_id: id });
+      if (res.error) throw res.error;
+      return;
+    }
+
     if (change.deleteChildId) {
       // Cascades are declared in the schema, so one delete is enough.
       const res = await this.client.from(TABLES.children).delete().eq('id', change.deleteChildId);

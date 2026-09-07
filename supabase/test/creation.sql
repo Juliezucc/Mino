@@ -138,7 +138,103 @@ do $$ begin
     'la fusion redevient possible une fois le compte rattaché');
 end $$;
 
+-- ------------------------------------ marquer la fête depuis l'appareil enfant
+
+do $$ begin
+  insert into auth.users (id, email, is_anonymous)
+  values ('dddddddd-0000-0000-0000-000000000002', null, true);
+
+  insert into family_devices (id, family_id, user_id)
+  values ('dev-neuve', 'fam-neuve', 'dddddddd-0000-0000-0000-000000000002');
+
+  insert into mission_completions
+    (id, family_id, assignment_id, mission_id, child_id, status,
+     minutes_requested, minutes_awarded)
+  values ('cmp-neuve', 'fam-neuve', 'aff-neuve', 'mis-neuve', 'enf-neuve', 'approved', 15, 15);
+end $$;
+
+do $$ begin
+  set local role authenticated;
+  set local mino.uid = 'dddddddd-0000-0000-0000-000000000002';
+
+  /**
+   * L'écran de fête tourne sur l'appareil de l'enfant, et `celebrated_at` n'est
+   * qu'un drapeau d'affichage. La politique de mise à jour n'autorise pourtant
+   * qu'un parent — à juste titre : le statut et le montant ne le regardent pas.
+   *
+   * L'écriture ordinaire était donc refusée, le magasin annulait toute
+   * l'opération, et l'enfant lisait « +5 minos » et « Rien n'a été enregistré »
+   * sur le même écran. Les minutes étaient bien là ; seule la fête ne se
+   * marquait pas.
+   */
+  /**
+   * Deux refus de nature différente, et la nuance vaut d'être fixée.
+   *
+   * Sur une MISE À JOUR, la clause `using` **filtre** : la ligne devient
+   * invisible, zéro ligne modifiée, et aucune erreur n'est levée. Le silence
+   * est le refus.
+   *
+   * Sur une FUSION — `insert … on conflict do update`, ce qu'émet le dépôt —
+   * c'est la clause d'insertion qui parle, et elle lève. C'est ce refus-là que
+   * voyait l'application, et qui lui faisait annuler toute l'opération.
+   */
+  update mission_completions set celebrated_at = now() where id = 'cmp-neuve';
+  perform assert(
+    (select celebrated_at is null from mission_completions where id = 'cmp-neuve'),
+    'la mise à jour directe d''une complétion ne touche rien depuis un appareil');
+
+  perform assert(
+    refuses($q$insert into mission_completions
+              (id, family_id, assignment_id, mission_id, child_id, status,
+               minutes_requested, minutes_awarded, celebrated_at)
+              values ('cmp-neuve', 'fam-neuve', 'aff-neuve', 'mis-neuve', 'enf-neuve',
+                      'approved', 15, 15, now())
+              on conflict (id) do update set celebrated_at = excluded.celebrated_at$q$),
+    'et la fusion, elle, est refusée — c''est ce que voyait l''application');
+
+  perform assert(mark_celebrated('cmp-neuve'), 'mais il peut marquer la fête comme vue');
+  perform assert(
+    (select celebrated_at is not null from mission_completions where id = 'cmp-neuve'),
+    'et la date est posée');
+end $$;
+
+do $$ begin
+  set local role authenticated;
+  set local mino.uid = 'dddddddd-0000-0000-0000-000000000002';
+
+  -- Ce que la fonction ne doit surtout pas permettre. `security definer` la
+  -- place au-dessus de la RLS : tout ce qu'elle accepte de faire est accordé.
+  perform assert(not mark_celebrated('cmp-neuve'), 'une fête déjà vue ne se remarque pas');
+  perform assert(not mark_celebrated('cmp-inexistante'), 'une complétion inconnue est ignorée');
+  perform assert(
+    (select status from mission_completions where id = 'cmp-neuve') = 'approved'
+      and (select minutes_awarded from mission_completions where id = 'cmp-neuve') = 15,
+    'et rien d''autre n''a bougé : ni le statut, ni le montant');
+end $$;
+
+do $$ begin
+  set local role anon;
+  set local mino.uid = '';
+
+  -- Meilleure garantie que celle qu'on cherchait : `anon` ne peut pas même
+  -- appeler la fonction. Le droit d'exécution ne lui a jamais été accordé.
+  perform assert(
+    refuses($q$select mark_celebrated('cmp-neuve')$q$),
+    'le rôle anonyme ne peut pas appeler la fonction du tout');
+end $$;
+
+do $$ begin
+  set local role authenticated;
+  set local mino.uid = '';
+
+  -- Et connecté sans identité — un jeton expiré, un appareil déconnecté — elle
+  -- répond non sans rien toucher.
+  perform assert(not mark_celebrated('cmp-neuve'), 'sans identité, elle ne fait rien');
+end $$;
+
 do $$ begin
   delete from families where id = 'fam-neuve';
-  delete from auth.users where id = 'dddddddd-0000-0000-0000-000000000001';
+  delete from auth.users where id in (
+    'dddddddd-0000-0000-0000-000000000001',
+    'dddddddd-0000-0000-0000-000000000002');
 end $$;
