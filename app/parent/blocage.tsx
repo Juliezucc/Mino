@@ -26,6 +26,8 @@ export default function ShieldSetup() {
   const [status, setStatus] = useState<ScreenTimeAuthorization>('not-determined');
   const [count, setCount] = useState(0);
   const [busy, setBusy] = useState(false);
+  /** Ce qu'iOS a répondu quand il a refusé. Voir `ask`. */
+  const [echec, setEchec] = useState<string | null>(null);
 
   /**
    * L'état du bouclier sur LES AUTRES appareils — c'est-à-dire, presque
@@ -66,12 +68,31 @@ export default function ShieldSetup() {
     refresh().catch(() => undefined);
   }, [refresh]);
 
+  /**
+   * Demander l'autorisation, et ne jamais laisser l'écran muet.
+   *
+   * Le refus d'iOS remontait ici sans un mot : le parent appuyait sur
+   * « AUTORISER MINO », rien ne se passait, et il n'avait aucun moyen de savoir
+   * si le refus venait d'Apple, de son compte, ou d'un défaut de Mino. Deux
+   * causes reviennent, et aucune ne se devine — le Temps d'écran désactivé sur
+   * l'appareil, et un compte Apple qui n'est pas un compte enfant.
+   */
   const ask = async () => {
     setBusy(true);
+    setEchec(null);
     try {
       const next = await service.requestAuthorization();
       setStatus(next);
       if (next === 'approved') setCount((await service.chooseApps()).count);
+      // Ni accordée, ni refusée franchement : la fenêtre système ne s'est pas
+      // ouverte. Le dire vaut mieux que de réafficher le même écran.
+      else if (next === 'not-determined') {
+        setEchec(
+          'iOS n’a pas ouvert la demande. Vérifiez que le Temps d’écran est activé sur cet appareil : Réglages → Temps d’écran.',
+        );
+      }
+    } catch (e) {
+      setEchec(e instanceof Error ? e.message : 'L’autorisation n’a pas pu être demandée.');
     } finally {
       setBusy(false);
     }
@@ -186,6 +207,60 @@ export default function ShieldSetup() {
             ))}
           </View>
           <Button label="AUTORISER MINO" icon="🔒" onPress={ask} loading={busy} />
+          {/* ------------------------------------ quand le système n'a rien ouvert
+
+              Ce n'est pas un message d'erreur, et ça ne doit pas en devenir un.
+              Un parent qui appuie sur « autoriser » et ne voit rien se produire
+              n'a pas besoin d'apprendre qu'il y a eu un échec : il l'a vu. Il a
+              besoin de savoir quoi faire, dans quel ordre, et de pouvoir y aller
+              d'ici.
+
+              La cause est presque toujours la même, et elle est hors de Mino :
+              le Temps d'écran n'est pas activé sur l'appareil. iOS ne permet pas
+              de le vérifier à l'avance — aucune API ne le dit — donc on ne peut
+              pas l'exiger avant. On le rattrape après, et on l'explique.       */}
+          {echec ? (
+            <Card background={colors.yellowSoft} elevation="none" style={styles.guide}>
+              <Text variant="bodyStrong">Une chose à activer d’abord</Text>
+              <Text variant="body" color={colors.textMuted}>
+                Mino s’appuie sur le Temps d’écran d’Apple. Il doit être activé sur cet
+                appareil — c’est lui qui demandera votre code, et qui empêchera votre enfant
+                de retirer le blocage.
+              </Text>
+
+              <View style={styles.steps}>
+                {[
+                  'Ouvrez les Réglages, puis « Temps d’écran ».',
+                  'Activez-le, et choisissez un code que votre enfant ne connaît pas.',
+                  'Revenez ici et appuyez de nouveau sur Autoriser Mino.',
+                ].map((etape, index) => (
+                  <View key={etape} style={styles.step}>
+                    <View style={styles.number}>
+                      <Text variant="caption" color={colors.onBrand}>
+                        {index + 1}
+                      </Text>
+                    </View>
+                    <Text variant="body" color={colors.textMuted} style={styles.stepText}>
+                      {etape}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              <Button
+                label="Ouvrir les Réglages"
+                icon="⚙️"
+                onPress={() => Linking.openSettings().catch(() => undefined)}
+              />
+              <Button label="C’est fait, réessayer" variant="secondary" onPress={ask} loading={busy} />
+
+              {/* Le message d'iOS, en petit et en dernier. Il ne sert pas au
+                  parent — il sert au support le jour où la cause est ailleurs. */}
+              <Text variant="caption" color={colors.textSubtle}>
+                {echec}
+              </Text>
+            </Card>
+          ) : null}
           <Text variant="caption" color={colors.textSubtle} center>
             À faire sur l’appareil de votre enfant, une seule fois.
           </Text>
@@ -255,4 +330,5 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   stepText: { flex: 1 },
+  guide: { gap: spacing.md },
 });

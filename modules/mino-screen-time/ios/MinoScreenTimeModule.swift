@@ -54,18 +54,49 @@ public class MinoScreenTimeModule: Module {
       Self.describe(AuthorizationCenter.shared.authorizationStatus)
     }
 
+    /**
+     Demander l'autorisation — et dire ce qui s'est passé quand elle est refusée.
+
+     **Le silence était le défaut.** Toute erreur d'iOS était avalée et la
+     fonction rendait le statut inchangé. À l'écran, cela donnait un bouton sur
+     lequel on appuie et où rien ne se passe : ni fenêtre système, ni message, ni
+     moyen de savoir si le refus venait d'Apple, du compte, ou d'un défaut de
+     Mino. Un parent aurait désinstallé là.
+
+     **Pourquoi deux tentatives.** `.child` est le bon mode : c'est le parent qui
+     autorise Mino à encadrer l'appareil d'un enfant, iOS réclame alors le code
+     Temps d'écran, et l'enfant ne peut pas révoquer ce qu'il n'a pas accordé.
+     Mais iOS le refuse quand le compte Apple de l'appareil n'est **pas un compte
+     enfant** d'un groupe Partage familial — le cas de l'iPhone d'un parent qui
+     essaie, et surtout celui d'un adolescent qui a son propre identifiant.
+
+     `.individual` fonctionne alors : le titulaire de l'appareil s'encadre
+     lui-même. C'est plus faible — il peut le retirer dans les réglages — mais
+     c'est la différence entre un produit qui protège moins et un produit qui ne
+     fait rien du tout. `authorizationStatus` repasse à « denied » s'il le
+     retire, et l'écran de réglage le redit au parent.
+     */
     AsyncFunction("requestAuthorization") { () async throws -> String in
-      // `.child` et non `.individual` : c'est le parent qui autorise Mino à
-      // encadrer l'appareil d'un enfant, et iOS demande alors le code Temps
-      // d'écran du parent. C'est ce qui empêche un enfant de s'auto-libérer.
       do {
         try await AuthorizationCenter.shared.requestAuthorization(for: .child)
-      } catch {
-        // Un refus n'est pas une panne : l'écran de réglage doit pouvoir
-        // l'afficher calmement, pas planter.
         return Self.describe(AuthorizationCenter.shared.authorizationStatus)
+      } catch {
+        let premier = error
+
+        do {
+          try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+          return Self.describe(AuthorizationCenter.shared.authorizationStatus)
+        } catch {
+          // Refusé des deux façons. Si le système a tout de même accordé
+          // quelque chose entre-temps, c'est lui qui a raison.
+          let statut = AuthorizationCenter.shared.authorizationStatus
+          if statut == .approved { return Self.describe(statut) }
+
+          // On remonte la PREMIÈRE erreur : c'est celle du mode qu'on voulait,
+          // et c'est elle qui explique pourquoi on a dû se rabattre.
+          throw AutorisationRefusee(premier.localizedDescription)
+        }
       }
-      return Self.describe(AuthorizationCenter.shared.authorizationStatus)
     }
 
     // ---------------------------------------------------------- sélection
@@ -247,6 +278,20 @@ public class MinoScreenTimeModule: Module {
  enfant qui lit « impossible de démarrer » qu'un enfant débité de ses minutes
  devant des applications restées fermées — ou, pire, ouvertes pour toujours.
  */
+/**
+ Ce qu'iOS a répondu quand il a refusé l'autorisation.
+
+ Le message vient d'Apple, pas de nous, et c'est voulu : il nomme la vraie cause
+ — compte qui n'est pas un compte enfant, Temps d'écran désactivé, restriction
+ posée par un autre outil de gestion. Le réécrire reviendrait à choisir une
+ explication au hasard parmi celles-là.
+ */
+private final class AutorisationRefusee: GenericException<String> {
+  override var reason: String {
+    "iOS a refusé l’autorisation : \(param)"
+  }
+}
+
 private final class ProgrammationRefusee: GenericException<String> {
   override var reason: String {
     "Le système a refusé de programmer le retour du blocage : \(param)"
