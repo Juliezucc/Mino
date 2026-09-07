@@ -180,8 +180,13 @@ export default function ShieldSetup() {
             Mino continue de fonctionner : les missions, le compteur et les demandes restent
             identiques. Seul le verrouillage automatique est désactivé.
           </Text>
+          {/* Ici `openSettings()` est le bon geste, et c'est le seul endroit où
+              il l'est : une fois l'autorisation refusée, iOS ajoute un
+              interrupteur « Temps d'écran » sur la fiche de Mino, et c'est
+              exactement là que ce bouton dépose le parent. Le nom du bouton le
+              dit, pour qu'il ne promette pas le réglage général du système. */}
           <Button
-            label="Ouvrir les réglages du téléphone"
+            label="Ouvrir la fiche de Mino dans les Réglages"
             variant="secondary"
             onPress={() => Linking.openSettings().catch(() => undefined)}
           />
@@ -230,8 +235,9 @@ export default function ShieldSetup() {
 
               <View style={styles.steps}>
                 {[
-                  'Ouvrez les Réglages, puis « Temps d’écran ».',
-                  'Activez-le, et choisissez un code que votre enfant ne connaît pas.',
+                  'Quittez Mino et ouvrez l’app Réglages — l’icône grise en forme de rouage.',
+                  'Descendez jusqu’à « Temps d’écran », puis activez-le.',
+                  'Choisissez un code que votre enfant ne connaît pas.',
                   'Revenez ici et appuyez de nouveau sur Autoriser Mino.',
                 ].map((etape, index) => (
                   <View key={etape} style={styles.step}>
@@ -247,12 +253,19 @@ export default function ShieldSetup() {
                 ))}
               </View>
 
-              <Button
-                label="Ouvrir les Réglages"
-                icon="⚙️"
-                onPress={() => Linking.openSettings().catch(() => undefined)}
-              />
-              <Button label="C’est fait, réessayer" variant="secondary" onPress={ask} loading={busy} />
+              {/* PAS de bouton « ouvrir les Réglages » ici, et c'est délibéré.
+                  `Linking.openSettings()` ouvre la fiche de Mino dans les
+                  Réglages — jamais le Temps d'écran, qui est ailleurs. iOS
+                  n'expose aucun moyen public d'y emmener quelqu'un : les
+                  adresses `App-Prefs:` que l'on trouve partout sont privées, et
+                  Apple refuse à la revue les applications qui s'en servent.
+
+                  Un bouton qui promet d'ouvrir un réglage et dépose le parent
+                  sur une page sans rapport est pire que pas de bouton : il lui
+                  fait croire que l'application se trompe, au moment précis où on
+                  lui demande de nous faire confiance. Le chemin est donc écrit,
+                  en toutes lettres, et il tient en quatre gestes.            */}
+              <Button label="C’est fait, réessayer" onPress={ask} loading={busy} />
 
               {/* Le message d'iOS, en petit et en dernier. Il ne sert pas au
                   parent — il sert au support le jour où la cause est ailleurs. */}
