@@ -17,7 +17,11 @@ export default function OnboardingMission() {
     setLoading(true);
     await addMission(value);
     setLoading(false);
-    router.replace('/parent');
+    // Et surtout PAS le tableau de bord. L'inscription s'y terminait, et le
+    // parent devait trouver seul le chemin du blocage — personne ne le fait.
+    // La question de l'appareil est la dernière marche de l'installation, et
+    // c'est elle qui conduit au bouclier.
+    router.replace('/onboarding/appareil');
   };
 
   return (
