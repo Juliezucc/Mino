@@ -21,10 +21,27 @@ l'architecture — elle est là et elle a été pensée. Le reste se règle.
 | L'entitlement Family Controls | fait — développement **et** distribution |
 | Les deux identifiants déclarés | faits — application et extension |
 
+### La version minimale d'iOS, et pourquoi elle est écrite quelque part
+
+**iOS 16.0**, fixé dans `app.json` par `expo-build-properties`.
+
+Ce n'était nulle part avant, et l'oubli aurait coûté cher : le module exige
+iOS 16 — c'est la version où `ManagedSettings` et `DeviceActivity` tiennent
+ensemble — mais rien ne l'imposait à l'application. L'App Store aurait donc
+proposé Mino à des iPhone plus anciens, où le bouclier n'aurait jamais pu
+exister. Le parent aurait installé, payé, et constaté que rien ne se bloque.
+
+Déclarer la version minimale est ce qui fait dire à l'App Store « cet appareil
+n'est pas compatible » **avant** le téléchargement. C'est exactement ce que
+Joon demande à ses utilisateurs quand il réclame une mise à jour d'iOS.
+
+Android reste à l'API 24 : le module n'a besoin de rien de plus récent, et
+descendre bas y coûte peu.
+
 Ce qui est déjà préparé dans le dépôt, et qu'il n'y a donc pas à refaire :
 
-- `app.json` porte l'habilitation `com.apple.developer.family-controls` et le
-  groupe `group.fr.minoapp.mino` ;
+- `app.json` porte l'habilitation `com.apple.developer.family-controls`, le
+  groupe `group.fr.minoapp.mino` et la version minimale d'iOS ;
 - le manifeste Android du module déclare ses cinq autorisations ;
 - `MinoShieldMonitor.swift` est **exclu** du podspec, à dessein : il appartient
   à la cible d'extension, pas à l'application. Compilé dans l'application, il ne
