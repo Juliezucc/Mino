@@ -191,13 +191,32 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
 
 Ce fichier est ignoré par git : il ne partira jamais dans le dépôt.
 
-### B4. Les deux réglages d'authentification
+### B4. Les trois réglages d'authentification
 
-Deux cases, dans **Authentication** → **Providers** / **URL Configuration**.
-Aucune des deux ne se voit tant qu'on ne s'en sert pas — et c'est précisément
-pour ça qu'elles sont ici, avant le premier lancement.
+Trois cases, dans **Authentication** → **Providers** / **URL Configuration**.
+Aucune ne se voit tant qu'on ne s'en sert pas — et c'est précisément pour ça
+qu'elles sont ici, avant le premier lancement.
 
-**a) « Confirm email » : OFF, pour l'instant.**
+**a) « Anonymous Sign-Ins » : ON.** *(ajouté le 07/09/2026, sur panne)*
+
+**Authentication → Sign In / Providers → Anonymous Sign-Ins → activer.**
+
+C'est le réglage sans lequel **aucun appareil d'enfant ne peut rejoindre une
+famille**, et il manquait à ce guide.
+
+Un enfant n'a pas de compte : c'est un choix de conception, et il tient tout le
+produit. Son appareil obtient donc une **session anonyme**, que la base traite
+comme strictement moins privilégiée qu'un parent. `join_family()` commence par
+`if auth.uid() is null then return null` : sans session, pas de rattachement.
+
+Supabase désactive les connexions anonymes par défaut. Le refus remontait
+jusqu'à l'écran de l'enfant sous la forme « **Ce code ne correspond à aucune
+famille. Redemande-le à ton parent.** » — un parent pouvait régénérer des codes
+indéfiniment sans jamais approcher la cause, et l'enfant lisait qu'il avait mal
+recopié. L'application distingue maintenant les deux, mais le réglage reste
+obligatoire.
+
+**b) « Confirm email » : OFF, pour l'instant.**
 
 Supabase l'active par défaut. Tant qu'il est actif, un compte créé n'ouvre pas
 de session : le parent doit d'abord cliquer un lien reçu par e-mail. Or l'e-mail
@@ -216,7 +235,7 @@ Donc : **Authentication → Providers → Email → décocher « Confirm email �
 > projet, entre vous et vos enfants. Ça ne l'est plus à la première famille
 > inconnue.
 
-**b) Les deux adresses de retour.**
+**c) Les adresses de retour.**
 
 Deux liens partent par e-mail et doivent revenir **dans l'application** : celui
 du mot de passe oublié, et celui qui confirme un changement d'adresse. Supabase
@@ -230,7 +249,11 @@ d'erreur, et ne peut plus rien faire.
 ```
 mino://mot-de-passe
 mino://login
+mino://confirme
 ```
+
+Et, pour les essais dans un navigateur, les mêmes en `http://localhost:8081/…`
+— sans quoi le lien reçu par e-mail est refusé pendant toute la mise au point.
 
 **Comment savoir que ça a marché** : sur l'écran de connexion, « Mot de passe
 oublié », saisir votre adresse. L'e-mail arrive ; le lien **ouvre Mino** sur un

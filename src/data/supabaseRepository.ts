@@ -510,7 +510,32 @@ export class SupabaseRepository implements MinoRepository {
     const { data: session } = await this.client.auth.getSession();
     if (!session.session) {
       const { error: signInError } = await this.client.auth.signInAnonymously();
-      if (signInError) return null;
+      /**
+       * Échouer ici n'a rien à voir avec le code saisi, et le dire est tout
+       * l'enjeu.
+       *
+       * `join_family()` refuse quand `auth.uid()` est nul : un appareil
+       * d'enfant doit donc ouvrir une session anonyme avant de rejoindre. Or
+       * Supabase désactive les connexions anonymes par défaut, et ce refus
+       * remontait ici comme un `null` — c'est-à-dire, à l'écran, « ce code ne
+       * correspond à aucune famille ».
+       *
+       * Un parent pouvait régénérer des codes indéfiniment sans jamais
+       * approcher la cause, et un enfant lisait qu'il avait mal recopié. On
+       * lève donc une erreur portant une phrase vraie, et la console de
+       * développement reçoit le refus exact.
+       */
+      if (signInError) {
+        if (__DEV__) {
+          console.warn(
+            `[join] session anonyme refusée — ${signInError.code ?? 'sans code'} : ${signInError.message}\n` +
+              'Supabase → Authentication → Sign In / Providers → Anonymous Sign-Ins',
+          );
+        }
+        throw new Error(
+          'Mino n’arrive pas à joindre son serveur. Ce n’est pas ton code : montre cet écran à un parent.',
+        );
+      }
     }
 
     const { data, error } = await this.client.rpc('join_family', {

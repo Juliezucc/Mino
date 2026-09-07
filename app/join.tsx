@@ -51,8 +51,13 @@ export default function JoinFamily() {
         return;
       }
       setStep('profile');
-    } catch {
-      setError('Connexion impossible. Vérifiez le réseau et réessayez.');
+    } catch (e) {
+      // Le message porté par l'exception, quand il y en a un : il distingue
+      // « le serveur ne répond pas » de « ce code est mauvais », et ces deux
+      // phrases n'appellent pas du tout la même réaction — l'une envoie
+      // chercher un parent, l'autre fait recopier un code déjà juste.
+      const dit = e instanceof Error && e.message ? e.message : null;
+      setError(dit ?? 'Connexion impossible. Vérifiez le réseau et réessayez.');
     } finally {
       setLoading(false);
     }
