@@ -240,10 +240,28 @@ de tous les parents : Brevo, Scaleway ou OVH font l'affaire.
 
 | Champ | Valeur |
 | --- | --- |
-| Sender email | `bonjour@minoapp.fr` |
+| Sender email | `contact@minoapp.fr` |
 | Sender name | `Mino` |
 | Host / Port | ceux de l'expéditeur, port **587** |
 | Username / Password | la **clé SMTP** de l'expéditeur, pas le mot de passe du compte |
+
+### Deux adresses, une seule boîte
+
+Le dépôt n'en utilise que deux, et il n'en faut pas une de plus :
+
+| Adresse | Où elle apparaît |
+| --- | --- |
+| `contact@minoapp.fr` | mentions légales, CGV, pied des e-mails — et **expéditeur** |
+| `privacy@minoapp.fr` | politique de confidentialité, pour les demandes RGPD |
+
+La seconde n'a pas besoin d'être une boîte : **un alias vers la première
+suffit**, et c'est gratuit chez tous les hébergeurs. Le RGPD demande un point de
+contact identifiable, pas une personne différente.
+
+> L'expéditeur doit être une adresse à laquelle on peut **répondre**. Un parent
+> qui répond à « confirmez votre adresse » pour demander de l'aide ne doit pas
+> tomber dans le vide — c'est la première chose qu'il fera quand quelque chose
+> lui échappera.
 
 Puis **Authentication → Rate Limits** : le plafond d'e-mails par heure est bas
 par défaut. Le monter une fois l'expéditeur en place, sans quoi une journée de
