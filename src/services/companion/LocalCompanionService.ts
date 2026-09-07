@@ -6,6 +6,7 @@ import {
   matchMission,
   normalise,
   phaseOf,
+  pickRiddle,
   triage,
 } from '@/domain/companion';
 import { ID } from '@/domain/types';
@@ -115,8 +116,13 @@ export class LocalCompanionService implements CompanionService {
       return `Dis, on se lance un défi sans écran ? ${challenge}`;
     }
 
-    if (/ennuie|rien a faire|quoi faire|je fais quoi/i.test(said) && challenge) {
-      return `Alors j’ai ce qu’il te faut ! ${challenge}`;
+    if (/ennuie|rien a faire|quoi faire|je fais quoi/i.test(said)) {
+      // Une devinette d'abord : c'est ce qui demande le moins — ni objet, ni
+      // pièce à quitter, ni permission à demander — et ce qui occupe le plus
+      // longtemps un enfant qui vient de dire qu'il tourne en rond.
+      const devinette = pickRiddle(context.age, said.length);
+      if (devinette) return `Alors écoute bien 🤔 ${devinette.question}`;
+      if (challenge) return `Alors j’ai ce qu’il te faut ! ${challenge}`;
     }
 
     // Dire bonjour à quelqu'un qui dit bonjour. C'est la première chose qu'un

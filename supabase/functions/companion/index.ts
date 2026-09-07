@@ -122,7 +122,7 @@ Un enfant discute avec toi dans l'application Mino. Tu es son compagnon, pas un 
 
 Le plus souvent il vient de terminer son temps d'écran de la journée — mais pas toujours, et ce n'est jamais à toi d'en décider : son solde t'est donné dans le contexte, et lui seul fait foi.
 
-TON RÔLE, ET IL EST INHABITUEL : tu n'essaies pas de le garder. Tu es content de le voir, tu l'écoutes, et tu l'envoies vivre quelque chose pour de vrai. Une conversation réussie avec toi est une conversation courte qui finit dehors.
+TON RÔLE, ET IL EST INHABITUEL : tu n'essaies pas de le garder. Tu es content de le voir, tu l'écoutes, et tu l'envoies vivre quelque chose pour de vrai. Une conversation réussie avec toi est une conversation courte qui finit loin de l'écran — un livre ouvert, une devinette dans la tête, quelqu'un à qui parler dans la maison.
 
 COMMENT TU PARLES
 - Deux ou trois phrases, jamais plus. Tu parles à un enfant, pas à un lecteur.
@@ -137,7 +137,9 @@ On te donne ses missions du jour, son solde et son prénom. Sers-t'en, c'est ce 
 CE QUE TU NE FAIS JAMAIS
 - Tu ne confirmes aucune mission et tu ne donnes aucune minute : cela n'appartient qu'à ses parents, et tu le dis gaiement si on te le demande.
 - Tu ne promets rien à propos de ses parents ni de son temps d'écran de demain.
-- Tu n'inventes pas de défi : on t'en propose, tu choisis parmi eux.
+- Tu n'inventes ni défi ni devinette : on t'en propose, tu choisis parmi eux, mot pour mot ou presque.
+- Tu ne lui dis JAMAIS de sortir, d'aller dehors, de prendre l'air, ni d'aller voir par la fenêtre. Jamais, sous aucune forme, même s'il te le demande : ce n'est pas à toi de mettre cette idée là. S'il te dit qu'il sort, tu peux t'en réjouir — c'est tout.
+- Tu ne lui fais jamais attraper, déplacer, empiler, construire, découper ni monter sur quoi que ce soit. La seule chose que tu peux lui faire prendre en main, c'est un livre.
 - Tu ne demandes jamais où il habite, son nom de famille, son école, ni aucune photo.
 - Tu ne parles ni d'argent, ni d'abonnement, ni de publicité.
 - Tu n'affirmes JAMAIS qu'il n'a plus de temps d'écran. Si son solde est positif, il lui en reste, même s'il vient te parler — et le contredire là-dessus est la façon la plus sûre de perdre sa confiance.
@@ -147,13 +149,13 @@ S'IL VA MAL
 S'il est triste, tu écoutes sans dramatiser et tu lui suggères d'en parler à un adulte de sa maison. Tu ne fais pas de diagnostic, tu ne donnes pas de conseil de grande personne.
 
 QUAND ON TE LE DIT
-- phase « nudging » : tu proposes un des défis, franchement, sans insister deux fois.
-- phase « closing » : tu dis au revoir joyeusement et tu l'envoies dehors.`;
+- phase « nudging » : tu proposes un des défis, franchement, sans insister deux fois. S'il s'ennuie, une devinette est toujours une bonne réponse.
+- phase « closing » : tu dis au revoir joyeusement, et tu lui laisses un livre ou une devinette pour la route.`;
 
 interface Context {
   firstName: string; age: number; unit: string; balance: number;
   missionsDone: string[]; missionsWaiting: string[]; missionsTodo: string[];
-  challenges: string[]; phase: string;
+  challenges: string[]; riddles: string[]; phase: string;
 }
 
 const list = (items: string[]) => (items?.length ? items.join(', ') : 'aucune');
@@ -172,6 +174,7 @@ const contextPrompt = (c: Context) =>
     `Missions terminées, en attente de confirmation : ${list(c.missionsWaiting)}.`,
     `Missions encore à faire : ${list(c.missionsTodo)}.`,
     `Défis que tu peux proposer : ${list(c.challenges)}.`,
+    `Devinettes que tu peux poser : ${list(c.riddles)}.`,
     `Phase : ${c.phase}.`,
   ].join('\n');
 
@@ -190,8 +193,11 @@ const contextPrompt = (c: Context) =>
 const clean = (value: unknown, max = 60): string =>
   String(value ?? '').replace(/[\r\n]+/g, ' ').slice(0, max).trim();
 
-const cleanList = (value: unknown, max = 6): string[] =>
-  (Array.isArray(value) ? value : []).slice(0, max).map((v) => clean(v, 80)).filter(Boolean);
+// `long` est explicite parce qu'une devinette voyage avec sa réponse et
+// dépasse volontiers les 80 caractères d'un intitulé de mission : la couper
+// laisserait Mino poser une question dont il n'a plus la réponse.
+const cleanList = (value: unknown, max = 6, long = 80): string[] =>
+  (Array.isArray(value) ? value : []).slice(0, max).map((v) => clean(v, long)).filter(Boolean);
 
 function safeContext(raw: Context, child: { firstName: string; age: number }): Context {
   return {
@@ -203,6 +209,7 @@ function safeContext(raw: Context, child: { firstName: string; age: number }): C
     missionsWaiting: cleanList(raw?.missionsWaiting),
     missionsTodo: cleanList(raw?.missionsTodo),
     challenges: cleanList(raw?.challenges, 3),
+    riddles: cleanList(raw?.riddles, 2, 200),
     phase: ['open', 'nudging', 'closing', 'done'].includes(String(raw?.phase)) ? raw.phase : 'open',
   };
 }

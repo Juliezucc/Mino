@@ -17,6 +17,9 @@ import {
   matchMission,
   phaseOf,
   pickChallenge,
+  pickRiddle,
+  riddlesFor,
+  RIDDLES,
   triage,
 } from '@/domain/companion';
 
@@ -105,12 +108,12 @@ describe('les défis hors écran', () => {
 
   it('ne propose pas à un petit ce qui est écrit pour un grand', () => {
     const petits = challengesFor(5).map((c) => c.id);
-    expect(petits).toContain('rouge');
-    expect(petits).not.toContain('appel');
+    expect(petits).toContain('images');
+    expect(petits).not.toContain('relire');
 
     const grands = challengesFor(15).map((c) => c.id);
-    expect(grands).toContain('appel');
-    expect(grands).not.toContain('doux');
+    expect(grands).toContain('chapitre');
+    expect(grands).not.toContain('images');
   });
 
   it('tourne sans hasard, pour rester reproductible', () => {
@@ -119,9 +122,78 @@ describe('les défis hors écran', () => {
     expect(pickChallenge(8, list.length)).toBe(pickChallenge(8, 0));
   });
 
-  it('n’a aucun défi qui envoie manipuler quelque chose de dangereux', () => {
-    const interdits = /couteau|cuisson|four|casserole|allumette|ciseaux|escabeau|fen[êe]tre ouverte/i;
-    for (const c of CHALLENGES) expect(c.text).not.toMatch(interdits);
+  /**
+   * La règle de la liste, tenue mot par mot.
+   *
+   * Ce test est né de trois phrases qu'on avait écrites nous-mêmes et lues
+   * seulement une fois en production : regarder par la fenêtre, construire une
+   * cabane « avec ce qu'on a sous la main », sortir prendre l'air. Aucune ne
+   * paraissait dangereuse en la relisant dans le fichier ; toutes les trois le
+   * deviennent quand c'est un enfant de cinq ans qui les exécute, seul.
+   *
+   * D'où une liste de mots interdits plutôt qu'un jugement au cas par cas :
+   * un jugement se refait à chaque ajout, un test ne se refait jamais.
+   */
+  it('n’envoie jamais sortir, ni grimper, ni manipuler quoi que ce soit', () => {
+    const sortir = /\b(dehors|sors|sortir|jardin|rue|parc|balade|prendre l'air|fen[êe]tre)\b/i;
+    const grimper = /\b(grimp|monte[rz]? sur|escabeau|[ée]tag[eè]re|chaise pour)\b/i;
+    const manipuler =
+      /\b(couteau|cuisson|four|casserole|allumette|ciseaux|construis|empile|attrape|va chercher|d[ée]coupe|branche)\b/i;
+
+    for (const c of CHALLENGES) {
+      const texte = c.text.replace(/[’]/g, "'");
+      expect(texte).not.toMatch(sortir);
+      expect(texte).not.toMatch(grimper);
+      expect(texte).not.toMatch(manipuler);
+    }
+  });
+
+  /**
+   * Le livre est la seule exception, et il faut qu'il pèse.
+   *
+   * Sans ce test, la liste peut se vider de ses livres au fil des retouches
+   * sans que rien ne proteste — et elle redeviendrait ce qu'elle était : une
+   * liste d'activités, où la tentation d'ajouter « va chercher » revient.
+   */
+  it('pousse vers un livre à tout âge', () => {
+    for (const age of [5, 8, 12, 16]) {
+      const livres = challengesFor(age).filter((c) => /livre|lis |chapitre|po[èe]me/i.test(c.text));
+      expect(livres.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+/**
+ * Les devinettes.
+ *
+ * Elles sont écrites à la main pour la raison qui vaut aussi pour les défis,
+ * et pour une de plus : une devinette inventée par un modèle n'a très souvent
+ * pas de réponse. L'enfant cherche, ne trouve pas — et pour cause.
+ */
+describe('les devinettes', () => {
+  it('donne à chaque âge de quoi chercher', () => {
+    for (let age = 4; age <= 17; age += 1) {
+      expect(riddlesFor(age).length).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('a toujours une réponse, et une question qui se pose', () => {
+    for (const r of RIDDLES) {
+      expect(r.answer.trim().length).toBeGreaterThan(2);
+      expect(r.question).toMatch(/\?/);
+      expect(r.from).toBeLessThan(r.to);
+    }
+  });
+
+  it('tourne sans hasard, comme les défis', () => {
+    expect(pickRiddle(8, 3)).toBe(pickRiddle(8, 3));
+    const list = riddlesFor(8);
+    expect(pickRiddle(8, list.length)).toBe(pickRiddle(8, 0));
+  });
+
+  it('ne demande rien d’autre que de réfléchir', () => {
+    const interdits = /\b(dehors|sors|va chercher|grimp|construis)\b/i;
+    for (const r of RIDDLES) expect(r.question.replace(/[’]/g, "'")).not.toMatch(interdits);
   });
 });
 
@@ -198,6 +270,9 @@ describe('le contexte envoyé au modèle', () => {
     expect(ctx.missionsDone).toEqual(['Faire mon lit']);
     expect(ctx.missionsTodo).toEqual(['Mes devoirs']);
     expect(ctx.challenges.length).toBe(3);
+    // Deux devinettes, avec leur réponse : Mino doit pouvoir confirmer.
+    expect(ctx.riddles.length).toBe(2);
+    for (const r of ctx.riddles) expect(r).toMatch(/réponse :/);
   });
 
   it('parle comme l’écran parle : minos pour les petits, minutes pour les grands', () => {
@@ -225,8 +300,24 @@ describe('le contexte envoyé au modèle', () => {
 
   it('interdit au modèle ce que seuls les parents peuvent faire', () => {
     expect(SYSTEM_PROMPT).toMatch(/ne confirmes aucune mission/i);
-    expect(SYSTEM_PROMPT).toMatch(/n'inventes pas de défi|n’inventes pas de défi/i);
+    expect(SYSTEM_PROMPT).toMatch(/n'inventes ni défi ni devinette|n’inventes ni défi ni devinette/i);
     expect(SYSTEM_PROMPT).toMatch(/jamais être humain|prétends jamais/i);
+  });
+
+  /**
+   * La consigne dit au modèle ce que la liste ne peut pas dire.
+   *
+   * Les défis sont sûrs par construction, mais Mino parle librement entre deux
+   * défis — et c'est là qu'il proposait d'aller dehors, spontanément, parce que
+   * sa propre consigne lui demandait de finir « dehors ». Le mot a été retiré
+   * de la consigne, et l'interdiction écrite noir sur blanc.
+   */
+  it('interdit au modèle d’envoyer l’enfant dehors, en toutes lettres', () => {
+    expect(SYSTEM_PROMPT).toMatch(/ne lui dis JAMAIS de sortir/);
+    expect(SYSTEM_PROMPT).toMatch(/attraper, déplacer, empiler/);
+    // Le mot lui-même ne doit plus servir de but à la conversation : « une
+    // conversation courte qui finit dehors » était une invitation à le dire.
+    expect(SYSTEM_PROMPT).not.toMatch(/finit dehors|l'envoies dehors|l’envoies dehors/);
   });
 });
 

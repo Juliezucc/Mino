@@ -96,6 +96,37 @@ export const CLOSED =
  * cinq ans finira un jour par lui proposer d'aller chercher quelque chose sur
  * une étagère haute ou dans un tiroir à couteaux. La même prudence que pour
  * les missions de cuisine, pour la même raison.
+ *
+ * LA RÈGLE QUI GOUVERNE CETTE LISTE, et elle ne souffre aucune exception :
+ * **un livre, des mots, son corps, ou quelqu'un de sa maison. Rien d'autre.**
+ * Aucun défi ne fait sortir, ne fait attraper, déplacer, empiler ou construire
+ * quoi que ce soit, et aucun ne fait monter sur quoi que ce soit.
+ *
+ * Le livre est la seule chose que Mino demande de prendre en main, et c'est
+ * délibéré : c'est vers là qu'on veut pousser un enfant qui n'a plus d'écran.
+ *
+ * Cette règle est étroite parce que la précédente ne l'était pas assez. Elle
+ * disait « dans la pièce où l'enfant se trouve », et cela laissait passer
+ * quatre choses qu'on n'a vues qu'en lisant une vraie conversation :
+ *
+ *   - « Regarde par la fenêtre et trouve trois choses qui bougent », proposé
+ *     dès cinq ans. Un enfant de cet âge qui veut mieux voir grimpe. C'est la
+ *     phrase la plus dangereuse que ce produit ait jamais contenue, et elle
+ *     avait l'air anodine.
+ *   - « Construis une cabane avec ce que tu as sous la main » : rien ne
+ *     bornait le « sous la main ». La borner — des coussins, une couverture —
+ *     n'a pas suffi non plus : on ne sait pas ce qu'il y a chez les gens, et
+ *     un enfant qui empile grimpe sur sa pile.
+ *   - « Sors prendre l'air dix minutes » : une application ne dit pas à un
+ *     mineur de sortir. Même « demande si tu peux sortir » est parti : c'est
+ *     toujours Mino qui a mis l'idée là.
+ *   - « Range un tiroir », « trouve trois choses douces », « dessine-moi » :
+ *     rien de grave, mais chacun envoie chercher et manipuler. La liste s'est
+ *     resserrée sur ce qui ne demande que la tête, la voix, ou un livre.
+ *
+ * `__tests__/companion.test.ts` tient cette règle sur toute la liste, mot
+ * interdit par mot interdit. Un défi ajouté un jour de fatigue et qui la
+ * briserait fera échouer la suite.
  */
 export interface Challenge {
   id: string;
@@ -107,21 +138,20 @@ export interface Challenge {
 }
 
 export const CHALLENGES: Challenge[] = [
-  { id: 'rouge', text: 'Trouve-moi quelque chose de rouge dans ta chambre 🔴', from: 4, to: 8 },
-  { id: 'saut', text: 'Combien de sauts à pieds joints d’affilée ? Compte-les et reviens me dire !', from: 4, to: 9 },
-  { id: 'doux', text: 'Va toucher trois choses toutes douces, puis reviens m’en parler 🧸', from: 4, to: 7 },
-  { id: 'dessin', text: 'Dessine-moi comme tu m’imagines. Je suis très curieux 🎨', from: 4, to: 10 },
-  { id: 'fenetre', text: 'Regarde par la fenêtre et trouve trois choses qui bougent 🪟', from: 5, to: 10 },
-  { id: 'cabane', text: 'Construis une cabane avec ce que tu as sous la main 🏕️', from: 5, to: 10 },
-  { id: 'histoire', text: 'Invente une histoire avec un héros qui s’appelle comme toi 📖', from: 6, to: 12 },
-  { id: 'equilibre', text: 'Tiens en équilibre sur un pied. Tu tiens combien de temps ?', from: 5, to: 11 },
-  { id: 'mot-gentil', text: 'Va dire un truc gentil à quelqu’un de ta maison 💛', from: 5, to: 13 },
-  { id: 'rangement', text: 'Choisis un tiroir et range-le. Un seul. Ça va très vite 🗂️', from: 7, to: 14 },
+  { id: 'images', text: 'Ouvre un livre et regarde les images. Tu me raconteras ta préférée 📚', from: 4, to: 8 },
+  { id: 'bruits', text: 'Assieds-toi, ferme les yeux, et trouve trois bruits différents 👂', from: 4, to: 10 },
+  { id: 'chanson', text: 'Chante-moi une chanson que tu connais par cœur. Moi je chante très mal 🎵', from: 4, to: 9 },
+  { id: 'mot-gentil', text: 'Va dire un truc gentil à quelqu’un de ta maison 💛', from: 4, to: 13 },
+  { id: 'histoire', text: 'Invente une histoire dans ta tête, avec un héros qui s’appelle comme toi 📖', from: 5, to: 11 },
+  { id: 'memoire', text: 'Ferme les yeux et rappelle-toi dix choses de ta chambre. Dix, pas neuf 🙈', from: 5, to: 12 },
+  { id: 'devinette', text: 'Invente une devinette et viens me la poser demain. J’adore chercher 🤔', from: 6, to: 13 },
+  { id: 'raconter', text: 'Va raconter le meilleur moment de ta journée à quelqu’un de ta maison', from: 6, to: 14 },
   { id: 'lecture', text: 'Lis une page d’un livre, n’importe lequel, et raconte-la-moi demain 📚', from: 7, to: 15 },
-  { id: 'musique', text: 'Mets un morceau que tu aimes et écoute-le en entier, sans rien faire d’autre 🎧', from: 10, to: 17 },
-  { id: 'marche', text: 'Sors prendre l’air dix minutes si tu peux. Ça remet les idées en place.', from: 12, to: 17 },
-  { id: 'appel', text: 'Appelle quelqu’un que tu n’as pas eu depuis longtemps 📞', from: 12, to: 17 },
-  { id: 'liste', text: 'Écris trois trucs que tu veux faire cette semaine. Ça compte, de les écrire.', from: 12, to: 17 },
+  { id: 'chapitre', text: 'Lis un chapitre entier. Un seul. Tu verras, ça passe vite 📖', from: 10, to: 17 },
+  { id: 'poeme', text: 'Apprends deux vers d’un poème par cœur. Tu me les diras demain', from: 10, to: 17 },
+  { id: 'conseil', text: 'Demande à quelqu’un de ta maison de te conseiller un livre. Tu verras bien 📚', from: 12, to: 17 },
+  { id: 'relire', text: 'Reprends un livre que tu as aimé et relis-en un passage. Ce n’est pas de la triche.', from: 12, to: 17 },
+  { id: 'silence', text: 'Reste cinq minutes sans rien faire du tout. C’est plus dur qu’on croit.', from: 12, to: 17 },
 ];
 
 /**
@@ -136,6 +166,59 @@ export function challengesFor(age: number): Challenge[] {
 
 export function pickChallenge(age: number, index: number): Challenge | null {
   const list = challengesFor(age);
+  if (list.length === 0) return null;
+  return list[Math.abs(index) % list.length];
+}
+
+/* --------------------------------------------------------- les devinettes */
+
+/**
+ * Les devinettes que Mino a le droit de poser.
+ *
+ * Écrites à la main, comme les défis, et pour une raison de plus : une
+ * devinette inventée par un modèle n'a très souvent **pas de réponse**. Elle
+ * en a l'air — la forme est parfaite, la chute manque — et l'enfant cherche
+ * une solution qui n'existe pas, puis s'entend dire une réponse qui ne découle
+ * de rien. C'est la façon la plus sûre de passer pour un personnage qui se
+ * moque de lui.
+ *
+ * Elles sont ici parce qu'elles ne coûtent rien et qu'elles ne demandent rien :
+ * ni objet, ni sortie, ni mouvement. Pour un enfant qui n'a plus d'écran et qui
+ * tourne en rond, c'est ce qu'on a de mieux à proposer avec un livre.
+ *
+ * La réponse voyage avec la question, dans le contexte : Mino doit pouvoir
+ * confirmer, et surtout ne pas se tromper en confirmant.
+ */
+export interface Riddle {
+  id: string;
+  question: string;
+  answer: string;
+  from: number;
+  to: number;
+}
+
+export const RIDDLES: Riddle[] = [
+  { id: 'ombre', question: 'Je te suis partout dans la journée, et la nuit je disparais. Qui suis-je ?', answer: 'ton ombre', from: 4, to: 12 },
+  { id: 'chaise', question: 'J’ai quatre pattes et je ne marche jamais. Qui suis-je ?', answer: 'une chaise', from: 4, to: 10 },
+  { id: 'peigne', question: 'J’ai des dents et je ne mange rien. Qui suis-je ?', answer: 'un peigne', from: 4, to: 11 },
+  { id: 'serviette', question: 'Plus je sèche, plus je suis mouillée. Qui suis-je ?', answer: 'une serviette', from: 5, to: 13 },
+  { id: 'eponge', question: 'Je suis pleine de trous, et je garde l’eau quand même. Qui suis-je ?', answer: 'une éponge', from: 5, to: 12 },
+  { id: 'age', question: 'Qu’est-ce qui monte et qui ne redescend jamais ?', answer: 'ton âge', from: 5, to: 14 },
+  { id: 'trou', question: 'Plus on m’enlève, plus je deviens grand. Qui suis-je ?', answer: 'un trou', from: 6, to: 14 },
+  { id: 'tableau', question: 'Je suis blanc quand je suis sale, et noir quand je suis propre. Qui suis-je ?', answer: 'un tableau', from: 6, to: 15 },
+  { id: 'echo', question: 'Je répète tout ce que tu dis, et je n’ai jamais rien appris. Qui suis-je ?', answer: 'l’écho', from: 7, to: 17 },
+  { id: 'silence', question: 'Qu’est-ce qui se casse dès qu’on le dit ?', answer: 'le silence', from: 7, to: 17 },
+  { id: 'lettre-n', question: 'Je suis au début de la nuit et à la fin du matin. Qui suis-je ?', answer: 'la lettre N', from: 8, to: 17 },
+  { id: 'trois', question: 'Deux mères et deux filles partent ensemble, et pourtant elles ne sont que trois. Comment ?', answer: 'une grand-mère, sa fille et sa petite-fille', from: 10, to: 17 },
+  { id: 'demain', question: 'Je viens toujours et je n’arrive jamais. Qui suis-je ?', answer: 'demain', from: 11, to: 17 },
+];
+
+export function riddlesFor(age: number): Riddle[] {
+  return RIDDLES.filter((r) => age >= r.from && age <= r.to);
+}
+
+export function pickRiddle(age: number, index: number): Riddle | null {
+  const list = riddlesFor(age);
   if (list.length === 0) return null;
   return list[Math.abs(index) % list.length];
 }
@@ -269,6 +352,8 @@ export interface CompanionContext {
   missionsWaiting: string[];
   missionsTodo: string[];
   challenges: string[];
+  /** « question — réponse : … », pour que Mino puisse confirmer sans se tromper. */
+  riddles: string[];
   phase: CompanionPhase;
 }
 
@@ -299,6 +384,12 @@ export function buildContext(input: {
     challenges: [0, 1, 2]
       .map((offset) => pickChallenge(child.age, input.day + offset)?.text)
       .filter((t): t is string => !!t),
+    // Deux devinettes, pas trois : elles sont là pour être posées une par une,
+    // et une liste plus longue ferait un jeu télévisé.
+    riddles: [0, 1]
+      .map((offset) => pickRiddle(child.age, input.day + offset))
+      .filter((r): r is Riddle => !!r)
+      .map((r) => `${r.question} (réponse : ${r.answer})`),
     phase: phaseOf(input.used),
   };
 }
@@ -352,7 +443,7 @@ Un enfant discute avec toi dans l'application Mino. Tu es son compagnon, pas un 
 
 Le plus souvent il vient de terminer son temps d'écran de la journée — mais pas toujours, et ce n'est jamais à toi d'en décider : son solde t'est donné dans le contexte, et lui seul fait foi.
 
-TON RÔLE, ET IL EST INHABITUEL : tu n'essaies pas de le garder. Tu es content de le voir, tu l'écoutes, et tu l'envoies vivre quelque chose pour de vrai. Une conversation réussie avec toi est une conversation courte qui finit dehors.
+TON RÔLE, ET IL EST INHABITUEL : tu n'essaies pas de le garder. Tu es content de le voir, tu l'écoutes, et tu l'envoies vivre quelque chose pour de vrai. Une conversation réussie avec toi est une conversation courte qui finit loin de l'écran — un livre ouvert, une devinette dans la tête, quelqu'un à qui parler dans la maison.
 
 COMMENT TU PARLES
 - Deux ou trois phrases, jamais plus. Tu parles à un enfant, pas à un lecteur.
@@ -367,7 +458,9 @@ On te donne ses missions du jour, son solde et son prénom. Sers-t'en, c'est ce 
 CE QUE TU NE FAIS JAMAIS
 - Tu ne confirmes aucune mission et tu ne donnes aucune minute : cela n'appartient qu'à ses parents, et tu le dis gaiement si on te le demande.
 - Tu ne promets rien à propos de ses parents ni de son temps d'écran de demain.
-- Tu n'inventes pas de défi : on t'en propose, tu choisis parmi eux.
+- Tu n'inventes ni défi ni devinette : on t'en propose, tu choisis parmi eux, mot pour mot ou presque.
+- Tu ne lui dis JAMAIS de sortir, d'aller dehors, de prendre l'air, ni d'aller voir par la fenêtre. Jamais, sous aucune forme, même s'il te le demande : ce n'est pas à toi de mettre cette idée là. S'il te dit qu'il sort, tu peux t'en réjouir — c'est tout.
+- Tu ne lui fais jamais attraper, déplacer, empiler, construire, découper ni monter sur quoi que ce soit. La seule chose que tu peux lui faire prendre en main, c'est un livre.
 - Tu ne demandes jamais où il habite, son nom de famille, son école, ni aucune photo.
 - Tu ne parles ni d'argent, ni d'abonnement, ni de publicité.
 - Tu n'affirmes JAMAIS qu'il n'a plus de temps d'écran. Si son solde est positif, il lui en reste, même s'il vient te parler — et le contredire là-dessus est la façon la plus sûre de perdre sa confiance.
@@ -377,8 +470,8 @@ S'IL VA MAL
 S'il est triste, tu écoutes sans dramatiser et tu lui suggères d'en parler à un adulte de sa maison. Tu ne fais pas de diagnostic, tu ne donnes pas de conseil de grande personne.
 
 QUAND ON TE LE DIT
-- phase « nudging » : tu proposes un des défis, franchement, sans insister deux fois.
-- phase « closing » : tu dis au revoir joyeusement et tu l'envoies dehors.`;
+- phase « nudging » : tu proposes un des défis, franchement, sans insister deux fois. S'il s'ennuie, une devinette est toujours une bonne réponse.
+- phase « closing » : tu dis au revoir joyeusement, et tu lui laisses un livre ou une devinette pour la route.`;
 
 /** Le contexte du jour, formaté pour le modèle. Court : il n'est pas caché. */
 export function contextPrompt(context: CompanionContext): string {
@@ -391,6 +484,7 @@ export function contextPrompt(context: CompanionContext): string {
     `Missions terminées, en attente de confirmation : ${list(context.missionsWaiting)}.`,
     `Missions encore à faire : ${list(context.missionsTodo)}.`,
     `Défis que tu peux proposer : ${list(context.challenges)}.`,
+    `Devinettes que tu peux poser : ${list(context.riddles)}.`,
     `Phase : ${context.phase}.`,
   ].join('\n');
 }
