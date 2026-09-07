@@ -6,7 +6,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { Mascot } from '@/components/mascot';
 import { Button, Field, Screen, ScreenHeader, Text } from '@/components/ui';
 import { getAuthService } from '@/services/auth';
-import { dernierLien, oublierLien } from '@/services/auth/lienEntrant';
+import { attendreLien, oublierLien } from '@/services/auth/lienEntrant';
 import { colors, spacing } from '@/theme';
 
 /**
@@ -42,29 +42,33 @@ export default function NouveauMotDePasse() {
   // cet écran ne soit monté, et `useURL()` la manque. Un parent qui ne peut pas
   // reposer son mot de passe est un parent qui s'en va.
   const vu = Linking.useURL();
-  const url = vu ?? dernierLien();
 
   useEffect(() => {
     let vivant = true;
 
-    if (!url) {
-      setErreur('Ce lien est incomplet. Demandez-en un nouveau depuis la connexion.');
-      return;
-    }
+    (async () => {
+      // `attendreLien` laisse à l'adresse de lancement le temps d'arriver :
+      // lire tout de suite reviendrait à annoncer « lien incomplet » à un
+      // parent qui vient de toucher un lien valable depuis son courriel.
+      const url = vu ?? (await attendreLien());
+      if (!vivant) return;
 
-    getAuthService()
-      .resumeFromLink(url)
-      .then((r) => {
-        if (!vivant) return;
-        oublierLien();
-        if (r.ok) setPret(true);
-        else setErreur(r.reason ?? 'Ce lien n’est plus valable.');
-      })
-      .catch(() => vivant && setErreur('Ce lien n’est plus valable.'));
+      if (!url) {
+        setErreur('Ce lien est incomplet. Demandez-en un nouveau depuis la connexion.');
+        return;
+      }
+
+      const r = await getAuthService().resumeFromLink(url);
+      if (!vivant) return;
+      oublierLien();
+      if (r.ok) setPret(true);
+      else setErreur(r.reason ?? 'Ce lien n’est plus valable.');
+    })().catch(() => vivant && setErreur('Ce lien n’est plus valable.'));
+
     return () => {
       vivant = false;
     };
-  }, [url]);
+  }, [vu]);
 
   const valider = async () => {
     if (motDePasse.length < 8) return setErreur('Au moins 8 caractères.');

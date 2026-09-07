@@ -65,6 +65,25 @@ describe('le lien entrant', () => {
     expect(lien.dernierLien()).toBe(AVEC_JETONS);
   });
 
+  it('attend l’adresse de lancement au lieu de conclure trop vite', async () => {
+    /**
+     * Le défaut introduit en corrigeant le précédent, et qui était pire.
+     *
+     * `getInitialURL()` est asynchrone. Quand Safari lance Mino depuis le
+     * courriel, l'adresse n'est pas encore là au premier rendu de l'écran —
+     * et `dernierLien()` n'étant pas une valeur réactive, rien ne re-rendrait
+     * l'écran à son arrivée. L'application annonçait donc « ce lien est
+     * incomplet » à un parent qui venait d'en toucher un valable.
+     */
+    const lien = monter({ lancement: AVEC_JETONS });
+
+    // Lu tout de suite, il n'y a encore rien : c'est exactement ce que voyait
+    // l'écran.
+    expect(lien.dernierLien()).toBeNull();
+    // Attendu, il est là.
+    await expect(lien.attendreLien()).resolves.toBe(AVEC_JETONS);
+  });
+
   it('ne laisse pas l’adresse de lancement écraser un lien plus récent', async () => {
     /**
      * Précisément ce qui se passe dans une build de développement : l'adresse

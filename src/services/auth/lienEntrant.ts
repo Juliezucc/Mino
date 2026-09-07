@@ -38,14 +38,44 @@ Linking.addEventListener('url', ({ url }) => {
 // est parti avant que le JavaScript n'existe, et seule l'adresse de lancement
 // en garde la trace. On ne l'écrase jamais par-dessus un lien déjà reçu, qui
 // est forcément plus récent.
-Linking.getInitialURL()
+const lancement: Promise<void> = Linking.getInitialURL()
   .then((url) => {
     if (url && !dernier) dernier = url;
   })
   .catch(() => undefined);
 
-/** Le dernier lien reçu, quel qu'en soit le moment. */
+/** Le dernier lien reçu, s'il est déjà là. Ne patiente pas — voir `attendreLien`. */
 export function dernierLien(): string | null {
+  return dernier;
+}
+
+/** Le temps qu'on accorde à l'événement quand l'adresse de lancement est vide. */
+const PATIENCE_MS = 1200;
+
+/**
+ * Le lien, en lui laissant le temps d'arriver.
+ *
+ * **La lecture synchrone ne suffit pas, et c'est un défaut que j'ai introduit
+ * en corrigeant le précédent.** `getInitialURL()` est asynchrone : quand
+ * l'application est **lancée par le lien** — Safari qui ouvre Mino depuis le
+ * courriel —, l'adresse n'est pas encore là au premier rendu de l'écran. Lire
+ * `dernierLien()` à ce moment-là rend `null`, et comme ce n'est pas une valeur
+ * réactive, rien ne re-rendra l'écran quand elle arrivera.
+ *
+ * L'écran annonçait donc « ce lien est incomplet » à quelqu'un qui venait de
+ * toucher un lien parfaitement valable. La version d'avant ne disait rien du
+ * tout et attendait indéfiniment ; celle-ci se trompait vite. Aucune des deux
+ * n'est acceptable.
+ *
+ * On attend donc l'adresse de lancement, puis — si elle est vide — on laisse sa
+ * chance à l'événement, qui peut suivre de peu. Passé ce délai, il n'y a
+ * vraiment rien, et c'est alors qu'on a le droit de le dire.
+ */
+export async function attendreLien(): Promise<string | null> {
+  if (dernier) return dernier;
+  await lancement;
+  if (dernier) return dernier;
+  await new Promise((suite) => setTimeout(suite, PATIENCE_MS));
   return dernier;
 }
 

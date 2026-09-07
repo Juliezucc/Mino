@@ -6,7 +6,7 @@ import { StyleSheet } from 'react-native';
 import { Mascot } from '@/components/mascot';
 import { Button, Screen, Text } from '@/components/ui';
 import { getAuthService } from '@/services/auth';
-import { dernierLien, oublierLien } from '@/services/auth/lienEntrant';
+import { attendreLien, oublierLien } from '@/services/auth/lienEntrant';
 import { colors, spacing } from '@/theme';
 
 /**
@@ -34,34 +34,37 @@ export default function Confirme() {
   // arrive AVANT que cet écran ne soit monté, et le crochet la manque. Voir
   // `lienEntrant`, qui écoute dès le chargement du paquet.
   const vu = Linking.useURL();
-  const url = vu ?? dernierLien();
   const [erreur, setErreur] = useState<string | null>(null);
 
   useEffect(() => {
     let vivant = true;
 
-    // Aucun lien, nulle part : il n'y a rien à consommer, et attendre
-    // indéfiniment sous « un instant… » est la pire des réponses.
-    if (!url) {
-      setErreur('Ce lien est incomplet. Demandez-en un nouveau depuis la connexion.');
-      return;
-    }
+    (async () => {
+      // `attendreLien` et non une lecture immédiate : quand Safari lance Mino
+      // depuis le courriel, l'adresse n'est pas encore là au premier rendu.
+      const url = vu ?? (await attendreLien());
+      if (!vivant) return;
 
-    getAuthService()
-      .resumeFromLink(url)
-      .then((r) => {
-        if (!vivant) return;
-        oublierLien();
-        // `replace` et non `push` : revenir en arrière sur un lien déjà
-        // consommé ne mène nulle part.
-        if (r.ok) router.replace('/onboarding/account');
-        else setErreur(r.reason ?? 'Ce lien n’est plus valable.');
-      })
-      .catch(() => vivant && setErreur('Ce lien n’est plus valable.'));
+      // Rien, même après avoir attendu : il n'y a pas de lien à consommer, et
+      // rester sous « un instant… » indéfiniment est la pire des réponses.
+      if (!url) {
+        setErreur('Ce lien est incomplet. Demandez-en un nouveau depuis la connexion.');
+        return;
+      }
+
+      const r = await getAuthService().resumeFromLink(url);
+      if (!vivant) return;
+      oublierLien();
+      // `replace` et non `push` : revenir en arrière sur un lien déjà consommé
+      // ne mène nulle part.
+      if (r.ok) router.replace('/onboarding/account');
+      else setErreur(r.reason ?? 'Ce lien n’est plus valable.');
+    })().catch(() => vivant && setErreur('Ce lien n’est plus valable.'));
+
     return () => {
       vivant = false;
     };
-  }, [url, router]);
+  }, [vu, router]);
 
   return (
     <Screen contentStyle={styles.centre}>
