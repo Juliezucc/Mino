@@ -183,14 +183,26 @@ pire chose qu'un programme de parrainage puisse faire.
    Notifications (Pub/Sub) vers `…/store-notifications/google`.
 6. **Créer le compte de service Google** avec accès à l'API Play Developer.
 
-### Côté code — ma partie, quand tu auras les identifiants
+### Côté code — ma partie
 
-7. **Choisir la bibliothèque native.** Recommandation : **RevenueCat**
-   (`react-native-purchases`). Elle règle d'un coup la validation des reçus, la
-   restauration, et les différences entre les deux boutiques. Elle coûte ~1 %
-   du revenu suivi au-delà d'un seuil gratuit — à comparer aux 15 % des
-   boutiques, et à plusieurs semaines de travail. La couture `native.ts` est
-   écrite pour qu'on puisse s'en séparer plus tard sans toucher aux écrans.
+7. **La bibliothèque native est choisie et branchée** : `expo-iap`, dans
+   `src/services/billing/ExpoIapStore.ts`. Vingt et un tests, une fausse
+   boutique, aucun appareil nécessaire pour les faire tourner.
+
+   > **Ce n'est plus RevenueCat, et c'est un revirement assumé.** La
+   > recommandation tenait tant que Mino n'avait pas de serveur : RevenueCat
+   > vend surtout la validation des reçus et la tenue de l'état d'abonnement.
+   > Or `_shared/store.ts` vérifie déjà les transactions signées d'Apple et
+   > interroge l'API Play, et `store-notifications` reçoit les notifications
+   > serveur à serveur des deux. Ajouter RevenueCat aujourd'hui, c'est payer un
+   > intermédiaire pour refaire ce qui est écrit, et lui confier la vérité sur
+   > qui est client — c'est-à-dire dépendre de sa disponibilité pour le savoir.
+   >
+   > `expo-iap` n'est pas de la même nature : c'est une liaison vers StoreKit 2
+   > et Play Billing, sans serveur, sans compte à ouvrir, sans commission. Elle
+   > s'arrête là où commence la vérification, qui reste chez nous. Et la couture
+   > `native.ts` tient toujours : on peut en changer sans toucher à un écran.
+
 8. **Tester en bac à sable**, sur un vrai iPhone et un vrai Android : achat,
    renouvellement, résiliation, remboursement, restauration sur un second
    appareil.
@@ -216,9 +228,18 @@ STORE_COMMISSION_RATE=0.15
 ## Ce qui a été vérifié, et ce qui ne l'a pas été
 
 **Vérifié** : les règles de rail (qui vend, où l'on résilie, ce que chaque rail
-laisse) sont couvertes par six tests ; l'ensemble compile ; les 139 tests
-passent ; les textes de la FAQ et des CGV ont été mis en accord avec le
-comportement réel.
+laisse) sont couvertes par six tests ; l'ensemble compile ; les tests passent ;
+les textes de la FAQ et des CGV ont été mis en accord avec le comportement réel.
+S'y ajoutent les vingt et un tests d'`ExpoIapStore` — la preuve rendue, la
+transaction close, l'abandon distingué de l'échec, la transaction rejouée qui ne
+se confond pas avec la nôtre. Chacune de ces protections a été cassée
+volontairement pour vérifier qu'un test la rattrape.
+
+Vérifié aussi, et ce n'était pas acquis : le paquet natif entre dans la build
+iOS et **n'entre pas** dans le paquet web (l'import est dynamique, et
+`expo export` le confirme des deux côtés) ; la chaîne de plugins produit bien un
+projet Xcode signable — habilitation Family Controls, groupe d'applications,
+cible iOS 16.4 et le pod d'`expo-iap`.
 
 **Non vérifié** : `store.sql` n'a pas été appliqué, et les fonctions
 `store-purchase` et `store-notifications` n'ont jamais été exécutées — il n'y a

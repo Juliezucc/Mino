@@ -38,8 +38,14 @@ export interface StorePurchase {
    * Google.
    */
   token: string;
-  /** Ce qui relie l'achat à la famille. Voir `storeAccountToken` ci-dessous. */
-  accountToken: string;
+  /**
+   * Ce qui relie l'achat à la famille. Voir `storeAccountToken` ci-dessous.
+   *
+   * `null` quand la boutique ne le rend pas — c'est le cas de l'historique
+   * qu'on relit pour restaurer un achat. Le serveur retrouve alors la famille
+   * par le jeton d'authentification de l'appelant.
+   */
+  accountToken: string | null;
 }
 
 export interface NativeStore {
@@ -79,7 +85,15 @@ export type StoreAccountToken = string;
 
 let native: NativeStore | null = null;
 
-/** Branché au démarrage par le module natif, quand il y en a un. */
+/**
+ * Substituer une boutique — une fausse dans les essais, une autre
+ * implémentation le jour où `expo-iap` ne convient plus.
+ *
+ * Rien ne l'appelle en fonctionnement normal : `getBillingService()` construit
+ * de lui-même la boutique de l'appareil (voir `ExpoIapStore`). Ce point
+ * d'entrée existait avant elle et servait de promesse ; il sert maintenant à ce
+ * pour quoi il est utile.
+ */
 export function setNativeStore(store: NativeStore | null) {
   native = store;
 }

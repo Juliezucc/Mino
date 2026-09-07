@@ -50,6 +50,7 @@
           "defaultChannel": "mino"
         }
       ],
+      "expo-iap",
       [
         "expo-build-properties",
         {

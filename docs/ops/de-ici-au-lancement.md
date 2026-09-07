@@ -389,14 +389,23 @@ avant l'étape 17, et non après.
 ### 18. Créer les produits, brancher le module, tester en bac à sable
 
 **a) Les produits · vous · 1 h.** App Store Connect → Abonnements → un groupe,
-deux produits : mensuel 9,90 € et annuel 79 €. Les mêmes dans Play Console. Les
-identifiants doivent correspondre à ce que le code attend — je vous les donne au
-moment de brancher.
+deux produits : mensuel 9,90 € et annuel 79 €. Les mêmes dans Play Console.
 
-**b) Le module d'achat · moi · 2 à 3 jours.** RevenueCat ou `expo-iap`, derrière
-le contrat déjà écrit. Tout le reste existe : les fonctions serveur qui
-vérifient les reçus, le webhook Stripe, le jeton qui relie un achat à une
-famille. Seul `setNativeStore()` attend une implémentation.
+> Les identifiants ne sont pas libres : **`mino.premium.monthly`** et
+> **`mino.premium.yearly`**, exactement. Le serveur déduit la formule en
+> cherchant `month` et `yearly` dans la chaîne — un produit renommé donne un
+> abonnement sans formule, et une facture qu'on ne sait plus rattacher.
+
+**b) Le module d'achat · fait.** `expo-iap` derrière le contrat déjà écrit, dans
+`src/services/billing/ExpoIapStore.ts`, avec vingt et un tests. Ce n'est pas
+RevenueCat, et le revirement est expliqué dans `paiements.md` : le serveur
+vérifie déjà les reçus et reçoit les notifications serveur à serveur des deux
+boutiques, donc l'intermédiaire ne rendrait aucun service qu'on n'ait pas.
+
+Ce qui reste de vraiment non vérifié tient en une phrase : **la feuille de
+paiement ne s'est jamais ouverte.** Tout ce qui vient après elle est éprouvé
+hors appareil ; son ouverture, elle, ne se prouve qu'en bac à sable, sur un
+iPhone, après la première compilation.
 
 **c) `EXPO_PUBLIC_BILLING_API_URL` · vous · 2 min.**
 `https://<référence>.supabase.co/functions/v1`. Sans elle, le rail boutique ne

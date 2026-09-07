@@ -5,6 +5,7 @@ import { ID } from '@/domain/types';
 import { getAccessToken, getSupabaseClient } from '@/data/supabaseRepository';
 
 import { BillingService } from './BillingService';
+import { ExpoIapStore, PRODUITS, boutiqueDuTelephone } from './ExpoIapStore';
 import { LocalBillingService } from './LocalBillingService';
 import { StoreBillingService } from './StoreBillingService';
 import { StripeWebBillingService } from './StripeWebBillingService';
@@ -12,7 +13,7 @@ import { getNativeStore } from './native';
 
 export * from './BillingService';
 export * from './native';
-export { LocalBillingService, StoreBillingService, StripeWebBillingService };
+export { ExpoIapStore, LocalBillingService, PRODUITS, StoreBillingService, StripeWebBillingService };
 
 const API_URL = process.env.EXPO_PUBLIC_BILLING_API_URL;
 
@@ -38,8 +39,10 @@ let instance: BillingService | null = null;
 export function getBillingService(): BillingService {
   if (!instance) {
     const api = API_URL ? new StripeWebBillingService(API_URL, getAccessToken) : null;
-    const store = getNativeStore();
     const onDevice = Platform.OS === 'ios' || Platform.OS === 'android';
+    // Celle qu'on aurait posée à la main d'abord — c'est ce qui permet aux
+    // essais de substituer une fausse boutique — puis celle de l'appareil.
+    const store = getNativeStore() ?? boutiqueDuTelephone();
 
     instance =
       onDevice && store && api

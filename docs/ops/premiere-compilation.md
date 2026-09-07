@@ -52,7 +52,16 @@ Ce qui est déjà préparé dans le dépôt, et qu'il n'y a donc pas à refaire 
 - `MinoShieldMonitor.swift` est **exclu** du podspec, à dessein : il appartient
   à la cible d'extension, pas à l'application. Compilé dans l'application, il ne
   serait jamais réveillé par le système, et le bouclier ne reviendrait jamais
-  seul.
+  seul ;
+- `expo-iap` porte son propre plugin, qui ajoute le pod StoreKit et
+  l'autorisation de facturation Android.
+
+> **Le `prebuild` de ce document a déjà été joué à blanc**, sur Linux, pour
+> vérifier que la chaîne de plugins produit un projet cohérent : l'habilitation
+> Family Controls et le groupe d'applications sont bien dans
+> `ios/Mino/Mino.entitlements`, la cible est bien en 16.4 partout, et le pod
+> d'`expo-iap` est bien ajouté. Le dossier `ios/` a ensuite été supprimé — il
+> doit naître sur votre Mac, avec CocoaPods, pas ici.
 
 ---
 
@@ -214,6 +223,9 @@ Autrement dit : EAS ne remplace pas Xcode ici, il le précède.
   dans les notes à l'examinateur. Tant que le binaire tombe sur le minuteur,
   l'écrire est un motif de retrait (Apple 2.3.1).
 - Le **module d'achat** : StoreKit ne fonctionne ni sur le web ni dans Expo Go.
-  Sans build natif, le paiement ne peut pas être essayé une seule fois.
+  Le module est écrit (`ExpoIapStore`) et éprouvé contre une fausse boutique,
+  mais **la feuille de paiement ne s'est jamais ouverte** — et c'est la seule
+  chose qu'aucun test ne peut remplacer. Elle s'ouvrira ici, et nulle part
+  avant.
 - **TestFlight**, donc de vraies familles — l'essai de 30 jours rend Mino
   entièrement utilisable avant que l'abonnement n'existe.
