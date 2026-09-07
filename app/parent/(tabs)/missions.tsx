@@ -45,7 +45,14 @@ export default function ParentMissions() {
 
   return (
     <Screen contentStyle={styles.content}>
-      <SectionHeader title="Missions" subtitle={`${missions.length} mission(s) active(s)`} />
+      <SectionHeader
+        title="Missions"
+        subtitle={
+          missions.length === 0
+            ? 'Aucune mission active'
+            : `${missions.length} mission${missions.length > 1 ? 's' : ''} · touchez-en une pour la modifier`
+        }
+      />
 
       <Button
         label="Créer une mission"
@@ -92,7 +99,20 @@ export default function ParentMissions() {
             const assigned = childrenOfMission(data, mission.id);
             return (
               <Card key={mission.id} style={styles.card}>
-                <View style={styles.row}>
+                {/* Toute la ligne ouvre la mission.
+                    Une routine en crée huit d'un coup, toutes identiques : le
+                    parent veut aussitôt en régler une à cinq minutes et en
+                    retirer une au petit. Il n'y avait aucun chemin pour ça — la
+                    carte ne réagissait pas, et supprimer puis recréer efface
+                    l'historique de l'enfant. */}
+                <Pressable
+                  onPress={() =>
+                    router.push({ pathname: '/parent/mission/[id]', params: { id: mission.id } })
+                  }
+                  accessibilityRole="button"
+                  accessibilityLabel={`Modifier « ${mission.title} », ${mission.minutes} minutes, ${describeRepeat(mission.repeat)}`}
+                  style={styles.row}
+                >
                   <View style={[styles.iconTile, { backgroundColor: accent.tint }]}>
                     <Text style={styles.icon}>{mission.icon}</Text>
                   </View>
@@ -105,7 +125,13 @@ export default function ParentMissions() {
                     </Text>
                   </View>
                   <MinutesBadge minutes={mission.minutes} />
-                </View>
+                  {/* Le chevron dit que ça s'ouvre. Sans lui, une carte qui
+                      réagit au doigt ne se distingue pas d'une carte qui ne
+                      fait rien — c'est exactement ce qui s'est passé. */}
+                  <Text variant="body" color={colors.textSubtle}>
+                    ›
+                  </Text>
+                </Pressable>
 
                 {/* Le réglage se change ici, sur la mission elle-même.
                     Le proposer seulement à la création serait le figer : un

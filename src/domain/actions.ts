@@ -155,29 +155,75 @@ export function createMission(
 }
 
 /**
- * Modifier une mission déjà créée.
+ * Modifier une mission déjà créée — tout ce qui la définit, sans réécrire le
+ * passé.
  *
- * Volontairement limité à ce qui se change sans réécrire le passé. Le temps
- * gagné, lui, n'est pas ici : les complétions en gardent une copie au moment où
- * elles sont faites (`minutesRequested`), et changer le barème d'une mission ne
- * doit pas modifier ce qu'un enfant a déjà obtenu.
+ * **Le temps gagné se change, et il le faut.** Il était exclu d'ici au motif
+ * qu'un barème modifié ne doit pas changer ce qu'un enfant a déjà obtenu. Le
+ * motif était bon, la conclusion ne l'était pas : chaque complétion garde sa
+ * propre copie (`minutesRequested`, puis `minutesAwarded`), donc le passé est
+ * déjà protégé — y compris une complétion qui attend encore d'être confirmée,
+ * qui sera payée au tarif affiché à l'enfant quand il a appuyé, et non au
+ * nouveau. Interdire la modification ne protégeait donc rien ; elle obligeait
+ * seulement à supprimer la mission et à la recréer, ce qui, cela, efface
+ * vraiment l'historique.
+ *
+ * Ce trou se voyait d'un coup après une routine : elle crée huit missions à
+ * quinze minutes, et le parent n'avait aucun moyen d'en passer une à cinq.
+ *
+ * **Les enfants concernés ne sont jamais retirés, seulement désactivés.** Une
+ * complétion pointe sur son affectation (`assignmentId`) : supprimer la ligne
+ * ferait disparaître de l'historique une mission réellement accomplie. Un
+ * enfant qu'on retire puis qu'on remet retrouve donc son affectation d'origine.
  */
 export function updateMission(
   data: FamilyData,
   missionId: ID,
-  patch: { title?: string; icon?: string; autoApprove?: boolean },
+  patch: {
+    title?: string;
+    icon?: string;
+    minutes?: number;
+    repeat?: RepeatRule;
+    autoApprove?: boolean;
+    childIds?: ID[];
+  },
+  now: Date = new Date(),
 ): FamilyData {
   if (patch.title !== undefined && !patch.title.trim()) {
     throw new DomainError('Le nom de la mission est obligatoire.');
   }
-  return {
-    ...data,
-    missions: data.missions.map((m) =>
-      m.id === missionId
-        ? { ...m, ...patch, ...(patch.title ? { title: patch.title.trim() } : {}), id: m.id }
-        : m,
-    ),
-  };
+  if (patch.minutes !== undefined && patch.minutes <= 0) {
+    throw new DomainError('Le temps gagné doit être supérieur à 0.');
+  }
+  if (patch.childIds !== undefined && patch.childIds.length === 0) {
+    throw new DomainError('Choisis au moins un enfant.');
+  }
+
+  const { childIds, ...fields } = patch;
+
+  const missions = data.missions.map((m) =>
+    m.id === missionId
+      ? { ...m, ...fields, ...(fields.title ? { title: fields.title.trim() } : {}), id: m.id }
+      : m,
+  );
+
+  if (!childIds) return { ...data, missions };
+
+  const assignments = data.assignments.map((a) =>
+    a.missionId === missionId ? { ...a, active: childIds.includes(a.childId) } : a,
+  );
+
+  const nouveaux: MissionAssignment[] = childIds
+    .filter((childId) => !data.assignments.some((a) => a.missionId === missionId && a.childId === childId))
+    .map((childId) => ({
+      id: createId('asg'),
+      missionId,
+      childId,
+      active: true,
+      createdAt: iso(now),
+    }));
+
+  return { ...data, missions, assignments: [...assignments, ...nouveaux] };
 }
 
 export function archiveMission(data: FamilyData, missionId: ID): FamilyData {
@@ -361,16 +407,24 @@ export function rejectCompletion(
   };
 }
 
-/** The child has seen the confetti — don't show it twice. */
+/**
+ * L'enfant a vu les confettis — on ne les montre pas deux fois.
+ *
+ * Plusieurs identifiants à la fois, et c'est le cœur du correctif : un parent
+ * qui confirme huit missions d'affilée produisait huit célébrations en file, la
+ * suivante s'ouvrant sur la précédente. Elles se marquent maintenant ensemble,
+ * en une seule écriture, parce qu'elles sont vues ensemble.
+ */
 export function markCelebrated(
   data: FamilyData,
-  completionId: ID,
+  completionIds: ID | ID[],
   now: Date = new Date(),
 ): FamilyData {
+  const ids = new Set(Array.isArray(completionIds) ? completionIds : [completionIds]);
   return {
     ...data,
     completions: data.completions.map((c) =>
-      c.id === completionId ? { ...c, celebratedAt: iso(now) } : c,
+      ids.has(c.id) ? { ...c, celebratedAt: iso(now) } : c,
     ),
   };
 }

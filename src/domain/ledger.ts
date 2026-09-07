@@ -110,6 +110,45 @@ export function uncelebratedCompletions(data: FamilyData, childId: ID): MissionC
     .sort((a, b) => (a.reviewedAt ?? '').localeCompare(b.reviewedAt ?? ''));
 }
 
+/** Ce qu'une célébration montre : tout ce qui attend, et le total gagné. */
+export interface Celebration {
+  completions: MissionCompletion[];
+  minutes: number;
+}
+
+/**
+ * Une seule célébration pour tout ce qui attend.
+ *
+ * **Le défaut que cela répare.** L'écran ne savait fêter qu'une complétion à la
+ * fois, et la zone enfant en ouvrait un par complétion en attente. Un parent
+ * qui rentre le soir et confirme les huit missions de la journée d'un coup
+ * produisait donc huit écrans de confettis empilés, à refermer un par un. Le
+ * premier fait plaisir ; le troisième est un obstacle entre l'enfant et son
+ * temps d'écran.
+ *
+ * Le total est calculé ici plutôt que dans l'écran pour une raison simple :
+ * c'est le chiffre que l'enfant lit en grand, et c'est le seul de toute
+ * l'application qui doive être exactement la somme de ce qui vient de tomber.
+ *
+ * `focus` sert le cas d'une mission qui se compte toute seule : l'écran s'ouvre
+ * sur elle à l'instant même où elle est créée, parfois avant que la liste ne
+ * l'ait reprise.
+ */
+export function celebrationFor(data: FamilyData, childId: ID, focus?: ID): Celebration {
+  const attente = uncelebratedCompletions(data, childId);
+  const nomme = focus ? data.completions.find((c) => c.id === focus) : undefined;
+
+  const completions =
+    nomme && nomme.childId === childId && !attente.some((c) => c.id === nomme.id)
+      ? [...attente, nomme]
+      : attente;
+
+  return {
+    completions,
+    minutes: completions.reduce((sum, c) => sum + (c.minutesAwarded ?? 0), 0),
+  };
+}
+
 export function childById(data: FamilyData, childId: ID): Child | undefined {
   return data.children.find((c) => c.id === childId);
 }

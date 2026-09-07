@@ -20,10 +20,11 @@ export default function ChildLayout() {
   useEffect(() => {
     if (uncelebrated.length === 0) return;
     if (pathname === '/child/celebration') return;
-    router.push({
-      pathname: '/child/celebration',
-      params: { completionId: uncelebrated[0].id },
-    });
+    // Sans identifiant, et c'est le correctif : l'écran prend tout ce qui
+    // attend et n'en fait qu'une célébration. En lui en désignant une, on en
+    // empilait autant qu'il y avait de missions confirmées — huit écrans de
+    // confettis à la file après une soirée de validations.
+    router.push('/child/celebration');
   }, [uncelebrated, pathname, router]);
 
   if (!activeChildId) return <Redirect href="/who" />;

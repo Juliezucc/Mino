@@ -3,8 +3,13 @@ import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
 import { isFirstRun } from '@/domain/firstRun';
 import { parentGate } from '@/domain/parentGate';
 import { FamilyData } from '@/domain/types';
-import { balanceOf, pendingCompletions, uncelebratedCompletions } from '@/domain/ledger';
-import { missionsForChild } from '@/domain/missions';
+import {
+  balanceOf,
+  celebrationFor,
+  pendingCompletions,
+  uncelebratedCompletions,
+} from '@/domain/ledger';
+import { childrenOfMission, missionsForChild } from '@/domain/missions';
 import { useMinoStore } from '@/store/useMinoStore';
 
 /**
@@ -300,6 +305,205 @@ describe('modifier une mission', () => {
     expect(() => actions.updateMission(base, base.missions[0].id, { title: '   ' })).toThrow(
       actions.DomainError,
     );
+  });
+
+  /**
+   * Le temps gagné se change — c'était le trou.
+   *
+   * Une routine crée huit missions à quinze minutes ; sans cela, le parent
+   * n'avait qu'un chemin pour en régler une, supprimer et recréer, et celui-là
+   * efface pour de bon ce que l'enfant a déjà accompli.
+   */
+  it('change le temps gagné pour la suite, sans réécrire le passé', () => {
+    const base = buildDemoFamily(new Date('2026-08-20T09:00:00.000Z'));
+    const noah = base.children[0];
+    const avant = balanceOf(base.transactions, noah.id);
+    const mission = base.missions[0];
+
+    const apres = actions.updateMission(base, mission.id, { minutes: 5 });
+
+    expect(apres.missions.find((m) => m.id === mission.id)!.minutes).toBe(5);
+    // Ce qui a déjà été gagné l'a été au tarif d'alors : chaque complétion en
+    // garde sa propre copie.
+    expect(balanceOf(apres.transactions, noah.id)).toBe(avant);
+    for (const c of apres.completions.filter((c) => c.missionId === mission.id)) {
+      const origine = base.completions.find((o) => o.id === c.id)!;
+      expect(c.minutesRequested).toBe(origine.minutesRequested);
+      expect(c.minutesAwarded).toBe(origine.minutesAwarded);
+    }
+  });
+
+  it('refuse un temps nul et une mission sans personne', () => {
+    const base = buildDemoFamily(new Date('2026-08-20T09:00:00.000Z'));
+    const id = base.missions[0].id;
+    expect(() => actions.updateMission(base, id, { minutes: 0 })).toThrow(actions.DomainError);
+    expect(() => actions.updateMission(base, id, { childIds: [] })).toThrow(actions.DomainError);
+  });
+
+  it('change les jours de répétition', () => {
+    const base = buildDemoFamily(new Date('2026-08-20T09:00:00.000Z'));
+    const id = base.missions[0].id;
+    const apres = actions.updateMission(base, id, { repeat: { kind: 'weekdays', days: [6, 0] } });
+    expect(apres.missions.find((m) => m.id === id)!.repeat).toEqual({
+      kind: 'weekdays',
+      days: [6, 0],
+    });
+  });
+
+  /**
+   * Retirer un enfant **désactive** son affectation, sans jamais la supprimer.
+   *
+   * Une complétion pointe sur son affectation : effacer la ligne ferait
+   * disparaître de l'historique une mission réellement accomplie. Et remettre
+   * l'enfant doit retrouver la même ligne, pas en créer une deuxième.
+   */
+  it('retire et remet un enfant sans perdre son histoire', () => {
+    const base = buildDemoFamily(new Date('2026-08-20T09:00:00.000Z'));
+    const mission = base.missions[0];
+    const noah = childrenOfMission(base, mission.id)[0];
+    const affectations = () =>
+      base.assignments.filter((a) => a.missionId === mission.id).length;
+    const avant = affectations();
+
+    const autre = base.children.find((c) => c.id !== noah)!;
+    const sansNoah = actions.updateMission(base, mission.id, { childIds: [autre.id] });
+
+    expect(childrenOfMission(sansNoah, mission.id)).toEqual([autre.id]);
+    expect(sansNoah.assignments.filter((a) => a.missionId === mission.id).length)
+      .toBeGreaterThanOrEqual(avant);
+    // La ligne de Noah est toujours là, simplement inactive : ses complétions
+    // la référencent.
+    expect(
+      sansNoah.assignments.some(
+        (a) => a.missionId === mission.id && a.childId === noah && !a.active,
+      ),
+    ).toBe(true);
+
+    const remis = actions.updateMission(sansNoah, mission.id, { childIds: [noah, autre.id] });
+    expect(childrenOfMission(remis, mission.id).sort()).toEqual([noah, autre.id].sort());
+    // Et pas de doublon : on réactive, on ne recrée pas.
+    expect(
+      remis.assignments.filter((a) => a.missionId === mission.id && a.childId === noah).length,
+    ).toBe(1);
+  });
+});
+
+/**
+ * Une soirée de validations ne fait qu'une célébration.
+ *
+ * Le défaut se voyait au premier usage réel : le parent confirme les missions
+ * de la journée d'un coup, l'enfant reprend son téléphone et reçoit autant
+ * d'écrans de confettis qu'il y avait de missions, chacun s'ouvrant sur le
+ * précédent. Le premier fait plaisir ; le troisième est un obstacle entre
+ * l'enfant et son temps d'écran.
+ */
+describe('célébrer plusieurs missions à la fois', () => {
+  const store = () => useMinoStore.getState();
+
+  beforeEach(async () => {
+    await store().startDemo();
+  });
+
+  it('marque tout le lot en une fois, et n’en laisse aucun derrière', async () => {
+    const noah = store().data!.children.find((c) => c.firstName === 'Noah')!;
+
+    const ids: string[] = [];
+    for (const [titre, minutes] of [
+      ['Ranger ta chambre', 15],
+      ['Mettre la table', 10],
+      ['Sortir le chien', 5],
+    ] as const) {
+      const missionId = await store().addMission({
+        title: titre,
+        icon: '⭐',
+        minutes,
+        repeat: { kind: 'daily' },
+        childIds: [noah.id],
+      });
+      const { id } = await store().completeMission(noah.id, missionId);
+      await store().approveCompletion(id);
+      ids.push(id);
+    }
+
+    const attente = uncelebratedCompletions(useMinoStore.getState().data!, noah.id);
+    expect(attente).toHaveLength(3);
+    // Ce que l'écran affiche en gros : le total, pas trois fois une ligne.
+    expect(attente.reduce((s, c) => s + (c.minutesAwarded ?? 0), 0)).toBe(30);
+
+    await store().markCelebrated(attente.map((c) => c.id));
+
+    expect(uncelebratedCompletions(useMinoStore.getState().data!, noah.id)).toHaveLength(0);
+    for (const id of ids) {
+      expect(
+        useMinoStore.getState().data!.completions.find((c) => c.id === id)!.celebratedAt,
+      ).toBeDefined();
+    }
+  });
+
+  it('n’en fait qu’une, avec le total en gros', async () => {
+    const noah = store().data!.children.find((c) => c.firstName === 'Noah')!;
+
+    for (const minutes of [15, 10, 5]) {
+      const missionId = await store().addMission({
+        title: `Mission ${minutes}`,
+        icon: '⭐',
+        minutes,
+        repeat: { kind: 'daily' },
+        childIds: [noah.id],
+      });
+      const { id } = await store().completeMission(noah.id, missionId);
+      await store().approveCompletion(id);
+    }
+
+    // C'est ce que l'écran affiche : un lot, un total. Trois célébrations à la
+    // file, c'était trois fois cet appel avec une complétion chacun.
+    const fete = celebrationFor(useMinoStore.getState().data!, noah.id);
+    expect(fete.completions).toHaveLength(3);
+    expect(fete.minutes).toBe(30);
+
+    await store().markCelebrated(fete.completions.map((c) => c.id));
+
+    // Et il n'y a pas de deuxième écran derrière.
+    expect(celebrationFor(useMinoStore.getState().data!, noah.id).completions).toHaveLength(0);
+  });
+
+  it('ne mélange jamais deux enfants', async () => {
+    const data = store().data!;
+    const noah = data.children[0];
+    const autre = data.children[1];
+
+    const missionId = await store().addMission({
+      title: 'Ranger ta chambre',
+      icon: '🧸',
+      minutes: 15,
+      repeat: { kind: 'daily' },
+      childIds: [noah.id],
+    });
+    const { id } = await store().completeMission(noah.id, missionId);
+    await store().approveCompletion(id);
+
+    // Même en désignant la complétion de Noah, l'écran de l'autre enfant ne la
+    // reprend pas : la célébration appartient à celui qui l'a gagnée.
+    const chezLautre = celebrationFor(useMinoStore.getState().data!, autre.id, id);
+    expect(chezLautre.completions.some((c) => c.id === id)).toBe(false);
+  });
+
+  it('accepte encore un identifiant seul', async () => {
+    // L'écran d'une mission qui se compte toute seule en passe un, et lui
+    // seul : la forme au singulier doit continuer de marcher.
+    const noah = store().data!.children.find((c) => c.firstName === 'Noah')!;
+    const missionId = await store().addMission({
+      title: 'Se brosser les dents',
+      icon: '🪥',
+      minutes: 5,
+      repeat: { kind: 'daily' },
+      childIds: [noah.id],
+    });
+    const { id } = await store().completeMission(noah.id, missionId);
+    await store().approveCompletion(id);
+
+    await store().markCelebrated(id);
+    expect(uncelebratedCompletions(useMinoStore.getState().data!, noah.id)).toHaveLength(0);
   });
 });
 

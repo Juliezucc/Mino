@@ -140,7 +140,14 @@ interface MinoState {
   }) => Promise<ID>;
   editMission: (
     missionId: ID,
-    patch: { title?: string; icon?: string; autoApprove?: boolean },
+    patch: {
+      title?: string;
+      icon?: string;
+      minutes?: number;
+      repeat?: RepeatRule;
+      autoApprove?: boolean;
+      childIds?: ID[];
+    },
   ) => Promise<void>;
   archiveMission: (missionId: ID) => Promise<void>;
 
@@ -156,7 +163,8 @@ interface MinoState {
   completeMission: (childId: ID, missionId: ID) => Promise<{ id: ID; counted: boolean }>;
   approveCompletion: (completionId: ID) => Promise<void>;
   rejectCompletion: (completionId: ID) => Promise<void>;
-  markCelebrated: (completionId: ID) => Promise<void>;
+  /** Un identifiant, ou tous ceux d'une même célébration. */
+  markCelebrated: (completionId: ID | ID[]) => Promise<void>;
 
   /**
    * Ouvrir une fenêtre pendant laquelle l'écran ne coûte rien : mercredi
@@ -664,7 +672,19 @@ export const useMinoStore = create<MinoState>((set, get) => {
       await commit('mission.updated', (data) => {
         const next = actions.updateMission(data, missionId, patch);
         const mission = next.missions.find((m) => m.id === missionId);
-        return { data: next, upsert: mission ? { missions: [mission] } : undefined };
+        return {
+          data: next,
+          upsert: {
+            missions: mission ? [mission] : [],
+            // Les affectations partent avec la mission : changer les enfants
+            // concernés en désactive et en crée, et une modification qui ne
+            // remonterait qu'à moitié laisserait l'autre téléphone afficher la
+            // mission à un enfant qui ne l'a plus.
+            ...(patch.childIds
+              ? { assignments: next.assignments.filter((a) => a.missionId === missionId) }
+              : {}),
+          },
+        };
       });
     },
 
@@ -753,10 +773,14 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async markCelebrated(completionId) {
+      const ids = Array.isArray(completionId) ? completionId : [completionId];
+      if (ids.length === 0) return;
       await commit('completion.celebrated', (data) => {
-        const next = actions.markCelebrated(data, completionId);
-        const completion = next.completions.find((c) => c.id === completionId);
-        return { data: next, upsert: completion ? { completions: [completion] } : undefined };
+        const next = actions.markCelebrated(data, ids);
+        return {
+          data: next,
+          upsert: { completions: next.completions.filter((c) => ids.includes(c.id)) },
+        };
       });
     },
 

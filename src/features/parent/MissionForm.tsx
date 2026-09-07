@@ -19,6 +19,14 @@ export interface MissionFormValue {
 
 interface Props {
   initialChildIds?: ID[];
+  /**
+   * Une mission existante à modifier.
+   *
+   * Le même formulaire sert à créer et à modifier : deux écrans qui posent les
+   * mêmes questions finissent toujours par ne plus les poser pareil, et c'est
+   * le second qui oublie un champ.
+   */
+  initial?: MissionFormValue;
   submitLabel?: string;
   onSubmit: (value: MissionFormValue) => void | Promise<void>;
   loading?: boolean;
@@ -36,19 +44,34 @@ const DAYS: { value: Weekday; label: string }[] = [
   { value: 0, label: 'D' },
 ];
 
-export function MissionForm({ initialChildIds = [], submitLabel = 'CRÉER LA MISSION', onSubmit, loading }: Props) {
+export function MissionForm({
+  initialChildIds = [],
+  initial,
+  submitLabel = 'CRÉER LA MISSION',
+  onSubmit,
+  loading,
+}: Props) {
   const children = useChildren();
 
-  const [title, setTitle] = useState('');
-  const [icon, setIcon] = useState('⭐');
-  const [minutes, setMinutes] = useState(15);
-  const [customMinutes, setCustomMinutes] = useState('');
-  const [repeatKind, setRepeatKind] = useState<RepeatKind>('daily');
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [icon, setIcon] = useState(initial?.icon ?? '⭐');
+  const [minutes, setMinutes] = useState(initial?.minutes ?? 15);
+  // Une valeur qui n'est pas dans les raccourcis se réaffiche dans le champ
+  // libre — sinon une mission à 45 minutes se rouvre avec 45 nulle part, et le
+  // parent croit devoir la ressaisir.
+  const [customMinutes, setCustomMinutes] = useState(
+    initial && !QUICK_MINUTES.includes(initial.minutes) ? String(initial.minutes) : '',
+  );
+  const [repeatKind, setRepeatKind] = useState<RepeatKind>(initial?.repeat.kind ?? 'daily');
   // Non par défaut : la confirmation est ce qui donne sa valeur au système, et
   // s'en passer doit rester un choix explicite, mission par mission.
-  const [autoApprove, setAutoApprove] = useState(false);
-  const [days, setDays] = useState<Weekday[]>([1, 2, 3, 4, 5]);
-  const [childIds, setChildIds] = useState<ID[]>(initialChildIds);
+  const [autoApprove, setAutoApprove] = useState(initial?.autoApprove ?? false);
+  const [days, setDays] = useState<Weekday[]>(
+    initial?.repeat.kind === 'weekdays' && initial.repeat.days?.length
+      ? initial.repeat.days
+      : [1, 2, 3, 4, 5],
+  );
+  const [childIds, setChildIds] = useState<ID[]>(initial?.childIds ?? initialChildIds);
   const [error, setError] = useState<string | undefined>();
 
   // Suggestions follow whoever is selected: age-appropriate, and only naming a
@@ -86,27 +109,31 @@ export function MissionForm({ initialChildIds = [], submitLabel = 'CRÉER LA MIS
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.block}>
-        <Text variant="label" color={colors.textMuted}>
-          Missions prêtes à l’emploi
-        </Text>
-        <View style={styles.row}>
-          {suggestions.map((s) => (
-            <Chip
-              key={s.id}
-              label={s.label}
-              icon={s.icon}
-              selected={title === s.label}
-              onPress={() => {
-                setTitle(s.label);
-                setIcon(s.icon);
-                setMinutes(s.minutes);
-                setCustomMinutes('');
-              }}
-            />
-          ))}
+      {/* Les propositions n'ont de sens qu'à la création : on ne suggère pas
+          un autre intitulé à quelqu'un qui vient corriger le sien. */}
+      {initial ? null : (
+        <View style={styles.block}>
+          <Text variant="label" color={colors.textMuted}>
+            Missions prêtes à l’emploi
+          </Text>
+          <View style={styles.row}>
+            {suggestions.map((s) => (
+              <Chip
+                key={s.id}
+                label={s.label}
+                icon={s.icon}
+                selected={title === s.label}
+                onPress={() => {
+                  setTitle(s.label);
+                  setIcon(s.icon);
+                  setMinutes(s.minutes);
+                  setCustomMinutes('');
+                }}
+              />
+            ))}
+          </View>
         </View>
-      </View>
+      )}
 
       <Field
         label="Nom de la mission"
