@@ -3,9 +3,18 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
-import { Button, Card, Chip, MinutesBadge, Screen, Text, TimeCapsules, TimeRing } from '@/components/ui';
+import {
+  Button,
+  Card,
+  MinutesBadge,
+  Screen,
+  Text,
+  TimeCapsules,
+  TimeRing,
+  TimeSlider,
+} from '@/components/ui';
 import { unitOf } from '@/domain/ageBand';
-import { dureesPour, formatTime } from '@/domain/minos';
+import { bornesPour, formatTime } from '@/domain/minos';
 import { activeDevices, deviceIcon, describeDevice } from '@/domain/devices';
 import { getScreenTimeService } from '@/services/screenTime';
 import {
@@ -30,6 +39,14 @@ export default function ChildTime() {
 
   // `null` means this very device, the only screen Mino drives by itself.
   const [deviceId, setDeviceId] = useState<string | null>(null);
+  /**
+   * Le solde entier par défaut, et non « rien de choisi ».
+   *
+   * Le bouton était désactivé tant qu'aucune puce n'avait été touchée : un
+   * enfant voyait « COMMENCER » éteint sans comprendre ce qu'on attendait de
+   * lui. Le curseur, lui, montre toujours une valeur — celle-là est donc déjà
+   * choisie, et le geste le plus courant, tout prendre, ne demande plus rien.
+   */
   const [selected, setSelected] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,22 +54,23 @@ export default function ChildTime() {
   if (!child || !balance) return null;
 
   const unit = unitOf(child);
-  const options = dureesPour(balance.minutes);
+  const bornes = bornesPour(balance.minutes);
   const devices = activeDevices(family?.devices);
   // Every declared device is a screen a parent has to start, and so is any
   // session at all when the family asked for approval.
   const supervised = deviceId !== null || child.requireApproval === true;
 
   const begin = async () => {
-    if (!selected) return;
+    const minutes = selected ?? bornes?.max ?? 0;
+    if (!minutes) return;
     setLoading(true);
     try {
-      const sessionId = await startSession(child.id, selected, deviceId ?? undefined);
+      const sessionId = await startSession(child.id, minutes, deviceId ?? undefined);
       setError(null);
       if (supervised) return; // The screen switches to "waiting" on its own.
 
       // The service seam: today an in-app timer, tomorrow real app unblocking.
-      await getScreenTimeService().grant({ sessionId, childId: child.id, minutes: selected });
+      await getScreenTimeService().grant({ sessionId, childId: child.id, minutes });
       router.push({ pathname: '/child/session', params: { sessionId } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de démarrer.');
@@ -200,16 +218,15 @@ export default function ChildTime() {
           <Text variant="label" color={colors.textMuted}>
             COMBIEN ?
           </Text>
-          <View style={styles.durations}>
-            {options.map((value) => (
-              <Chip
-                key={value}
-                label={formatTime(value, unit)}
-                selected={selected === value}
-                onPress={() => setSelected(value)}
-              />
-            ))}
-          </View>
+          {bornes ? (
+            <TimeSlider
+              value={selected ?? bornes.max}
+              min={bornes.min}
+              max={bornes.max}
+              label={formatTime(selected ?? bornes.max, unit)}
+              onChange={setSelected}
+            />
+          ) : null}
 
           {error ? (
             <Text variant="caption" color={colors.dangerInk} center>
@@ -221,7 +238,7 @@ export default function ChildTime() {
             icon={supervised ? '🙋' : '▶️'}
             size="kid"
             variant="primary"
-            disabled={!selected}
+            disabled={!bornes}
             loading={loading}
             onPress={begin}
           />

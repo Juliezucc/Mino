@@ -4,6 +4,7 @@ export { Card } from './Card';
 export { Button } from './Button';
 export { TimeRing } from './TimeRing';
 export { TimeCapsules } from './TimeCapsules';
+export { TimeSlider } from './TimeSlider';
 export { MinutesBadge } from './MinutesBadge';
 export { Avatar, AVATARS, avatarFor } from './Avatar';
 export { Logo } from './Logo';

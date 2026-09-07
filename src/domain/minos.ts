@@ -73,30 +73,22 @@ export function unitLabel(minutes: number, unit: TimeUnit): string {
 }
 
 /**
- * Les paliers ronds proposés à l'enfant pour dépenser son temps.
+ * Entre combien et combien un enfant peut demander du temps.
  *
- * Trois valeurs commodes, et rien de plus : dix, vingt, trente.
+ * L'écran proposait trois durées figées — 10, 20, 30 — filtrées par le solde.
+ * Avec quinze minutes gagnées, seul « 10 » restait, et les cinq autres étaient
+ * indépensables. Corriger la liste ne suffisait pas : le principe même était
+ * faux. Un solde est un nombre quelconque, et un enfant qui a sept minutes
+ * doit pouvoir en prendre sept.
+ *
+ * Le plancher est cinq minutes — en dessous, une séance ne vaut pas le geste —
+ * **sauf quand le solde est plus petit**, auquel cas le plancher, c'est le
+ * solde. Sinon un enfant avec trois minutes n'aurait de nouveau rien à prendre,
+ * et on aurait reproduit le défaut en le déplaçant.
  */
-export const PALIERS = [10, 20, 30];
+export const SEANCE_MINIMALE = 5;
 
-/**
- * Ce qu'un enfant peut réellement demander, et **toujours** son solde entier.
- *
- * L'écran filtrait les paliers par le solde : `PALIERS.filter(p => p <= solde)`.
- * Avec 15 minutes gagnées, seul `10` survivait — et les cinq autres devenaient
- * inatteignables. L'enfant les voyait affichées, comptées, gagnées, et ne
- * pouvait pas les prendre tant qu'il n'atteignait pas vingt.
- *
- * Ce n'est pas un détail d'interface. Tout le produit repose sur une promesse
- * tenue à la minute près : ce que tu gagnes est à toi. Un reliquat qu'on ne
- * peut pas dépenser est une promesse retirée en silence — et l'enfant qui
- * compte s'en aperçoit avant nous.
- *
- * D'où : les paliers strictement en dessous du solde, puis le solde lui-même.
- * 15 → 10 et 15. 45 → 10, 20, 30 et 45. 7 → 7. Rien du tout à zéro, plutôt
- * qu'une pastille « 0 mino » qui inviterait à démarrer une séance vide.
- */
-export function dureesPour(solde: number): number[] {
-  if (solde <= 0) return [];
-  return [...PALIERS.filter((palier) => palier < solde), solde];
+export function bornesPour(solde: number): { min: number; max: number } | null {
+  if (solde <= 0) return null;
+  return { min: Math.min(SEANCE_MINIMALE, solde), max: solde };
 }

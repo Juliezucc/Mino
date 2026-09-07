@@ -1,33 +1,37 @@
-import { dureesPour } from '@/domain/minos';
+import { bornesPour, SEANCE_MINIMALE } from '@/domain/minos';
 
 /**
- * Ce qu'un enfant peut réellement dépenser.
+ * Ce qu'un enfant peut réellement demander.
  *
  * L'écran proposait trois durées figées — 10, 20, 30 — filtrées par le solde.
- * Avec 15 minutes gagnées, seul 10 survivait, et les cinq autres devenaient
- * inatteignables : affichées, comptées, gagnées, indépensables jusqu'à vingt.
+ * Avec quinze minutes gagnées, seul « 10 » survivait, et les cinq autres
+ * devenaient inatteignables : affichées, comptées, gagnées, indépensables
+ * jusqu'à ce que le solde atteigne vingt.
  *
- * Tout le produit repose sur une promesse tenue à la minute près. Un reliquat
- * qu'on ne peut pas prendre est une promesse retirée en silence — et l'enfant
- * qui compte s'en aperçoit avant nous.
+ * Corriger la liste ne suffisait pas — le principe était faux. Un solde est un
+ * nombre quelconque, et un enfant qui a sept minutes doit pouvoir en prendre
+ * sept. D'où un curseur, et d'où ces bornes.
  */
-describe('les durées proposées à l’enfant', () => {
-  it('permettent toujours de tout dépenser', () => {
+describe('les bornes du curseur de temps', () => {
+  it('laissent prendre tout le solde, quel qu\'il soit', () => {
     // Le cas trouvé en conduisant le produit : 15 gagnées, 10 proposées.
-    expect(dureesPour(15)).toEqual([10, 15]);
-    expect(dureesPour(45)).toEqual([10, 20, 30, 45]);
-    expect(dureesPour(7)).toEqual([7]);
+    expect(bornesPour(15)).toEqual({ min: 5, max: 15 });
+    expect(bornesPour(7)).toEqual({ min: 5, max: 7 });
+    expect(bornesPour(120)).toEqual({ min: 5, max: 120 });
   });
 
-  it('ne proposent jamais deux fois la même', () => {
-    // Le solde tombant pile sur un palier ne doit pas produire « 30 et 30 ».
-    expect(dureesPour(10)).toEqual([10]);
-    expect(dureesPour(30)).toEqual([10, 20, 30]);
+  it('abaissent le plancher quand le solde est plus petit', () => {
+    // Sans cette règle, un enfant avec trois minutes n'aurait de nouveau rien
+    // à prendre : le défaut serait revenu, simplement déplacé plus bas.
+    expect(bornesPour(3)).toEqual({ min: 3, max: 3 });
+    expect(bornesPour(1)).toEqual({ min: 1, max: 1 });
+    expect(SEANCE_MINIMALE).toBe(5);
   });
 
-  it('ne proposent rien quand il n’y a rien', () => {
-    // Une puce « 0 mino » invitait à démarrer une séance vide.
-    expect(dureesPour(0)).toEqual([]);
-    expect(dureesPour(-5)).toEqual([]);
+  it('ne proposent rien quand il n\'y a rien', () => {
+    // Le repli affichait une pastille « 0 mino », qui invitait à démarrer une
+    // séance vide.
+    expect(bornesPour(0)).toBeNull();
+    expect(bornesPour(-5)).toBeNull();
   });
 });
