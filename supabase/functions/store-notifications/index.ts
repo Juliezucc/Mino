@@ -120,8 +120,9 @@ Deno.serve(async (request) => {
     if (!signedPayload) return fail('Charge manquante.', 400);
 
     try {
-      // La signature EST l'authentification : une notification non vérifiée
-      // est une notification que n'importe qui peut envoyer.
+      // La vérité vient d'Apple, à qui l'on redemande l'état : le contenu de
+      // cette notification ne décide de rien — n'importe qui peut en poster
+      // une à cette adresse, qui est publique par nécessité.
       const { kind, state, raw } = await verifyAppleNotification(signedPayload);
 
       const fresh = await keep({
@@ -155,6 +156,38 @@ Deno.serve(async (request) => {
       return json({ received: true });
     } catch (error) {
       console.error('notification Apple', error);
+
+      /**
+       * Garder la trace de ce qu'on n'a pas su traiter.
+       *
+       * **Le défaut que cela répare rendait le débogage aveugle.** Rien
+       * n'était écrit tant que la vérification n'avait pas abouti. Une
+       * notification qu'Apple envoie et que la fonction refuse ne laissait
+       * donc aucune trace : la table restait vide, exactement comme si Apple
+       * n'avait rien envoyé. Deux situations opposées, un seul symptôme — et
+       * c'est ce qu'on a passé un moment à départager, un après-midi, en
+       * regardant une table vide sans savoir ce qu'elle disait.
+       *
+       * La colonne `verified` existait pour ça depuis le début ; le code ne
+       * s'en servait pas. Une notification refusée est maintenant visible,
+       * avec sa charge, et c'est elle qui dira pourquoi.
+       *
+       * `notification_id` reste nul : on n'a pas pu le lire, et la contrainte
+       * d'unicité laisse passer les nuls — deux échecs feront donc deux
+       * lignes, ce qui est exactement ce qu'on veut voir.
+       */
+      await keep({
+        platform: 'apple',
+        notificationId: null,
+        kind: 'refusée',
+        accountToken: null,
+        familyId: null,
+        productId: null,
+        transactionId: null,
+        payload: { signedPayload, erreur: error instanceof Error ? error.message : String(error) },
+        verified: false,
+      }).catch(() => undefined);
+
       // Un 500 fait réessayer Apple, ce qui est le comportement voulu pour une
       // panne passagère : les traitements ci-dessus sont écrits pour être
       // rejoués sans dommage.
