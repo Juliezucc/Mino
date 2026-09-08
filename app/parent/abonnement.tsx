@@ -109,6 +109,41 @@ export default function SubscriptionScreen() {
   };
 
   /**
+   * Ouvrir la gestion de l'abonnement — et dire quand elle n'ouvre rien.
+   *
+   * **Le défaut que cela répare : un bouton qui ne faisait rien, sans un mot.**
+   * Trois écritures différentes appelaient `openPortal` et faisaient toutes
+   * `if (url) …` : quand l'adresse revenait vide, ou quand l'appel échouait,
+   * il ne se passait rien du tout. Pas d'erreur, pas de message, rien. Un
+   * bouton mort est la pire des pannes, parce qu'on appuie encore, puis on
+   * conclut que l'application est cassée.
+   *
+   * Les deux cas où l'adresse est vide sont réels, et ils ne sont pas des
+   * bogues : la doublure locale n'a pas de portail, et le portail Stripe
+   * n'existe pas tant qu'aucun paiement n'a créé de client — donc pendant
+   * tout l'essai. Il faut le dire, pas l'ignorer.
+   */
+  const ouvrirGestion = async () => {
+    setError(null);
+    try {
+      const { url } = await billing.openPortal(subscription!.familyId);
+      if (!url) {
+        setError(
+          'La gestion de l’abonnement n’est pas disponible : aucun paiement n’a encore été enregistré pour cette famille.',
+        );
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      setError(
+        isStore(subscription?.source)
+          ? 'Impossible d’ouvrir les réglages. Ouvrez Réglages › votre nom › Abonnements.'
+          : 'La gestion de l’abonnement n’a pas pu s’ouvrir. Réessayez dans un instant.',
+      );
+    }
+  };
+
+  /**
    * Résilier, là où la résiliation existe.
    *
    * Un abonnement acheté dans l'application ne s'annule que dans les réglages
@@ -126,10 +161,7 @@ export default function SubscriptionScreen() {
           { text: 'Plus tard', style: 'cancel' },
           {
             text: 'M’y emmener',
-            onPress: async () => {
-              const { url } = await billing.openPortal(subscription!.familyId);
-              if (url) await Linking.openURL(url).catch(() => setError('Ouvrez Réglages › votre nom › Abonnements.'));
-            },
+            onPress: ouvrirGestion,
           },
         ],
       );
@@ -208,10 +240,7 @@ export default function SubscriptionScreen() {
                 : 'Gérer mon moyen de paiement'
             }
             variant="secondary"
-            onPress={async () => {
-              const { url } = await billing.openPortal(subscription!.familyId);
-              if (url) await Linking.openURL(url);
-            }}
+            onPress={ouvrirGestion}
           />
           <Button label="Résilier mon abonnement" variant="danger" onPress={confirmCancel} />
         </View>
@@ -244,10 +273,7 @@ export default function SubscriptionScreen() {
                 : 'Changer de formule ou de moyen de paiement'
             }
             variant="secondary"
-            onPress={async () => {
-              const { url } = await billing.openPortal(subscription!.familyId);
-              if (url) await Linking.openURL(url);
-            }}
+            onPress={ouvrirGestion}
           />
         </View>
       ) : (
