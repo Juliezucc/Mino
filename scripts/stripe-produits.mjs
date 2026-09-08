@@ -55,6 +55,34 @@ if (!cle && !dryRun) {
   process.exit(1);
 }
 
+/**
+ * Une clé qui n'en est pas une, dite en français plutôt qu'en pile d'appels.
+ *
+ * Le cas qui a fait écrire ces lignes : la clé collée depuis un exemple, avec
+ * les points de suspension restés dedans. `fetch` refuse alors de fabriquer
+ * l'en-tête et renvoie « Cannot convert argument to a ByteString because the
+ * character at index 15 has a value of 8230 » — une phrase exacte, juste, et
+ * parfaitement inutilisable. Le caractère 8230 est « … ».
+ *
+ * Toute clé Stripe est de la forme `sk_test_` ou `sk_live_` suivie de
+ * caractères ASCII. Tout le reste est une erreur de copie, et le dire coûte
+ * six lignes.
+ */
+if (cle && !/^sk_(test|live)_[A-Za-z0-9]+$/.test(cle)) {
+  console.error('STRIPE_SECRET_KEY ne ressemble pas à une clé Stripe.');
+  console.error('');
+  if (/[^\x20-\x7E]/.test(cle)) {
+    console.error("Elle contient un caractère qui n'est pas de l'ASCII — le plus souvent");
+    console.error('les « … » d\'un exemple restés dans la commande.');
+  } else {
+    console.error('Attendu : sk_test_… ou sk_live_… suivi de lettres et de chiffres.');
+  }
+  console.error('');
+  console.error('Tableau de bord Stripe → Développeurs → Clés API → clé secrète,');
+  console.error('bouton « Révéler ». Elle fait une centaine de caractères.');
+  process.exit(1);
+}
+
 const reel = cle?.startsWith('sk_live_') ?? false;
 
 /** L'identifiant du produit, choisi par nous : c'est lui qui rend le script rejouable. */
