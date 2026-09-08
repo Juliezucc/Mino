@@ -225,6 +225,55 @@ STORE_COMMISSION_RATE=0.15
 
 ---
 
+## Le passage de Stripe en mode réel
+
+**Presque tout ce qui a été configuré en test devra être refait.** Chez Stripe,
+le mode test et le mode réel sont deux environnements séparés : les clés, les
+produits, les tarifs, le webhook, le portail client et Stripe Tax existent en
+double et ne communiquent pas. Ce qui a été réglé un matin de septembre en test
+n'existera pas le jour de l'ouverture.
+
+D'où cette liste, écrite le jour où on l'a découvert plutôt que six semaines
+plus tard, de mémoire.
+
+1. **Activer le compte** : pièce d'identité, documents de la société, et un
+   IBAN **au nom d'Agence Wheb**. Ni personnel, ni celui d'une autre société.
+2. **Le libellé sur le relevé bancaire** : `MINO`, pas `AGENCE WHEB`. C'est le
+   nom que le client reconnaît, et c'est ce qui évite les contestations.
+3. **Les produits et tarifs** : `STRIPE_SECRET_KEY=sk_live_… npm run
+   stripe:produits`. C'est tout l'intérêt du script — les montants viennent du
+   code, et le mode réel reçoit exactement les mêmes que le test.
+4. **Stripe Tax** : adresse d'origine (47 rue Vivienne, 75002 Paris) et
+   immatriculation fiscale française `FR67103231460`. Sans immatriculation,
+   Stripe Tax calcule zéro et on encaisse sans collecter la TVA due. Et sans
+   Stripe Tax du tout, `billing` demande un calcul que Stripe refuse : la
+   session de paiement échoue, sur une erreur qui ne parle pas de taxes.
+5. **Le portail client**, en entier : en-tête `Mino`, redirection vers
+   `https://minoapp.fr/abonnement`, annulation à la fin de la période,
+   changement d'offre entre les deux tarifs, quantité désactivée, « mettre fin
+   aux essais » **désactivé** (sinon un parent qui passe au tarif annuel
+   pendant son essai est débité sur-le-champ), et « pas de frais ni de
+   crédits » plutôt que le prorata.
+6. **Les informations publiques** : nom public `Mino`, et les URL réelles des
+   CGV et de la politique de confidentialité. Stripe les exige en mode réel.
+7. **Le webhook** sur `https://<projet>.supabase.co/functions/v1/stripe-webhook`
+   avec les six événements, et le nouveau `whsec_` — celui du test ne vaut rien
+   ici.
+8. **Les secrets** : `supabase secrets set` avec la clé `sk_live_`, les
+   nouveaux `price_`, le nouveau `whsec_`, et `APP_URL` / `APP_ORIGIN` sur
+   `https://minoapp.fr`.
+9. **Vérifier que le site répond** sur `/abonnement` et `/abonnement/merci`.
+   Stripe y renvoie le client à la seconde où il a payé.
+
+> **Le piège qui a coûté une heure en test, et qui ne se voit pas.** Une clé
+> prise sur le mauvais compte crée tout — produit, tarifs — sans une seule
+> erreur, dans un compte qu'on ne regarde pas. Le tableau de bord reste vide et
+> rien n'explique pourquoi. Avant de lancer quoi que ce soit :
+> `curl https://api.stripe.com/v1/account -u '<la clé>:'` répond avec le nom du
+> compte auquel elle appartient.
+
+---
+
 ## Ce qui a été vérifié, et ce qui ne l'a pas été
 
 **Vérifié** : les règles de rail (qui vend, où l'on résilie, ce que chaque rail
