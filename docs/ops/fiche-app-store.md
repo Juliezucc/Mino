@@ -212,12 +212,14 @@ apps the parent selected are shielded until the child starts a session.
 
 HOW TO REVIEW ON A SINGLE DEVICE
 1. Sign in with the demo account below. You land in the parent area.
-2. Tap "Passer à <child>" to switch to the child profile — no second device
-   is needed. Returning to the parent area asks for the parent code, given
-   below.
-3. From the child profile, tap "J'AI TERMINÉ" on a mission.
-4. Switch back to the parent area: the mission is waiting for confirmation.
-   Confirm it, and the minutes are credited immediately.
+2. On the parent home screen, tap "Changer de profil" (Switch profile), then
+   pick the child. No second device is needed.
+3. In the child profile, open a mission from the "Missions" tab and tap
+   "J'AI TERMINÉ" (I'm done).
+4. Go back to the parent area: from the "Profil" tab, tap "Espace parent"
+   (Parent area) and enter the parent code given below.
+5. The mission is waiting for confirmation. Confirm it, and the minutes are
+   credited immediately.
 
 ABOUT FAMILY CONTROLS
 Screen time is enforced with FamilyControls, ManagedSettings and
@@ -245,6 +247,15 @@ Email:        <à créer>
 Password:     <à créer>
 Parent code:  <4 chiffres>
 ```
+
+> **Le chemin décrit ci-dessus doit être celui d'un compte REMPLI.** Ces notes
+> disaient « Tap "Passer à \<child\>" ». Ce bouton appartient à `FirstStepCard`,
+> qui ne s'affiche que tant que `isFirstRun` est vrai — donc sur une famille
+> vide. Or le compte de démonstration doit être rempli, sous peine d'offrir un
+> écran vide à l'examinateur. Les deux exigences se contredisaient : en suivant
+> ces notes, l'examinateur cherchait à l'écran un bouton que son propre compte
+> faisait disparaître. Le chemin retenu — « Changer de profil » depuis l'accueil
+> parent — existe dans les deux cas.
 
 > **À ne pas écrire tant que ce n'est pas vrai.** Le paragraphe *About Family
 > Controls* décrit un blocage réel. Tant que le binaire soumis tombe sur le
