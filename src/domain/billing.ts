@@ -21,7 +21,7 @@ type ID = string;
 type ISODate = string;
 
 export const MONTHLY_PRICE_EUR = 9.99;
-export const ANNUAL_PRICE_EUR = 79;
+export const ANNUAL_PRICE_EUR = 79.99;
 export const TRIAL_DAYS = 30;
 
 export const REFERRAL = {

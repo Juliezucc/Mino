@@ -4,8 +4,8 @@
  *
  * Écrit pour trois raisons, dans cet ordre d'importance :
  *
- * 1. **Les montants viennent du code**, pas d'un champ de formulaire. 9,90 €
- *    et 79 € sont définis dans `src/domain/billing.ts`, d'où sortent aussi le
+ * 1. **Les montants viennent du code**, pas d'un champ de formulaire. 9,99 €
+ *    et 79,99 € sont définis dans `src/domain/billing.ts`, d'où sortent aussi le
  *    site, la FAQ, les CGV et les écrans de l'application. Saisir les mêmes
  *    chiffres à la main dans le tableau de bord, c'est créer une septième
  *    copie — celle qui encaisse, et qui ne préviendra jamais qu'elle diverge.

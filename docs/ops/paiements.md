@@ -173,7 +173,8 @@ pire chose qu'un programme de parrainage puisse faire.
    dans App Store Connect et la Play Console. Le code déduit la formule du nom
    du produit (`monthly` / `yearly` ou `annual`) : garder ces mots.
 2. **La grille d'Apple s'impose, et elle l'a fait.** 9,90 € n'existe pas comme
-   palier ; 9,99 € oui. Le tarif mensuel est donc passé à **9,99 €**
+   palier ; 9,99 € oui — ni 79 €, mais 79,99 € oui. Les deux tarifs sont donc passés à
+   **9,99 €** et **79,99 €**
    *partout* — `MONTHLY_PRICE_EUR` étant la source dont dépendent le site, la
    FAQ, les CGV, les écrans et les tarifs Stripe, un seul nombre a changé.
    Garder 9,90 sur le web et 9,99 sur les boutiques aurait réintroduit

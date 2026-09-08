@@ -34,7 +34,7 @@ import {
   freeMonthsOnAnnual,
 } from '../domain/billing.ts';
 
-/** « 9,90 € » et « 79 € » : les centimes ne s'écrivent que s'il y en a. */
+/** « 9,99 € » et « 79,99 € » : les centimes ne s'écrivent que s'il y en a. */
 const price = (v: number) =>
   `${Number.isInteger(v) ? String(v) : v.toFixed(2).replace('.', ',')} €`;
 
