@@ -25,6 +25,27 @@ plugins {
 group = 'app.mino.screentime'
 version = '0.1.0'
 
+/**
+ * Ce module n'est pas publié, et il faut le dire.
+ *
+ * Par défaut le plugin monte une publication Maven — c'est ce dont Expo a
+ * besoin pour ses propres modules, distribués sur npm. Cette publication exige
+ * un `versionName` dans `defaultConfig`, et son absence faisait échouer la
+ * configuration du projet avant même la compilation :
+ *
+ *   > A problem occurred configuring project ':mino-screen-time'.
+ *      > 'android.defaultConfig.versionName' is not defined
+ *
+ * On pourrait inventer un numéro pour satisfaire la publication. Ce serait un
+ * numéro que personne ne lit, que personne ne pense à incrémenter, et qui
+ * décrirait un artefact qui n'existe pas : ce module vit dans `modules/`, il
+ * est compilé dans l'application et ne part sur aucun dépôt. Dire qu'il n'est
+ * pas publiable est la vérité, et fait disparaître l'exigence.
+ */
+expoModule {
+  canBePublished = false
+}
+
 android {
   namespace 'app.mino.screentime'
 }
