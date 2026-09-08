@@ -75,6 +75,31 @@ const FORMATS = [
     alpha: true,
   },
   {
+    id: 'ios-6.5',
+    width: 1284,
+    height: 2778,
+    /**
+     * Le second emplacement iPhone, produit par prudence.
+     *
+     * Le 6,9 pouces reste le jeu de référence : c'est lui qu'on remplit, et
+     * Apple dérive toutes les autres tailles. Mais la page de la version
+     * n'affiche d'emblée que l'emplacement « Écran de 6,5 pouces » — le 6,9
+     * n'apparaît qu'en ouvrant le gestionnaire des visuels. Déposer le
+     * 1320 × 2868 dans la case visible donne un refus en rouge qui ne dit pas
+     * qu'on s'est trompé de case : « Les dimensions d'au moins une capture
+     * d'écran sont incorrectes. »
+     *
+     * Produire les deux coûte quelques secondes et évite de rester bloqué
+     * devant une erreur qui décrit le symptôme. Ce qu'Apple présente change
+     * sans prévenir — c'est ce qu'annonce le commentaire ci-dessus — et avoir
+     * les deux formats sous la main vaut mieux que d'en deviner un.
+     */
+    label: 'iPhone 6,5 pouces — le second emplacement, par prudence',
+    viewport: { width: 393, height: 852 },
+    deviceFraction: 0.72,
+    alpha: true,
+  },
+  {
     id: 'ios-ipad-13',
     width: 2064,
     height: 2752,
