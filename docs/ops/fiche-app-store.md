@@ -124,12 +124,17 @@ invite ATT** à afficher.
 Toutes **liées à l'identité**, toutes pour la seule finalité *Fonctionnalité de
 l'app*, aucune pour la publicité ni pour l'analyse marketing.
 
+Les libellés ci-dessous sont ceux que l'on **voit à l'écran en français** : le
+questionnaire se remplit dans la langue du compte, et chercher « Historique des
+achats » quand Apple écrit « Achats » fait perdre dix minutes.
+
 | Catégorie Apple | Ce que c'est chez Mino |
 |---|---|
 | **Coordonnées → Adresse e-mail** | celle du parent, qui ouvre le compte |
 | **Coordonnées → Nom** | le prénom du parent ; le **prénom** de l'enfant |
 | **Identifiants → ID utilisateur** | l'identifiant du compte et celui de la famille |
-| **Achats → Historique des achats** | l'état de l'abonnement, ses dates |
+| **Identifiants → Identifiant de l'appareil** | le jeton de notification (`push_tokens`, `supabase/notifications.sql:20`). Ce n'est pas un identifiant publicitaire — Mino n'en lit aucun — mais il désigne bien un appareil, donc il se déclare. L'« appareil » que le parent nomme dans Mino, lui, n'a qu'un identifiant tiré au hasard (`actions.ts:444`) et ne lit rien dans le matériel. |
+| **Achats** (« achats ou tendances d'achat ») | l'état de l'abonnement, ses dates |
 | **Contenu utilisateur → Autre contenu** | les missions écrites par le parent, les missions déclarées, le grand livre des minutes |
 | **Contenu utilisateur → Assistance client** | les signalements de problème envoyés depuis l'app |
 | **Autres données** | l'**âge** de l'enfant, et son avatar illustré |
