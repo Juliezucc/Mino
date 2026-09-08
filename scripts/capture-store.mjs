@@ -252,6 +252,23 @@ async function capture(screen, viewport) {
 }
 
 const composer = await browser.newPage();
+/**
+ * On vide le dossier avant d'écrire, comme on vide déjà le dossier temporaire.
+ *
+ * **Le défaut que cela répare.** Seul `RAW` était nettoyé ; `store/` ne l'était
+ * pas. Le script écrasait donc les fichiers de même nom et laissait les autres
+ * intacts — or les noms viennent des légendes, et une légende réécrite change
+ * de nom. Après deux campagnes, le dossier contenait `01-promesse.png` à côté
+ * de `01-temps-gagne.png` : deux premières captures, aucune façon de savoir
+ * laquelle est d'aujourd'hui, dans un dossier qu'on ouvre pour glisser des
+ * fichiers vers une boutique.
+ *
+ * C'est exactement ce que redoutait le commentaire des formats plus haut —
+ * « des fichiers en trop sont des fichiers qui vieillissent sans qu'on s'en
+ * aperçoive » — et il manquait la ligne qui l'empêche. Le risque n'est pas
+ * l'encombrement : c'est de publier une capture qui annonce un ancien prix.
+ */
+rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 for (const format of FORMATS) mkdirSync(`${OUT}/${format.id}`, { recursive: true });
 
