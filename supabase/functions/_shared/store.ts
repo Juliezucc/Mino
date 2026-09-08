@@ -9,6 +9,8 @@
 // modifiée peut fabriquer. C'est la faille classique de l'achat in-app, et
 // elle se referme ici ou nulle part.
 
+import { X509Certificate } from 'node:crypto';
+
 import { admin, env } from './mino.ts';
 
 export type StorePlatform = 'apple' | 'google';
@@ -46,6 +48,54 @@ export function netCents(amountCents: number | null): number | null {
 /* ------------------------------------------------------------------- Apple */
 
 /**
+ * Ce que Deno n'implémente pas, et qu'Apple appelle quand même.
+ *
+ * **Le premier achat en bac à sable a échoué exactement ici.** La
+ * bibliothèque d'Apple vérifie la chaîne de certificats en appelant
+ * `toString()` sur chaque certificat, et Deno — sur lequel tournent les
+ * fonctions Supabase — répond `ERR_NOT_IMPLEMENTED: Not implemented:
+ * crypto.X509Certificate.prototype.toString`. Ni notre faute ni un réglage :
+ * une incompatibilité entre le code d'Apple et le moteur.
+ *
+ * Node documente exactement ce que rend cette méthode : le certificat encodé
+ * en PEM. On le reconstruit depuis `raw`, qui est le DER et que Deno, lui,
+ * fournit. Ce n'est pas une approximation — c'est la même chaîne, produite
+ * autrement.
+ *
+ * On ne remplace la méthode que si elle manque : le jour où Deno
+ * l'implémentera, la sienne l'emportera.
+ */
+function poserToStringDesCertificats() {
+  const proto = X509Certificate.prototype as unknown as {
+    toString?: () => string;
+    raw: Uint8Array;
+  };
+
+  try {
+    // Un certificat quelconque suffit à savoir si la méthode répond : celui
+    // d'Apple est déjà là, et il ne coûte rien à relire.
+    const essai = new X509Certificate(racinesApple()[0]);
+    essai.toString();
+    return;
+  } catch {
+    // Elle manque, ou elle lève : dans les deux cas on la fournit.
+  }
+
+  proto.toString = function pem(this: { raw: Uint8Array }) {
+    const b64 = btoa(String.fromCharCode(...this.raw));
+    const lignes = b64.match(/.{1,64}/g)?.join('\n') ?? b64;
+    return `-----BEGIN CERTIFICATE-----\n${lignes}\n-----END CERTIFICATE-----\n`;
+  };
+}
+
+/** La racine Apple, au format DER, fournie en base64 dans la configuration. */
+function racinesApple(): Uint8Array[] {
+  return env('APPLE_ROOT_CA_G3_BASE64')
+    .split(',')
+    .map((b64) => Uint8Array.from(atob(b64.trim()), (c) => c.charCodeAt(0)));
+}
+
+/**
  * Apple signe tout ce qu'il envoie (JWS). La vérification comprend la
  * validation de la chaîne de certificats jusqu'à la racine Apple — c'est
  * précisément ce que fait la bibliothèque officielle, et c'est la raison de ne
@@ -56,14 +106,28 @@ async function appleVerifier() {
     'npm:@apple/app-store-server-library@1'
   );
 
-  // La racine Apple, au format DER, fournie en base64 dans la configuration.
-  const roots = env('APPLE_ROOT_CA_G3_BASE64')
-    .split(',')
-    .map((b64) => Uint8Array.from(atob(b64.trim()), (c) => c.charCodeAt(0)));
+  poserToStringDesCertificats();
 
   return new SignedDataVerifier(
-    roots,
-    true,
+    racinesApple(),
+    /**
+     * Les vérifications en ligne, désactivées — et c'est un arbitrage, pas un
+     * oubli.
+     *
+     * Ce drapeau ajoute une interrogation OCSP : à chaque achat, la fonction
+     * appelle les serveurs d'Apple pour demander si un certificat de la chaîne
+     * a été révoqué. Dans une fonction de bord démarrée à froid, cela s'est
+     * mesuré en dizaines de secondes — les quarante-cinq secondes d'attente
+     * observées au premier essai.
+     *
+     * Ce qu'on perd : la détection d'un certificat de signature révoqué par
+     * Apple. Ce qu'on garde : la signature elle-même, et la chaîne validée
+     * jusqu'à la racine embarquée ici. Un attaquant devrait donc obtenir un
+     * certificat émis par Apple **puis** attendre sa révocation pour que la
+     * différence compte — et la notification serveur à serveur, qui fait foi,
+     * repasserait derrière.
+     */
+    false,
     Deno.env.get('APPLE_ENVIRONMENT') === 'sandbox' ? Environment.SANDBOX : Environment.PRODUCTION,
     env('APPLE_BUNDLE_ID'),
     Number(env('APPLE_APP_APPLE_ID')),
