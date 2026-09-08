@@ -136,7 +136,9 @@ achats » quand Apple écrit « Achats » fait perdre dix minutes.
 | **Identifiants → Identifiant de l'appareil** | le jeton de notification (`push_tokens`, `supabase/notifications.sql:20`). Ce n'est pas un identifiant publicitaire — Mino n'en lit aucun — mais il désigne bien un appareil, donc il se déclare. L'« appareil » que le parent nomme dans Mino, lui, n'a qu'un identifiant tiré au hasard (`actions.ts:444`) et ne lit rien dans le matériel. |
 | **Achats** (« achats ou tendances d'achat ») | l'état de l'abonnement, ses dates |
 | **Contenu utilisateur → Autre contenu** | les missions écrites par le parent, les missions déclarées, le grand livre des minutes |
-| **Contenu utilisateur → Assistance client** | les signalements de problème envoyés depuis l'app |
+| **Contenu utilisateur → Assistance client** | les signalements de problème écrits par le parent |
+| **Diagnostics → Données de plantage** | la pile d'appels envoyée par `ErrorBoundary` quand l'app plante (`support_reports.stack`) |
+| **Diagnostics → Autres données de diagnostic** | version de l'app, plateforme, version du système, écran d'où part le rapport, et des compteurs — trois enfants, douze missions — jamais des contenus |
 | **Autres données** | l'**âge** de l'enfant, et son avatar illustré |
 
 ### Ce qu'il ne faut PAS déclarer
@@ -149,7 +151,7 @@ achats » quand Apple écrit « Achats » fait perdre dix minutes.
 | Données audio | la voix n'est ni enregistrée ni transmise |
 | Historique de navigation ou de recherche | Mino n'en collecte aucun, et c'est le sens du refus de « Family Controls App and Website Usage » |
 | Données d'utilisation | aucun traceur d'événements dans le binaire |
-| Diagnostics | aucun outil de rapport de plantage |
+| Diagnostics → **Données de performance** | rien n'est mesuré : ni temps de démarrage, ni fluidité, ni consommation |
 | Informations financières | les coordonnées bancaires ne traversent jamais Mino |
 | Données sensibles | ni origine, ni santé, ni biométrie, ni opinions |
 
