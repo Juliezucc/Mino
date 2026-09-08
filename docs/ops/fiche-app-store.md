@@ -109,6 +109,16 @@ divergence entre eux est ce qu'un examinateur repère le plus vite.
 publicité, ni traceur, ni mesure d'audience marketing. Il n'y a donc **aucune
 invite ATT** à afficher.
 
+> **Ne pas remettre `NSUserTrackingUsageDescription` dans `app.json`.** La clé y
+> a figuré, avec pour valeur la phrase « Mino ne suit personne ». L'intention
+> était bonne et l'effet inverse : un Info.plist ne se lit pas comme une
+> profession de foi mais comme une déclaration de capacité, et cette clé annonce
+> qu'une application demandera l'autorisation de suivre. Aucun code ne l'a
+> jamais demandée — la fiche affirmait donc le contraire du binaire, sur
+> précisément le point qu'un examinateur recoupe. Une phrase, si juste soit-elle,
+> n'a pas sa place dans un fichier que personne ne lit et que tout le monde
+> analyse.
+
 ### Données collectées
 
 Toutes **liées à l'identité**, toutes pour la seule finalité *Fonctionnalité de

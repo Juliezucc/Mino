@@ -21,9 +21,6 @@
       "config": {
         "usesNonExemptEncryption": false
       },
-      "infoPlist": {
-        "NSUserTrackingUsageDescription": "Mino ne suit personne : aucune publicité, aucun traceur."
-      },
       "entitlements": {
         "com.apple.developer.family-controls": true,
         "com.apple.security.application-groups": [
