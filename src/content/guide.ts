@@ -289,7 +289,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Vous lancez le minuteur',
         body: [
-          'La demande arrive sur votre accueil, à côté des missions à confirmer. Vous lancez, ou vous refusez.',
+          'La demande arrive sur votre accueil, à côté des missions à confirmer. Vous lancez, ou vous répondez « Pas maintenant ».',
           'Le décompte démarre au moment où vous lancez, pas au moment où l’enfant a demandé : une demande vue une demi-heure plus tard ne lui coûte pas une demi-heure.',
         ],
         where: 'Espace parent → Accueil',
@@ -342,7 +342,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'S’il en gagne trop',
         body: [
-          'Baissez les valeurs des missions, ou retirez-en. Ne refusez pas une mission réellement accomplie pour freiner le compteur : c’est la façon la plus rapide de casser la confiance dans le système, et il n’y reviendra pas.',
+          'Baissez les valeurs des missions, ou retirez-en. Ne renvoyez pas « à refaire » une mission réellement accomplie pour freiner le compteur : c’est la façon la plus rapide de casser la confiance dans le système, et il n’y reviendra pas.',
         ],
         where: 'Espace parent → Missions',
       },

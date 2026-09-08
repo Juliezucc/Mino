@@ -15,6 +15,16 @@
  *   — des mots-clés qui couvrent ce que les gens tapent vraiment, fautes
  *     comprises. C'est cette liste qui fait la différence entre une recherche
  *     qui déflecte un ticket et une recherche qui en crée un.
+ *
+ * **Une réponse nomme les boutons tels qu'ils s'appellent à l'écran.** Pas un
+ * synonyme, même meilleur : un parent qui lit « refuser la mission » cherche un
+ * bouton « Refuser », ne le trouve pas — il s'appelle « À refaire » — et écrit
+ * au support pour une fonction qui existe. C'est le seul endroit du produit où
+ * le vocabulaire doit céder à l'exactitude.
+ *
+ * Les `keywords`, eux, gardent les mots que les gens tapent, y compris ceux
+ * qu'on n'affiche jamais : « refuser », « valider », « punir ». Ils ne
+ * s'affichent nulle part et servent exactement à rattraper cet écart.
  */
 
 import {
@@ -252,9 +262,9 @@ export const FAQ: FaqEntry[] = [
   },
   {
     id: 'refuser-sans-vexer',
-    question: 'Comment refuser une mission sans décourager mon enfant ?',
+    question: 'Comment renvoyer une mission « à refaire » sans décourager mon enfant ?',
     answer:
-      'Un refus dans Mino renvoie la mission dans sa liste, sans reproche : elle est « à refaire », pas « ratée ». Dites-lui de vive voix ce qui manque — l’application ne le dira jamais à votre place.',
+      'Le bouton s’appelle « À refaire », et c’est exactement ce qu’il fait : la mission repart dans sa liste, sans reproche. Elle est à refaire, pas ratée. Aucune minute n’est ajoutée, aucune n’est retirée, et votre enfant ne voit nulle part un échec. Dites-lui de vive voix ce qui manque — l’application ne le dira jamais à votre place.',
     category: 'missions',
     keywords: ['refuser', 'refus', 'pas fait', 'mal fait', 'decourager', 'punir'],
   },

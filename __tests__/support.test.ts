@@ -36,6 +36,13 @@ describe('les questions que les parents posent', () => {
     finds('ou est le code famille', 'ou-trouver-code-famille');
   });
 
+  it('trouve « à refaire » quand le parent tape « refuser »', () => {
+    // La question ne porte plus le mot — le bouton s'appelle « À refaire » —
+    // mais c'est celui que le parent tape. Les mots-clés existent pour ça, et
+    // ce test est ce qui garantit qu'ils font leur travail.
+    finds('comment refuser une mission', 'refuser-sans-vexer');
+  });
+
   it('trouve la console quand on écrit le nom de la marque', () => {
     finds('switch', 'console-tv-ordinateur');
     finds('ps5', 'console-tv-ordinateur');
@@ -99,6 +106,32 @@ describe('la base elle-même', () => {
     for (const entry of FAQ) {
       const results = searchFaq(entry.question, FAQ, 3);
       expect(results.map((r) => r.entry.id)).toContain(entry.id);
+    }
+  });
+
+  /**
+   * Une réponse nomme les boutons tels qu'ils s'appellent à l'écran.
+   *
+   * Une entrée disait « Comment refuser une mission ». Le bouton s'appelle
+   * « À refaire », et il n'y en a aucun qui s'appelle « Refuser » : le parent
+   * le cherche, ne le trouve pas, et écrit au support pour une fonction qui
+   * existe. La FAQ avait alors créé le ticket qu'elle était censée éviter.
+   *
+   * Ce test ne bannit pas le verbe — « paiement refusé » et « code famille
+   * refusé » sont les mots justes, et ils restent. Il ne refuse que les
+   * tournures qui nomment une action sur une mission avec un mot qui n'est pas
+   * sur le bouton. Et rien n'est vérifié dans `keywords` : ils ne s'affichent
+   * nulle part, et c'est justement leur travail de rattraper l'écart entre le
+   * mot du parent et celui de l'écran.
+   */
+  it('ne nomme jamais un bouton qui n’existe pas', () => {
+    const inventes = /(refuser|valider|rejeter)\s+(une|la|cette|sa|les)?\s*mission/i;
+    const refus = /\bun refus\b/i;
+
+    for (const entry of FAQ) {
+      const visible = `${entry.question} ${entry.answer}`.replace(/[’]/g, "'");
+      expect(visible).not.toMatch(inventes);
+      expect(visible).not.toMatch(refus);
     }
   });
 });
