@@ -6,7 +6,12 @@ import { StyleSheet, View } from 'react-native';
 import { MascotClip } from '@/components/mascot';
 import { Button, Confetti, Screen, Text, TimeRing } from '@/components/ui';
 import { registerOf } from '@/domain/ageBand';
-import { Celebration, celebrationFor } from '@/domain/ledger';
+// Renommé à l'import, et ce n'est pas cosmétique : la fonction exportée
+// ci-dessous s'appelle `Celebration`. TypeScript l'accepte — un type et une
+// valeur peuvent porter le même nom — mais Babel, qui transforme ce fichier
+// pour le téléphone, ne sait pas encore que l'import est un type : il voit
+// deux déclarations et refuse le fichier. `tsc` passe, l'application non.
+import { celebrationFor, type Celebration as Lot } from '@/domain/ledger';
 import { unitLabel } from '@/domain/minos';
 import { MissionCompletion } from '@/domain/types';
 import { useActiveChild, useBalance, useFamily } from '@/store/selectors';
@@ -51,7 +56,7 @@ export default function Celebration() {
    * n'a pas encore reprise.
    */
   const fermeRef = useRef(false);
-  const lotRef = useRef<Celebration | null>(null);
+  const lotRef = useRef<Lot | null>(null);
   if (!lotRef.current && data && child) {
     lotRef.current = celebrationFor(data, child.id, completionId);
   }
