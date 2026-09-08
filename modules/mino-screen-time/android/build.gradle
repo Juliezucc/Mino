@@ -1,28 +1,37 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+// Le module ne fixe aucune version d'Android, et c'est délibéré.
+//
+// `expo-module-gradle-plugin` est ce qu'appliquent tous les modules d'Expo
+// (voir `node_modules/expo-crypto/android/build.gradle`). Il applique
+// `kotlin-android`, ajoute `expo-modules-core`, la bibliothèque standard
+// Kotlin, et surtout il prend `compileSdk`, `minSdk` et `targetSdk` du projet
+// racine — donc de `expo-build-properties` dans `app.json`.
+//
+// **Le défaut que cela répare.** Ce fichier écrivait `compileSdk 35` en dur.
+// Le SDK 57 compile tout en 36 ; une bibliothèque en 35 qui dépend d'une
+// bibliothèque en 36 fait échouer Gradle. La partie Android de ce module
+// n'avait jamais été compilée — écrite en même temps que la partie iOS, elle
+// est passée par Gradle pour la première fois au premier build de production,
+// et c'est là qu'elle a refusé.
+//
+// Un nombre écrit ici serait juste aujourd'hui et faux au prochain SDK, sans
+// que rien ne le signale avant le prochain build de production. Ne pas
+// l'écrire est le seul moyen qu'il ne devienne jamais faux.
+
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
 
 group = 'app.mino.screentime'
 version = '0.1.0'
 
 android {
   namespace 'app.mino.screentime'
-  compileSdk 35
-
-  defaultConfig {
-    minSdk 24
-    targetSdk 35
-  }
-
-  kotlinOptions { jvmTarget = '17' }
-  compileOptions {
-    sourceCompatibility JavaVersion.VERSION_17
-    targetCompatibility JavaVersion.VERSION_17
-  }
 }
 
 dependencies {
-  implementation project(':expo-modules-core')
-  implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+  // Le bouclier : lecture de l'application au premier plan, fenêtre par-dessus,
+  // sélecteur d'applications. Rien d'autre.
   implementation 'androidx.activity:activity-ktx:1.9.3'
   implementation 'androidx.core:core-ktx:1.13.1'
 }

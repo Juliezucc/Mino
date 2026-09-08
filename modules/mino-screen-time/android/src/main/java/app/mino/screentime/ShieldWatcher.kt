@@ -27,6 +27,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.app.NotificationCompat
 import androidx.core.content.edit
 
 /**
@@ -399,6 +400,18 @@ class ShieldWatcher : Service() {
     overlay = null
   }
 
+  /**
+   * La notification qui maintient le service en vie.
+   *
+   * `NotificationCompat` et non `Notification.Builder` : le constructeur qui
+   * prend un identifiant de canal n'existe qu'à partir d'Android 8, alors que
+   * le module descend à Android 7. Sur un appareil en 7, ce service plantait au
+   * démarrage — et un service qui ne démarre pas est un bouclier qui ne se lève
+   * jamais, sur l'appareil d'un enfant, sans que rien ne le signale au parent.
+   *
+   * La version de compatibilité ignore d'elle-même le canal là où il n'existe
+   * pas, ce qui fait disparaître la branche de version.
+   */
   private fun notification(): Notification {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
       val canal = NotificationChannel(
@@ -411,10 +424,11 @@ class ShieldWatcher : Service() {
       (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
         .createNotificationChannel(canal)
     }
-    return Notification.Builder(this, CHANNEL)
+    return NotificationCompat.Builder(this, CHANNEL)
       .setContentTitle("Mino veille sur le temps d’écran")
       .setContentText("Les applications encadrées s’ouvrent avec le temps gagné.")
       .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
+      .setPriority(NotificationCompat.PRIORITY_LOW)
       .setOngoing(true)
       .build()
   }

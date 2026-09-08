@@ -1,11 +1,12 @@
 package app.mino.screentime
 
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.ListView
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.core.content.edit
 
 /**
@@ -32,7 +33,13 @@ import androidx.core.content.edit
  * doit pouvoir appeler. Aucun temps d'écran mérité ne vaut un écran posé
  * par-dessus un appel au 15.
  */
-class PickerActivity : Activity() {
+// `ComponentActivity` et non `Activity` : c'est elle qui porte
+// `onBackPressedDispatcher`, dont ce sélecteur se sert plus bas pour
+// enregistrer la sélection au moment où le parent sort de l'écran. Avec la
+// classe de base du système, ce fichier ne compile pas — il ne l'avait jamais
+// été, la partie Android du module n'étant passée par Gradle qu'au premier
+// build de production.
+class PickerActivity : ComponentActivity() {
   override fun onCreate(saved: Bundle?) {
     super.onCreate(saved)
 
@@ -70,7 +77,7 @@ class PickerActivity : Activity() {
     // La sélection s'enregistre en sortant : pas de bouton « Terminé » à
     // manquer, et le geste « retour » d'Android fait exactement ce qu'on
     // attend de lui.
-    onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+    onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
       override fun handleOnBackPressed() {
         val choisis = lancables
           .filterIndexed { i, _ -> liste.isItemChecked(i) }
