@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
+
 import {
   MONTHLY_PRICE_EUR,
+  TRIAL_DAYS,
   REFERRAL,
   Referral,
   Subscription,
@@ -302,5 +305,29 @@ describe('ce qui s’arrête quand plus personne ne paie', () => {
     // Rien dans le verrou n'écrit au registre : c'est une règle de lecture.
     expect(isLocked(essai(-1), 'confirm', maintenant)).toBe(true);
     expect(balanceOf(base.transactions, noah.id)).toBe(avant);
+  });
+});
+
+/**
+ * Les trente jours sont écrits deux fois, et doivent le rester ensemble.
+ *
+ * `TRIAL_DAYS` décide de ce que l'application affiche ; `supabase/essai.sql`
+ * décide de ce qui est vrai. Deux nombres qui doivent être égaux et qui vivent
+ * dans deux fichiers finissent toujours par diverger — et celui-là divergerait
+ * en silence, puisque l'écran annoncerait une durée que la base ne tient pas.
+ */
+describe('l’essai, des deux côtés', () => {
+  it('dure le même nombre de jours en base et dans le domaine', () => {
+    const sql = readFileSync('supabase/essai.sql', 'utf8');
+    expect(sql).toContain(`interval '${TRIAL_DAYS} days'`);
+  });
+
+  it('démarre à la création de la famille, et par un déclencheur', () => {
+    const sql = readFileSync('supabase/essai.sql', 'utf8');
+    // `security definer` : la table n'a aucune politique d'écriture, et c'est
+    // la seule façon d'y écrire sans en ouvrir une.
+    expect(sql).toMatch(/security definer/);
+    expect(sql).toMatch(/after insert on families/);
+    expect(sql).toContain("'trialing'");
   });
 });

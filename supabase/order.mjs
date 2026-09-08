@@ -14,6 +14,7 @@ export const SQL_FILES = [
   ['scale.sql', 'index, temps réel, purges'],
   ['support.sql', 'signalements'],
   ['analytics.sql', 'journal de facturation et vues'],
+  ['essai.sql', 'les 30 jours d’essai, à la création de la famille'],
   ['store.sql', 'achats App Store et Play Store'],
   ['companion.sql', 'budget et conversations de Mino'],
   ['retention.sql', 'ce qu’on garde, et combien de temps'],
