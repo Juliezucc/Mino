@@ -78,10 +78,34 @@ Autres scripts :
 ```bash
 npm test           # tests du domaine et du parcours complet
 npm run typecheck  # TypeScript strict
+npm run compil     # construit vraiment le paquet — voir ci-dessous
 npm run faq        # régénère docs/support/ depuis src/content/faq.ts
 npm run licences   # recense les licences des dépendances
 npm run assets     # régénère icônes et écran de lancement
 npm run captures   # régénère les visuels des fiches App Store et Play
+```
+
+### `npm run compil` : ce que `typecheck` ne voit pas
+
+**`npm run typecheck` et `npm test` ne construisent jamais l'application.** Il
+existe donc une classe entière d'erreurs qu'ils laissent passer et qui
+n'apparaissent que sur le téléphone, en écran rouge, à l'ouverture.
+
+Le cas qui a fondé cette commande : un fichier importait un **type** portant le
+même nom que la fonction qu'il exporte. TypeScript l'accepte — un type et une
+valeur n'occupent pas le même espace de noms. Babel, qui transforme le fichier
+pour le téléphone, ne sait pas encore que l'import est un type : il voit deux
+déclarations et refuse le fichier entier. `tsc` était vert, l'application ne
+démarrait pas.
+
+`npm run compil` construit réellement le paquet, fichier par fichier, comme le
+fait le téléphone. Il prend une à deux minutes — c'est le prix pour ne plus
+découvrir ce genre d'erreur *après* avoir poussé.
+
+**Les trois se lancent ensemble avant de pousser :**
+
+```bash
+npm run typecheck && npm test && npm run compil
 ```
 
 ---

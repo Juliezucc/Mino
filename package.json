@@ -15,6 +15,7 @@
     "db:bundle": "node scripts/db-bundle.mjs",
     "audit:a11y": "node scripts/audit-a11y.mjs",
     "typecheck": "tsc --noEmit",
+    "compil": "expo export --platform web --output-dir .expo/verif-compilation",
     "faq": "node --experimental-strip-types --no-warnings scripts/export-faq.mjs",
     "licences": "node scripts/licences.mjs",
     "assets": "node scripts/make-launch-assets.mjs",
