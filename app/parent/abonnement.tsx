@@ -216,10 +216,40 @@ export default function SubscriptionScreen() {
           <Button label="Résilier mon abonnement" variant="danger" onPress={confirmCancel} />
         </View>
       ) : access.kind === 'active' && access.cancelAtPeriodEnd ? (
-        <Button
-          label="Reprendre mon abonnement"
-          onPress={() => resumeSubscription().catch(() => undefined)}
-        />
+        /**
+         * Résilié, mais pas encore fini — et il faut deux portes, pas une.
+         *
+         * Il n'y avait que « Reprendre mon abonnement », qui reprend la formule
+         * qu'on avait. Un parent qui résilie le mensuel **parce qu'il veut
+         * l'annuel** se retrouvait donc sans aucun chemin : ni choix de
+         * formule, ni accès à la gestion. Le seul bouton lui proposait
+         * exactement ce qu'il venait de refuser.
+         *
+         * Ce n'est pas le sélecteur de formules qu'on ajoute ici, et c'est
+         * délibéré : il appelle `startCheckout`, qui ouvrirait un SECOND
+         * abonnement par-dessus celui qui court encore — le double
+         * prélèvement décrit dans `docs/ops/paiements.md`. Le changement de
+         * formule passe donc par là où il est prévu, chez Apple ou dans le
+         * portail Stripe, qui sait remplacer au lieu d'ajouter.
+         */
+        <View style={styles.actions}>
+          <Button
+            label="Reprendre mon abonnement"
+            onPress={() => resumeSubscription().catch(() => undefined)}
+          />
+          <Button
+            label={
+              isStore(subscription?.source)
+                ? 'Changer de formule'
+                : 'Changer de formule ou de moyen de paiement'
+            }
+            variant="secondary"
+            onPress={async () => {
+              const { url } = await billing.openPortal(subscription!.familyId);
+              if (url) await Linking.openURL(url);
+            }}
+          />
+        </View>
       ) : (
         <>
           <View style={styles.plans}>
