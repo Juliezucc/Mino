@@ -172,6 +172,16 @@ elle.
 | Politique de confidentialité | `https://minoapp.fr/confidentialite.html` |
 | URL d'assistance | `https://minoapp.fr` |
 | URL marketing | `https://minoapp.fr` |
+| Copyright | `2026 Agence Wheb` |
+
+La politique de confidentialité ne se saisit **pas** dans « Informations sur
+l'app » : Apple l'a déplacée en haut de la page **Confidentialité de l'app**,
+au-dessus des types de données. C'est le genre de champ qu'on cherche dix
+minutes au mauvais endroit.
+
+Le **fichier de couverture géographique** reste vide : il sert aux applications
+dont le contenu dépend d'une zone (cartes, transports, météo), et le remplir
+contredirait la déclaration « Localisation : non ».
 
 La politique de confidentialité doit être **accessible sans compte et sans
 JavaScript** : un examinateur qui tombe sur une page vide refuse, et il a
