@@ -102,19 +102,57 @@ export class StoreBillingService implements BillingService {
     return { kind: 'done' };
   }
 
+  /**
+   * Restaurer, et distinguer les deux échecs qui n'ont rien à voir.
+   *
+   * **Le défaut que cela répare.** Cette méthode rendait `done` dès qu'un achat
+   * était trouvé, même si TOUTES les vérifications avaient échoué. À l'écran,
+   * cela donnait exactement la même chose qu'un succès : rien. Le parent
+   * touche « Restaurer mes achats », il ne se passe rien, et il ne peut ni
+   * savoir ni raconter pourquoi.
+   *
+   * Or les deux causes appellent des gestes opposés :
+   *
+   *   — **rien à restaurer** : la boutique ne connaît aucun achat sur ce
+   *     compte. C'est au parent de vérifier avec quel identifiant il a payé.
+   *   — **trouvé mais pas vérifié** : la preuve existe, c'est notre serveur qui
+   *     l'a refusée. Le parent n'y peut rien, et c'est à nous de le savoir.
+   *
+   * À la différence d'un achat neuf, on ne peut pas se reposer ici sur la
+   * notification serveur à serveur : Apple ne la réémet pas pour une
+   * transaction ancienne qu'on redemande. Un échec silencieux laisserait donc
+   * le parent sans abonnement et sans explication, indéfiniment.
+   */
   async restore(familyId: ID): Promise<CheckoutOutcome> {
     const purchases = await this.store.restore().catch(() => []);
     if (purchases.length === 0) {
       return { kind: 'failed', reason: 'Aucun achat à restaurer sur ce compte.' };
     }
 
+    let confirmes = 0;
+    let dit = '';
+
     for (const purchase of purchases) {
-      await this.confirm({
-        familyId,
-        platform: this.store.platform,
-        token: purchase.token,
-        productId: purchase.productId,
-      }).catch(() => null);
+      try {
+        const abonnement = await this.confirm({
+          familyId,
+          platform: this.store.platform,
+          token: purchase.token,
+          productId: purchase.productId,
+        });
+        if (abonnement) confirmes += 1;
+      } catch (erreur) {
+        if (erreur instanceof Error && erreur.message.trim()) dit = erreur.message.trim();
+      }
+    }
+
+    if (confirmes === 0) {
+      return {
+        kind: 'failed',
+        reason:
+          dit ||
+          'Votre achat a bien été retrouvé, mais il n’a pas pu être vérifié. Réessayez dans un instant.',
+      };
     }
 
     return { kind: 'done' };

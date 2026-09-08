@@ -14,13 +14,24 @@
  * close, l'abandon distingué de l'échec —, se décide dans ce fichier.
  */
 
-import { MONTHLY_PRICE_EUR } from '@/domain/billing';
+import { MONTHLY_PRICE_EUR, Subscription } from '@/domain/billing';
 import { ExpoIapStore, ModuleIap, PRODUITS } from '@/services/billing/ExpoIapStore';
 import { StoreBillingService } from '@/services/billing/StoreBillingService';
 import { BillingService } from '@/services/billing/BillingService';
 import { StorePurchase } from '@/services/billing/native';
 
 const JETON = 'a1b2c3d4-1111-2222-3333-444455556666';
+
+/** Ce que le serveur rend quand il a bien vérifié une preuve. */
+const ABONNEMENT: Subscription = {
+  familyId: 'fam-1',
+  status: 'active',
+  plan: 'monthly',
+  trialEndsAt: null,
+  currentPeriodEnd: '2026-10-08T00:00:00.000Z',
+  cancelAtPeriodEnd: false,
+  creditMonths: 0,
+};
 
 interface Journal {
   closes: string[];
@@ -476,13 +487,39 @@ describe('branchée sur StoreBillingService', () => {
       new ExpoIapStore('apple', async () => iap),
       async (input) => {
         recues.push(input);
-        return null;
+        return ABONNEMENT;
       },
       async () => JETON,
     );
 
     expect(await service.restore('fam-1')).toEqual({ kind: 'done' });
     expect(recues.map((r) => r.token)).toEqual(['jws-mensuel']);
+  });
+
+  /**
+   * Trouvé mais pas vérifié : l'échec qui ressemblait à un succès.
+   *
+   * `restore` rendait `done` dès qu'un achat était trouvé, même si toutes les
+   * vérifications avaient échoué — à l'écran, exactement la même chose qu'une
+   * réussite : rien. Et à la différence d'un achat neuf, on ne peut pas se
+   * reposer sur la notification serveur à serveur, qu'Apple ne réémet pas pour
+   * une transaction ancienne.
+   */
+  it('dit que l’achat a été retrouvé mais pas vérifié', async () => {
+    const { iap } = fausseBoutique({
+      historique: [{ id: 'tx-9', productId: PRODUITS.monthly, purchaseToken: 'jws-mensuel' }],
+    });
+
+    const service = new StoreBillingService(
+      serveur,
+      new ExpoIapStore('apple', async () => iap),
+      async () => null,
+      async () => JETON,
+    );
+
+    const issue = await service.restore('fam-1');
+    expect(issue.kind).toBe('failed');
+    expect((issue as { reason: string }).reason).toContain('retrouvé');
   });
 
   it('dit franchement qu’il n’y a rien à restaurer', async () => {
