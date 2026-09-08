@@ -30,13 +30,13 @@ pour un gain incertain.
 
 ## Ce que ça coûte, en chiffres
 
-Ce qui reste **réellement**, hors taxes, sur un abonnement mensuel à 9,90 € :
+Ce qui reste **réellement**, hors taxes, sur un abonnement mensuel à 9,99 € :
 
 | Rail | Commission | Reste par mois | Sur 20 mois |
 |---|---|---|---|
-| Stripe (site) | 1,5 % + 0,25 € | **7,85 €** | 157 € |
-| Apple / Google à 15 % | 15 % du HT | **7,01 €** | 140 € |
-| Apple à 30 % (1ʳᵉ année, hors programme) | 30 % du HT | **5,78 €** | — |
+| Stripe (site) | 1,5 % + 0,25 € | **7,93 €** | 159 € |
+| Apple / Google à 15 % | 15 % du HT | **7,08 €** | 142 € |
+| Apple à 30 % (1ʳᵉ année, hors programme) | 30 % du HT | **5,83 €** | — |
 
 > Les commissions des boutiques portent sur le prix **hors taxes**, la TVA
 > étant reversée par elles puisqu'elles sont vendeur. Les frais Stripe portent
@@ -46,8 +46,8 @@ Ce qui reste **réellement**, hors taxes, sur un abonnement mensuel à 9,90 € 
 
 ### Le seuil de rentabilité de la décision
 
-Passer de Stripe à l'achat natif coûte **11 % du revenu** par famille (7,85 →
-7,01). Il faut donc **+12 % de conversion** pour rentrer dans ses frais.
+Passer de Stripe à l'achat natif coûte **11 % du revenu** par famille (7,93 →
+7,08). Il faut donc **+12 % de conversion** pour rentrer dans ses frais.
 
 Retirer une redirection navigateur et une saisie de carte sur mobile fait
 généralement bien plus que 12 %. **La décision est donc bonne** — mais elle
@@ -62,7 +62,7 @@ automatique, elle se demande, et l'oublier double la commission.
 
 Google applique déjà 15 % aux abonnements dès le premier euro.
 
-Au-delà de 1 M$ (~8 400 familles à 9,90 €), Apple repasse à 30 % la première
+Au-delà de 1 M$ (~8 300 familles à 9,99 €), Apple repasse à 30 % la première
 année de chaque abonné, puis 15 %. Sur une durée de vie de 20 mois, la
 commission moyenne devient ~24 %, et le seuil de rentabilité de la décision
 monte à **+27 % de conversion**. À surveiller à l'approche de 8 000 familles.
@@ -172,9 +172,13 @@ pire chose qu'un programme de parrainage puisse faire.
 1. **Créer les produits** : `mino.premium.monthly` et `mino.premium.yearly`
    dans App Store Connect et la Play Console. Le code déduit la formule du nom
    du produit (`monthly` / `yearly` ou `annual`) : garder ces mots.
-2. **Vérifier que 9,90 € et 79 € existent** comme points de prix. Apple propose
-   aujourd'hui plusieurs centaines de paliers, mais il faut le confirmer :
-   sinon, il faudra accepter 9,99 € sur les boutiques, ou aligner le site.
+2. **La grille d'Apple s'impose, et elle l'a fait.** 9,90 € n'existe pas comme
+   palier ; 9,99 € oui. Le tarif mensuel est donc passé à **9,99 €**
+   *partout* — `MONTHLY_PRICE_EUR` étant la source dont dépendent le site, la
+   FAQ, les CGV, les écrans et les tarifs Stripe, un seul nombre a changé.
+   Garder 9,90 sur le web et 9,99 sur les boutiques aurait réintroduit
+   exactement la divergence que cette architecture existe pour empêcher, pour
+   neuf centimes.
 3. **S'inscrire au programme Small Business d'Apple.** 15 % au lieu de 30 %.
    Cinq minutes, et l'oublier double la commission.
 4. **Ne configurer aucune offre d'introduction** — voir le parrainage ci-dessus.

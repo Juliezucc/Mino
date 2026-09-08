@@ -14,6 +14,7 @@
  * close, l'abandon distingué de l'échec —, se décide dans ce fichier.
  */
 
+import { MONTHLY_PRICE_EUR } from '@/domain/billing';
 import { ExpoIapStore, ModuleIap, PRODUITS } from '@/services/billing/ExpoIapStore';
 import { StoreBillingService } from '@/services/billing/StoreBillingService';
 import { BillingService } from '@/services/billing/BillingService';
@@ -140,7 +141,7 @@ describe('les formules viennent de la boutique', () => {
       produits: [{ ...mensuel, price: null }],
     });
     const produits = await new ExpoIapStore('apple', async () => iap).products();
-    expect(produits[0].priceEur).toBe(9.9);
+    expect(produits[0].priceEur).toBe(MONTHLY_PRICE_EUR);
   });
 });
 

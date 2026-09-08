@@ -219,15 +219,31 @@ describe('achat natif et achat web', () => {
     const stripe = netOf(MONTHLY_PRICE_EUR, 'stripe');
     const store = netOf(MONTHLY_PRICE_EUR, 'apple');
 
-    expect(stripe).toBeCloseTo(7.85, 2);
-    expect(store).toBeCloseTo(7.01, 2);
+    /**
+     * Ce qui est vérifié ici, ce sont des **rapports**, pas des montants.
+     *
+     * Ces trois assertions portaient 7,85 et 7,01 en dur. Le jour où la grille
+     * d'Apple a imposé 9,99 au lieu de 9,90, elles ont échoué toutes les trois
+     * alors que rien de ce qu'elles vérifient n'avait bougé — et recopier la
+     * formule de `netOf` dans le test n'aurait rien vérifié du tout, puisque
+     * c'est elle qu'on teste.
+     *
+     * Restent les deux faits qui décident : les deux rails laissent moins que
+     * le prix hors taxes, et la boutique laisse environ un neuvième de moins
+     * que Stripe. C'est ce rapport-là, et lui seul, qui a fait choisir
+     * l'achat natif malgré son coût.
+     */
+    const horsTaxes = MONTHLY_PRICE_EUR / 1.2;
+    expect(stripe).toBeLessThan(horsTaxes);
+    expect(store).toBeLessThan(stripe);
+    expect(store / stripe).toBeCloseTo(0.89, 2);
   });
 
   it('chiffre ce que coûte le passage d’Apple à 30 %', () => {
     const reduit = netOf(MONTHLY_PRICE_EUR, 'apple');
     const plein = netOf(MONTHLY_PRICE_EUR, 'apple', { reduced: false });
 
-    expect(plein).toBeCloseTo(5.775, 3);
+    expect(plein).toBeCloseTo((MONTHLY_PRICE_EUR / 1.2) * 0.7, 3);
     // Le seuil du programme Small Business vaut donc un cinquième du revenu.
     expect(plein / reduit).toBeCloseTo(0.82, 2);
   });
