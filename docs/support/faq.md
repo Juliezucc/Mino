@@ -7,7 +7,7 @@
 
 ### Comment installer Mino sur l’appareil de mon enfant ?
 
-Installez Mino depuis l’App Store ou le Play Store sur son téléphone ou sa tablette, ouvrez l’application et choisissez « J’ai un code famille ». Votre code se trouve dans Réglages, sur votre propre téléphone. Le système vous demandera ensuite l’autorisation d’un adulte : c’est normal, c’est ce qui permet de vraiment débloquer le temps d’écran.
+Installez Mino depuis l’App Store ou le Play Store sur son appareil, ouvrez l’application et choisissez « J’ai un code famille ». Votre code se trouve dans Réglages, sur votre propre téléphone. Le système vous demandera ensuite l’autorisation d’un adulte : c’est normal, c’est ce qui permet de vraiment débloquer le temps d’écran.
 
 ### Où trouver mon code famille ?
 
@@ -97,9 +97,9 @@ Une mission quotidienne réapparaît au changement de journée sur l’appareil.
 
 Ajustez le compteur depuis la fiche de l’enfant. La correction apparaît dans son historique : rien n’est effacé, on ajoute une ligne. C’est ce qui garantit que le compteur et l’historique ne se contredisent jamais.
 
-### Comment refuser une mission sans décourager mon enfant ?
+### Comment renvoyer une mission « à refaire » sans décourager mon enfant ?
 
-Un refus dans Mino renvoie la mission dans sa liste, sans reproche : elle est « à refaire », pas « ratée ». Dites-lui de vive voix ce qui manque — l’application ne le dira jamais à votre place.
+Le bouton s’appelle « À refaire », et c’est exactement ce qu’il fait : la mission repart dans sa liste, sans reproche. Elle est à refaire, pas ratée. Aucune minute n’est ajoutée, aucune n’est retirée, et votre enfant ne voit nulle part un échec. Dites-lui de vive voix ce qui manque — l’application ne le dira jamais à votre place.
 
 ### Combien de minutes faut-il donner par mission ?
 
@@ -137,15 +137,15 @@ Depuis l’écran de connexion, « Mot de passe oublié ». Vous recevrez un lie
 
 ### Mon enfant a vu mon code parent
 
-Changez-le depuis Réglages, sur votre téléphone. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis sa tablette, même en cherchant.
+Changez-le depuis Réglages, « Gérer mon compte », section Code parent. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis son appareil, même en cherchant.
 
 ### Comment changer mon adresse e-mail ?
 
-Depuis Réglages, section Compte. Une confirmation part sur la nouvelle adresse : le changement n’est effectif qu’une fois le lien ouvert.
+Depuis Réglages, « Gérer mon compte ». Une confirmation part sur la nouvelle adresse : le changement n’est effectif qu’une fois le lien ouvert. C’est volontaire — celui qui tape l’adresse doit aussi pouvoir y lire le courrier.
 
 ### Mon enfant peut changer de profil et prendre celui de son frère
 
-Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> ». Mino s’ouvrira toujours sur son profil, et il faudra votre code parent pour en changer. Laissez « Partagé » pour une tablette familiale : chacun retrouve alors le dernier profil utilisé, et peut en changer librement.
+Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> » : Mino s’ouvrira toujours sur son profil, sans passer par le sélecteur. Changer de profil reste possible et ne demande pas votre code — c’est votre espace parent qui est protégé, pas le choix du profil. Une minute prise sur le compte d’un frère apparaît de toute façon dans son historique, à la seconde près.
 
 ### Mon enfant doit rechoisir son profil à chaque ouverture
 
@@ -155,7 +155,7 @@ Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appa
 
 ### Combien coûte Mino ?
 
-9,90 € par mois, ou 79 € par an — soit 4 mois offerts, 34 % de moins. Toute la famille est comprise : autant d’enfants et d’appareils que vous voulez, sans supplément.
+9,99 € par mois, ou 79,99 € par an — soit 4 mois offerts, 33 % de moins. Toute la famille est comprise : autant d’enfants et d’appareils que vous voulez, sans supplément.
 
 ### Serai-je prélevé à la fin de l’essai ?
 
@@ -199,9 +199,13 @@ Mettez à jour le moyen de paiement là où vous vous êtes abonné : dans votre
 
 ## 🛡️ Données et confidentialité
 
+### Combien de temps gardez-vous l’historique de mon enfant ?
+
+Quatre-vingt-dix jours. Passé ce délai, le détail est effacé — quelle mission, quel jour, quel écran — et il ne reste que le total des minutes. Le compteur de votre enfant reste donc exact, mais nous ne conservons pas la trace de ce qu’il a fait il y a six mois. Nous n’en avons pas besoin, et un enfant n’a pas à traîner un dossier derrière lui.
+
 ### Comment supprimer mon compte et nos données ?
 
-Depuis Réglages, « Supprimer le compte ». Tout est effacé sous trente jours : profils des enfants, missions, historique. Les factures sont conservées dix ans, comme la loi comptable l’exige, et elles ne contiennent aucune donnée d’enfant.
+Depuis Réglages, « Gérer mon compte », tout en bas. L’effacement est immédiat et définitif : profils des enfants, missions, historique, minutes gagnées. Rien ne peut être récupéré ensuite, et personne chez nous ne le peut non plus. Résiliez votre abonnement avant, depuis l’App Store ou le Play Store : supprimer le compte ne l’annule pas. Les factures déjà émises sont conservées dix ans, comme la loi comptable l’exige, et elles ne contiennent aucune donnée d’enfant.
 
 ### Mon enfant discute avec Mino : qu’est-ce que c’est ?
 

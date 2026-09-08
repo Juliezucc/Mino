@@ -356,7 +356,7 @@ export function formatPrice(amount: number): string {
   return `${amount.toFixed(2).replace('.', ',').replace(/,00$/, '')} €`;
 }
 
-/** "9,90 € / mois" — the way it is shown on the plan cards. */
+/** "9,99 € / mois" — the way it is shown on the plan cards. */
 export function describePlan(plan: Plan): string {
   return plan === 'yearly'
     ? `${formatPrice(ANNUAL_PRICE_EUR)} / an`
@@ -372,7 +372,7 @@ export function annualSavingPercent(): number {
  * Combien de mois l'abonnement annuel fait économiser, en mois de mensuel.
  *
  * Existe parce que la FAQ annonçait « deux mois offerts » quand la remise en
- * vaut quatre : 9,90 × 12 − 79 = 39,80 €. Se tromper à son propre désavantage
+ * vaut quatre : 9,99 × 12 − 79,99 = 39,89 €. Se tromper à son propre désavantage
  * reste se tromper — et un chiffre écrit à la main dans un texte commercial
  * finit toujours par ne plus correspondre au prix. Celui-ci se recalcule.
  */

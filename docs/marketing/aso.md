@@ -128,8 +128,14 @@ ensuite, la preuve après, le prix à la fin.
 > ni adresse e-mail. Nous collectons son prénom, son âge et son avatar — rien
 > d'autre.
 >
-> **Essai de 30 jours**, puis 9,90 €/mois ou 79 €/an pour toute la famille,
+> **Essai de 30 jours**, puis 9,99 €/mois ou 79,99 €/an pour toute la famille,
 > autant d'enfants et d'appareils que vous voulez. Annulation en deux touches.
+
+> Les prix ci-dessus doivent toujours valoir `MONTHLY_PRICE_EUR` et
+> `ANNUAL_PRICE_EUR` (`src/domain/billing.ts`). Ils y ont été portés à 9,99 et
+> 79,99 parce que la grille d'Apple ne comporte ni 9,90 ni 79 — et une
+> description qui annonce un prix que la boutique ne pratique pas est un motif
+> de refus, pas une coquille.
 
 ---
 
