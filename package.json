@@ -18,7 +18,6 @@
     "compil": "expo export --platform web --output-dir .expo/verif-compilation",
     "faq": "node --experimental-strip-types --no-warnings scripts/export-faq.mjs",
     "stripe:produits": "node --experimental-strip-types --no-warnings scripts/stripe-produits.mjs",
-    "apple:racine": "node --no-warnings scripts/apple-racine.mjs",
     "licences": "node scripts/licences.mjs",
     "assets": "node scripts/make-launch-assets.mjs",
     "captures": "node scripts/capture-store.mjs"

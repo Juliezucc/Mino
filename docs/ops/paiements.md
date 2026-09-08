@@ -222,11 +222,39 @@ pire chose qu'un programme de parrainage puisse faire.
 ### Variables d'environnement à renseigner
 
 ```
-APPLE_BUNDLE_ID=          APPLE_APP_APPLE_ID=
-APPLE_ROOT_CA_G3_BASE64=  APPLE_ENVIRONMENT=sandbox|production
-ANDROID_PACKAGE_NAME=     GOOGLE_SERVICE_ACCOUNT_JSON=
+APPLE_BUNDLE_ID=       APPLE_APP_APPLE_ID=
+APPLE_KEY_ID=          APPLE_ISSUER_ID=
+APPLE_PRIVATE_KEY=     APPLE_ENVIRONMENT=sandbox|production
+ANDROID_PACKAGE_NAME=  GOOGLE_SERVICE_ACCOUNT_JSON=
 STORE_COMMISSION_RATE=0.15
 ```
+
+`APPLE_KEY_ID`, `APPLE_ISSUER_ID` et `APPLE_PRIVATE_KEY` viennent d'une clé
+**Achats intégrés** créée dans App Store Connect → Utilisateurs et accès →
+Intégrations. Le fichier `.p8` n'est téléchargeable qu'une fois.
+
+> **`APPLE_ROOT_CA_G3_BASE64` n'est plus lue.** Elle servait à valider la
+> chaîne de certificats hors ligne, ce qui ne peut pas se faire ici — voir
+> ci-dessous. Le secret peut rester en place, il n'est plus consulté.
+
+### Pourquoi la vérification Apple ne ressemble pas à ce qu'on lit ailleurs
+
+Toutes les intégrations documentées valident la signature d'Apple hors ligne,
+avec sa bibliothèque officielle. **Elle ne peut pas tourner sur Supabase.** Les
+fonctions s'exécutent sur Deno, dont le `X509Certificate` est une coquille :
+ni `toString()`, ni `raw`, donc aucun accès aux octets du certificat. Deux
+erreurs successives l'ont établi en bac à sable, et il n'y avait pas de
+troisième correctif à tenter.
+
+La fonction lit donc la transaction que le téléphone annonce **sans la
+croire**, en tire l'identifiant, et interroge l'API serveur d'Apple avec une
+clé qui n'appartient qu'à nous. Ce qu'Apple répond fait foi.
+
+C'est plus sûr que l'autre voie, et pas moins : une signature qu'on valide
+soi-même est une signature qu'on peut valider de travers, et une chaîne mal
+vérifiée accepte n'importe quoi. C'est aussi exactement ce que fait le rail
+Google depuis le début — signer un jeton, demander à la boutique, croire sa
+réponse.
 
 ---
 

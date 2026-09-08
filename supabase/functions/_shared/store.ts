@@ -9,8 +9,6 @@
 // modifiée peut fabriquer. C'est la faille classique de l'achat in-app, et
 // elle se referme ici ou nulle part.
 
-import { X509Certificate } from 'node:crypto';
-
 import { admin, env } from './mino.ts';
 
 export type StorePlatform = 'apple' | 'google';
@@ -48,90 +46,174 @@ export function netCents(amountCents: number | null): number | null {
 /* ------------------------------------------------------------------- Apple */
 
 /**
- * Ce que Deno n'implémente pas, et qu'Apple appelle quand même.
+ * On ne vérifie plus la signature d'Apple : **on demande à Apple.**
  *
- * **Le premier achat en bac à sable a échoué exactement ici.** La
- * bibliothèque d'Apple vérifie la chaîne de certificats en appelant
- * `toString()` sur chaque certificat, et Deno — sur lequel tournent les
- * fonctions Supabase — répond `ERR_NOT_IMPLEMENTED: Not implemented:
- * crypto.X509Certificate.prototype.toString`. Ni notre faute ni un réglage :
- * une incompatibilité entre le code d'Apple et le moteur.
+ * La bibliothèque officielle validait la chaîne de certificats hors ligne.
+ * Elle ne peut pas tourner ici : les fonctions Supabase s'exécutent sur Deno,
+ * dont le `X509Certificate` est une coquille — ni `toString()`, ni `raw`, donc
+ * aucun accès aux octets du certificat. Deux erreurs successives l'ont montré
+ * en bac à sable, et il n'y avait pas de troisième correctif à tenter.
  *
- * Node documente exactement ce que rend cette méthode : le certificat encodé
- * en PEM. On le reconstruit depuis `raw`, qui est le DER et que Deno, lui,
- * fournit. Ce n'est pas une approximation — c'est la même chaîne, produite
- * autrement.
+ * Alors on renverse la charge : la fonction lit la transaction que le
+ * téléphone annonce **sans la croire**, en tire l'identifiant, et interroge
+ * l'API serveur d'Apple avec une clé qui n'appartient qu'à nous. Ce qu'Apple
+ * répond fait foi. La confiance ne vient plus d'un calcul de notre côté mais
+ * d'un appel authentifié à la source.
  *
- * On ne remplace la méthode que si elle manque : le jour où Deno
- * l'implémentera, la sienne l'emportera.
+ * **C'est plus sûr, pas moins.** Une signature qu'on valide soi-même est une
+ * signature qu'on peut valider de travers, et une chaîne mal vérifiée accepte
+ * n'importe quoi. Ici, un jeton inventé ne désigne aucune transaction chez
+ * Apple, et un jeton volé à un tiers désigne une transaction dont le jeton de
+ * compte ne correspond pas à la famille appelante — `store-purchase` le
+ * refuse, et c'est le contrôle qui a toujours compté.
+ *
+ * C'est aussi exactement ce que fait déjà le rail Google, quelques lignes plus
+ * bas : signer un jeton, demander à la boutique, croire sa réponse.
  */
-function poserToStringDesCertificats() {
-  const proto = X509Certificate.prototype as unknown as {
-    toString?: () => string;
-    raw: Uint8Array;
-  };
 
-  try {
-    // Un certificat quelconque suffit à savoir si la méthode répond : celui
-    // d'Apple est déjà là, et il ne coûte rien à relire.
-    const essai = new X509Certificate(racinesApple()[0]);
-    essai.toString();
-    return;
-  } catch {
-    // Elle manque, ou elle lève : dans les deux cas on la fournit.
-  }
+const apiApple = () =>
+  Deno.env.get('APPLE_ENVIRONMENT') === 'sandbox'
+    ? 'https://api.storekit-sandbox.itunes.apple.com'
+    : 'https://api.storekit.itunes.apple.com';
 
-  proto.toString = function pem(this: { raw: Uint8Array }) {
-    const b64 = btoa(String.fromCharCode(...this.raw));
-    const lignes = b64.match(/.{1,64}/g)?.join('\n') ?? b64;
-    return `-----BEGIN CERTIFICATE-----\n${lignes}\n-----END CERTIFICATE-----\n`;
-  };
+const base64url = (octets: Uint8Array): string =>
+  btoa(String.fromCharCode(...octets)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+const base64urlTexte = (texte: string): string =>
+  base64url(new TextEncoder().encode(texte));
+
+/**
+ * La charge utile d'un JWS, lue **sans vérifier la signature**.
+ *
+ * Employé à deux endroits, et jamais pour décider quoi que ce soit :
+ * y prendre l'identifiant de transaction à demander à Apple, et relire ce
+ * qu'Apple vient de nous répondre — une réponse arrivée par TLS depuis les
+ * serveurs d'Apple, pour un appel signé de notre clé.
+ */
+function chargeJws(jws: string): Record<string, unknown> {
+  const partie = jws.split('.')[1];
+  if (!partie) throw new Error('Jeton Apple illisible.');
+
+  const b64 = partie.replace(/-/g, '+').replace(/_/g, '/');
+  const octets = Uint8Array.from(
+    atob(b64.padEnd(Math.ceil(b64.length / 4) * 4, '=')),
+    (c) => c.charCodeAt(0),
+  );
+  return JSON.parse(new TextDecoder().decode(octets)) as Record<string, unknown>;
 }
 
-/** La racine Apple, au format DER, fournie en base64 dans la configuration. */
-function racinesApple(): Uint8Array[] {
-  return env('APPLE_ROOT_CA_G3_BASE64')
-    .split(',')
-    .map((b64) => Uint8Array.from(atob(b64.trim()), (c) => c.charCodeAt(0)));
+/** La clé privée d'App Store Connect, importée une fois par instance. */
+let cleApple: Promise<CryptoKey> | null = null;
+
+function chargerCleApple(): Promise<CryptoKey> {
+  if (cleApple) return cleApple;
+
+  cleApple = (async () => {
+    const pem = env('APPLE_PRIVATE_KEY')
+      .replace(/-----(BEGIN|END) PRIVATE KEY-----/g, '')
+      .replace(/\s/g, '');
+
+    return await crypto.subtle.importKey(
+      'pkcs8',
+      Uint8Array.from(atob(pem), (c) => c.charCodeAt(0)),
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      false,
+      ['sign'],
+    );
+  })().catch((erreur) => {
+    // Ne pas garder une promesse rejetée en mémoire : la fonction survit à
+    // plusieurs requêtes, et un secret corrigé entre-temps doit pouvoir
+    // reprendre sans redéploiement.
+    cleApple = null;
+    throw erreur;
+  });
+
+  return cleApple;
+}
+
+/** Le jeton qui nous identifie auprès d'Apple, signé ES256. */
+async function jetonApple(): Promise<string> {
+  const maintenant = Math.floor(Date.now() / 1000);
+
+  const entete = { alg: 'ES256', kid: env('APPLE_KEY_ID'), typ: 'JWT' };
+  const charge = {
+    iss: env('APPLE_ISSUER_ID'),
+    iat: maintenant,
+    // Apple refuse au-delà d'une heure. Dix minutes suffisent largement et
+    // bornent ce qu'un jeton intercepté permettrait.
+    exp: maintenant + 600,
+    aud: 'appstoreconnect-v1',
+    bid: env('APPLE_BUNDLE_ID'),
+  };
+
+  const nonSigne = `${base64urlTexte(JSON.stringify(entete))}.${base64urlTexte(JSON.stringify(charge))}`;
+  const signature = await crypto.subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    await chargerCleApple(),
+    new TextEncoder().encode(nonSigne),
+  );
+
+  return `${nonSigne}.${base64url(new Uint8Array(signature))}`;
+}
+
+interface LigneApple {
+  originalTransactionId?: string;
+  signedTransactionInfo?: string;
+  signedRenewalInfo?: string;
 }
 
 /**
- * Apple signe tout ce qu'il envoie (JWS). La vérification comprend la
- * validation de la chaîne de certificats jusqu'à la racine Apple — c'est
- * précisément ce que fait la bibliothèque officielle, et c'est la raison de ne
- * pas la réécrire : une chaîne mal validée accepte n'importe quelle signature.
+ * L'état d'un abonnement, tel qu'Apple le décrit maintenant.
+ *
+ * On interroge l'environnement configuré, puis l'autre en cas de 404. Ce n'est
+ * pas de la complaisance : une transaction de bac à sable est introuvable en
+ * production et réciproquement, et le jour où `APPLE_ENVIRONMENT` passera à
+ * `production` il restera des transactions de test dans la base. Sans ce
+ * rattrapage, elles deviendraient toutes des erreurs illisibles.
  */
-async function appleVerifier() {
-  const { SignedDataVerifier, Environment } = await import(
-    'npm:@apple/app-store-server-library@1'
-  );
+async function etatApple(originalTransactionId: string): Promise<StoreState> {
+  const hotes = [apiApple()];
+  const autre =
+    apiApple() === 'https://api.storekit-sandbox.itunes.apple.com'
+      ? 'https://api.storekit.itunes.apple.com'
+      : 'https://api.storekit-sandbox.itunes.apple.com';
+  hotes.push(autre);
 
-  poserToStringDesCertificats();
+  let dernier = '';
 
-  return new SignedDataVerifier(
-    racinesApple(),
-    /**
-     * Les vérifications en ligne, désactivées — et c'est un arbitrage, pas un
-     * oubli.
-     *
-     * Ce drapeau ajoute une interrogation OCSP : à chaque achat, la fonction
-     * appelle les serveurs d'Apple pour demander si un certificat de la chaîne
-     * a été révoqué. Dans une fonction de bord démarrée à froid, cela s'est
-     * mesuré en dizaines de secondes — les quarante-cinq secondes d'attente
-     * observées au premier essai.
-     *
-     * Ce qu'on perd : la détection d'un certificat de signature révoqué par
-     * Apple. Ce qu'on garde : la signature elle-même, et la chaîne validée
-     * jusqu'à la racine embarquée ici. Un attaquant devrait donc obtenir un
-     * certificat émis par Apple **puis** attendre sa révocation pour que la
-     * différence compte — et la notification serveur à serveur, qui fait foi,
-     * repasserait derrière.
-     */
-    false,
-    Deno.env.get('APPLE_ENVIRONMENT') === 'sandbox' ? Environment.SANDBOX : Environment.PRODUCTION,
-    env('APPLE_BUNDLE_ID'),
-    Number(env('APPLE_APP_APPLE_ID')),
-  );
+  for (const hote of hotes) {
+    const reponse = await fetch(
+      `${hote}/inApps/v1/subscriptions/${encodeURIComponent(originalTransactionId)}`,
+      { headers: { Authorization: `Bearer ${await jetonApple()}` } },
+    );
+
+    if (reponse.status === 404) {
+      dernier = 'Apple ne connaît pas cette transaction.';
+      continue;
+    }
+
+    if (!reponse.ok) {
+      const corps = await reponse.text().catch(() => '');
+      throw new Error(`Apple a refusé la vérification (${reponse.status}) ${corps}`.trim());
+    }
+
+    const data = (await reponse.json()) as { data?: { lastTransactions?: LigneApple[] }[] };
+    const lignes = (data.data ?? []).flatMap((groupe) => groupe.lastTransactions ?? []);
+    const ligne =
+      lignes.find((l) => l.originalTransactionId === originalTransactionId) ?? lignes[0];
+
+    if (!ligne?.signedTransactionInfo) {
+      dernier = 'Apple ne rend aucune transaction pour cet abonnement.';
+      continue;
+    }
+
+    return appleToState(
+      chargeJws(ligne.signedTransactionInfo),
+      ligne.signedRenewalInfo ? chargeJws(ligne.signedRenewalInfo) : null,
+    );
+  }
+
+  throw new Error(dernier || 'Vérification Apple impossible.');
 }
 
 const planOfProduct = (productId: string): 'monthly' | 'yearly' | null => {
@@ -174,35 +256,53 @@ export function appleToState(
   };
 }
 
-/** Vérifie une notification signée d'Apple et en tire l'état. */
+/**
+ * Une notification d'Apple : on lit ce qu'elle annonce, et on demande la vérité.
+ *
+ * **Le contenu de la notification ne décide de rien.** N'importe qui peut en
+ * poster une à cette adresse — elle est publique par nécessité, Apple ne
+ * présente aucun jeton. On n'y prend donc qu'un identifiant de transaction,
+ * puis on interroge Apple pour connaître l'état réel de cet abonnement.
+ *
+ * Une notification inventée désigne une transaction qui n'existe pas, et la
+ * fonction s'arrête. Une notification recopiée depuis une vraie ne fait que
+ * provoquer une relecture de l'état véritable — c'est-à-dire rien de
+ * nuisible, puisque c'est exactement ce que la notification légitime aurait
+ * fait.
+ */
 export async function verifyAppleNotification(signedPayload: string): Promise<{
   kind: string;
   state: StoreState | null;
   raw: unknown;
 }> {
-  const verifier = await appleVerifier();
-  const payload = await verifier.verifyAndDecodeNotification(signedPayload);
+  const notification = chargeJws(signedPayload);
+  const donnees = (notification.data ?? {}) as { signedTransactionInfo?: string };
 
-  const signedTransaction = payload?.data?.signedTransactionInfo;
-  const signedRenewal = payload?.data?.signedRenewalInfo;
-
-  const transaction = signedTransaction
-    ? await verifier.verifyAndDecodeTransaction(signedTransaction)
+  const annonce = donnees.signedTransactionInfo
+    ? chargeJws(donnees.signedTransactionInfo)
     : null;
-  const renewal = signedRenewal ? await verifier.verifyAndDecodeRenewalInfo(signedRenewal) : null;
+  const original = annonce
+    ? String(annonce.originalTransactionId ?? annonce.transactionId ?? '')
+    : '';
 
   return {
-    kind: `${payload.notificationType}${payload.subtype ? `.${payload.subtype}` : ''}`,
-    state: transaction ? appleToState(transaction as never, renewal as never) : null,
-    raw: payload,
+    kind: `${notification.notificationType}${notification.subtype ? `.${notification.subtype}` : ''}`,
+    state: original ? await etatApple(original) : null,
+    raw: notification,
   };
 }
 
-/** Vérifie une transaction précise, au retour d'un achat dans l'application. */
+/**
+ * Une transaction précise, au retour d'un achat dans l'application.
+ *
+ * Le téléphone annonce une preuve ; on ne la croit pas. On y lit l'identifiant
+ * de la transaction d'origine et on demande à Apple ce qu'il en est.
+ */
 export async function verifyAppleTransaction(signedTransaction: string): Promise<StoreState> {
-  const verifier = await appleVerifier();
-  const transaction = await verifier.verifyAndDecodeTransaction(signedTransaction);
-  return appleToState(transaction as never, null);
+  const annonce = chargeJws(signedTransaction);
+  const original = String(annonce.originalTransactionId ?? annonce.transactionId ?? '');
+  if (!original) throw new Error('Transaction Apple illisible.');
+  return await etatApple(original);
 }
 
 /* ------------------------------------------------------------------ Google */
