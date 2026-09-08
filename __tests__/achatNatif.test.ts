@@ -390,6 +390,62 @@ describe('branchée sur StoreBillingService', () => {
     });
   });
 
+
+  /**
+   * Ce que la boutique dit doit arriver jusqu'à l'écran.
+   *
+   * Toute erreur repartait sous « Le paiement n'a pas abouti », qui décrit le
+   * symptôme et rien d'autre. Le premier achat en bac à sable a échoué
+   * exactement comme ça : feuille de paiement ouverte, achat confirmé, et pas
+   * un mot sur la cause. Il a fallu lire le code pour savoir quelles causes
+   * étaient seulement possibles.
+   */
+  it('remonte la raison donnée par la boutique, pas une phrase passe-partout', async () => {
+    const { iap } = fausseBoutique({
+      produits: [mensuel],
+      surDemande: ({ echoue }) => echoue('unknown', 'Ce compte n’est pas éligible.'),
+    });
+
+    const service = new StoreBillingService(
+      serveur,
+      new ExpoIapStore('apple', async () => iap),
+      async () => null,
+      async () => JETON,
+    );
+
+    expect(await service.startCheckout({ familyId: 'fam-1', plan: 'monthly' })).toEqual({
+      kind: 'failed',
+      reason: 'Ce compte n’est pas éligible.',
+    });
+  });
+
+  /**
+   * Quand la boutique ne dit rien, quelqu'un doit parler quand même.
+   *
+   * Et ce n'est pas `startCheckout` : `ExpoIapStore` a déjà substitué une
+   * phrase en français au moment où la boutique a rendu un message vide. Le
+   * repli du dessus existe toujours, mais il ne sert que si l'erreur remonte
+   * sans message du tout — d'où ce test, qui dit lequel des deux répond.
+   */
+  it('laisse la couche boutique fournir la phrase quand le magasin se tait', async () => {
+    const { iap } = fausseBoutique({
+      produits: [mensuel],
+      surDemande: ({ echoue }) => echoue('unknown', ''),
+    });
+
+    const service = new StoreBillingService(
+      serveur,
+      new ExpoIapStore('apple', async () => iap),
+      async () => null,
+      async () => JETON,
+    );
+
+    expect(await service.startCheckout({ familyId: 'fam-1', plan: 'monthly' })).toEqual({
+      kind: 'failed',
+      reason: 'La boutique a refusé le paiement.',
+    });
+  });
+
   it('renvoie vers les réglages du téléphone pour résilier', async () => {
     const { iap } = fausseBoutique({});
     const service = new StoreBillingService(

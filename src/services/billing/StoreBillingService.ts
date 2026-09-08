@@ -60,8 +60,27 @@ export class StoreBillingService implements BillingService {
     let purchase;
     try {
       purchase = await this.store.purchase({ productId: product.id, accountToken });
-    } catch {
-      return { kind: 'failed', reason: 'Le paiement n’a pas abouti.' };
+    } catch (erreur) {
+      /**
+       * Dire ce que la boutique a dit.
+       *
+       * Ce `catch` remplaçait toute erreur par « Le paiement n'a pas abouti »,
+       * une phrase qui décrit le symptôme et rien d'autre. Or la boutique est
+       * précise : elle distingue une preuve d'achat absente, un refus, un
+       * produit indisponible, un compte non éligible. Tout cela arrivait ici et
+       * repartait sous le même mot.
+       *
+       * Le premier achat en bac à sable a échoué exactement comme ça : la
+       * feuille de paiement d'Apple s'était ouverte, l'achat avait été
+       * confirmé, et l'écran n'a su dire que « n'a pas abouti ». Il a fallu
+       * lire le code pour savoir quelles causes étaient seulement possibles.
+       *
+       * Le message d'une boutique n'est pas toujours joli, mais un parent qui
+       * nous écrit en le recopiant nous donne le diagnostic ; « n'a pas abouti »
+       * ne donne rien, et il faudra le lui demander.
+       */
+      const dit = erreur instanceof Error ? erreur.message.trim() : '';
+      return { kind: 'failed', reason: dit || 'Le paiement n’a pas abouti.' };
     }
 
     // Refermer la feuille de paiement n'est pas un échec : c'est un choix, et
