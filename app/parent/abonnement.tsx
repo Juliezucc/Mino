@@ -255,11 +255,25 @@ export default function SubscriptionScreen() {
 
       {gerable && !resilie ? (
         <View style={styles.actions}>
+          {/**
+           * Changer de formule, et pourquoi ce n'est pas le sélecteur.
+           *
+           * Un parent qui a pris le mensuel et veut l'annuel n'avait aucun
+           * chemin : le seul bouton parlait de moyen de paiement, ce qui ne
+           * laisse pas deviner qu'on peut aussi changer de formule derrière.
+           * Il repassait donc par le sélecteur — quand il y avait encore accès
+           * — et ouvrait un SECOND abonnement.
+           *
+           * Le changement passe par là où il est prévu : le portail Stripe,
+           * ou les réglages du téléphone. Eux savent remplacer une formule par
+           * une autre, avec le prorata ; nous ne saurions qu'en ajouter une.
+           * Le libellé le dit, faute de quoi la porte existe sans se voir.
+           */}
           <Button
             label={
               isStore(subscription?.source)
-                ? 'Gérer mon abonnement'
-                : 'Gérer mon moyen de paiement'
+                ? 'Changer de formule'
+                : 'Changer de formule ou de moyen de paiement'
             }
             variant="secondary"
             onPress={ouvrirGestion}

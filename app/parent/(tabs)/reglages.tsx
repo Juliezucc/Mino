@@ -29,9 +29,22 @@ export default function ParentSettings() {
   const capability = getScreenTimeService().capability;
   const access = accessOf(subscription);
   const accessLabel =
-    access.kind === 'trial'
-      ? `Essai gratuit · ${access.daysLeft} jour${access.daysLeft > 1 ? 's' : ''} restant${access.daysLeft > 1 ? 's' : ''}`
-      : access.kind === 'active'
+    // Un essai engagé — payé, pas encore prélevé — n'est pas un essai gratuit.
+    // Écrire « Essai gratuit » à quelqu'un dont la carte est enregistrée lui
+    // fait croire que son paiement n'a pas pris. C'était le dernier endroit
+    // du produit à confondre les deux.
+    access.kind === 'trial' && access.plan !== null
+      ? `Formule ${access.plan === 'yearly' ? 'annuelle' : 'mensuelle'} · essai jusqu’au ${
+          access.firstChargeOn
+            ? new Date(access.firstChargeOn).toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'long',
+              })
+            : 'la fin du mois'
+        }`
+      : access.kind === 'trial'
+        ? `Essai gratuit · ${access.daysLeft} jour${access.daysLeft > 1 ? 's' : ''} restant${access.daysLeft > 1 ? 's' : ''}`
+        : access.kind === 'active'
         ? access.cancelAtPeriodEnd
           ? 'Résilié · actif jusqu’à la fin de la période'
           : `Actif · formule ${subscription?.plan === 'yearly' ? 'annuelle' : 'mensuelle'}`
