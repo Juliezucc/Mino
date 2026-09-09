@@ -195,9 +195,27 @@ export class SupabaseAuthService implements AuthService {
    * ce serait déconnecter un parent en lui faisant scanner le code de sa
    * propre famille.
    */
+  /**
+   * **Une session stockée n'est pas une session valable.**
+   *
+   * `getSession()` ne lit que ce qui traîne sur l'appareil : il ne demande rien
+   * au serveur, et un jeton reste cryptographiquement bon jusqu'à son
+   * expiration même si le compte qu'il désigne a disparu entre-temps. Le cas
+   * n'a rien de théorique — un ménage dans `auth.users`, un compte supprimé
+   * depuis un autre appareil — et il produisait une panne incompréhensible :
+   * `auth.uid()` rend l'identifiant écrit dans le jeton, les politiques RLS
+   * l'acceptent, puis Postgres refuse l'écriture avec « insert or update on
+   * table "parents" violates foreign key constraint parents_user_id_fkey ».
+   * C'est cette phrase-là qui s'affichait à un parent en train de créer sa
+   * famille.
+   *
+   * `session()` interroge le serveur et ferme d'elle-même une session dont le
+   * compte n'existe plus. Passer par elle coûte un aller-retour au premier
+   * écran de l'inscription, et rend le cas impossible.
+   */
   async signInAsDevice(): Promise<void> {
     const { data } = await this.client.auth.getSession();
-    if (data.session) return;
+    if (data.session && (await this.session()).kind !== 'none') return;
     await this.client.auth.signInAnonymously();
   }
 

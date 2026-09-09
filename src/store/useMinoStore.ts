@@ -509,11 +509,35 @@ export const useMinoStore = create<MinoState>((set, get) => {
         // Sans famille, l'écran suivant n'a rien où écrire l'enfant. Le dire
         // ici, une fois, plutôt que de laisser échouer trois écrans plus loin.
         publish(null, { status: 'ready' });
+
+        /**
+         * L'identité périmée, dite en français.
+         *
+         * C'est ici qu'elle frappe : au tout premier écran, celui du prénom de
+         * l'enfant. Un jeton encore valide désignant un compte supprimé passe
+         * les politiques RLS — `auth.uid()` lit le jeton, il ne vérifie rien —
+         * puis Postgres refuse : « insert or update on table "parents"
+         * violates foreign key constraint parents_user_id_fkey ». C'est cette
+         * phrase-là qu'un parent voyait en appuyant sur « Continuer ».
+         *
+         * `signInAsDevice` referme le chemin en amont, en demandant au serveur
+         * si la session vaut encore quelque chose au lieu de croire ce qui est
+         * stocké. Ceci reste le filet, et il dit la seule chose utile.
+         */
+        const dit = (e as { message?: string } | null)?.message ?? '';
+        if (/parents_user_id_fkey|foreign key constraint/i.test(dit)) {
+          await getAuthService().signOut().catch(() => undefined);
+          return {
+            ok: false as const,
+            reason:
+              'Votre session n’était plus valable. Touchez à nouveau « Continuer » — rien n’a été enregistré.',
+          };
+        }
+
         return {
           ok: false as const,
           reason:
-            (e as { message?: string } | null)?.message ??
-            'Impossible de créer votre famille. Vérifiez votre connexion et réessayez.',
+            dit || 'Impossible de créer votre famille. Vérifiez votre connexion et réessayez.',
         };
       }
     },
@@ -644,12 +668,39 @@ export const useMinoStore = create<MinoState>((set, get) => {
        * À ce stade le parent appartient bien à sa famille : la fusion est
        * permise, et c'est elle qu'il faut.
        */
-      await get().repository.persist(
-        data,
-        existante
-          ? { kind: 'family.updated', upsert: { family: data.family, parents: data.parents } }
-          : { kind: 'bootstrap' },
-      );
+      try {
+        await get().repository.persist(
+          data,
+          existante
+            ? { kind: 'family.updated', upsert: { family: data.family, parents: data.parents } }
+            : { kind: 'bootstrap' },
+        );
+      } catch (erreur) {
+        /**
+         * Traduire l'identité périmée, au lieu de montrer du SQL à un parent.
+         *
+         * `parents.user_id` prend pour valeur par défaut `auth.uid()`, c'est-à-
+         * dire l'identifiant écrit dans le jeton — que Postgres ne vérifie pas.
+         * Un jeton encore valide désignant un compte supprimé passe donc les
+         * politiques RLS et échoue sur la clé étrangère, en anglais et en
+         * jargon, au milieu de l'inscription.
+         *
+         * `signInAsDevice` referme désormais ce chemin en amont. Ceci reste le
+         * filet : la panne est rare, elle est irrattrapable sur place, et la
+         * seule chose utile à dire est comment repartir.
+         */
+        const dit = erreur instanceof Error ? erreur.message : '';
+        if (/parents_user_id_fkey|foreign key constraint/i.test(dit)) {
+          await getAuthService().signOut().catch(() => undefined);
+          publish(null, { status: 'ready', activeChildId: null, parentUnlocked: false });
+          return {
+            ok: false,
+            reason:
+              'Votre session n’était plus valable. Fermez Mino, rouvrez-le, et recommencez — rien n’a été enregistré.',
+          };
+        }
+        throw erreur;
+      }
       await get().loadBilling();
 
       /**

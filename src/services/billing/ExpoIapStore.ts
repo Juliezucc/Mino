@@ -108,13 +108,60 @@ export interface ModuleIap {
 
 /* ------------------------------------------------------------ l'adaptateur */
 
+/**
+ * Les délais au-delà desquels on cesse d'attendre la boutique.
+ *
+ * **Aucun n'existait, et c'est ce qui a produit le bouton qui tourne sans
+ * fin.** Rien dans ce fichier ne garantissait qu'une promesse finisse par se
+ * dénouer : ni l'ouverture de la liaison, ni la lecture des produits, ni
+ * surtout la feuille de paiement, qui n'était refermée que par un écouteur.
+ * Une boutique muette — et elles le sont, en bac à sable comme en production —
+ * laissait l'écran tourner jusqu'à ce que le parent tue l'application.
+ *
+ * Les deux valeurs ne se ressemblent pas parce qu'elles ne mesurent pas la même
+ * chose : ouvrir une liaison est une affaire de secondes, tandis qu'un achat
+ * peut demander Face ID, le mot de passe d'un compte Apple, et parfois
+ * l'autorisation d'un autre adulte. Deux minutes est long à l'écran ; c'est
+ * court au regard de ce qu'un vrai achat peut prendre, et une promesse qu'on
+ * coupe trop tôt fait dire à Mino qu'un paiement a échoué alors qu'il aboutit.
+ */
+const DELAI_LIAISON_MS = 20_000;
+const DELAI_FEUILLE_MS = 120_000;
+
 export class ExpoIapStore implements NativeStore {
   constructor(
     readonly platform: 'apple' | 'google',
     private readonly charger: () => Promise<ModuleIap>,
+    /** Raccourcis pour les essais, qui n'ont pas deux minutes à perdre. */
+    private readonly delais: { liaison?: number; feuille?: number } = {},
   ) {}
 
   private ouverture: Promise<ModuleIap> | null = null;
+
+  /**
+   * La même promesse, mais qui finit toujours par répondre.
+   *
+   * Un rejet dit ce qui n'a pas abouti et à quelle étape — c'est ce qui
+   * distingue « la boutique ne s'ouvre pas » de « le paiement a été refusé »,
+   * deux pannes qui ne se réparent pas du tout de la même façon et qui
+   * arrivaient toutes deux à l'écran sous la forme d'un bouton qui tourne.
+   */
+  private async avant<T>(quoi: string, ms: number, travail: Promise<T>): Promise<T> {
+    let minuterie: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        travail,
+        new Promise<never>((_, rejeter) => {
+          minuterie = setTimeout(
+            () => rejeter(new Error(`La boutique n’a pas répondu (${quoi}).`)),
+            ms,
+          );
+        }),
+      ]);
+    } finally {
+      if (minuterie) clearTimeout(minuterie);
+    }
+  }
 
   /**
    * Ouvre la liaison avec la boutique, une seule fois.
@@ -129,12 +176,16 @@ export class ExpoIapStore implements NativeStore {
    */
   private connexion(): Promise<ModuleIap> {
     if (!this.ouverture) {
-      const ouvrir = (async () => {
-        const iap = await this.charger();
-        await iap.initConnection();
-        await this.solder(iap);
-        return iap;
-      })();
+      const ouvrir = this.avant(
+        'ouverture',
+        this.delais.liaison ?? DELAI_LIAISON_MS,
+        (async () => {
+          const iap = await this.charger();
+          await iap.initConnection();
+          await this.solder(iap);
+          return iap;
+        })(),
+      );
 
       this.ouverture = ouvrir.catch((erreur) => {
         this.ouverture = null;
@@ -175,10 +226,11 @@ export class ExpoIapStore implements NativeStore {
    */
   async products(): Promise<StoreProduct[]> {
     const iap = await this.connexion();
-    const bruts = (await iap.fetchProducts({
-      skus: [PRODUITS.monthly, PRODUITS.yearly],
-      type: 'subs',
-    })) as ProduitBoutique[] | null;
+    const bruts = (await this.avant(
+      'formules',
+      this.delais.liaison ?? DELAI_LIAISON_MS,
+      iap.fetchProducts({ skus: [PRODUITS.monthly, PRODUITS.yearly], type: 'subs' }),
+    )) as ProduitBoutique[] | null;
 
     const plans: Plan[] = ['monthly', 'yearly'];
     const produits: StoreProduct[] = [];
@@ -227,46 +279,82 @@ export class ExpoIapStore implements NativeStore {
       const abonnements: Abonnement[] = [];
       let close = false;
 
+      /**
+       * Le garde-fou sans lequel l'écran tournait sans fin.
+       *
+       * Cette promesse n'avait que trois issues, toutes déclenchées par la
+       * boutique : la transaction, l'erreur, ou le refus de `requestPurchase`.
+       * Il en manquait une quatrième, la seule que l'on maîtrise — le silence.
+       * Une boutique qui ne dit rien laissait le bouton « CHOISIR CETTE
+       * FORMULE » tourner indéfiniment, et il n'y avait aucun moyen, pour le
+       * parent comme pour nous, de savoir à quelle étape ça s'était arrêté.
+       *
+       * Le message ne dit surtout pas que le paiement a échoué : on n'en sait
+       * rien. Il dit ce qu'il faut faire si jamais il a abouti, et c'est vrai —
+       * la notification serveur à serveur nous l'apprendra de toute façon.
+       */
+      const minuterie = setTimeout(
+        () =>
+          termine(
+            null,
+            new Error(
+              'La boutique n’a pas répondu. Si le paiement a été accepté, touchez « Restaurer mes achats » : rien n’est perdu.',
+            ),
+          ),
+        this.delais.feuille ?? DELAI_FEUILLE_MS,
+      );
+
       const termine = (valeur: StorePurchase | null, erreur?: Error) => {
         if (close) return;
         close = true;
+        clearTimeout(minuterie);
         for (const abonnement of abonnements) abonnement.remove();
         if (erreur) reject(erreur);
         else resolve(valeur);
       };
 
+      /**
+       * Encaisser une transaction, d'où qu'elle vienne.
+       *
+       * **Elle arrive par deux chemins, et un seul était écouté.** L'écouteur
+       * est le chemin documenté, mais selon la version de StoreKit et de la
+       * liaison, `requestPurchase` résout lui-même avec l'achat — et l'écouteur
+       * ne dit alors jamais rien. Ce cas-là ne finissait nulle part.
+       */
+      const encaisser = async (achat: AchatBoutique) => {
+        // StoreKit rejoue les transactions non closes à chaque connexion.
+        // Celle-ci concerne un autre produit : on la clôt pour qu'elle
+        // cesse de revenir, et on continue d'attendre la nôtre.
+        if (achat.productId !== input.productId) {
+          await iap
+            .finishTransaction({ purchase: achat, isConsumable: false })
+            .catch(() => undefined);
+          return;
+        }
+
+        const preuve = achat.purchaseToken ?? '';
+
+        // Clore avant de rendre la main, et non après la vérification du
+        // serveur. C'est le sens inverse de l'usage, et il est délibéré :
+        // ici la vérité vient de la notification serveur à serveur, qu'Apple
+        // et Google réémettent pendant des jours. Attendre notre serveur
+        // pour acquitter n'ajouterait donc aucune sécurité, et exposerait
+        // le parent au remboursement automatique de Google.
+        await iap
+          .finishTransaction({ purchase: achat, isConsumable: false })
+          .catch(() => undefined);
+
+        if (!preuve) {
+          termine(null, new Error('La boutique n’a pas rendu de preuve d’achat.'));
+          return;
+        }
+
+        termine({ productId: achat.productId, token: preuve, accountToken: jeton });
+      };
+
       abonnements.push(
         iap.purchaseUpdatedListener((achat) => {
-          void (async () => {
-            // StoreKit rejoue les transactions non closes à chaque connexion.
-            // Celle-ci concerne un autre produit : on la clôt pour qu'elle
-            // cesse de revenir, et on continue d'attendre la nôtre.
-            if (achat.productId !== input.productId) {
-              await iap
-                .finishTransaction({ purchase: achat, isConsumable: false })
-                .catch(() => undefined);
-              return;
-            }
-
-            const preuve = achat.purchaseToken ?? '';
-
-            // Clore avant de rendre la main, et non après la vérification du
-            // serveur. C'est le sens inverse de l'usage, et il est délibéré :
-            // ici la vérité vient de la notification serveur à serveur, qu'Apple
-            // et Google réémettent pendant des jours. Attendre notre serveur
-            // pour acquitter n'ajouterait donc aucune sécurité, et exposerait
-            // le parent au remboursement automatique de Google.
-            await iap
-              .finishTransaction({ purchase: achat, isConsumable: false })
-              .catch(() => undefined);
-
-            if (!preuve) {
-              termine(null, new Error('La boutique n’a pas rendu de preuve d’achat.'));
-              return;
-            }
-
-            termine({ productId: achat.productId, token: preuve, accountToken: jeton });
-          })();
+          void encaisser(achat);
         }),
         iap.purchaseErrorListener((erreur) => {
           if (erreur.code === 'user-cancelled') termine(null);
@@ -306,6 +394,15 @@ export class ExpoIapStore implements NativeStore {
               subscriptionOffers: offre ? [{ sku: input.productId, offerToken: offre }] : [],
             },
           },
+        })
+        // Le second chemin : quand la liaison rend l'achat au lieu de le
+        // signaler. Un achat livré deux fois ne pose pas de problème — `close`
+        // ferme la porte derrière le premier arrivé.
+        .then((rendu: unknown) => {
+          const achats = (Array.isArray(rendu) ? rendu : rendu ? [rendu] : []) as AchatBoutique[];
+          for (const achat of achats) {
+            if (achat && typeof achat.productId === 'string') void encaisser(achat);
+          }
         })
         .catch((erreur: unknown) =>
           termine(null, erreur instanceof Error ? erreur : new Error('Paiement impossible.')),

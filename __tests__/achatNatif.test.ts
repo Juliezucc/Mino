@@ -44,8 +44,10 @@ interface Journal {
  * Une boutique en dur, aussi tordue que les vraies.
  *
  * `emet` et `echoue` laissent l'essai décider du moment où la transaction
- * arrive : c'est là qu'est toute la difficulté du vrai module, puisque
- * `requestPurchase` ne rend jamais le résultat.
+ * arrive : c'est là qu'est toute la difficulté du vrai module. Et `surDemande`
+ * peut aussi rendre l'achat — les vraies liaisons font parfois l'un, parfois
+ * l'autre, et croire que seul l'écouteur parle est ce qui a produit un bouton
+ * qui tourne sans fin sur un vrai iPhone.
  */
 function fausseBoutique(options: {
   produits?: { id: string; displayPrice: string; price?: number | null; offre?: string }[];
@@ -55,11 +57,17 @@ function fausseBoutique(options: {
     purchaseToken?: string | null;
     isAcknowledgedAndroid?: boolean | null;
   }[];
-  /** Ce que fait la boutique quand la feuille de paiement s'ouvre. */
+  /**
+   * Ce que fait la boutique quand la feuille de paiement s'ouvre, et ce que
+   * `requestPurchase` rend en plus de ce qu'il émet. Les vraies
+   * liaisons font parfois l'un, parfois l'autre, parfois les deux — et rendre
+   * l'achat sans jamais l'émettre est précisément le cas qui laissait le bouton
+   * tourner sans fin.
+   */
   surDemande?: (boutique: {
     emet: (achat: { id: string; productId: string; purchaseToken?: string | null }) => void;
     echoue: (code: string, message: string) => void;
-  }) => void;
+  }) => unknown;
 }) {
   const journal: Journal = { closes: [], demandes: [], connexions: 0, restaurations: 0 };
   const surAchat: ((achat: never) => void)[] = [];
@@ -89,8 +97,7 @@ function fausseBoutique(options: {
     },
     async requestPurchase(args) {
       journal.demandes.push(args);
-      options.surDemande?.({ emet, echoue });
-      return null;
+      return options.surDemande?.({ emet, echoue }) ?? null;
     },
     async finishTransaction({ purchase }) {
       journal.closes.push(purchase.id);
@@ -564,4 +571,95 @@ describe('ce que la boutique ne fait jamais', () => {
     expect(PRODUITS.monthly).toContain('month');
     expect(PRODUITS.yearly).toMatch(/yearly|annual/);
   });
+});
+
+/**
+ * Le bouton qui tourne sans fin — la panne rapportée depuis TestFlight.
+ *
+ * « Si on clique sur souscrire la formule mensuelle : ça mouline, il se passe
+ * rien. » Rien dans `ExpoIapStore` ne garantissait qu'une promesse finisse par
+ * se dénouer : la feuille de paiement n'était refermée que par un écouteur, et
+ * la liaison n'avait aucun délai. Une boutique muette laissait l'écran tourner
+ * jusqu'à ce que le parent tue l'application — sans un mot, sans une trace,
+ * sans rien à raconter au support.
+ *
+ * Ces essais couvrent les trois silences possibles. Ils manquaient, et c'est
+ * pour cela que le défaut est allé jusqu'à un vrai iPhone.
+ */
+describe('la boutique qui ne répond pas', () => {
+  /**
+   * Le cas exact du bouton qui tourne : la liaison rend l'achat au lieu de
+   * l'émettre. C'est un comportement réel de StoreKit selon les versions, et
+   * il ne finissait nulle part.
+   */
+  it('encaisse l’achat quand `requestPurchase` le rend au lieu de l’émettre', async () => {
+    const { iap, journal } = fausseBoutique({
+      produits: [mensuel],
+      // Rendu, jamais émis : aucun écouteur ne dira quoi que ce soit.
+      surDemande: () => ({ id: 'tx-1', productId: PRODUITS.monthly, purchaseToken: 'jws-rendu' }),
+    });
+
+    const achat = await new ExpoIapStore('apple', async () => iap, {
+      feuille: 500,
+    }).purchase({ productId: PRODUITS.monthly, accountToken: JETON });
+
+    expect(achat?.token).toBe('jws-rendu');
+    // La transaction est close, sans quoi Google rembourse au bout de trois jours.
+    expect(journal.closes).toContain('tx-1');
+  });
+
+  it('rend la main plutôt que d’attendre pour toujours', async () => {
+    const { iap } = fausseBoutique({
+      produits: [mensuel],
+      // Le silence complet : ni émission, ni erreur, ni valeur rendue.
+      surDemande: () => undefined,
+    });
+
+    const boutique = new ExpoIapStore('apple', async () => iap, { feuille: 50 });
+
+    await expect(
+      boutique.purchase({ productId: PRODUITS.monthly, accountToken: JETON }),
+    ).rejects.toThrow(/Restaurer mes achats/);
+  });
+
+  /**
+   * Et le message doit remonter jusqu'à l'écran, pas mourir dans le service :
+   * c'est ce qui distingue un bouton mort d'une panne qu'on peut rapporter.
+   */
+  it('remonte la cause à l’écran au lieu d’un bouton mort', async () => {
+    const { iap } = fausseBoutique({ produits: [mensuel], surDemande: () => undefined });
+
+    const service = new StoreBillingService(
+      {} as BillingService,
+      new ExpoIapStore('apple', async () => iap, { feuille: 50 }),
+      async () => ABONNEMENT,
+      async () => JETON,
+    );
+
+    const issue = await service.startCheckout({ familyId: 'fam-1', plan: 'monthly' });
+    expect(issue.kind).toBe('failed');
+    expect(issue.kind === 'failed' && issue.reason).toMatch(/Restaurer mes achats/);
+  });
+
+  it('cesse d’attendre une liaison qui ne s’ouvre jamais', async () => {
+    const jamais = new Promise<never>(() => undefined);
+    const boutique = new ExpoIapStore(
+      'apple',
+      () => jamais as unknown as Promise<ModuleIap>,
+      { liaison: 50 },
+    );
+
+    await expect(boutique.products()).rejects.toThrow(/n’a pas répondu/);
+  });
+});
+
+/**
+ * Le prix affiché doit rester celui d'Apple même quand tout le reste va mal :
+ * un délai posé au mauvais endroit couperait la lecture des formules et
+ * l'écran d'abonnement n'afficherait plus aucun tarif.
+ */
+it('les délais ne gênent pas le cas normal', async () => {
+  const { iap } = fausseBoutique({ produits: [mensuel, annuel] });
+  const produits = await new ExpoIapStore('apple', async () => iap).products();
+  expect(produits.map((p) => p.priceLabel)).toEqual(['9,99 €', '79,99 €']);
 });
