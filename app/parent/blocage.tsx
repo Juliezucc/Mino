@@ -114,7 +114,20 @@ export default function ShieldSetup() {
 
   return (
     <Screen contentStyle={styles.content}>
-      <ScreenHeader onBack={() => router.back()} title="Blocage des applications" />
+      {/**
+        * Revenir, sans retomber sur « Créer une famille ».
+        *
+        * L'inscription enchaîne ses écrans en `replace` — c'est voulu, on ne
+        * revient pas en arrière dans une inscription. Mais cet écran en est le
+        * bout, et `router.back()` renvoyait alors à la seule entrée qui restait
+        * dans l'historique : l'accueil de bienvenue. Un parent qui vient de
+        * créer sa famille se retrouvait devant « Créer mon compte parent »,
+        * c'est-à-dire devant l'écran qui lui annonce qu'elle n'existe pas.
+        */}
+      <ScreenHeader
+        onBack={() => (router.canGoBack() ? router.back() : router.replace('/parent'))}
+        title="Blocage des applications"
+      />
 
       <View style={styles.hero}>
         <Mascot expression={status === 'approved' ? 'proud' : 'motivated'} size={110} />
@@ -143,9 +156,14 @@ export default function ShieldSetup() {
           <Text variant="body" color={colors.textMuted}>
             {`En attendant, réglez la limite dans le contrôle parental de l’appareil : ${manual}`}
           </Text>
+          {/* En retrait, et c'est le sujet : la consigne utile tient dans la
+              ligne au-dessus. Le guide détaille, il ne remplace pas — et
+              l'offrir comme action principale revenait à demander cinq pages
+              de lecture à quelqu'un qui installe une application. */}
           <Button
-            label="Voir le guide"
-            variant="secondary"
+            label="Voir le guide détaillé"
+            variant="ghost"
+            haptic={false}
             onPress={() => router.push({ pathname: '/guide/[id]', params: { id: 'blocage' } })}
           />
         </Card>
@@ -287,6 +305,21 @@ export default function ShieldSetup() {
           </Text>
         </>
       )}
+
+      {/**
+        * La sortie vers l'avant, qui manquait.
+        *
+        * Cet écran est le dernier de l'installation, et il ne proposait rien
+        * d'autre que le guide ou le retour. Un parent pressé — c'est-à-dire
+        * tous — n'avait donc le choix qu'entre lire cinq pages et reculer.
+        * Sur le web, où le bouclier n'existe pas et où la seule carte affichée
+        * est celle du guide, l'écran était une impasse complète.
+        */}
+      <Button
+        label="Terminer, aller à mon espace"
+        variant={status === 'approved' ? 'secondary' : 'primary'}
+        onPress={() => router.replace('/parent')}
+      />
 
       {/* ----------------------------------- les autres appareils de la famille
 
