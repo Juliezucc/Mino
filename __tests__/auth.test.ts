@@ -445,6 +445,53 @@ describe('fonder une famille avant de se présenter', () => {
     expect(useMinoStore.getState().data!.family.id).toBe(premiere);
   });
 
+  /**
+   * Le mode d'écriture, et pourquoi il mérite son propre témoin.
+   *
+   * `bootstrap` fait des `insert` francs — délibérément : sur une famille
+   * qu'on vient d'inventer, un `upsert` déclenche la politique de mise à jour,
+   * qui exige d'appartenir déjà à cette famille, et personne n'appartient à
+   * une famille qui n'existe pas encore.
+   *
+   * Mais quand la famille a été fondée deux écrans plus tôt, ces mêmes
+   * `insert` retombent sur des lignes déjà présentes :
+   * « duplicate key value violates unique constraint families_pkey ». Le
+   * parcours s'arrêtait là, à l'écran du compte, avec une phrase de Postgres
+   * en rouge.
+   *
+   * Aucun test ne pouvait l'attraper : ils écrivent en mémoire, où réécrire
+   * une clé existante ne coûte rien. Celui-ci ne regarde donc pas le résultat
+   * mais l'intention — le mode demandé au dépôt.
+   */
+  it('demande une fusion, et non une création, quand la famille existe déjà', async () => {
+    service();
+    const vus: string[] = [];
+    await useMinoStore.getState().fonderFamille({ consentAt: '2026-09-09T12:00:00.000Z' });
+
+    const vrai = useMinoStore.getState().repository;
+    useMinoStore.setState({
+      repository: {
+        ...vrai,
+        persist: async (data, change) => {
+          vus.push(change.kind);
+          return vrai.persist(data, change);
+        },
+      },
+    });
+
+    await useMinoStore.getState().createAccount({
+      parentName: 'Julie',
+      email: 'julie@exemple.fr',
+      password: 'Un-Mot-De-Passe-2026',
+      consentAt: new Date().toISOString(),
+    });
+
+    useMinoStore.setState({ repository: vrai });
+    expect(vus).toContain('family.updated');
+    // Celui-là refaisait un INSERT sur une famille déjà écrite.
+    expect(vus).not.toContain('bootstrap');
+  });
+
   it('complète la famille au lieu de la reconstruire quand le compte arrive', async () => {
     const appels = service();
     await useMinoStore.getState().fonderFamille({ consentAt: '2026-09-09T12:00:00.000Z' });

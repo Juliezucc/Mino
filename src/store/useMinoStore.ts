@@ -593,7 +593,30 @@ export const useMinoStore = create<MinoState>((set, get) => {
         : buildEmptyFamily({ parentName, email: adresse, familyName: nom, consentAt });
 
       publish(data, { status: 'ready', activeChildId: null, parentUnlocked: true });
-      await get().repository.persist(data, { kind: 'bootstrap' });
+
+      /**
+       * Créer, ou compléter — et l'écrire dans le bon mode.
+       *
+       * `bootstrap` fait des `insert` francs, et c'est délibéré : sur une
+       * famille qu'on vient d'inventer, un `upsert` déclenche la politique de
+       * mise à jour, laquelle exige d'appartenir déjà à cette famille. Personne
+       * n'appartient à une famille qui n'existe pas encore.
+       *
+       * Mais ici, quand elle a été fondée deux écrans plus tôt, ces mêmes
+       * `insert` retombent sur des lignes déjà présentes : « duplicate key
+       * value violates unique constraint families_pkey ». C'est la panne qu'a
+       * révélée le premier vrai parcours — invisible aux tests, qui n'écrivent
+       * pas dans Postgres.
+       *
+       * À ce stade le parent appartient bien à sa famille : la fusion est
+       * permise, et c'est elle qu'il faut.
+       */
+      await get().repository.persist(
+        data,
+        existante
+          ? { kind: 'family.updated', upsert: { family: data.family, parents: data.parents } }
+          : { kind: 'bootstrap' },
+      );
       await get().loadBilling();
 
       /**
