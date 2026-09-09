@@ -76,6 +76,12 @@ interface MinoState {
 
   bootstrap: () => Promise<void>;
   startDemo: () => Promise<void>;
+  /**
+   * Ouvrir une famille sur une session anonyme, avant que le parent ne se
+   * présente. Premier écran du parcours d'inscription — voir
+   * `docs/ops/parcours-inscription.md`.
+   */
+  fonderFamille: (input: { consentAt: ISODate }) => Promise<{ ok: boolean; reason?: string }>;
   createAccount: (input: {
     parentName: string;
     email: string;
@@ -460,6 +466,50 @@ export const useMinoStore = create<MinoState>((set, get) => {
       await get().loadBilling();
     },
 
+    /**
+     * Fonder la famille avant que le parent ne se présente.
+     *
+     * C'est le premier écran du nouveau parcours : on demande le prénom de
+     * l'enfant, et rien d'autre. Pour l'écrire il faut pourtant une identité —
+     * chaque ligne que la base accepte est cadrée par elle — d'où la session
+     * anonyme, la même que celle des tablettes d'enfants.
+     *
+     * **Ce que cela achète.** Le parent voit sa famille exister, puis son
+     * enfant, puis sa première mission, avant qu'on lui demande une adresse.
+     * L'ordre inverse — quatre champs et une case à cocher devant quelqu'un
+     * qui n'a encore rien vu — est l'endroit du parcours où l'on perdait le
+     * plus de monde.
+     *
+     * Le consentement est recueilli **ici**, et pas plus tard : il précède la
+     * création du profil de l'enfant, c'est ce que le dossier déposé chez
+     * Apple affirme, et c'est la date qui vaut preuve.
+     *
+     * Idempotent : une famille déjà là n'est pas remplacée. Rouvrir
+     * l'application au milieu de l'inscription ne doit pas effacer l'enfant
+     * qu'on vient de créer.
+     */
+    async fonderFamille({ consentAt }: { consentAt: string }) {
+      if (get().data) return { ok: true as const };
+      try {
+        await getAuthService().signInAsDevice();
+        const data = buildEmptyFamily({ familyName: 'Ma famille', consentAt });
+        publish(data, { status: 'ready', activeChildId: null, parentUnlocked: true });
+        await get().repository.persist(data, { kind: 'bootstrap' });
+        await get().loadBilling();
+        return { ok: true as const };
+      } catch (e) {
+        // Sans famille, l'écran suivant n'a rien où écrire l'enfant. Le dire
+        // ici, une fois, plutôt que de laisser échouer trois écrans plus loin.
+        publish(null, { status: 'ready' });
+        return {
+          ok: false as const,
+          reason:
+            (e as { message?: string } | null)?.message ??
+            'Impossible de créer votre famille. Vérifiez votre connexion et réessayez.',
+        };
+      }
+    },
+
     async createAccount({ parentName, email, password, pin, familyName, consentAt }) {
       /**
        * Un compte sans famille n'est pas un cas tordu : c'est l'état de tout
@@ -513,14 +563,34 @@ export const useMinoStore = create<MinoState>((set, get) => {
         if (!pinSet.ok) return pinSet;
       }
 
-      const data = buildEmptyFamily({
-        parentName,
-        // L'adresse du compte ouvert fait foi sur celle qui a été tapée : c'est
-        // elle que la base rattachera aux lignes de cette famille.
-        email: ouverte.email ?? email,
-        familyName: familyName?.trim() || `Famille de ${parentName}`,
-        consentAt,
-      });
+      const nom = familyName?.trim() || `Famille de ${parentName}`;
+      // L'adresse du compte ouvert fait foi sur celle qui a été tapée : c'est
+      // elle que la base rattachera aux lignes de cette famille. Elle est
+      // absente tant que la confirmation n'a pas eu lieu — auquel cas celle
+      // que le parent vient de taper est la seule que nous ayons.
+      const adresse = ouverte.email ?? email;
+
+      /**
+       * La famille existe déjà : on la complète, on ne la refait pas.
+       *
+       * C'est le cas du nouveau parcours — elle a été fondée au premier écran,
+       * elle porte déjà l'enfant et sa première mission. La reconstruire ici
+       * les effacerait, et c'est exactement ce que le parent croirait avoir
+       * perdu.
+       */
+      const existante = get().data;
+      const data: FamilyData = existante
+        ? {
+            ...existante,
+            family: { ...existante.family, name: nom },
+            parents: existante.parents.map((p, i) =>
+              i === 0
+                ? { ...p, displayName: parentName, email: adresse, consentAt: p.consentAt ?? consentAt }
+                : p,
+            ),
+          }
+        : buildEmptyFamily({ parentName, email: adresse, familyName: nom, consentAt });
+
       publish(data, { status: 'ready', activeChildId: null, parentUnlocked: true });
       await get().repository.persist(data, { kind: 'bootstrap' });
       await get().loadBilling();

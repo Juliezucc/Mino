@@ -6,7 +6,17 @@ import { Screen, ScreenHeader } from '@/components/ui';
 import { MissionForm, MissionFormValue } from '@/features/parent/MissionForm';
 import { useMinoStore } from '@/store/useMinoStore';
 
-/** Step 3 of onboarding: the first mission, then straight to the dashboard. */
+/**
+ * Deuxième écran : la première mission.
+ *
+ * C'est ici que Mino devient concret — un prénom, une responsabilité, et le
+ * temps d'écran qu'elle fait gagner. Le parent a maintenant vu à quoi ressemble
+ * ce qu'on lui demande d'adopter.
+ *
+ * D'où la suite : le compte. C'est le premier moment du parcours où taper une
+ * adresse n'est plus un péage, mais un rangement — on ne lui demande de garder
+ * sa famille qu'après lui avoir montré ce qu'il garderait.
+ */
 export default function OnboardingMission() {
   const router = useRouter();
   const { childId } = useLocalSearchParams<{ childId?: string }>();
@@ -17,11 +27,7 @@ export default function OnboardingMission() {
     setLoading(true);
     await addMission(value);
     setLoading(false);
-    // Et surtout PAS le tableau de bord. L'inscription s'y terminait, et le
-    // parent devait trouver seul le chemin du blocage — personne ne le fait.
-    // La question de l'appareil est la dernière marche de l'installation, et
-    // c'est elle qui conduit au bouclier.
-    router.replace('/onboarding/appareil');
+    router.replace('/onboarding/account');
   };
 
   return (
@@ -31,7 +37,7 @@ export default function OnboardingMission() {
     >
       <Screen>
         <ScreenHeader
-          title="Ma première mission"
+          title="Sa première mission"
           subtitle="Une petite responsabilité du quotidien, et le temps d’écran qu’elle fait gagner."
         />
         <MissionForm

@@ -369,3 +369,105 @@ describe('donner son adresse sans perdre sa famille', () => {
     expect(appels).toEqual([]);
   });
 });
+
+/**
+ * Fonder une famille avant de savoir qui est le parent.
+ *
+ * Le premier écran du parcours demande le prénom de l'enfant, et rien d'autre.
+ * Pour l'écrire il faut pourtant une identité — chaque ligne que la base
+ * accepte est cadrée par elle — d'où la session anonyme.
+ *
+ * Ce que ces cas gardent, c'est l'ordre : famille, enfant, mission, PUIS
+ * compte. Le remettre à l'endroit d'avant ne casserait rien de visible, et
+ * ferait simplement replonger la conversion là où elle était.
+ */
+describe('fonder une famille avant de se présenter', () => {
+  const service = () => {
+    const appels: string[] = [];
+    setAuthService({
+      name: 'anonyme',
+      remote: true,
+      session: async () => ({ kind: 'device', userId: 'u-anon', email: null }),
+      onChange: () => () => undefined,
+      signUp: async () => ({ ok: true }),
+      linkEmail: async () => {
+        appels.push('linkEmail');
+        return { ok: true };
+      },
+      signIn: async () => ({ ok: true }),
+      signOut: async () => undefined,
+      signInAsDevice: async () => {
+        appels.push('signInAsDevice');
+      },
+      resumeFromLink: async () => ({ ok: true }),
+      setParentPin: async () => ({ ok: true }),
+      verifyParentPin: async () => ({ ok: true }),
+      setPassword: async () => ({ ok: true }),
+      sendPasswordLink: async () => ({ ok: true }),
+      changeEmail: async () => ({ ok: true }),
+      deleteAccount: async () => ({ ok: true }),
+    } as never);
+    return appels;
+  };
+
+  // Le magasin est un singleton : sans ce nettoyage, une famille laissée par
+  // le bloc précédent ferait sortir `fonderFamille` par sa porte
+  // d'idempotence, et le test mesurerait le silence au lieu du travail.
+  beforeEach(() => useMinoStore.setState({ data: null }));
+  afterEach(() => setAuthService(null));
+
+  it('ouvre une session anonyme et une famille sans nom ni adresse', async () => {
+    const appels = service();
+    const store = useMinoStore.getState();
+
+    const out = await store.fonderFamille({ consentAt: '2026-09-09T12:00:00.000Z' });
+
+    expect(out.ok).toBe(true);
+    expect(appels).toContain('signInAsDevice');
+
+    const parent = useMinoStore.getState().data!.parents[0];
+    expect(parent.displayName).toBeNull();
+    expect(parent.email).toBeNull();
+    // Le consentement est daté ici, avant que le profil de l'enfant n'existe :
+    // c'est ce que le dossier déposé chez Apple affirme.
+    expect(parent.consentAt).toBe('2026-09-09T12:00:00.000Z');
+  });
+
+  it('ne refonde pas une famille déjà là', async () => {
+    service();
+    await useMinoStore.getState().fonderFamille({ consentAt: '2026-09-09T12:00:00.000Z' });
+    const premiere = useMinoStore.getState().data!.family.id;
+
+    // Rouvrir l'application au milieu de l'inscription ne doit pas effacer
+    // l'enfant qu'on vient de créer.
+    await useMinoStore.getState().fonderFamille({ consentAt: '2026-09-09T13:00:00.000Z' });
+
+    expect(useMinoStore.getState().data!.family.id).toBe(premiere);
+  });
+
+  it('complète la famille au lieu de la reconstruire quand le compte arrive', async () => {
+    const appels = service();
+    await useMinoStore.getState().fonderFamille({ consentAt: '2026-09-09T12:00:00.000Z' });
+    const fondee = useMinoStore.getState().data!.family.id;
+    const enfant = await useMinoStore.getState().addChild({
+      firstName: 'Lou',
+      age: 7,
+      avatarKey: 'fox',
+    } as never);
+
+    await useMinoStore.getState().createAccount({
+      parentName: 'Julie',
+      email: 'julie@exemple.fr',
+      password: 'Un-Mot-De-Passe-2026',
+      consentAt: new Date().toISOString(),
+    });
+
+    const data = useMinoStore.getState().data!;
+    // La même famille, et l'enfant toujours là : c'est tout l'enjeu.
+    expect(data.family.id).toBe(fondee);
+    expect(data.children.map((c) => c.id)).toContain(enfant);
+    expect(data.parents[0].displayName).toBe('Julie');
+    expect(data.parents[0].email).toBe('julie@exemple.fr');
+    expect(appels).toContain('linkEmail');
+  });
+});

@@ -59,9 +59,9 @@ export default function Welcome() {
       <View style={styles.actions}>
         <Button label="Découvrir avec la démo" icon="✨" onPress={onDemo} loading={loading} />
         <Button
-          label="Créer mon compte parent"
+          label="Créer ma famille"
           variant="secondary"
-          onPress={() => router.push('/onboarding/account')}
+          onPress={() => router.push('/onboarding/child')}
         />
         <Button label="J’ai déjà un compte" variant="ghost" onPress={() => router.push('/login')} />
         {/* The child's own device starts here, and nowhere else: joining is

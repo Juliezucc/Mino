@@ -33,7 +33,6 @@ export default function CreateAccount() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
-  const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [aConfirmer, setAConfirmer] = useState(false);
@@ -108,12 +107,6 @@ export default function CreateAccount() {
         next.pin = 'Trop facile à deviner. Choisissez autre chose.';
       }
     }
-    // Le seul consentement qui ne se rattrape jamais. Mino encadre le temps
-    // d'écran d'un enfant : c'est le titulaire de l'autorité parentale qui
-    // l'autorise, et le dossier déposé chez Apple l'affirme. Ne pas le
-    // demander ici, c'est affirmer chez Apple quelque chose que le binaire ne
-    // fait pas — et ne pas pouvoir le prouver le jour où on le demande.
-    if (!consent) next.consent = 'Cochez cette case pour continuer.';
     setErrors(next);
     setErreur(null);
     if (Object.keys(next).length > 0) return;
@@ -125,8 +118,13 @@ export default function CreateAccount() {
         email: compteOuvert ?? email.trim(),
         password: compteOuvert ? undefined : password,
         pin: demandeLeCode ? pin : undefined,
-        // L'instant du consentement, pas seulement le fait qu'il ait eu lieu :
-        // c'est la date qui vaut preuve.
+        /**
+         * Le consentement a été recueilli à l'écran de l'enfant, avant que son
+         * profil n'existe — c'est là qu'il doit l'être, et `fonderFamille` en a
+         * déjà daté l'instant. On le repasse pour le seul cas où la famille
+         * n'aurait pas été fondée ici : un parent venu de `who.tsx`, qui a un
+         * compte et pas encore de famille.
+         */
         consentAt: new Date().toISOString(),
       });
 
@@ -144,7 +142,7 @@ export default function CreateAccount() {
         else setErrors({ [result.field]: texte });
         return;
       }
-      router.replace('/onboarding/child');
+      router.replace('/onboarding/appareil');
     } catch (e) {
       // Sans ce filet, une exception laissait le bouton tourner sans fin et
       // sans un mot — l'écran le plus difficile à signaler, parce qu'il n'y a
@@ -196,11 +194,11 @@ export default function CreateAccount() {
     >
       <Screen>
         <ScreenHeader
-          title={compteOuvert ? 'Créer ma famille' : 'Créer mon compte'}
+          title={compteOuvert ? 'Créer ma famille' : 'Garder ma famille'}
           subtitle={
             compteOuvert
               ? `Votre compte ${compteOuvert} est déjà ouvert. Il ne reste que la famille à créer.`
-              : 'Le compte appartient au parent. Aucun e-mail n’est demandé aux enfants.'
+              : 'Pour la retrouver sur vos autres appareils, et si vous changez de téléphone. Aucune adresse n’est demandée aux enfants.'
           }
         />
 
@@ -227,6 +225,24 @@ export default function CreateAccount() {
                 textContentType="emailAddress"
                 error={errors.email}
               />
+              {/**
+               * L'adresse répétée, et pourquoi elle mérite trois lignes.
+               *
+               * Rien ne vérifie plus qu'elle existe : la confirmation par
+               * e-mail a été retirée du parcours, parce qu'elle bloquait
+               * l'entrée sans rien garantir. Une faute de frappe passerait
+               * donc inaperçue jusqu'au jour où ce parent voudra récupérer son
+               * mot de passe — c'est-à-dire au pire moment, et sans recours.
+               *
+               * La relire à voix haute est la seule barrière qui reste, et
+               * elle est étonnamment efficace : on ne relit pas ce qu'on vient
+               * de taper, mais on relit ce qu'on nous montre.
+               */}
+              {EMAIL_RE.test(email.trim()) ? (
+                <Text variant="caption" color={colors.textMuted}>
+                  {`Vos reçus et votre lien de récupération partiront à ${email.trim()}. Vérifiez-la : c’est elle qui vous rendra votre compte si vous changez de téléphone.`}
+                </Text>
+              ) : null}
               <Field
                 label="Mon mot de passe"
                 placeholder="8 caractères minimum"
@@ -270,48 +286,6 @@ export default function CreateAccount() {
           ) : null}
         </View>
 
-        <Pressable
-          onPress={() => setConsent((v) => !v)}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: consent }}
-          accessibilityLabel="Je suis titulaire de l’autorité parentale et j’accepte les conditions générales et la politique de confidentialité."
-          style={styles.consent}
-          hitSlop={8}
-        >
-          <View style={[styles.box, consent && styles.boxOn]}>
-            {consent ? (
-              <Text variant="bodyStrong" color={colors.onBrand}>
-                ✓
-              </Text>
-            ) : null}
-          </View>
-          <Text variant="caption" color={colors.textMuted} style={styles.consentText}>
-            Je suis titulaire de l’autorité parentale sur les enfants que j’ajouterai, et
-            j’accepte les{' '}
-            <Text
-              variant="caption"
-              color={colors.blueInk}
-              onPress={() => router.push('/legal/cgv')}
-            >
-              conditions générales
-            </Text>{' '}
-            et la{' '}
-            <Text
-              variant="caption"
-              color={colors.blueInk}
-              onPress={() => router.push('/legal/confidentialite')}
-            >
-              politique de confidentialité
-            </Text>
-            .
-          </Text>
-        </Pressable>
-        {errors.consent ? (
-          <Text variant="caption" color={colors.dangerInk}>
-            {errors.consent}
-          </Text>
-        ) : null}
-
         {erreur ? (
           <Text variant="caption" color={colors.dangerInk} center>
             {erreur}
@@ -333,19 +307,4 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   centre: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.lg },
   form: { gap: spacing.lg },
-  consent: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
-  // 28 points, et non 20 : la case se coche avec un pouce, sur un écran tenu
-  // d'une main, par quelqu'un qui a un enfant dans les bras.
-  box: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: colors.borderStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  boxOn: { backgroundColor: colors.mint, borderColor: colors.mint },
-  consentText: { flex: 1 },
 });

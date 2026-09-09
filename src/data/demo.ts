@@ -273,7 +273,20 @@ export function buildDemoFamily(now: Date = new Date()): FamilyData {
 
 /** Empty family used by the real onboarding flow. */
 export function buildEmptyFamily(
-  input: { familyName: string; parentName: string; email: string; consentAt?: string },
+  input: {
+    familyName: string;
+    /**
+     * Nuls quand la famille se fonde avant que le parent ne se présente.
+     *
+     * C'est le premier écran du parcours d'inscription : on demande le prénom
+     * de l'enfant, et rien d'autre. Le parent existe — il est authentifié
+     * anonymement — mais on ne sait de lui ni son prénom ni son adresse. Il
+     * les donnera deux écrans plus loin.
+     */
+    parentName?: string | null;
+    email?: string | null;
+    consentAt?: string;
+  },
   now: Date = new Date(),
 ): FamilyData {
   const family = {
@@ -286,8 +299,8 @@ export function buildEmptyFamily(
   const parent: Parent = {
     id: createId('parent'),
     familyId: family.id,
-    displayName: input.parentName,
-    email: input.email,
+    displayName: input.parentName ?? null,
+    email: input.email ?? null,
     createdAt: now.toISOString(),
     consentAt: input.consentAt,
   };
