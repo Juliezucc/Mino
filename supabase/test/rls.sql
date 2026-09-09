@@ -25,6 +25,23 @@ begin
   raise notice '  ok · %', what;
 end $$;
 
+/**
+ * Lit une valeur sans passer par RLS.
+ *
+ * Indispensable pour éprouver une écriture repoussée : la session qui vient
+ * d'essayer ne voit pas la ligne qu'elle visait, donc elle ne peut pas
+ * constater elle-même que rien n'a bougé. Sans ce lecteur, l'assertion passe
+ * au vert en lisant `null`, et elle y passerait tout autant si la protection
+ * tombait.
+ */
+create or replace function brut(sql text) returns text
+language plpgsql security definer set search_path = public, auth as $$
+declare valeur text;
+begin
+  execute sql into valeur;
+  return valeur;
+end $$;
+
 /** Joue une écriture et dit si la base l'a refusée. */
 create or replace function refuses(sql text) returns boolean
 language plpgsql as $$
@@ -410,10 +427,21 @@ do $$ begin
     's''inviter dans une famille existante en s''y déclarant parent'
   );
 
+  /**
+   * Ici on regarde l'effet, et non l'exception — et c'est une leçon à part
+   * entière.
+   *
+   * Une politique RLS sur `update` ne refuse pas la commande : elle rend la
+   * ligne invisible. La commande porte alors sur zéro ligne, aboutit
+   * normalement, et ne lève rien du tout. `refuses()` répondrait donc « non »
+   * pour une tentative parfaitement repoussée — et un test écrit sur ce
+   * malentendu passe au vert le jour où la protection tombe.
+   */
+  perform refuses($sql$
+    update parents set display_name = 'Voleur' where id = 'par-1'
+  $sql$);
   perform assert(
-    refuses($sql$
-      update parents set display_name = 'Voleur' where id = 'par-1'
-    $sql$),
+    brut($q$select display_name from parents where id = 'par-1'$q$) = 'Julie',
     'modifier le parent d''une autre famille'
   );
 end $$;
