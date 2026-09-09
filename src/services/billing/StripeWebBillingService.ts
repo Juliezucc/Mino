@@ -39,7 +39,27 @@ export class StripeWebBillingService implements BillingService {
       },
     });
     if (!response.ok) {
-      throw new Error(`Facturation indisponible (${response.status}).`);
+      /**
+       * Lire la cause avant de la remplacer par un numéro.
+       *
+       * Le serveur renvoie `{ error: "..." }` sur chacun de ses refus — clé
+       * Stripe absente, tarif inconnu, abonnement introuvable, message de
+       * Stripe lui-même. Tout cela partait à la poubelle, et l'écran affichait
+       * « Facturation indisponible (500) » : un numéro qui ne dit ni quoi, ni
+       * où, ni comment réparer. On lisait alors les journaux du serveur pour
+       * apprendre ce que la réponse contenait déjà.
+       *
+       * Le numéro reste, en fin de phrase : il distingue un refus (400) d'une
+       * panne (500) d'une session expirée (401), ce que le texte seul ne dit
+       * pas toujours.
+       */
+      const dit = await response
+        .json()
+        .then((corps: { error?: unknown }) =>
+          typeof corps?.error === 'string' ? corps.error : null,
+        )
+        .catch(() => null);
+      throw new Error(dit ? `${dit} (${response.status})` : `Facturation indisponible (${response.status}).`);
     }
     return (await response.json()) as T;
   }
