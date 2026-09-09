@@ -232,6 +232,17 @@ HOW TO REVIEW ON A SINGLE DEVICE
 5. The mission is waiting for confirmation. Confirm it, and the minutes are
    credited immediately.
 
+ABOUT THE PAYWALL
+Creating a new family ends on a subscription screen that cannot be skipped:
+30 days free, then 9.99 EUR/month or 79.99 EUR/year, auto-renewing, with an
+introductory free month configured on both products. Nothing is charged on
+the day of purchase.
+
+The demo account below is already subscribed, so it goes straight past that
+screen — please use it rather than creating a new family. If you do want to
+see the paywall itself, create a family from the welcome screen and stop
+before paying; nothing is charged until you confirm with Apple.
+
 ABOUT FAMILY CONTROLS
 Screen time is enforced with FamilyControls, ManagedSettings and
 DeviceActivity. The parent grants the authorization once, on the child's
