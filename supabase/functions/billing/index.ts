@@ -126,6 +126,76 @@ Deno.serve(async (request) => {
         return json({ url: session.url });
       }
 
+      /* --------------------------------------------------- changer de formule */
+      /**
+       * Remplacer la formule sur l'abonnement existant.
+       *
+       * **Ce que cette route empêche.** Le seul chemin qui existait vers
+       * l'annuel passait par `checkout`, qui ouvre un abonnement NEUF. Une
+       * famille au mensuel qui voulait l'annuel se retrouvait donc avec les
+       * deux, et prélevée deux fois — sans que rien à l'écran ne le laisse
+       * deviner. Le portail Stripe savait le faire correctement, mais il faut
+       * quitter Mino, et l'écran de Stripe ne dit pas ce qu'on y cherche.
+       *
+       * `proration_behavior: 'none'` : le nouveau tarif s'applique au cycle
+       * suivant, rien n'est débité aujourd'hui. C'est exactement le réglage du
+       * portail — les deux chemins doivent produire le même résultat, sans
+       * quoi le prix dépendrait de la porte empruntée. Et c'est le seul
+       * comportement qu'on puisse promettre en une phrase à un parent.
+       *
+       * Pendant l'essai, cela ne change donc que le montant du 30e jour.
+       */
+      case 'plan': {
+        const { plan } = (await request.json()) as { plan: 'monthly' | 'yearly' };
+        const price = PRICE[plan];
+        if (!price) return fail('Formule inconnue.');
+
+        const { data } = await db
+          .from('subscriptions')
+          .select('*')
+          .eq('family_id', caller.familyId)
+          .maybeSingle();
+        if (!data?.subscription_id) return fail('Aucun abonnement à modifier.', 404);
+        if (data.plan === plan) return json(rowToSubscription(data));
+
+        // L'abonnement ne porte qu'une ligne — un seul produit, une seule
+        // quantité. On remplace son tarif ; ajouter une ligne créerait un
+        // second prélèvement à côté du premier.
+        const current = await stripe().subscriptions.retrieve(data.subscription_id);
+        const item = current.items.data[0];
+        if (!item) return fail('Abonnement illisible.', 409);
+
+        const updated = await stripe().subscriptions.update(data.subscription_id, {
+          items: [{ id: item.id, price }],
+          proration_behavior: 'none',
+        });
+
+        /**
+         * On écrit tout de suite, sans attendre le webhook.
+         *
+         * `customer.subscription.updated` arrivera et réécrira la même chose —
+         * les deux écritures sont identiques et l'ordre est sans importance.
+         * Mais entre le clic et le webhook il s'écoule parfois plusieurs
+         * secondes, et pendant ce temps l'écran affirmerait encore l'ancienne
+         * formule à quelqu'un qui vient d'en changer. Un parent qui doute
+         * reclique, et c'est ce doute qui coûte de l'argent.
+         */
+        const { data: row } = await db
+          .from('subscriptions')
+          .update({
+            plan,
+            current_period_end: updated.items.data[0]?.current_period_end
+              ? new Date(updated.items.data[0].current_period_end * 1000).toISOString()
+              : data.current_period_end,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('family_id', caller.familyId)
+          .select('*')
+          .single();
+
+        return json(rowToSubscription(row));
+      }
+
       /* -------------------------------------------- cancel and come back */
       case 'cancel':
       case 'resume': {

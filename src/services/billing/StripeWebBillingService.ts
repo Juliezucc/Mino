@@ -84,6 +84,13 @@ export class StripeWebBillingService implements BillingService {
     });
   }
 
+  changePlan(input: { familyId: ID; plan: Plan }) {
+    return this.call<Subscription>('/billing/plan', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
   listReferrals(familyId: ID) {
     return this.call<Referral[]>(`/billing/referrals?familyId=${encodeURIComponent(familyId)}`);
   }

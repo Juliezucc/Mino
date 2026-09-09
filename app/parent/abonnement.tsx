@@ -51,6 +51,7 @@ export default function SubscriptionScreen() {
   const subscription = useMinoStore((s) => s.subscription);
   const choosePlan = useMinoStore((s) => s.choosePlan);
   const cancelSubscription = useMinoStore((s) => s.cancelSubscription);
+  const changePlan = useMinoStore((s) => s.changePlan);
   const resumeSubscription = useMinoStore((s) => s.resumeSubscription);
   const restorePurchases = useMinoStore((s) => s.restorePurchases);
   const loadBilling = useMinoStore((s) => s.loadBilling);
@@ -201,6 +202,37 @@ export default function SubscriptionScreen() {
     });
   };
 
+  /**
+   * Basculer vers l'autre formule, depuis Mino.
+   *
+   * On ne passe surtout pas par `subscribe` : celui-là ouvre un paiement, donc
+   * un SECOND abonnement par-dessus celui qui court. `changePlan` remplace la
+   * formule sur l'abonnement existant.
+   *
+   * Le prix ne bouge qu'au cycle suivant, et on le dit avant d'agir — un
+   * parent qui craint un prélèvement immédiat ne clique pas.
+   */
+  const formuleActuelle: Plan | null =
+    access.kind === 'trial' ? access.plan : access.kind === 'active' ? (subscription?.plan ?? null) : null;
+  const autreFormule: Plan = formuleActuelle === 'yearly' ? 'monthly' : 'yearly';
+
+  const basculer = () => {
+    const versAnnuel = autreFormule === 'yearly';
+    void confirmer({
+      titre: versAnnuel ? 'Passer à la formule annuelle ?' : 'Passer à la formule mensuelle ?',
+      message: engage
+        ? `Rien n’est prélevé aujourd’hui. Le ${frenchDate(access.kind === 'trial' ? access.firstChargeOn : null)}, ce sera ${describePlan(autreFormule)} au lieu de ${describePlan(formuleActuelle ?? 'monthly')}.`
+        : `Rien n’est prélevé aujourd’hui. Le nouveau tarif, ${describePlan(autreFormule)}, s’appliquera à votre prochaine échéance${subscription?.currentPeriodEnd ? ` du ${frenchDate(subscription.currentPeriodEnd)}` : ''}.`,
+      action: versAnnuel ? 'Passer à l’annuel' : 'Passer au mensuel',
+    }).then((oui) => {
+      if (!oui) return;
+      setLoading(true);
+      changePlan(autreFormule)
+        .catch(() => setError('Le changement de formule n’a pas abouti.'))
+        .finally(() => setLoading(false));
+    });
+  };
+
   return (
     <Screen contentStyle={styles.content}>
       <ScreenHeader onBack={() => router.back()} title="Abonnement" />
@@ -256,24 +288,33 @@ export default function SubscriptionScreen() {
       {gerable && !resilie ? (
         <View style={styles.actions}>
           {/**
-           * Changer de formule, et pourquoi ce n'est pas le sélecteur.
+           * Changer de formule sans quitter Mino.
            *
-           * Un parent qui a pris le mensuel et veut l'annuel n'avait aucun
-           * chemin : le seul bouton parlait de moyen de paiement, ce qui ne
-           * laisse pas deviner qu'on peut aussi changer de formule derrière.
-           * Il repassait donc par le sélecteur — quand il y avait encore accès
-           * — et ouvrait un SECOND abonnement.
+           * Le seul chemin qui existait passait par le portail Stripe : trois
+           * écrans, une page en anglais dans certains navigateurs, et un
+           * sélecteur « Mensuel | Annuel » qui ne se voit pas — on l'a
+           * cherché à deux, on ne l'a pas trouvé. Ce qui se cherche ne se fait
+           * pas.
            *
-           * Le changement passe par là où il est prévu : le portail Stripe,
-           * ou les réglages du téléphone. Eux savent remplacer une formule par
-           * une autre, avec le prorata ; nous ne saurions qu'en ajouter une.
-           * Le libellé le dit, faute de quoi la porte existe sans se voir.
+           * Sur une boutique, en revanche, c'est bien là-bas que ça se passe :
+           * ni Apple ni Google n'exposent d'API pour ça.
            */}
+          {/* `billing.changePlan` et non l'action du magasin : c'est le service
+              qui sait si le rail branché sait remplacer une formule. Sur une
+              boutique il ne le sait pas, et le bouton ne doit pas exister. */}
+          {formuleActuelle && !isStore(subscription?.source) && billing.changePlan ? (
+            <Button
+              label={autreFormule === 'yearly' ? 'Passer à l’annuel' : 'Passer au mensuel'}
+              variant="secondary"
+              onPress={basculer}
+              disabled={loading}
+            />
+          ) : null}
           <Button
             label={
               isStore(subscription?.source)
                 ? 'Changer de formule'
-                : 'Changer de formule ou de moyen de paiement'
+                : 'Gérer mon moyen de paiement'
             }
             variant="secondary"
             onPress={ouvrirGestion}

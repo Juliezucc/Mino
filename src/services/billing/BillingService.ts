@@ -86,6 +86,20 @@ export interface BillingService {
   /** Undo a pending cancellation, while the period is still running. */
   resume?(familyId: ID): Promise<Subscription>;
 
+  /**
+   * Passer du mensuel à l'annuel, ou l'inverse — **sans en créer un second**.
+   *
+   * C'est toute la différence avec `startCheckout`, et elle coûte cher quand on
+   * la rate : un achat ouvre un nouvel abonnement par-dessus celui qui court,
+   * et la famille est prélevée deux fois. Ici on remplace la formule sur
+   * l'abonnement existant.
+   *
+   * Absent sur les boutiques, pour la même raison que `cancel` : c'est Apple ou
+   * Google qui gère le changement de formule, dans les réglages du téléphone.
+   * L'écran doit alors renvoyer vers `openPortal`, pas appeler ceci.
+   */
+  changePlan?(input: { familyId: ID; plan: Plan }): Promise<Subscription>;
+
   /** The families this one has brought in, and where each of them stands. */
   listReferrals(familyId: ID): Promise<Referral[]>;
 

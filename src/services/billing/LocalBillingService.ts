@@ -107,6 +107,19 @@ export class LocalBillingService implements BillingService {
     return next;
   }
 
+  /**
+   * La formule change, la période en cours ne bouge pas — comme chez Stripe
+   * avec `proration_behavior: 'none'`. Une doublure qui se comporterait
+   * autrement laisserait passer, hors ligne, ce qui casse en ligne.
+   */
+  async changePlan({ familyId, plan }: { familyId: ID; plan: Plan }): Promise<Subscription> {
+    const current = (await this.getSubscription(familyId))!;
+    const next = { ...current, plan };
+    this.subscriptions.set(familyId, next);
+    await this.save();
+    return next;
+  }
+
   async listReferrals(familyId: ID): Promise<Referral[]> {
     return this.referrals.filter((r) => r.referrerFamilyId === familyId);
   }

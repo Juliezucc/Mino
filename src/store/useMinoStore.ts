@@ -189,6 +189,8 @@ interface MinoState {
   restorePurchases: () => Promise<CheckoutOutcome>;
   cancelSubscription: () => Promise<void>;
   resumeSubscription: () => Promise<void>;
+  /** Remplacer la formule sur l'abonnement en cours, sans en ouvrir un second. */
+  changePlan: (plan: Plan) => Promise<void>;
   redeemReferral: (code: string) => Promise<{ ok: boolean; reason?: string }>;
 }
 
@@ -958,6 +960,25 @@ export const useMinoStore = create<MinoState>((set, get) => {
       const resume = getBillingService().resume;
       if (!familyId || !resume) return;
       set({ subscription: await resume.call(getBillingService(), familyId) });
+    },
+
+    /**
+     * Changer de formule, et jamais en acheter une seconde.
+     *
+     * `choosePlan` ouvre un paiement : il crée un abonnement. Celui-ci
+     * remplace la formule sur l'abonnement qui court déjà. Confondre les deux
+     * fait prélever la famille deux fois — c'est la raison d'être de cette
+     * action, et la raison pour laquelle l'écran ne doit jamais retomber sur
+     * `choosePlan` quand un abonnement existe.
+     *
+     * Absent sur les boutiques, comme `cancel` : Apple et Google gèrent le
+     * changement dans les réglages du téléphone.
+     */
+    async changePlan(plan) {
+      const familyId = get().data?.family.id;
+      const service = getBillingService();
+      if (!familyId || !service.changePlan) return;
+      set({ subscription: await service.changePlan({ familyId, plan }) });
     },
 
     async redeemReferral(code) {
