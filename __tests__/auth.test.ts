@@ -297,12 +297,12 @@ describe('parent ou appareil, tranché par la base', () => {
  * session.
  */
 describe('donner son adresse sans perdre sa famille', () => {
-  const espion = (kind: 'parent' | 'device' | 'none') => {
+  const espion = (kind: 'parent' | 'device' | 'none', email: string | null = null) => {
     const appels: string[] = [];
     setAuthService({
       name: 'espion',
       remote: true,
-      session: async () => ({ kind, userId: kind === 'none' ? null : 'u-1', email: null }),
+      session: async () => ({ kind, userId: kind === 'none' ? null : 'u-1', email }),
       onChange: () => () => undefined,
       signUp: async () => {
         appels.push('signUp');
@@ -358,7 +358,7 @@ describe('donner son adresse sans perdre sa famille', () => {
   });
 
   it('ne redemande rien à un parent déjà identifié', async () => {
-    const appels = espion('parent');
+    const appels = espion('parent', 'julie@exemple.fr');
 
     await useMinoStore.getState().createAccount({
       parentName: 'Julie',
@@ -367,6 +367,56 @@ describe('donner son adresse sans perdre sa famille', () => {
     });
 
     expect(appels).toEqual([]);
+  });
+
+  /**
+   * Le fondateur d'une famille est « parent » avant d'avoir une adresse — et
+   * c'est ce qui a produit des comptes impossibles à rouvrir.
+   *
+   * `session()` demande à la base, via `auth_is_parent()`, qui répond « oui »
+   * dès qu'une ligne `parents` existe. `fonderFamille` en crée une, sur une
+   * session anonyme, deux écrans avant que le parent ne tape son adresse. Au
+   * moment où il la tape, il est donc déjà « parent » : tout le bloc était
+   * sauté, `linkEmail` n'était jamais appelé, et le compte restait anonyme —
+   * sans adresse et sans mot de passe.
+   *
+   * Vu de la famille, rien ne cloche : l'application marche. Jusqu'à la
+   * déconnexion, ou au changement de navigateur, où il n'y a plus aucun moyen
+   * de revenir. Et aucun e-mail — ni confirmation, ni bienvenue — ne pouvait
+   * partir, faute d'adresse à qui écrire.
+   *
+   * Ce qu'il faut regarder, c'est donc l'adresse, pas le rôle.
+   */
+  it('habille le fondateur, qui est « parent » sans avoir encore d’adresse', async () => {
+    const appels = espion('parent', null);
+
+    await useMinoStore.getState().createAccount({
+      parentName: 'Julie',
+      email: 'julie@exemple.fr',
+      password: 'Un-Mot-De-Passe-2026',
+      consentAt: new Date().toISOString(),
+    });
+
+    expect(appels).toContain('linkEmail');
+    expect(appels).not.toContain('signUp');
+  });
+
+  /**
+   * Supabase rend `''`, pas `null`, pour l'adresse d'un anonyme. `??` laissait
+   * donc le vide passer devant l'adresse tapée, et la ligne `parents` naissait
+   * sans destinataire.
+   */
+  it('ne prend pas une adresse vide pour une adresse', async () => {
+    const appels = espion('parent', '');
+
+    await useMinoStore.getState().createAccount({
+      parentName: 'Julie',
+      email: 'julie@exemple.fr',
+      password: 'Un-Mot-De-Passe-2026',
+      consentAt: new Date().toISOString(),
+    });
+
+    expect(appels).toContain('linkEmail');
   });
 });
 

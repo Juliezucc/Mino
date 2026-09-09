@@ -411,7 +411,12 @@ Deno.serve(servir(async (request) => {
   if (route === 'lot') return await lot(request);
 
   const caller = await familyOfCaller(request);
-  if (!caller) return fail('Non authentifié.', 401);
+  if (!caller) {
+    // Journalisé, et pas seulement renvoyé : un 401 muet dans une fonction qui
+    // n'écrit rien d'autre est indiscernable d'une fonction jamais appelée.
+    console.error('courrier refusé : appelant non authentifié');
+    return fail('Non authentifié.', 401);
+  }
 
   const { genre } = (await request.json()) as { genre?: Genre };
   if (genre !== 'bienvenue' && genre !== 'fin_essai' && genre !== 'reconduction') {
@@ -419,7 +424,19 @@ Deno.serve(servir(async (request) => {
   }
 
   try {
-    return json(await ecrireA(caller.familyId, genre));
+    /**
+     * Dire ce qu'on a fait, même — surtout — quand on n'a rien fait.
+     *
+     * Cette fonction avait deux sorties parfaitement silencieuses : « sans
+     * adresse » et « déjà envoyé ». Toutes deux rendent 200. Vu du tableau de
+     * bord, l'invocation ne laissait qu'un `booted` et un `shutdown`, ce qui
+     * ressemble trait pour trait à une fonction que personne n'appelle. On a
+     * cherché du côté du site, du CORS et des secrets SMTP un défaut qui était
+     * ici, et qu'une ligne de journal aurait nommé tout de suite.
+     */
+    const issue = await ecrireA(caller.familyId, genre);
+    console.log('courrier', genre, caller.familyId, issue.envoye ? 'envoyé' : issue.raison);
+    return json(issue);
   } catch (error) {
     console.error('courrier', genre, caller.familyId, error);
     return fail('Envoi impossible.', 502);

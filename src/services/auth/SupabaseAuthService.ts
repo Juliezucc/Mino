@@ -140,11 +140,28 @@ export class SupabaseAuthService implements AuthService {
      * les comptes déjà constitués, et refuser une session parce que le réseau
      * manque serait bien pire que de la décrire approximativement.
      */
-    const decrire = (user: { id: string; email?: string | null }, parent?: boolean): Session => ({
-      kind: (parent ?? !!user.email) ? 'parent' : 'device',
-      userId: user.id,
-      email: user.email ?? null,
-    });
+    /**
+     * Une chaîne vide n'est pas une adresse, et `??` ne le sait pas.
+     *
+     * Supabase rend `""` — pas `null` — pour l'adresse d'un utilisateur
+     * anonyme. La session décrivait donc le fondateur d'une famille comme
+     * ayant une adresse vide, et `createAccount` faisait
+     * `ouverte.email ?? email` : le vide passait devant l'adresse que le
+     * parent venait de taper, puisqu'il n'est ni `null` ni `undefined`. La
+     * ligne `parents` naissait avec `email = ''`, et l'e-mail de bienvenue
+     * s'arrêtait sur « sans adresse » sans rien écrire dans les journaux.
+     *
+     * Le même piège est déjà noté côté serveur, dans `familyOfCaller` — il
+     * était tendu deux fois, on ne l'avait désamorcé qu'une.
+     */
+    const decrire = (user: { id: string; email?: string | null }, parent?: boolean): Session => {
+      const adresse = (user.email ?? '').trim() || null;
+      return {
+        kind: (parent ?? !!adresse) ? 'parent' : 'device',
+        userId: user.id,
+        email: adresse,
+      };
+    };
 
     const { data, error } = await this.client.auth.getUser();
     if (!error && data.user) {

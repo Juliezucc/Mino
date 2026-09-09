@@ -550,13 +550,36 @@ export const useMinoStore = create<MinoState>((set, get) => {
        * qu'au moment où il a été écrit, « le reste » ne pouvait être qu'une
        * absence de session.
        */
+      /**
+       * **La question n'est pas « est-il parent », c'est « a-t-il de quoi se
+       * reconnecter ».** Et les confondre a coûté un compte inutilisable.
+       *
+       * `session()` interroge `auth_is_parent()`, qui répond « oui » dès qu'une
+       * ligne `parents` existe pour cet utilisateur. Or `fonderFamille` en crée
+       * une, sur une session **anonyme**, deux écrans plus tôt. Au moment où le
+       * parent tape enfin son adresse et son mot de passe, il est donc déjà
+       * « parent » — et tout ce bloc était sauté. `linkEmail` n'était jamais
+       * appelé : ni adresse, ni mot de passe posés sur le compte.
+       *
+       * Vu de la famille, tout marche — jusqu'à la déconnexion, ou au
+       * changement de navigateur. Là il n'y a plus rien : aucune adresse pour
+       * se reconnaître, aucun mot de passe à taper, et la famille reste
+       * attachée à un utilisateur anonyme que personne ne peut plus rouvrir.
+       * Aucun e-mail de confirmation ne partait non plus, pour la même raison.
+       *
+       * On regarde donc l'adresse, qui est ce dont on a besoin, plutôt que le
+       * rôle, qui n'en dit rien.
+       */
       const ouverte = await getAuthService().session();
-      if (ouverte.kind !== 'parent') {
+      if (!ouverte.email) {
         if (!password) return { ok: false, reason: 'Choisissez un mot de passe.' };
         const auth = getAuthService();
         const compte =
-          ouverte.kind === 'device'
-            ? await auth.linkEmail({ email, password })
+          ouverte.kind !== 'none'
+            ? // Une session est ouverte — anonyme, ou déjà porteuse de la
+              // famille. On l'habille : `signUp` en ouvrirait un second et
+              // abandonnerait le premier, avec la famille et l'enfant dessus.
+              await auth.linkEmail({ email, password })
             : // Sans identité, il n'y a rien à quoi rattacher une famille :
               // chaque ligne que le serveur écrira est cadrée par elle.
               await auth.signUp({ email, password });
@@ -576,7 +599,10 @@ export const useMinoStore = create<MinoState>((set, get) => {
       // elle que la base rattachera aux lignes de cette famille. Elle est
       // absente tant que la confirmation n'a pas eu lieu — auquel cas celle
       // que le parent vient de taper est la seule que nous ayons.
-      const adresse = ouverte.email ?? email;
+      // `||` et non `??` : voir `decrire()` dans `SupabaseAuthService`. Une
+      // session anonyme rend une adresse vide, que `??` laisse passer devant
+      // celle que le parent vient de taper.
+      const adresse = ouverte.email?.trim() || email;
 
       /**
        * La famille existe déjà : on la complète, on ne la refait pas.
