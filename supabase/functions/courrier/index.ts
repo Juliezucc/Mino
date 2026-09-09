@@ -150,8 +150,24 @@ function ecrire(genre: Genre, f: Famille): { sujet: string; texte: string; html:
             p: `Votre famille est créée, et ${enfant} a déjà sa première mission. Il ne lui reste qu'à la faire.`,
           },
           { titre: 'Comment ça se passe, à partir de maintenant' },
+          /**
+           * Le blocage se dit ici, et il se disait nulle part.
+           *
+           * Ce paragraphe décrivait une minuterie : mission faite, minutes
+           * accordées, « c'est tout ». Or ce n'est pas ce qu'on vend. Un parent
+           * qui lit cela le jour de son inscription comprend qu'il vient
+           * d'installer un compteur de bons points, et rien ne lui dit que les
+           * applications qu'il a en tête vont réellement se fermer — c'est-à-
+           * dire la seule chose pour laquelle il est venu.
+           */
           {
-            p: `${enfant} touche « J'AI TERMINÉ ». Vous confirmez. Ses minutes arrivent tout de suite. C'est tout — il n'y a rien d'autre à apprendre.`,
+            p: 'Vous choisissez les applications à verrouiller — une seule, ou toutes celles qui posent problème. Elles restent fermées sur son appareil tant que le temps n\'a pas été gagné.',
+          },
+          {
+            p: `${enfant} touche « J'AI TERMINÉ ». Vous confirmez. Ses minutes arrivent tout de suite, et les applications s'ouvrent pour la durée gagnée. Le temps écoulé, elles se referment d'elles-mêmes.`,
+          },
+          {
+            p: "Rien d'autre à surveiller : c'est l'appareil lui-même qui tient la limite, pas vous.",
           },
           { titre: 'Pour installer Mino sur son appareil' },
           {
@@ -159,7 +175,7 @@ function ecrire(genre: Genre, f: Famille): { sujet: string; texte: string; html:
           },
           { code: f.familyCode },
           {
-            p: "C'est l'étape qui compte : tant que son appareil n'est pas relié, Mino ne peut rien encadrer.",
+            p: "C'est l'étape qui compte : tant que son appareil n'est pas relié, Mino ne peut rien verrouiller. L'application vous demandera ensuite une autorisation sur cet appareil — c'est elle qui donne à Mino le droit de refermer les applications.",
           },
           { bouton: { label: 'Installer Mino', url: 'https://minoapp.fr/telecharger' } },
           { titre: 'Vos 30 jours' },
