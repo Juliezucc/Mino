@@ -40,3 +40,40 @@ servi sur `app.minoapp.fr/README.md`.
 
 La règle : dans `public/`, uniquement ce qu'un visiteur a le droit de lire.
 L'explication, elle, vit ici.
+
+---
+
+## Fabriquer l'export, et vérifier qu'il n'est pas creux
+
+```
+npx expo export -p web --output-dir dist --clear
+grep -c "bpnmmkignvpysbkcfpzz" dist/_expo/static/js/web/*.js
+ls -la dist/.htaccess dist/robots.txt
+```
+
+**`--clear` n'est pas une précaution, c'est une nécessité.** Les trois variables
+`EXPO_PUBLIC_*` sont inscrites **en dur dans le code au moment de la
+transformation**, pas lues à l'exécution. Metro garde les modules transformés en
+cache : tant qu'il resservira ceux d'avant, les variables resteront vides quoi
+que contienne `.env`. Le 9 septembre 2026, quatre exports successifs ont produit
+exactement le même paquet — même nom de fichier — pendant qu'on cherchait
+l'erreur ailleurs. Le premier assemblage prend une dizaine de secondes, les
+suivants moins d'une demi-seconde : **une durée d'une demi-seconde est le signe
+qu'il ne s'est rien reconstruit.**
+
+**Les deux vérifications, et pourquoi elles existent.**
+
+Le `grep` cherche la référence du projet Supabase à l'intérieur du paquet. Sans
+elle, l'application bascule sur son dépôt local : elle s'affiche parfaitement,
+ne parle à aucun serveur, n'encaisse rien et n'envoie aucun e-mail — **sans
+qu'aucune erreur n'apparaisse nulle part**. C'est le seul défaut de ce
+déploiement qui soit entièrement silencieux, et il se détecte en une commande.
+
+Le `ls` vérifie que `.htaccess` et `robots.txt` sont bien sortis de `public/`.
+Ils ne figurent pas dans la liste « Files » qu'affiche Expo, ce qui ne veut pas
+dire qu'ils manquent — mais les fichiers commençant par un point sont
+couramment ignorés par les clients FTP, donc il faut les voir des deux côtés.
+
+**Et `.env` n'est pas versionné.** Il vit sur la machine qui exporte. Une
+machine neuve exporte donc un paquet creux du premier coup, et le `grep`
+ci-dessus est ce qui l'attrape.
