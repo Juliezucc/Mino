@@ -8,11 +8,10 @@
 // (Stripe cannot present a Supabase JWT; the signature is the authentication.)
 
 import { Stripe, admin, env, fail, stripe } from '../_shared/mino.ts';
-import {
-  MONTHLY_PRICE_EUR,
-  REFERRAL,
-  qualifyReferral,
-} from '../../../src/domain/billing.ts';
+// `record`, `settleReferral` et `rewardReferrer` vivaient ici. Ils sont partis
+// dans `_shared/parrainage.ts` le jour où un filleul a pu payer ailleurs que
+// chez Stripe : le règlement du parrainage n'a rien de propre à un rail.
+import { record, settleReferral } from '../_shared/parrainage.ts';
 
 const iso = (seconds: number | null | undefined) =>
   seconds ? new Date(seconds * 1000).toISOString() : null;
@@ -39,46 +38,6 @@ function planOf(subscription: Stripe.Subscription): 'monthly' | 'yearly' | null 
   return null;
 }
 
-/**
- * Appends one line to the billing ledger.
- *
- * `subscriptions` is a mirror: every change overwrites it. A family that tried,
- * paid four months and left leaves a single "canceled" row there — which is why
- * churn, cohorts and past MRR cannot be recovered from it afterwards. They are
- * not hard to compute without this: they are impossible, because the fact was
- * never written down. Same rule as the screen-time ledger, applied to money.
- *
- * `stripe_event_id` is unique, and Stripe replays its webhooks — so a duplicate
- * is dropped rather than counted twice.
- */
-async function record(input: {
-  familyId: string;
-  kind: string;
-  eventId: string;
-  status?: string | null;
-  plan?: string | null;
-  amountCents?: number | null;
-  occurredAt?: string;
-}) {
-  const { error } = await admin()
-    .from('billing_events')
-    .upsert(
-      {
-        family_id: input.familyId,
-        kind: input.kind,
-        status: input.status ?? null,
-        plan: input.plan ?? null,
-        amount_cents: input.amountCents ?? null,
-        stripe_event_id: input.eventId,
-        occurred_at: input.occurredAt ?? new Date().toISOString(),
-      },
-      { onConflict: 'stripe_event_id', ignoreDuplicates: true },
-    );
-
-  // A missing ledger line must never fail the webhook: Stripe would retry, and
-  // the mirror — which is what the app actually reads — is already correct.
-  if (error) console.error('journal facturation', input.kind, error);
-}
 
 /**
  * Mirrors a Stripe subscription into our table.
@@ -132,108 +91,6 @@ async function sync(subscription: Stripe.Subscription) {
   }
 
   return familyId;
-}
-
-/**
- * Hands the referrer their month.
- *
- * Trialing: push the trial end back — a genuinely later payment date.
- * Paying: credit the customer balance, which Stripe deducts from the next
- * invoice. Both are "a month you do not pay for", which is what was promised.
- */
-async function rewardReferrer(referrerFamilyId: string) {
-  const db = admin();
-  const { data: sub } = await db
-    .from('subscriptions')
-    .select('*')
-    .eq('family_id', referrerFamilyId)
-    .maybeSingle();
-
-  if (!sub) return;
-
-  if (sub.status === 'trialing' && sub.subscription_id && sub.trial_ends_at) {
-    const extended = new Date(sub.trial_ends_at);
-    extended.setMonth(extended.getMonth() + REFERRAL.referrerFreeMonths);
-    await stripe().subscriptions.update(sub.subscription_id, {
-      trial_end: Math.floor(extended.getTime() / 1000),
-      proration_behavior: 'none',
-    });
-    return;
-  }
-
-  if (sub.customer_id) {
-    await stripe().customers.createBalanceTransaction(sub.customer_id, {
-      amount: -Math.round(MONTHLY_PRICE_EUR * 100) * REFERRAL.referrerFreeMonths,
-      currency: 'eur',
-      description: 'Parrainage Mino — mois offert',
-    });
-    return;
-  }
-
-  // No customer yet: bank it, and spend it at the first checkout.
-  await db
-    .from('subscriptions')
-    .update({ credit_months: (sub.credit_months ?? 0) + REFERRAL.referrerFreeMonths })
-    .eq('family_id', referrerFamilyId);
-}
-
-/** The referee just paid for real: settle any referral waiting on them. */
-async function settleReferral(refereeFamilyId: string, eventId: string) {
-  const db = admin();
-
-  const { data: pending } = await db
-    .from('referrals')
-    .select('*')
-    .eq('referee_family_id', refereeFamilyId)
-    .eq('status', 'pending')
-    .maybeSingle();
-
-  if (!pending) return;
-
-  // Load the referrer's whole history: the yearly cap is computed from it.
-  const { data: history } = await db
-    .from('referrals')
-    .select('*')
-    .eq('referrer_family_id', pending.referrer_family_id);
-
-  const asDomain = (row: Record<string, unknown>) => ({
-    id: row.id as string,
-    code: row.code as string,
-    referrerFamilyId: row.referrer_family_id as string,
-    refereeFamilyId: row.referee_family_id as string,
-    status: row.status as 'pending' | 'qualified' | 'credited' | 'rejected',
-    createdAt: row.created_at as string,
-    qualifiedAt: (row.qualified_at as string) ?? undefined,
-    creditedAt: (row.credited_at as string) ?? undefined,
-  });
-
-  // The same rule the app shows and the tests cover — imported, not retyped.
-  const { referrals, creditedFamilyId } = qualifyReferral(
-    (history ?? []).map(asDomain),
-    pending.id as string,
-  );
-
-  const updated = referrals.find((r) => r.id === pending.id)!;
-  await db
-    .from('referrals')
-    .update({
-      status: updated.status,
-      qualified_at: updated.qualifiedAt ?? null,
-      credited_at: updated.creditedAt ?? null,
-    })
-    .eq('id', pending.id);
-
-  if (creditedFamilyId) {
-    await rewardReferrer(creditedFamilyId);
-    // Un mois offert est un revenu abandonné : il doit apparaître dans les
-    // comptes du parrain, sans quoi le parrainage semble gratuit.
-    await record({
-      familyId: creditedFamilyId,
-      kind: 'parrainage_credite',
-      eventId: `${eventId}:parrainage`,
-      amountCents: -Math.round(MONTHLY_PRICE_EUR * 100) * REFERRAL.referrerFreeMonths,
-    });
-  }
 }
 
 Deno.serve(async (request) => {

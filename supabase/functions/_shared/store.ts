@@ -10,6 +10,7 @@
 // elle se referme ici ou nulle part.
 
 import { admin, env } from './mino.ts';
+import { settleReferral } from './parrainage.ts';
 
 export type StorePlatform = 'apple' | 'google';
 
@@ -570,6 +571,35 @@ export async function applyStoreState(
   if (error) {
     console.error('achat non enregistré', familyId, state.transactionId, error.message);
     throw new Error(`subscriptions upsert (${familyId}) : ${error.message}`);
+  }
+
+  /**
+   * Le parrainage, qui n'existait que pour les filleuls payant chez Stripe.
+   *
+   * **Ce que ce silence coûtait.** Le règlement du parrainage vivait dans le
+   * webhook Stripe, sur l'événement « facture payée ». Un filleul qui
+   * s'abonnait depuis l'App Store ne déclenchait donc rien : sa ligne
+   * `referrals` restait `pending` pour toujours, et son parrain n'était pas
+   * même compté — encore moins crédité. Depuis que l'achat natif est le chemin
+   * par défaut, ce n'était plus un cas particulier mais le cas courant : le
+   * programme entier attendait un événement qui n'arrivait plus.
+   *
+   * **`active` et pas `trialing`, délibérément.** On récompense un paiement
+   * réel, pas une inscription — c'est ce que disent les CGV, et c'est la seule
+   * barrière qui empêche de payer pour des comptes fictifs plutôt que pour des
+   * clients.
+   *
+   * L'appel est rejouable : `settleReferral` ne cherche qu'une ligne `pending`.
+   * Apple et Google rejouent leurs notifications, et la seconde ne trouve plus
+   * rien à régler.
+   *
+   * Il ne lève jamais : un parrainage non réglé se rattrape, un achat perdu
+   * non. La notification a déjà fait ce qui compte — écrire l'abonnement.
+   */
+  if (state.status === 'active') {
+    await settleReferral(familyId, `${state.platform}:${state.transactionId}`).catch((e) =>
+      console.error('parrainage non réglé', familyId, state.transactionId, e),
+    );
   }
 
   return familyId;
