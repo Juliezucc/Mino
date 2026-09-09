@@ -251,6 +251,16 @@ export type Access =
       plan: Plan | null;
       /** Le jour du premier prélèvement — la fin de l'essai, donc. */
       firstChargeOn: ISODate | null;
+      /**
+       * L'essai a été arrêté : il ira à son terme, et rien ne sera prélevé.
+       *
+       * Cette information manquait, et son absence produisait la panne la plus
+       * décourageante qui soit : un parent appuyait sur « Annuler avant le
+       * prélèvement », confirmait, l'annulation était bien enregistrée — et
+       * l'écran continuait d'annoncer le prélèvement, mot pour mot. Rien ne
+       * distinguait un succès d'un échec.
+       */
+      cancelAtPeriodEnd: boolean;
     }
   | { kind: 'active'; renewsOn: ISODate | null; cancelAtPeriodEnd: boolean }
   | { kind: 'grace'; reason: 'past_due' }
@@ -339,7 +349,13 @@ export function accessOf(sub: Subscription | null, now: Date = new Date()): Acce
   if (sub.status === 'trialing') {
     const left = sub.trialEndsAt ? daysBetween(now, new Date(sub.trialEndsAt)) : 0;
     return left > 0
-      ? { kind: 'trial', daysLeft: left, plan: sub.plan, firstChargeOn: sub.trialEndsAt }
+      ? {
+          kind: 'trial',
+          daysLeft: left,
+          plan: sub.plan,
+          firstChargeOn: sub.trialEndsAt,
+          cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+        }
       : { kind: 'expired' };
   }
 

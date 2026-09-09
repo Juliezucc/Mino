@@ -78,7 +78,17 @@ export default function SubscriptionScreen() {
    */
   const engage = access.kind === 'trial' && access.plan !== null;
   const gerable = access.kind === 'active' || engage;
-  const resilie = access.kind === 'active' && access.cancelAtPeriodEnd;
+  /**
+   * Arrêté, et ça se voit — y compris pendant l'essai.
+   *
+   * `resilie` ne regardait que les abonnements actifs. Un essai engagé qu'on
+   * venait d'annuler retombait donc dans la branche « gérable » : l'écran
+   * réaffichait « le premier prélèvement aura lieu le … » et proposait de
+   * nouveau « Annuler avant le prélèvement », comme si le clic précédent
+   * n'avait jamais eu lieu. L'annulation était pourtant bien enregistrée.
+   */
+  const resilie =
+    (access.kind === 'active' || access.kind === 'trial') && access.cancelAtPeriodEnd;
 
   /**
    * Rafraîchir avant d'afficher un prix.
@@ -225,8 +235,30 @@ export default function SubscriptionScreen() {
       action: engage ? 'Annuler' : 'Résilier',
       annuler: 'Garder mon abonnement',
       destructif: true,
-    }).then((oui) => {
-      if (oui) cancelSubscription().catch(() => setError('La résiliation a échoué.'));
+    }).then(async (oui) => {
+      if (!oui) return;
+      /**
+       * Dire ce qui se passe, pendant et après — c'était tout ce qui manquait.
+       *
+       * L'appel partait sans indicateur, et son échec s'écrivait en petit tout
+       * en bas d'une page qu'il faut faire défiler pour atteindre. Vu du
+       * fauteuil du parent : on confirme, et il ne se passe rien. Le message
+       * est désormais posé sous les boutons, et il porte la raison rendue par
+       * le serveur plutôt qu'une phrase passe-partout.
+       */
+      setLoading(true);
+      setError(null);
+      try {
+        await cancelSubscription();
+      } catch (e) {
+        setError(
+          e instanceof Error
+            ? `La résiliation n’a pas abouti : ${e.message}`
+            : 'La résiliation n’a pas abouti. Réessayez dans un instant.',
+        );
+      } finally {
+        setLoading(false);
+      }
     });
   };
 
@@ -270,7 +302,17 @@ export default function SubscriptionScreen() {
         background={access.kind === 'expired' ? colors.surface : colors.mintSoft}
         elevation="none"
       >
-        {access.kind === 'trial' && access.plan !== null ? (
+        {access.kind === 'trial' && access.cancelAtPeriodEnd ? (
+          /* La première chose à dire à quelqu'un qui vient d'annuler : il ne
+             sera pas prélevé. Le reste — jusqu'à quand il garde l'accès —
+             vient après, et pas l'inverse. */
+          <>
+            <Text variant="section">Rien ne sera prélevé</Text>
+            <Text variant="body" color={colors.textMuted}>
+              {`C’est enregistré : votre essai s’arrête le ${frenchDate(access.firstChargeOn)} et aucun paiement ne sera prélevé. Vous gardez tout Mino jusque-là.`}
+            </Text>
+          </>
+        ) : access.kind === 'trial' && access.plan !== null ? (
           <>
             <Text variant="section">Abonnement enregistré</Text>
             <Text variant="body" color={colors.textMuted}>
@@ -313,6 +355,17 @@ export default function SubscriptionScreen() {
         )}
       </Card>
 
+      {/* Sous l'état, au-dessus des boutons : là où regarde celui qui vient
+          d'appuyer. Une erreur affichée en bas d'une page qui défile n'est pas
+          affichée. */}
+      {error ? (
+        <Card background={colors.dangerSoft} elevation="none">
+          <Text variant="body" color={colors.dangerInk}>
+            {error}
+          </Text>
+        </Card>
+      ) : null}
+
       {gerable && !resilie ? (
         <View style={styles.actions}>
           {/**
@@ -350,6 +403,7 @@ export default function SubscriptionScreen() {
           <Button
             label={engage ? 'Annuler avant le prélèvement' : 'Résilier mon abonnement'}
             variant="danger"
+            loading={loading}
             onPress={confirmCancel}
           />
         </View>
@@ -434,12 +488,6 @@ export default function SubscriptionScreen() {
           ) : null}
         </>
       )}
-
-      {error ? (
-        <Text variant="caption" color={colors.dangerInk} center>
-          {error}
-        </Text>
-      ) : null}
 
       {billing.capability === 'none' ? (
         <Card background={colors.yellowSoft} elevation="none">

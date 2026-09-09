@@ -52,10 +52,32 @@ const referral = (over: Partial<Referral> = {}): Referral => ({
 describe('access', () => {
   it('runs for the whole trial and stops at its end', () => {
     const sub = startTrial('f1', NOW);
-    const nu = { plan: null, firstChargeOn: sub.trialEndsAt };
+    const nu = { plan: null, firstChargeOn: sub.trialEndsAt, cancelAtPeriodEnd: false };
     expect(accessOf(sub, NOW)).toEqual({ kind: 'trial', daysLeft: 30, ...nu });
     expect(accessOf(sub, new Date(days(29)))).toEqual({ kind: 'trial', daysLeft: 1, ...nu });
     expect(accessOf(sub, new Date(days(31)))).toEqual({ kind: 'expired' });
+  });
+
+  /**
+   * L'essai arrêté avant le premier prélèvement.
+   *
+   * L'accès ne change pas — la famille garde tout Mino jusqu'au terme, c'est
+   * la loi et c'est la promesse. Ce qui change est ce que l'écran doit dire, et
+   * `accessOf` ne le portait pas : l'abonnement annulé réaffichait « le premier
+   * prélèvement aura lieu le … », si bien que rien ne distinguait une
+   * annulation réussie d'une annulation qui n'était jamais partie.
+   */
+  it('carries the cancellation of a trial that has not been charged yet', () => {
+    const engage = { ...startTrial('f1', NOW), plan: 'yearly' as const, source: 'stripe' as const };
+    const arrete = { ...engage, cancelAtPeriodEnd: true };
+
+    const a = accessOf(engage, NOW);
+    const b = accessOf(arrete, NOW);
+
+    expect(a.kind === 'trial' && a.cancelAtPeriodEnd).toBe(false);
+    expect(b.kind === 'trial' && b.cancelAtPeriodEnd).toBe(true);
+    // L'accès court toujours : annuler n'est pas partir tout de suite.
+    expect(b.kind === 'trial' && b.daysLeft).toBe(30);
   });
 
   /**

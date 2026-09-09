@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
+import QRCode from 'react-native-qrcode-svg';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot';
 import { Button, Card, Screen, ScreenHeader, Text } from '@/components/ui';
 import { PairedDevice } from '@/data/repository';
+import { LIEN_TELECHARGEMENT } from '@/features/onboarding/InstallerSurLAppareil';
 import { aRegler, etatDe, phraseDe } from '@/domain/shieldReport';
 import { ScreenTimeAuthorization, getScreenTimeService } from '@/services/screenTime';
 import { useFamily } from '@/store/selectors';
@@ -112,6 +114,13 @@ export default function ShieldSetup() {
     }
   };
 
+  /**
+   * Dans un navigateur, il n'y a rien à autoriser et rien à attendre : il y a
+   * une application à installer ailleurs. C'est la seule distinction qui
+   * compte pour cet écran, et elle ne se lit pas dans `status`.
+   */
+  const dansUnNavigateur = Platform.OS === 'web';
+
   const manual =
     Platform.OS === 'android'
       ? 'Application Family Link → votre enfant → Contrôles → Limites de temps par application.'
@@ -140,23 +149,89 @@ export default function ShieldSetup() {
           {status === 'approved'
             ? 'Le blocage est actif'
             : status === 'unsupported'
-              ? 'Ce vers quoi nous allons'
+              ? dansUnNavigateur
+                ? 'À installer sur l’appareil de votre enfant'
+                : 'Ce vers quoi nous allons'
               : 'Laisser Mino verrouiller les écrans'}
         </Text>
         <Text variant="body" color={colors.textMuted} center>
-          {status === 'unsupported'
+          {status === 'unsupported' && !dansUnNavigateur
             ? 'Le but de Mino : que les applications choisies restent verrouillées, et que le verrou se lève exactement le temps que votre enfant a gagné.'
             : 'Les applications choisies restent verrouillées, et Mino lève le verrou exactement le temps que votre enfant a gagné.'}
         </Text>
       </View>
 
-      {status === 'unsupported' ? (
+      {/**
+        * `unsupported` recouvrait deux situations très différentes, et n'en
+        * décrivait qu'une — la mauvaise.
+        *
+        * L'écran annonçait « Pas encore disponible sur cette version : Mino ne
+        * verrouille pas encore les applications elle-même ». C'était vrai le
+        * jour où cette carte a été écrite. Ce ne l'est plus : le bouclier
+        * fonctionne sur iPhone comme sur Android, téléphone et tablette. Le
+        * parent qui lisait cela dans son navigateur apprenait donc que le
+        * produit qu'il vient de payer n'existe pas.
+        *
+        * Ce qui est vrai dans un navigateur, c'est qu'**une page web ne peut
+        * rien verrouiller** — aucun navigateur ne donne ce pouvoir, et aucun ne
+        * le donnera. Il n'y a donc rien à réparer ici : il y a une application
+        * à installer sur l'appareil de l'enfant. C'est un chemin, pas une
+        * excuse, et c'est ce que cette carte offre.
+        */}
+      {status === 'unsupported' && dansUnNavigateur ? (
+        <>
+          <Card style={styles.block}>
+            <Text variant="cardTitle" center>
+              Scannez ce code avec l’appareil de votre enfant
+            </Text>
+            <Text variant="body" color={colors.textMuted} center>
+              Le verrou vit dans l’application, sur le téléphone ou la tablette à encadrer. Cette
+              page-ci, dans un navigateur, ne peut rien fermer.
+            </Text>
+            <View style={styles.qr}>
+              <QRCode
+                value={LIEN_TELECHARGEMENT}
+                size={200}
+                color={colors.navy}
+                backgroundColor="#FFFFFF"
+                quietZone={12}
+              />
+            </View>
+            {/* Un seul code, et volontairement : la page de téléchargement
+                envoie vers l'App Store ou vers Google Play selon l'appareil qui
+                l'ouvre. Deux codes figés — l'un Apple, l'autre Android —
+                obligeraient le parent à deviner lequel scanner, et surtout ils
+                seraient gravés dans le binaire : impossible à corriger le jour
+                où une des deux adresses change. */}
+            <Text variant="caption" color={colors.textMuted} center>
+              iPhone, iPad ou Android — la page vous envoie sur la bonne boutique. Ou rendez-vous
+              sur minoapp.fr/telecharger
+            </Text>
+          </Card>
+
+          <Card style={styles.block} background={colors.blueSoft} elevation="none">
+            <Text variant="cardTitle" center>
+              Puis, dans l’application : « J’ai un code famille »
+            </Text>
+            <Text variant="hero" color={colors.blueInk} center style={styles.code}>
+              {famille?.family.code ?? '—'}
+            </Text>
+            <Text variant="caption" color={colors.textMuted} center>
+              Ce code relie l’appareil à votre famille. C’est là que vous autoriserez le blocage, en
+              deux touches.
+            </Text>
+          </Card>
+        </>
+      ) : status === 'unsupported' ? (
         <Card background={colors.yellowSoft} elevation="none" style={styles.block}>
-          <Text variant="cardTitle">Pas encore disponible sur cette version</Text>
+          {/* Sur un appareil, `unsupported` ne veut plus dire « pas encore
+              écrit » : le module existe. Il veut dire qu'il n'est pas dans CE
+              binaire — Expo Go, ou une version antérieure au bouclier. */}
+          <Text variant="cardTitle">Le blocage n’est pas dans cette version</Text>
           <Text variant="body" color={colors.textMuted}>
-            Cette version de Mino compte le temps et le décompte, mais ne verrouille pas encore les
-            applications elle-même. C’est ce que nous construisons, et cela demande une autorisation
-            spécifique d’Apple et de Google.
+            Cette version de Mino compte le temps et le décompte, mais ne porte pas le verrou.
+            Installez Mino depuis l’App Store ou Google Play sur l’appareil de votre enfant : c’est
+            cette version-là qui verrouille.
           </Text>
           <Text variant="body" color={colors.textMuted}>
             {`En attendant, réglez la limite dans le contrôle parental de l’appareil : ${manual}`}
@@ -428,4 +503,11 @@ const styles = StyleSheet.create({
   },
   stepText: { flex: 1 },
   guide: { gap: spacing.md },
+  qr: {
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: spacing.md,
+    borderRadius: radii.lg,
+  },
+  code: { letterSpacing: 2 },
 });

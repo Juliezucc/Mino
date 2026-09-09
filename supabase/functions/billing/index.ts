@@ -261,13 +261,36 @@ Deno.serve(servir(async (request) => {
           .select('*')
           .eq('family_id', caller.familyId)
           .maybeSingle();
-        if (!data?.subscription_id) return fail('Aucun abonnement.', 404);
+        if (!data) return fail('Aucun abonnement.', 404);
 
-        // Cancel at period end, never immediately: the family paid for the
-        // period it is in, and French law requires this to be one action away.
-        await stripe().subscriptions.update(data.subscription_id, {
-          cancel_at_period_end: cancelling,
-        });
+        /**
+         * **Un essai sans carte s'arrête aussi, et il fallait le permettre.**
+         *
+         * `subscription_id` est nul pendant tout l'essai tant qu'aucune session
+         * Stripe n'a abouti — c'est l'état de toute famille qui vient de
+         * s'inscrire. La route répondait alors 404 « Aucun abonnement », et
+         * l'écran affichait une ligne minuscule tout en bas de la page :
+         * autrement dit, le bouton « Annuler avant le prélèvement » ne faisait
+         * rien de visible. C'est exactement ce que promettent les CGV, l'e-mail
+         * de fin d'essai et l'article L. 215-1 : deux touches, et rien n'est
+         * prélevé.
+         *
+         * Il n'y a rien à dire à Stripe dans ce cas — il n'y a pas d'abonnement
+         * chez lui. On note l'arrêt sur notre ligne, ce qui fait deux choses :
+         * l'écran le dit, et la tournée de nuit cesse d'annoncer un
+         * prélèvement à quelqu'un qui vient d'y renoncer.
+         */
+        if (data.subscription_id) {
+          // Cancel at period end, never immediately: the family paid for the
+          // period it is in, and French law requires this to be one action away.
+          await stripe().subscriptions.update(data.subscription_id, {
+            cancel_at_period_end: cancelling,
+          });
+        } else if (data.status !== 'trialing') {
+          // Ni abonnement chez Stripe, ni essai en cours : il n'y a rien à
+          // arrêter, et prétendre le contraire vaudrait moins que le dire.
+          return fail('Aucun abonnement.', 404);
+        }
 
         const { data: updated } = await db
           .from('subscriptions')

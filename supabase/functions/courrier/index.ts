@@ -362,6 +362,9 @@ async function lot(request: Request): Promise<Response> {
     .from('subscriptions')
     .select('family_id, source')
     .eq('status', 'trialing')
+    // Celui qui a déjà arrêté son essai n'a pas à recevoir l'annonce d'un
+    // prélèvement auquel il vient de renoncer.
+    .eq('cancel_at_period_end', false)
     .gte('trial_ends_at', dans(2))
     .lte('trial_ends_at', dans(4))
     .limit(500);
