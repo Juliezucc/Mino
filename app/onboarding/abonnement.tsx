@@ -23,6 +23,33 @@ function frenchDate(iso: string | null): string {
 }
 
 /**
+ * Ce qu'affiche la carte, formule par formule.
+ *
+ * Les deux entrées ont la même forme parce que la carte est la même : elle
+ * montre la formule choisie, quelle qu'elle soit. Rien n'y est écrit à la
+ * main — le jour où un tarif bouge, un nombre en dur cesse silencieusement de
+ * correspondre à ce qui est facturé.
+ */
+const OFFRE: Record<Plan, { etiquette: string; grand: string; petit: string; badge: string | null }> =
+  {
+    yearly: {
+      etiquette: 'ANNUEL',
+      grand: `${formatPrice(ANNUAL_PRICE_EUR / 12)} / mois`,
+      // Le montant réellement débité, juste sous le prix d'appel. C'est la
+      // limite à ne pas franchir : Apple le vérifie, la loi française l'impose.
+      // Le mettre en petit est permis ; le retirer, non.
+      petit: `soit ${formatPrice(ANNUAL_PRICE_EUR)} par an`,
+      badge: `-${annualSavingPercent()} %`,
+    },
+    monthly: {
+      etiquette: 'MENSUEL',
+      grand: `${formatPrice(MONTHLY_PRICE_EUR)} / mois`,
+      petit: 'facturé chaque mois, sans engagement',
+      badge: null,
+    },
+  };
+
+/**
  * Le moment où l'on demande la carte, et pourquoi c'est ici.
  *
  * **Le modèle d'avant.** L'essai était accordé sans carte et se terminait sur
@@ -146,55 +173,67 @@ export default function OnboardingAbonnement() {
       </View>
 
       {/**
-       * L'annuel présélectionné, annoncé par son prix mensuel.
+       * La carte montre la formule CHOISIE, et le lien celle qu'on peut
+       * prendre à la place.
        *
-       * `formatPrice(ANNUAL_PRICE_EUR / 12)` et jamais un nombre écrit à la
-       * main : le jour où le tarif bouge, un prix en dur cesse silencieusement
-       * de correspondre à ce qui est facturé.
+       * **Ce que la version précédente affichait.** La carte était l'annuel,
+       * toujours, et choisir le mensuel ne faisait que déplacer un cadre bleu :
+       * le plus gros chiffre de l'écran restait 6,67 € / mois — c'est-à-dire un
+       * prix que la personne venait précisément de ne pas choisir. Elle
+       * s'engageait à 9,99 € en regardant 6,67 €. C'est le genre d'écart qu'un
+       * vérificateur d'Apple relève au motif 3.1.2, mais c'est d'abord un
+       * parent qui découvre le vrai montant sur son relevé bancaire.
        *
-       * Le montant réellement débité reste lisible juste en dessous. C'est la
-       * limite à ne pas franchir — Apple le vérifie, et la loi française
-       * l'impose. Le mettre en petit est permis ; le retirer, non.
+       * Il n'y a donc qu'un seul prix à l'écran à la fois, et c'est le sien.
        */}
-      <Pressable
-        onPress={() => setSelected('yearly')}
-        accessibilityRole="radio"
-        accessibilityState={{ selected: selected === 'yearly' }}
-        accessibilityLabel={`Formule annuelle, ${formatPrice(ANNUAL_PRICE_EUR / 12)} par mois, facturée ${formatPrice(ANNUAL_PRICE_EUR)} par an`}
-        style={[styles.offre, selected === 'yearly' && styles.offreOn]}
+      <View
+        style={[styles.offre, styles.offreOn]}
+        accessibilityRole="summary"
+        accessibilityLabel={`Formule choisie : ${OFFRE[selected].etiquette.toLowerCase()}, ${OFFRE[selected].grand}, ${OFFRE[selected].petit}`}
       >
         <View style={styles.ligne}>
           <Text variant="label" color={colors.textMuted}>
-            ANNUEL
+            {OFFRE[selected].etiquette}
           </Text>
-          <View style={styles.remise}>
-            <Text variant="caption" color={colors.onBrand}>
-              {`-${annualSavingPercent()} %`}
-            </Text>
-          </View>
+          {OFFRE[selected].badge ? (
+            <View style={styles.remise}>
+              <Text variant="caption" color={colors.onBrand}>
+                {OFFRE[selected].badge}
+              </Text>
+            </View>
+          ) : null}
         </View>
         <Text variant="hero" color={colors.blueInk}>
-          {`${formatPrice(ANNUAL_PRICE_EUR / 12)} / mois`}
+          {OFFRE[selected].grand}
         </Text>
         <Text variant="caption" color={colors.textMuted}>
-          {`soit ${formatPrice(ANNUAL_PRICE_EUR)} par an`}
+          {OFFRE[selected].petit}
         </Text>
-      </Pressable>
+      </View>
 
+      {/**
+       * L'autre formule, en un mot et une touche.
+       *
+       * `button` et non `radio` : il ne reste qu'une option à l'écran, et ce
+       * qu'on annonce à un lecteur d'écran est l'action qu'il déclenche. Son
+       * intitulé porte le prix en entier, faute de quoi la seconde formule
+       * n'existerait que pour ceux qui voient l'écran.
+       */}
       <Pressable
-        onPress={() => setSelected('monthly')}
-        accessibilityRole="radio"
-        accessibilityState={{ selected: selected === 'monthly' }}
-        accessibilityLabel={`Formule mensuelle, ${formatPrice(MONTHLY_PRICE_EUR)} par mois`}
-        style={styles.mensuel}
+        onPress={() => setSelected(selected === 'yearly' ? 'monthly' : 'yearly')}
+        accessibilityRole="button"
+        accessibilityLabel={
+          selected === 'yearly'
+            ? `Prendre la formule mensuelle à ${formatPrice(MONTHLY_PRICE_EUR)} par mois`
+            : `Prendre la formule annuelle à ${formatPrice(ANNUAL_PRICE_EUR / 12)} par mois, facturée ${formatPrice(ANNUAL_PRICE_EUR)} par an`
+        }
+        style={styles.autre}
         hitSlop={8}
       >
-        <Text
-          variant={selected === 'monthly' ? 'bodyStrong' : 'body'}
-          color={selected === 'monthly' ? colors.blueInk : colors.textMuted}
-          center
-        >
-          {`Ou ${formatPrice(MONTHLY_PRICE_EUR)} par mois`}
+        <Text variant="body" color={colors.blueInk} center>
+          {selected === 'yearly'
+            ? `Ou ${formatPrice(MONTHLY_PRICE_EUR)} par mois`
+            : `Ou ${formatPrice(ANNUAL_PRICE_EUR / 12)} par mois en payant à l’année (-${annualSavingPercent()} %)`}
         </Text>
       </Pressable>
 
@@ -206,8 +245,15 @@ export default function OnboardingAbonnement() {
       />
 
       <Card background={colors.surfaceMuted} elevation="none" style={styles.rassure}>
+        {/* Le prix de la formule choisie, et lui seul. Énumérer les deux
+            tarifs dans le même paragraphe obligeait le parent à retrouver
+            lequel le concerne — juste au moment où on lui demande sa carte. */}
         <Text variant="caption" color={colors.textMuted}>
-          {`Rien n’est prélevé aujourd’hui. L’abonnement se renouvelle ensuite automatiquement — ${formatPrice(ANNUAL_PRICE_EUR)} par an ou ${formatPrice(MONTHLY_PRICE_EUR)} par mois — et s’annule en deux touches, à tout moment. Un abonnement couvre toute la famille, sur tous vos appareils.`}
+          {`Rien n’est prélevé aujourd’hui.${finEssai ? ` Le ${frenchDate(finEssai)},` : ' À la fin de l’essai,'} votre abonnement démarrera à ${
+            selected === 'yearly'
+              ? `${formatPrice(ANNUAL_PRICE_EUR)} par an`
+              : `${formatPrice(MONTHLY_PRICE_EUR)} par mois`
+          } et se renouvellera automatiquement. Il s’annule en deux touches, à tout moment. Un abonnement couvre toute la famille, sur tous vos appareils.`}
         </Text>
       </Card>
 
@@ -275,7 +321,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 2,
   },
-  mensuel: { paddingVertical: spacing.sm },
+  autre: { paddingVertical: spacing.sm },
   rassure: { padding: spacing.md },
   legal: {
     flexDirection: 'row',

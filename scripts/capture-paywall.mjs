@@ -128,34 +128,20 @@ mkdirSync('store', { recursive: true });
 await page.screenshot({ path: SORTIE_ANNUEL });
 console.log(`→ ${SORTIE_ANNUEL}`);
 
-// Puis le mensuel, choisi. Le cadre bleu quitte l'annuel et la ligne « Ou
-// 9,99 € par mois » passe en bleu appuyé — c'est tout ce qui change à
-// l'écran, et c'est précisément ce que la capture doit prouver.
+// Puis le mensuel, choisi : la carte bascule entièrement — étiquette, prix,
+// mention du renouvellement. C'est cette bascule que la seconde capture doit
+// prouver, et c'est donc elle qu'on vérifie.
 const mensuel = page.getByText('Ou 9,99 € par mois').first();
 await mensuel.waitFor({ state: 'visible', timeout: 15000 });
 await mensuel.click();
 await attendre(600);
 
-/**
- * On vérifie ce que la capture doit montrer, et pas autre chose.
- *
- * L'état sélectionné ne se lit pas dans le balisage : React Native Web 0.21 ne
- * reporte plus `accessibilityState` sur la page — c'est un écart réel, mais
- * qui ne concerne que l'aperçu web, les applications natives recevant bien cet
- * état. Ce qu'on contrôle ici est donc la seule chose qui compte pour une
- * image : la ligne du mensuel est passée en gras bleu.
- */
-const mensuelEnAvant = await page.evaluate(() => {
-  const ligne = [...document.querySelectorAll('div')].find(
-    (e) => e.childElementCount === 0 && e.textContent?.trim() === 'Ou 9,99 € par mois',
-  );
-  if (!ligne) return null;
-  const style = getComputedStyle(ligne);
-  return { police: style.fontFamily, couleur: style.color };
-});
-if (!mensuelEnAvant?.police.includes('Bold')) {
+const apres = await page.evaluate(() => document.body.innerText);
+const attendu = ['MENSUEL', '9,99 € / mois', 'sans engagement'];
+const manquant = attendu.filter((m) => !apres.includes(m));
+if (manquant.length > 0) {
   throw new Error(
-    `La formule mensuelle n'a pas été mise en avant (lu : ${JSON.stringify(mensuelEnAvant)}).`,
+    `La carte n'est pas passée au mensuel (absent : ${manquant.join(', ')}).\n${apres.slice(0, 400)}`,
   );
 }
 
