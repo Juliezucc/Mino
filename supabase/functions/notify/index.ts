@@ -21,7 +21,7 @@
 //
 // Déploiement :  supabase functions deploy notify
 
-import { CORS, admin, appelant, fail, json } from '../_shared/mino.ts';
+import { admin, appelant, fail, json, servir } from '../_shared/mino.ts';
 
 /** Le service d'Expo, qui détient la clé APNs et parle à Apple pour nous. */
 const EXPO_PUSH = 'https://exp.host/--/api/v2/push/send';
@@ -34,8 +34,7 @@ interface Corps {
   route?: string | null;
 }
 
-Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+Deno.serve(servir(async (request) => {
 
   const qui = await appelant(request);
   if (!qui) return fail('Non autorisé.', 401);
@@ -138,4 +137,4 @@ Deno.serve(async (request) => {
     // provoquée : la mission est déjà validée, les minos déjà crédités.
     return fail('Notification non transmise.', 502);
   }
-});
+}));

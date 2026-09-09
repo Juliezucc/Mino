@@ -9,11 +9,85 @@ import Stripe from 'npm:stripe@17';
 
 export { Stripe };
 
+/**
+ * Les adresses depuis lesquelles un navigateur a le droit de nous appeler.
+ *
+ * `APP_ORIGIN` en contenait une seule, et c'était un piège à deux détentes.
+ * Avec `https://app.minoapp.fr`, plus rien ne fonctionne depuis `localhost` :
+ * le navigateur refuse la réponse et l'application affiche « Failed to
+ * fetch », sans que rien n'indique qu'il s'agit d'un réglage de serveur. Et la
+ * parade évidente — remettre `localhost` le temps de développer — se paie le
+ * jour où l'on oublie de la retirer.
+ *
+ * La variable accepte donc une liste séparée par des virgules. On ne renvoie
+ * jamais la liste : on renvoie **l'adresse de l'appelant si elle y figure**,
+ * ce qui est la seule forme qu'un navigateur accepte.
+ */
+const ORIGINES = (Deno.env.get('APP_ORIGIN') ?? '*')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+function origineDe(request: Request): string {
+  const demandee = request.headers.get('Origin');
+  if (ORIGINES.includes('*')) return demandee ?? '*';
+  if (demandee && ORIGINES.includes(demandee)) return demandee;
+  // Aucune correspondance : on annonce la première de la liste. Le navigateur
+  // refusera, ce qui est le comportement voulu — mais la réponse reste bien
+  // formée, et la trace du refus est lisible dans sa console.
+  return ORIGINES[0] ?? '*';
+}
+
+function entetes(request: Request): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': origineDe(request),
+    // Sans `Vary`, un cache intermédiaire servirait à un site la réponse
+    // autorisée pour un autre.
+    Vary: 'Origin',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  };
+}
+
+/**
+ * Conservé pour les corps de réponse construits sans requête sous la main.
+ * `servir` réécrit l'en-tête d'origine juste avant l'envoi, donc la valeur
+ * posée ici n'est qu'un gabarit.
+ */
 export const CORS = {
-  'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? '*',
+  'Access-Control-Allow-Origin': ORIGINES[0] ?? '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
+
+/**
+ * Enveloppe un gestionnaire pour qu'il réponde à la bonne origine.
+ *
+ * Le préflight est traité ici, une fois pour toutes, et l'en-tête d'origine
+ * est réécrit sur la réponse rendue — ce qui évite de faire passer la requête
+ * à travers les quelque soixante-dix appels à `json()` et `fail()` que
+ * comptent ces fonctions.
+ *
+ * Les webhooks n'en ont pas besoin : Stripe et Apple ne sont pas des
+ * navigateurs et ne connaissent pas CORS.
+ */
+export function servir(
+  handler: (request: Request) => Promise<Response> | Response,
+): (request: Request) => Promise<Response> {
+  return async (request: Request) => {
+    if (request.method === 'OPTIONS') {
+      return new Response('ok', { headers: entetes(request) });
+    }
+    const reponse = await handler(request);
+    const sortie = new Headers(reponse.headers);
+    for (const [cle, valeur] of Object.entries(entetes(request))) sortie.set(cle, valeur);
+    return new Response(reponse.body, {
+      status: reponse.status,
+      statusText: reponse.statusText,
+      headers: sortie,
+    });
+  };
+}
 
 export function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

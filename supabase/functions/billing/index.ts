@@ -8,7 +8,6 @@
 // Deploy:  supabase functions deploy billing
 
 import {
-  CORS,
   admin,
   fail,
   familyOfCaller,
@@ -17,6 +16,7 @@ import {
   rowToSubscription,
   stripe,
   env,
+  servir,
 } from '../_shared/mino.ts';
 import {
   REFERRAL,
@@ -29,8 +29,7 @@ const PRICE: Record<string, string> = {
   yearly: Deno.env.get('STRIPE_PRICE_YEARLY') ?? '',
 };
 
-Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+Deno.serve(servir(async (request) => {
 
   const caller = await familyOfCaller(request);
   if (!caller) return fail('Non authentifié.', 401);
@@ -286,4 +285,4 @@ Deno.serve(async (request) => {
     console.error('billing', route, error);
     return fail(error instanceof Error ? error.message : 'Erreur inattendue.', 500);
   }
-});
+}));

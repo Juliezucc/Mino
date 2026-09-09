@@ -23,7 +23,7 @@
 
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
 
-import { CORS, admin, env, fail, familyOfCaller, json } from '../_shared/mino.ts';
+import { admin, env, fail, familyOfCaller, json, servir } from '../_shared/mino.ts';
 
 /**
  * Les messages qu'on sait écrire, et rien d'autre.
@@ -166,8 +166,7 @@ async function envoyer(destinataire: string, sujet: string, texte: string): Prom
   }
 }
 
-Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+Deno.serve(servir(async (request) => {
 
   const caller = await familyOfCaller(request);
   if (!caller) return fail('Non authentifié.', 401);
@@ -228,4 +227,4 @@ Deno.serve(async (request) => {
 
   await db.from('courriers').insert({ family_id: caller.familyId, genre });
   return json({ envoye: true });
-});
+}));

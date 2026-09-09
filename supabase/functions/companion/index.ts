@@ -13,7 +13,7 @@
 //
 // Déploiement :  supabase functions deploy companion
 
-import { CORS, admin, env, fail, json } from '../_shared/mino.ts';
+import { admin, env, fail, json, servir } from '../_shared/mino.ts';
 
 /** Repris de src/domain/companion.ts. Voir ce fichier pour le raisonnement. */
 const DAILY_EXCHANGES = 20;
@@ -260,8 +260,7 @@ async function remember(input: {
   });
 }
 
-Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+Deno.serve(servir(async (request) => {
 
   let body: { childId?: string; message?: string; context?: Context; history?: { role: string; text: string }[] };
   try {
@@ -377,4 +376,4 @@ Deno.serve(async (request) => {
     // écrite à la main plutôt que d'afficher une erreur.
     return fail('Mino n’a pas pu répondre.', 503);
   }
-});
+}));

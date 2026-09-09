@@ -12,7 +12,7 @@
 //
 // Déploiement :  supabase functions deploy store-purchase
 
-import { CORS, admin, fail, familyOfCaller, json, rowToSubscription } from '../_shared/mino.ts';
+import { admin, fail, familyOfCaller, json, rowToSubscription, servir } from '../_shared/mino.ts';
 import {
   applyStoreState,
   netCents,
@@ -20,8 +20,7 @@ import {
   verifyGooglePurchase,
 } from '../_shared/store.ts';
 
-Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+Deno.serve(servir(async (request) => {
 
   // La famille vient du jeton d'authentification, jamais du corps de la
   // requête : un client qui peut nommer la famille sur laquelle il agit est un
@@ -109,4 +108,4 @@ Deno.serve(async (request) => {
     // notification serveur à serveur rattrapera. Ne jamais suggérer de repayer.
     return fail('Vérification impossible pour le moment. Votre achat sera pris en compte.', 502);
   }
-});
+}));
