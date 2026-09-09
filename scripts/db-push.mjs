@@ -78,7 +78,12 @@ for (const [name, what] of SQL_FILES) {
 }
 
 if (dryRun) {
-  console.log('\nAvec SUPABASE_DB_URL définie, ces six fichiers seraient appliqués dans cet ordre.');
+  // Compté, jamais écrit en toutes lettres : le message annonçait « six
+  // fichiers » alors que la liste en compte dix depuis longtemps. Un nombre
+  // en dur dans une phrase est un mensonge à retardement.
+  console.log(
+    `\nAvec SUPABASE_DB_URL définie, ces ${SQL_FILES.length} fichiers seraient appliqués dans cet ordre.`,
+  );
 } else {
   console.log('\nBase à jour.');
 }
