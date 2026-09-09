@@ -246,7 +246,7 @@ Dans l'ordre du rapport qualité/prix.
 | Le compagnon éteint par défaut, l'accord de traitement signé — ou la phrase retirée de la politique | 1–2 j | ❌ |
 | La cinquième tâche de nuit : `purge_companion_messages()`, promise à 30 jours | ½ j | ❌ |
 | Une boîte contact@ vraiment relevée | 1 h pour la bêta | ❌ |
-| **Lever le `robots.txt` de `public/`** — il interdit toute indexation depuis la mise en ligne anticipée d'`app.minoapp.fr` | 2 min | ❌ **le jour du lancement** |
+| **Retirer la ligne `X-Robots-Tag: noindex` du `.htaccess`** — elle tient `app.minoapp.fr` hors des moteurs depuis sa mise en ligne anticipée. Ce n'est **pas** le `robots.txt` qu'il faut toucher : il autorise l'exploration, et c'est exprès — un robot empêché de charger la page ne lit jamais le `noindex` qui lui est destiné, et Google affiche alors l'adresse nue | 2 min | ❌ **le jour du lancement** |
 | Vérifier que la RLS est active sur **toutes** les tables : le bundle web publie l'URL du projet et la clé publiable, ce qui n'est sûr que si la base refuse ce qu'elle doit refuser | 10 min | ❌ avant le premier vrai paiement |
 | Une RC professionnelle avec extension numérique, avant la bêta ouverte | quelques centaines d'euros/an | ❌ |
 

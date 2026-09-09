@@ -20,8 +20,8 @@ bien laisser en place.
 
 | Fichier | Rôle |
 |---|---|
-| `robots.txt` | interdit l'indexation tant que les applications ne sont pas sur les boutiques — **à lever au lancement**, voir le fichier lui-même |
-| `.htaccess` | *à ajouter par la session du site* : la redirection page unique vers `index.html`, sans laquelle toute adresse autre que `/` rend une erreur 404 d'Apache avant même qu'expo-router ne soit chargé |
+| `robots.txt` | **autorise** l'exploration, et c'est exprès : l'interdiction d'indexer est un en-tête servi par `.htaccess`, qu'un robot empêché de charger la page ne lirait jamais |
+| `.htaccess` | la redirection page unique vers `index.html`, sans laquelle toute adresse autre que `/` rend une erreur 404 d'Apache avant même qu'expo-router ne soit chargé — **et** l'en-tête `X-Robots-Tag: noindex`, la seule chose qui tienne réellement le sous-domaine hors des moteurs. C'est cette ligne-là qu'on retire au lancement. |
 
 Le `.htaccess` en place sur le serveur fonctionne ; il n'est simplement versionné
 nulle part. Le déposer ici le met à l'abri du prochain déploiement, et le rend

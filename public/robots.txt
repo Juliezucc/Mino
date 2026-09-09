@@ -1,21 +1,27 @@
-# ⚠️  À LEVER LE JOUR DU LANCEMENT.
+# Autoriser l'exploration, et n'interdire QUE l'indexation.
 #
-# Ce fichier interdit toute indexation. Il est là parce que
-# app.minoapp.fr a été publié avant les boutiques, pour éprouver la
-# chaîne de paiement en conditions réelles — et qu'aucun parent ne
-# devait tomber dessus par une recherche entre-temps.
+# Ce fichier a d'abord porté `Disallow: /`, ce qui paraît plus prudent et ne
+# l'est pas. Un robot à qui l'on interdit de charger la page ne lit jamais
+# l'en-tête `X-Robots-Tag: noindex` qui lui est destiné — il ne voit donc
+# jamais l'interdiction, et Google peut faire figurer l'adresse nue dans ses
+# résultats, avec « Aucune information n'est disponible pour cette page ».
+# C'est le comportement que Google documente lui-même : pour tenir une page
+# hors des résultats, il faut la laisser explorer et lui servir un `noindex`.
 #
-# Le jour où les applications sont en ligne, remplacer le contenu par :
+# Le cas n'est pas théorique ici : le certificat Let's Encrypt d'
+# app.minoapp.fr est passé dans les journaux de transparence, l'adresse
+# circule donc déjà sans qu'aucun lien ne pointe vers elle.
 #
-#   User-agent: *
-#   Allow: /
+# ⚠️  L'INTERDICTION N'EST PAS DANS CE FICHIER. Elle est dans `.htaccess`, sur
+# la ligne :
 #
-# Voir docs/ops/avant-de-lancer.md, où cette étape figure dans la liste.
+#     Header always set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex"
 #
-# L'oublier ne casse rien et ne se voit pas : le site fonctionne
-# parfaitement, il n'apparaît simplement jamais dans un moteur de
-# recherche. C'est le genre de défaut qu'on met trois mois à découvrir,
-# en se demandant pourquoi le référencement ne décolle pas.
+# C'est celle-là qu'on supprime le jour du lancement — voir
+# docs/ops/avant-de-lancer.md. L'oublier ne casse rien et ne se voit pas : le
+# site marche parfaitement, il n'apparaît simplement jamais dans un moteur de
+# recherche, et l'on met trois mois à se demander pourquoi le référencement ne
+# décolle pas.
 
 User-agent: *
-Disallow: /
+Allow: /
