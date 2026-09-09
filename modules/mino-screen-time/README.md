@@ -19,11 +19,22 @@ tourne.
   `compileSdk` écrit en dur, une `Activity` sans `onBackPressedDispatcher`, une
   notification construite avec une API postérieure au minimum déclaré. Les
   trois sont corrigés.
-- **Ce qui reste à éprouver, et c'est le vrai reste : le comportement sur un
-  appareil.** Compiler prouve que le code est bien formé, pas que le bouclier se
-  lève. Les autorisations Android (accès aux statistiques d'usage, superposition
-  d'écran) s'accordent à la main dans les réglages du système, et un émulateur
-  ne se comporte pas toujours comme un téléphone sur ce terrain-là.
+- **Android : éprouvé sur un appareil, le 9 septembre 2026.** Sur un émulateur,
+  autorisations accordées à la main, la boucle entière a tourné : la
+  notification permanente du service, une application encadrée recouverte alors
+  que Mino n'était pas au premier plan, le verrou levé par des minutes gagnées,
+  puis reposé tout seul à l'échéance. C'est la seule propriété du module
+  qu'aucun test ne peut démontrer, et elle est désormais démontrée.
+
+  > Le chemin pour y arriver a coûté un défaut : l'écran d'autorisation
+  > proposait « Ouvrir la fiche de Mino dans les Réglages », ce qui est juste
+  > sur iOS et une impasse sur Android — les deux accès vivent dans « Accès
+  > spécial », et la fiche affiche « Aucune autorisation accordée ». Corrigé
+  > dans `app/parent/blocage.tsx`.
+
+- **Ce qui reste à éprouver : iOS sur un appareil réel**, et Android sur un
+  téléphone plutôt qu'un émulateur — la gestion de la mémoire et la survie des
+  services d'arrière-plan y sont plus sévères que dans une machine virtuelle.
 
 ---
 
