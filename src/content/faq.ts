@@ -368,9 +368,17 @@ export const FAQ: FaqEntry[] = [
     id: 'essai-gratuit',
     question: 'Serai-je prélevé à la fin de l’essai ?',
     answer:
-      'L’essai dure trente jours et rien n’est prélevé pendant cette période : aucune carte ne vous est demandée pour commencer. Vous ne payez qu’au moment où vous choisissez une formule, à la fin de l’essai.',
+      'L’essai dure trente jours et rien n’est prélevé pendant cette période : aucune carte ne vous est demandée pour commencer. Si vous choisissez une formule avant la fin, cela dépend de l’endroit où vous vous abonnez. Depuis notre site, le prélèvement attend la fin de vos trente jours : vous n’en perdez aucun. Depuis l’App Store ou Google Play, il a lieu tout de suite, car Apple et Google ne savent pas différer un paiement jusqu’à une date que nous choisissons — l’application vous le dit avant de vous laisser confirmer.',
     category: 'abonnement',
-    keywords: ['essai', 'gratuit', 'trente jours', '30 jours', 'preleve', 'carte bancaire'],
+    keywords: [
+      'essai',
+      'gratuit',
+      'trente jours',
+      '30 jours',
+      'preleve',
+      'carte bancaire',
+      'avant la fin',
+    ],
   },
   {
     id: 'annuler',

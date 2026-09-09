@@ -101,7 +101,35 @@ export default function SubscriptionScreen() {
    * navigateur et rien n'est payé tant qu'on n'est pas allé au bout. L'écran
    * n'a pas à savoir lequel est branché : le service le dit dans sa réponse.
    */
+  /**
+   * S'abonner pendant l'essai ne coûte pas la même chose selon le rail, et il
+   * faut le dire.
+   *
+   * Sur le web, Stripe reçoit la fin d'essai déjà enregistrée : payer le
+   * cinquième jour ou le vingt-neuvième ne change rien, le prélèvement tombe à
+   * la même date. Sur une boutique, non — Apple et Google encaissent sur-le-
+   * champ, et les jours d'essai restants sont perdus. Leurs offres
+   * d'introduction sont des durées fixes, jamais une date : aucune
+   * configuration ne peut reproduire « gratuit jusqu'au 9 octobre ».
+   *
+   * On ne peut donc pas rendre les deux rails identiques. On peut prévenir,
+   * et proposer d'attendre — un parent débité de 9,99 € en croyant lui rester
+   * trois semaines gratuites demande un remboursement, et il a raison.
+   */
+  const previentDuneAvance = () => {
+    if (billing.capability !== 'store') return Promise.resolve(true);
+    if (access.kind !== 'trial' || access.daysLeft <= 0) return Promise.resolve(true);
+    const j = access.daysLeft;
+    return confirmer({
+      titre: `Il vous reste ${j} jour${j > 1 ? 's' : ''} d’essai`,
+      message: `L’abonnement démarre aujourd’hui : le premier prélèvement a lieu maintenant, et les jours d’essai restants ne sont pas reportés. Vous pouvez aussi attendre — nous vous préviendrons avant la fin.`,
+      action: 'M’abonner maintenant',
+      annuler: 'Attendre',
+    });
+  };
+
   const subscribe = async () => {
+    if (!(await previentDuneAvance())) return;
     setLoading(true);
     setError(null);
     try {
