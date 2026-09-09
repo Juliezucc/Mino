@@ -53,3 +53,9 @@ assets/mascot/sequence/*-frames/
 # Versionner vingt-six PNG lourds ferait grossir le dépôt à chaque retouche de
 # légende, pour des fichiers que le script refait en deux minutes.
 /store/
+
+# L'état local du CLI Supabase : à quel projet cette machine est reliée, quelle
+# version de chaque service elle a vue. Rien de secret, mais rien de commun non
+# plus — deux postes n'y écrivent pas la même chose, et le fichier se retrouve
+# modifié à chaque commande sans qu'on l'ait demandé.
+/supabase/.temp/
