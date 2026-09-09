@@ -55,7 +55,12 @@ const SORTIE_ANNUEL = 'store/paywall-ios.png';
 const SORTIE_MENSUEL = 'store/paywall-ios-mensuel.png';
 
 const { chromium } = loadPlaywright();
-const browser = await chromium.launch();
+// `CHROMIUM_PATH` comme dans `capture-store.mjs` : sur une machine où le
+// navigateur de Playwright n'est pas téléchargé, on désigne celui qui est
+// déjà là plutôt que d'en rapatrier trois cents mégaoctets.
+const browser = await chromium.launch({
+  executablePath: process.env.CHROMIUM_PATH || undefined,
+});
 // 393 × 852 en points, ×3 : 1179 × 2556 pixels, la définition d'un iPhone
 // récent. App Store Connect n'impose pas de taille, mais une image au format
 // d'un téléphone se lit sans effort par le vérificateur.

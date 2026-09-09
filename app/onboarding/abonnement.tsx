@@ -244,16 +244,32 @@ export default function OnboardingAbonnement() {
         disabled={loading}
       />
 
+      {/**
+       * La mention sous le bouton, et pourquoi elle est là plutôt qu'ailleurs.
+       *
+       * C'est la dernière chose lue avant d'appuyer, et la seule que lit
+       * quelqu'un de pressé. Elle porte donc les trois faits qui engagent :
+       * ce qui est prélevé aujourd'hui, ce qui le sera ensuite, et le fait
+       * qu'on peut partir. Le pavé de réassurance juste en dessous les
+       * répétait, trois lignes plus bas et en plus long — c'est-à-dire au seul
+       * endroit où ils ne servaient plus à rien.
+       *
+       * Le prix mensuel devant, le montant réellement facturé derrière et sur
+       * la même ligne : c'est la limite à ne pas franchir. Le raccourcir à
+       * « 6,67 € / mois » ferait de cette phrase une publicité mensongère.
+       */}
+      <Text variant="caption" color={colors.textMuted} center>
+        {selected === 'yearly'
+          ? `0 € pendant ${TRIAL_DAYS} jours, puis ${formatPrice(ANNUAL_PRICE_EUR / 12)} / mois facturés ${formatPrice(ANNUAL_PRICE_EUR)} par an. Sans engagement, résiliable à tout moment.`
+          : `0 € pendant ${TRIAL_DAYS} jours, puis ${formatPrice(MONTHLY_PRICE_EUR)} par mois. Sans engagement, résiliable à tout moment.`}
+      </Text>
+
       <Card background={colors.surfaceMuted} elevation="none" style={styles.rassure}>
-        {/* Le prix de la formule choisie, et lui seul. Énumérer les deux
-            tarifs dans le même paragraphe obligeait le parent à retrouver
-            lequel le concerne — juste au moment où on lui demande sa carte. */}
+        {/* Ce que la mention sous le bouton ne dit pas : la date exacte, et ce
+            que l'abonnement couvre. Les prix, eux, y sont déjà — les répéter
+            ici les diluait sans rien ajouter. */}
         <Text variant="caption" color={colors.textMuted}>
-          {`Rien n’est prélevé aujourd’hui.${finEssai ? ` Le ${frenchDate(finEssai)},` : ' À la fin de l’essai,'} votre abonnement démarrera à ${
-            selected === 'yearly'
-              ? `${formatPrice(ANNUAL_PRICE_EUR)} par an`
-              : `${formatPrice(MONTHLY_PRICE_EUR)} par mois`
-          } et se renouvellera automatiquement. Il s’annule en deux touches, à tout moment. Un abonnement couvre toute la famille, sur tous vos appareils.`}
+          {`${finEssai ? `Le ${frenchDate(finEssai)}` : 'À la fin de l’essai'}, votre abonnement démarre et se renouvelle ensuite automatiquement jusqu’à résiliation. Un abonnement couvre toute la famille : autant d’enfants et d’appareils que vous voulez, sans supplément.`}
         </Text>
       </Card>
 
