@@ -237,6 +237,50 @@ export function addMonths(iso: ISODate, months: number): ISODate {
   return date.toISOString();
 }
 
+/**
+ * Stripe refuse une fin d'essai à moins de 48 heures. Ce n'est pas notre
+ * règle, c'est la sienne, et l'ignorer fait échouer le paiement — au pire
+ * moment, celui où le parent a décidé de payer.
+ */
+export const STRIPE_MIN_TRIAL_MS = 48 * 60 * 60 * 1000;
+
+/**
+ * Jusqu'à quand l'essai court, au moment où l'on ouvre un paiement.
+ *
+ * **Le défaut que cela répare, et il coûtait des mois.** La session Stripe
+ * demandait `trial_period_days: 30` — un décompte NEUF, sans regarder celui
+ * que la famille avait déjà entamé. Un parent qui s'abonnait au 25ᵉ jour de
+ * son essai repartait donc pour trente jours : cinquante-cinq jours gratuits
+ * au lieu de trente. Un filleul, qui a déjà soixante jours, en obtenait cent
+ * vingt.
+ *
+ * C'est très exactement le cumul que `docs/ops/paiements.md` interdit de créer
+ * chez Apple — « sinon un filleul cumulerait nos 60 jours et les 30 jours
+ * d'Apple » — et que notre propre code faisait chez Stripe. Rien ne le
+ * signalait : l'écran affiche la date que Stripe renvoie, donc il annonçait
+ * fidèlement une date fausse.
+ *
+ * La règle, désormais : **l'essai appartient à Mino, pas au rail.** Il finit
+ * le jour où il finit, que l'on paie le premier jour ou le vingt-neuvième.
+ * S'abonner tôt n'allonge rien et ne raccourcit rien — cela enregistre une
+ * carte, et c'est tout.
+ *
+ * Trois cas rendent `null`, c'est-à-dire « facturer tout de suite » :
+ * une famille qui a déjà payé une fois (elle a eu son essai), un essai déjà
+ * terminé, et un essai qui s'achève dans moins de 48 heures — que Stripe
+ * refuserait.
+ */
+export function trialEndForCheckout(
+  input: { trialEndsAt: ISODate | null; hasPaidBefore: boolean },
+  now: Date = new Date(),
+): Date | null {
+  if (input.hasPaidBefore || !input.trialEndsAt) return null;
+  const fin = new Date(input.trialEndsAt);
+  if (Number.isNaN(fin.getTime())) return null;
+  if (fin.getTime() - now.getTime() < STRIPE_MIN_TRIAL_MS) return null;
+  return fin;
+}
+
 /** A brand-new family: trialing, no plan, no card. */
 export function startTrial(familyId: ID, now: Date = new Date(), days = TRIAL_DAYS): Subscription {
   return {

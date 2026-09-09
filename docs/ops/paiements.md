@@ -183,6 +183,16 @@ pire chose qu'un programme de parrainage puisse faire.
 3. **S'inscrire au programme Small Business d'Apple.** 15 % au lieu de 30 %.
    Cinq minutes, et l'oublier double la commission.
 4. **Ne configurer aucune offre d'introduction** — voir le parrainage ci-dessus.
+   Cette ligne a failli être défaite le jour du lancement iOS : rien, dans App
+   Store Connect, ne dit qu'une offre d'introduction ferait double emploi avec
+   notre essai, et l'absence d'offre ressemble à un oubli. Elle n'en est pas
+   un. **L'essai appartient à Mino** : il est accordé par le serveur à la
+   création de la famille, avant tout achat, et il court quel que soit le rail.
+   Le même piège existait côté Stripe, où `checkout` demandait
+   `trial_period_days: 30` sans regarder l'essai déjà entamé — 55 jours
+   gratuits pour un parent qui s'abonnait au 25ᵉ jour, 120 pour un filleul. Il
+   envoie désormais `trial_end` à la date déjà enregistrée
+   (`trialEndForCheckout`, dans `domain/billing.ts`, six tests).
 5. **Activer les notifications serveur à serveur** : App Store Server
    Notifications V2 vers `…/store-notifications/apple`, et Real-time Developer
    Notifications (Pub/Sub) vers `…/store-notifications/google`.

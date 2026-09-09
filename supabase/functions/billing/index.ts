@@ -20,8 +20,8 @@ import {
 } from '../_shared/mino.ts';
 import {
   REFERRAL,
-  TRIAL_DAYS,
   canUseReferralCode,
+  trialEndForCheckout,
 } from '../../../src/domain/billing.ts';
 
 const PRICE: Record<string, string> = {
@@ -72,19 +72,20 @@ Deno.serve(async (request) => {
           .eq('family_id', caller.familyId)
           .maybeSingle();
 
-        // A family that already had a trial does not get another one by
-        // cancelling and coming back.
-        const { data: referredRow } = await db
-          .from('referrals')
-          .select('id')
-          .eq('referee_family_id', caller.familyId)
-          .maybeSingle();
-
-        const trialDays = existing?.customer_id
-          ? undefined
-          : referredRow
-            ? REFERRAL.refereeTrialDays
-            : TRIAL_DAYS;
+        /**
+         * L'essai qui court déjà, et surtout pas un nouveau.
+         *
+         * `trial_ends_at` porte la vérité, parrainage compris : les soixante
+         * jours du filleul y sont écrits au moment où il saisit le code (voir
+         * `referrals/redeem` plus bas). Redemander un décompte neuf ici les
+         * ajoutait aux siens.
+         */
+        const trialEnd = trialEndForCheckout({
+          trialEndsAt: existing?.trial_ends_at ?? null,
+          // Une famille qui a déjà payé une fois a eu son essai. Résilier et
+          // revenir ne le rouvre pas.
+          hasPaidBefore: !!existing?.customer_id,
+        });
 
         const session = await stripe().checkout.sessions.create({
           mode: 'subscription',
@@ -93,7 +94,7 @@ Deno.serve(async (request) => {
           customer_email: existing?.customer_id ? undefined : (caller.email ?? undefined),
           client_reference_id: caller.familyId,
           subscription_data: {
-            trial_period_days: trialDays,
+            trial_end: trialEnd ? Math.floor(trialEnd.getTime() / 1000) : undefined,
             metadata: { family_id: caller.familyId },
           },
           // Stripe Tax computes the customer's own country VAT — mandatory for
