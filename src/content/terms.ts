@@ -125,7 +125,11 @@ export const TERMS: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: `Tout nouveau compte bénéficie d’une période d’essai de ${TRIAL_DAYS} jours, donnant accès à l’intégralité du service. Aucun montant n’est prélevé pendant cette période.`,
+          // Le moyen de paiement est enregistré à l'inscription depuis le
+          // 9 septembre 2026. Le taire tout en annonçant un démarrage
+          // automatique laisserait le premier prélèvement arriver sans que rien
+          // ne l'ait annoncé — c'est précisément ce que la loi impose d'écrire.
+          text: `Tout nouveau compte bénéficie d’une période d’essai de ${TRIAL_DAYS} jours, donnant accès à l’intégralité du service. Aucun montant n’est prélevé pendant cette période. Votre moyen de paiement est enregistré au moment de l’inscription, sans être débité : il permet à l’abonnement de démarrer à l’issue de l’essai si vous n’avez pas résilié entre-temps.`,
         },
         {
           kind: 'p',

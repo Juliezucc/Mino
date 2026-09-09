@@ -367,8 +367,13 @@ export const FAQ: FaqEntry[] = [
   {
     id: 'essai-gratuit',
     question: 'Serai-je prélevé à la fin de l’essai ?',
+    // Cette réponse disait « aucune carte ne vous est demandée pour commencer »
+    // et « Apple et Google ne savent pas différer un paiement ». Les deux sont
+    // devenues fausses le 9 septembre 2026 : le moyen de paiement est
+    // enregistré à l'inscription, et l'essai est porté par une offre
+    // d'introduction de la boutique, qui diffère précisément le prélèvement.
     answer:
-      'L’essai dure trente jours et rien n’est prélevé pendant cette période : aucune carte ne vous est demandée pour commencer. Si vous choisissez une formule avant la fin, cela dépend de l’endroit où vous vous abonnez. Depuis notre site, le prélèvement attend la fin de vos trente jours : vous n’en perdez aucun. Depuis l’App Store ou Google Play, il a lieu tout de suite, car Apple et Google ne savent pas différer un paiement jusqu’à une date que nous choisissons — l’application vous le dit avant de vous laisser confirmer.',
+      'L’essai dure trente jours et rien n’est prélevé pendant cette période. Votre moyen de paiement est enregistré à l’inscription, sans être débité : c’est ce qui permet à l’abonnement de démarrer tout seul au trentième jour si vous ne faites rien. La date du premier prélèvement est écrite à l’écran avant que vous ne confirmiez, et vous pouvez résilier à tout moment avant : dans ce cas, rien ne vous est facturé.',
     category: 'abonnement',
     keywords: [
       'essai',
