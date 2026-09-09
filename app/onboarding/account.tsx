@@ -24,7 +24,19 @@ function phraseDErreur(e: unknown): string {
     : 'Impossible de créer la famille. Vérifiez votre connexion et réessayez.';
 }
 
-/** Step 1 of onboarding: the parent account. Children never create an account. */
+/**
+ * Troisième écran : le compte du parent. Les enfants n'en ont jamais.
+ *
+ * Il était premier. Il est maintenant précédé de l'enfant et de sa première
+ * mission, et c'est tout ce qui change — mais cela change tout : à ce
+ * moment-là, le parent a vu sa famille exister. Taper une adresse n'est plus
+ * un péage avant d'entrer, c'est ce qui lui permet de garder ce qu'il vient
+ * de faire.
+ *
+ * D'où le titre, « Garder ma famille » plutôt que « Créer mon compte » : la
+ * seconde formule décrit ce que la machine fait, la première ce que le parent
+ * y gagne.
+ */
 export default function CreateAccount() {
   const router = useRouter();
   const createAccount = useMinoStore((s) => s.createAccount);
@@ -142,7 +154,7 @@ export default function CreateAccount() {
         else setErrors({ [result.field]: texte });
         return;
       }
-      router.replace('/onboarding/appareil');
+      router.replace('/onboarding/abonnement');
     } catch (e) {
       // Sans ce filet, une exception laissait le bouton tourner sans fin et
       // sans un mot — l'écran le plus difficile à signaler, parce qu'il n'y a
