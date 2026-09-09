@@ -122,9 +122,11 @@ create policy companion_messages_read on companion_messages
 /**
  * Purge des conversations de plus de trente jours.
  *
- * À planifier avec pg_cron, comme les autres purges de scale.sql. Une
- * politique de conservation qui n'est écrite que dans un document n'est pas
- * une politique de conservation.
+ * Planifiée dans `supabase/planification.sql`, à coller une fois sur le
+ * projet. Une politique de conservation qui n'est écrite que dans un document
+ * n'est pas une politique de conservation — et celle-ci ne l'a été que dans un
+ * document jusqu'au 9 septembre 2026, alors que la politique de
+ * confidentialité publiée annonçait déjà l'effacement à trente jours.
  */
 create or replace function purge_companion_messages()
 returns integer

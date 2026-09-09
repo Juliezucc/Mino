@@ -1511,15 +1511,9 @@ $$;
 -- Celle-ci supprime des comptes : elle n'appartient qu'au planificateur.
 revoke all on function purge_orphan_devices() from public, anon, authenticated;
 
--- Planifier avec pg_cron (extension à activer dans le tableau de bord) :
---
---   select cron.schedule('mino-purge-join-attempts', '0 4 * * *',
---                        $$select purge_join_attempts()$$);
---   select cron.schedule('mino-purge-orphan-devices', '30 4 * * *',
---                        $$select purge_orphan_devices()$$);
---
--- Laissé en commentaire volontairement : pg_cron s'active par projet, et une
--- planification créée deux fois s'exécute deux fois.
+-- Planifié dans `supabase/planification.sql`, à coller une fois sur le projet.
+-- La planification vit à part parce que pg_cron s'active par projet ; le
+-- fichier déprogramme avant de programmer, ce qui le rend rejouable.
 
 -- ------------------------------------------- 4. le solde sans tout l'historique
 
@@ -2413,9 +2407,11 @@ create policy companion_messages_read on companion_messages
 /**
  * Purge des conversations de plus de trente jours.
  *
- * À planifier avec pg_cron, comme les autres purges de scale.sql. Une
- * politique de conservation qui n'est écrite que dans un document n'est pas
- * une politique de conservation.
+ * Planifiée dans `supabase/planification.sql`, à coller une fois sur le
+ * projet. Une politique de conservation qui n'est écrite que dans un document
+ * n'est pas une politique de conservation — et celle-ci ne l'a été que dans un
+ * document jusqu'au 9 septembre 2026, alors que la politique de
+ * confidentialité publiée annonçait déjà l'effacement à trente jours.
  */
 create or replace function purge_companion_messages()
 returns integer
@@ -2730,17 +2726,14 @@ $$;
 
 revoke all on function purge_history(integer) from public, anon, authenticated;
 
--- Planifier avec pg_cron (extension à activer dans le tableau de bord) :
---
---   select cron.schedule('mino-compact-ledger', '0 3 * * *',
---                        $$select compact_ledger()$$);
---   select cron.schedule('mino-purge-history', '15 3 * * *',
---                        $$select purge_history()$$);
+-- Planifié dans `supabase/planification.sql`, à coller une fois sur le projet.
 --
 -- Dans cet ordre et à quinze minutes d'intervalle : le repli du grand livre
 -- doit avoir eu lieu avant qu'on efface les missions auxquelles ses lignes
--- faisaient référence. Laissé en commentaire volontairement — pg_cron s'active
--- par projet, et une planification créée deux fois s'exécute deux fois.
+-- faisaient référence. La planification vit à part parce que pg_cron s'active
+-- par projet, et qu'elle est un acte d'exploitation, pas une définition de
+-- schéma — mais elle vit désormais quelque part, ce qui n'était pas le cas :
+-- ces deux tâches sont restées en commentaire, donc jamais exécutées.
 --
 -- LE PREMIER PASSAGE N'EST PAS COMME LES AUTRES. Chaque nuit, le repli ne
 -- touche qu'une journée de retard — quelques dizaines de milliers de lignes,

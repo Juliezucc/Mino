@@ -249,15 +249,9 @@ $$;
 -- Celle-ci supprime des comptes : elle n'appartient qu'au planificateur.
 revoke all on function purge_orphan_devices() from public, anon, authenticated;
 
--- Planifier avec pg_cron (extension à activer dans le tableau de bord) :
---
---   select cron.schedule('mino-purge-join-attempts', '0 4 * * *',
---                        $$select purge_join_attempts()$$);
---   select cron.schedule('mino-purge-orphan-devices', '30 4 * * *',
---                        $$select purge_orphan_devices()$$);
---
--- Laissé en commentaire volontairement : pg_cron s'active par projet, et une
--- planification créée deux fois s'exécute deux fois.
+-- Planifié dans `supabase/planification.sql`, à coller une fois sur le projet.
+-- La planification vit à part parce que pg_cron s'active par projet ; le
+-- fichier déprogramme avant de programmer, ce qui le rend rejouable.
 
 -- ------------------------------------------- 4. le solde sans tout l'historique
 

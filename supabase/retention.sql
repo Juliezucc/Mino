@@ -175,17 +175,14 @@ $$;
 
 revoke all on function purge_history(integer) from public, anon, authenticated;
 
--- Planifier avec pg_cron (extension à activer dans le tableau de bord) :
---
---   select cron.schedule('mino-compact-ledger', '0 3 * * *',
---                        $$select compact_ledger()$$);
---   select cron.schedule('mino-purge-history', '15 3 * * *',
---                        $$select purge_history()$$);
+-- Planifié dans `supabase/planification.sql`, à coller une fois sur le projet.
 --
 -- Dans cet ordre et à quinze minutes d'intervalle : le repli du grand livre
 -- doit avoir eu lieu avant qu'on efface les missions auxquelles ses lignes
--- faisaient référence. Laissé en commentaire volontairement — pg_cron s'active
--- par projet, et une planification créée deux fois s'exécute deux fois.
+-- faisaient référence. La planification vit à part parce que pg_cron s'active
+-- par projet, et qu'elle est un acte d'exploitation, pas une définition de
+-- schéma — mais elle vit désormais quelque part, ce qui n'était pas le cas :
+-- ces deux tâches sont restées en commentaire, donc jamais exécutées.
 --
 -- LE PREMIER PASSAGE N'EST PAS COMME LES AUTRES. Chaque nuit, le repli ne
 -- touche qu'une journée de retard — quelques dizaines de milliers de lignes,
