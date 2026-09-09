@@ -1,0 +1,21 @@
+# ⚠️  À LEVER LE JOUR DU LANCEMENT.
+#
+# Ce fichier interdit toute indexation. Il est là parce que
+# app.minoapp.fr a été publié avant les boutiques, pour éprouver la
+# chaîne de paiement en conditions réelles — et qu'aucun parent ne
+# devait tomber dessus par une recherche entre-temps.
+#
+# Le jour où les applications sont en ligne, remplacer le contenu par :
+#
+#   User-agent: *
+#   Allow: /
+#
+# Voir docs/ops/avant-de-lancer.md, où cette étape figure dans la liste.
+#
+# L'oublier ne casse rien et ne se voit pas : le site fonctionne
+# parfaitement, il n'apparaît simplement jamais dans un moteur de
+# recherche. C'est le genre de défaut qu'on met trois mois à découvrir,
+# en se demandant pourquoi le référencement ne décolle pas.
+
+User-agent: *
+Disallow: /
