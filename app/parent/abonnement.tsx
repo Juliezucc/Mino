@@ -79,6 +79,14 @@ export default function SubscriptionScreen() {
   const engage = access.kind === 'trial' && access.plan !== null;
   const gerable = access.kind === 'active' || engage;
   /**
+   * Offert : tout est ouvert, et il n'y a rien à gérer.
+   *
+   * Ni formule à choisir — en proposer une ouvrirait un vrai abonnement payant
+   * par-dessus un accès gratuit —, ni moyen de paiement, ni résiliation. La
+   * carte d'état dit ce qu'il en est, et l'écran s'arrête là.
+   */
+  const offert = access.kind === 'offert';
+  /**
    * Arrêté, et ça se voit — y compris pendant l'essai.
    *
    * `resilie` ne regardait que les abonnements actifs. Un essai engagé qu'on
@@ -302,7 +310,16 @@ export default function SubscriptionScreen() {
         background={access.kind === 'expired' ? colors.surface : colors.mintSoft}
         elevation="none"
       >
-        {access.kind === 'trial' && access.cancelAtPeriodEnd ? (
+        {access.kind === 'offert' ? (
+          <>
+            <Text variant="section">Accès offert</Text>
+            <Text variant="body" color={colors.textMuted}>
+              Vous avez accès à tout Mino, sans limite de durée et sans rien à payer. Merci de
+              l’essayer avant tout le monde et de nous dire ce qui cloche — c’est ce qui le rend
+              meilleur.
+            </Text>
+          </>
+        ) : access.kind === 'trial' && access.cancelAtPeriodEnd ? (
           /* La première chose à dire à quelqu'un qui vient d'annuler : il ne
              sera pas prélevé. Le reste — jusqu'à quand il garde l'accès —
              vient après, et pas l'inverse. */
@@ -366,7 +383,9 @@ export default function SubscriptionScreen() {
         </Card>
       ) : null}
 
-      {gerable && !resilie ? (
+      {/* Offert : aucune action de facturation n'a de sens, et proposer une
+          formule ouvrirait un abonnement payant par-dessus un accès gratuit. */}
+      {offert ? null : gerable && !resilie ? (
         <View style={styles.actions}>
           {/**
            * Changer de formule sans quitter Mino.

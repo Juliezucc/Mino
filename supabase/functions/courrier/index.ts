@@ -924,7 +924,7 @@ async function reprendre(request: Request): Promise<Response> {
   ]);
 
   // Déjà couvert : on ne laisse surtout pas ouvrir un second abonnement.
-  if (abonnement && ['active', 'past_due'].includes(String(abonnement.status))) {
+  if (abonnement && ['active', 'past_due', 'offert'].includes(String(abonnement.status))) {
     return page(
       'Votre abonnement est déjà actif',
       'Il n’y a rien à reprendre — tout fonctionne. Ouvrez Mino, vos enfants vous attendent.',

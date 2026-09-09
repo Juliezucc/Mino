@@ -148,7 +148,24 @@ export type SubscriptionStatus =
   /** A payment failed; access continues while we retry. */
   | 'past_due'
   /** Over — trial expired without payment, or the family cancelled and the paid period ended. */
-  | 'canceled';
+  | 'canceled'
+  /**
+   * Offert, sans terme et sans rail.
+   *
+   * Les familles qui essuient les plâtres : celles qui testent Mino avant tout
+   * le monde et racontent ce qui ne va pas. Elles ne paient pas, jamais, et ce
+   * n'est pas une remise — il n'y a ni facture, ni échéance, ni moyen de
+   * paiement quelque part.
+   *
+   * **Pourquoi un état à part plutôt qu'un `active` avec une date lointaine.**
+   * On aurait pu écrire « actif jusqu'en 2099 » et passer à autre chose. Mais
+   * l'écran d'abonnement aurait alors annoncé « prochain paiement le 31
+   * décembre 2099 » et proposé un bouton « Résilier » qui n'aurait rien à
+   * résilier — un bouton mort de plus, sur l'écran qui parle d'argent, et
+   * offert précisément aux gens dont on attend qu'ils nous disent ce qui
+   * cloche.
+   */
+  | 'offert';
 
 export interface Subscription {
   familyId: ID;
@@ -184,7 +201,9 @@ export interface Subscription {
  * qui devient fausse.
  */
 export function canCancelInApp(sub: Subscription | null): boolean {
-  return !!sub && !isStore(sub.source);
+  // Un accès offert n'a rien à résilier : ni abonnement chez un prestataire,
+  // ni échéance, ni prélèvement. Le proposer serait un bouton mort.
+  return !!sub && sub.status !== 'offert' && !isStore(sub.source);
 }
 
 /** Où envoyer quelqu'un qui veut résilier, selon d'où vient son abonnement. */
@@ -264,6 +283,8 @@ export type Access =
     }
   | { kind: 'active'; renewsOn: ISODate | null; cancelAtPeriodEnd: boolean }
   | { kind: 'grace'; reason: 'past_due' }
+  /** Offert sans terme : tout est ouvert, il n'y a rien à payer ni à résilier. */
+  | { kind: 'offert' }
   | { kind: 'expired' };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -345,6 +366,10 @@ export function startTrial(familyId: ID, now: Date = new Date(), days = TRIAL_DA
  */
 export function accessOf(sub: Subscription | null, now: Date = new Date()): Access {
   if (!sub) return { kind: 'expired' };
+
+  // Avant tout le reste, et sans regarder aucune date : un accès offert n'a pas
+  // d'échéance, donc rien qui puisse le faire expirer par inadvertance.
+  if (sub.status === 'offert') return { kind: 'offert' };
 
   if (sub.status === 'trialing') {
     const left = sub.trialEndsAt ? daysBetween(now, new Date(sub.trialEndsAt)) : 0;

@@ -145,7 +145,7 @@ as $$
   select exists (
     select 1 from subscriptions s
     where s.family_id in (select auth_family_ids())
-      and s.status in ('active', 'past_due')
+      and s.status in ('active', 'past_due', 'offert')
   );
 $$;
 

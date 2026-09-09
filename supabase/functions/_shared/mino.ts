@@ -170,7 +170,7 @@ export async function familyOfCaller(
 
 export interface SubscriptionRow {
   family_id: string;
-  status: 'trialing' | 'active' | 'past_due' | 'canceled';
+  status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'offert';
   plan: 'monthly' | 'yearly' | null;
   trial_ends_at: string | null;
   current_period_end: string | null;

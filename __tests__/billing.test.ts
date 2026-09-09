@@ -430,3 +430,30 @@ describe('l’essai, des deux côtés', () => {
     expect(sql).toContain("'trialing'");
   });
 });
+
+/**
+ * L'accès offert : les familles qui essuient les plâtres.
+ *
+ * Un état à part, et non un « actif jusqu'en 2099 ». La différence n'est pas
+ * cosmétique : `accessOf` doit le rendre sans regarder aucune date — sans quoi
+ * un accès sans terme finirait par expirer le jour où quelqu'un écrirait une
+ * date par mégarde — et l'écran ne doit proposer ni formule ni résiliation.
+ */
+describe('accès offert', () => {
+  const offert = { ...startTrial('f1', NOW), status: 'offert' as const };
+
+  it('n’expire jamais, quelle que soit la date', () => {
+    expect(accessOf(offert, NOW).kind).toBe('offert');
+    // Dix ans plus tard, et avec une fin d'essai largement dépassée.
+    expect(accessOf(offert, new Date('2036-01-01T00:00:00Z')).kind).toBe('offert');
+    expect(hasAccess(offert, new Date('2036-01-01T00:00:00Z'))).toBe(true);
+  });
+
+  it('ne propose pas de résilier ce qui n’est pas facturé', () => {
+    expect(canCancelInApp(offert)).toBe(false);
+  });
+
+  it('ne verrouille aucune action du parent', () => {
+    expect(isLocked(offert, 'confirm', new Date('2036-01-01T00:00:00Z'))).toBe(false);
+  });
+});

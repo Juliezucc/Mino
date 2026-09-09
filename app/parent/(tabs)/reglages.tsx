@@ -28,7 +28,9 @@ export default function ParentSettings() {
   const capability = getScreenTimeService().capability;
   const access = accessOf(subscription);
   const accessLabel =
-    // Un essai engagé — payé, pas encore prélevé — n'est pas un essai gratuit.
+    access.kind === 'offert'
+      ? 'Accès offert · sans limite de durée'
+      : // Un essai engagé — payé, pas encore prélevé — n'est pas un essai gratuit.
     // Écrire « Essai gratuit » à quelqu'un dont la carte est enregistrée lui
     // fait croire que son paiement n'a pas pris. C'était le dernier endroit
     // du produit à confondre les deux.

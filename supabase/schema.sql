@@ -586,7 +586,9 @@ alter publication supabase_realtime add table screen_time_sessions;
 -- The service role, driven by Stripe webhooks, is the only writer.
 create table if not exists subscriptions (
   family_id            text primary key references families(id) on delete cascade,
-  status               text not null check (status in ('trialing','active','past_due','canceled')),
+  -- `offert` : un accès sans terme et sans rail, accordé à la main aux familles
+  -- qui essuient les plâtres. Voir `supabase/acces-offert.sql`.
+  status               text not null check (status in ('trialing','active','past_due','canceled','offert')),
   plan                 text check (plan in ('monthly','yearly')),
   trial_ends_at        timestamptz,
   current_period_end   timestamptz,
