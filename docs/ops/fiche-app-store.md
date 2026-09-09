@@ -26,6 +26,17 @@ sources qui doivent dire la même chose, et une seule qui fasse foi — le code.
 > slogan. C'est un arbitrage, pas une évidence : il se rejuge sur les chiffres
 > après trois mois, et le nom se change à chaque version.
 
+> **La description doit se terminer par le lien vers le contrat de licence.**
+> Une application à abonnement dont la description ne porte pas ce lien est
+> refusée par une analyse automatique, avant même qu'un examinateur ne
+> l'ouvre — c'est ce qui est arrivé à la 1.0, motif 3.1.2. Renseigner le
+> « Contrat de licence » dans Informations sur l'app ne suffit pas : le
+> contrôle porte sur le texte de la description.
+>
+> ```
+> Conditions d'utilisation : https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+> ```
+
 **Mots-clés** (100 caractères, virgules, sans espaces, sans répéter le nom ni
 le sous-titre) :
 
@@ -262,6 +273,42 @@ Parent code:  <4 chiffres>
 > minuteur honnête, ce paragraphe est un mensonge — et c'est le motif de retrait
 > le plus direct qui existe (Apple 2.3.1, *Accurate Metadata*). Même règle pour
 > la troisième capture d'écran : voir `captures-stores.md`.
+
+---
+
+## L'autorisation Family Controls, à demander des semaines à l'avance
+
+**C'est le délai le plus long de toute la mise en ligne, et il ne se rattrape
+pas.** La 1.0 a été refusée au motif 2.5.1 : une analyse automatique détecte
+l'usage de FamilyControls, ManagedSettings ou DeviceActivity, et refuse la
+soumission tant que l'autorisation de **distribution** n'a pas été accordée.
+
+Déclarer `com.apple.developer.family-controls` dans `app.json` ne suffit pas —
+c'est ce que faisait la 1.0. Cette clé donne le droit de compiler et
+d'installer en développement ; la distribution demande une autorisation
+séparée, accordée dossier par dossier par Apple.
+
+Elle se demande ici :
+
+```
+https://developer.apple.com/contact/request/family-controls-distribution
+```
+
+Il faut la demander **deux fois** : pour l'application, et pour l'extension
+`MinoShieldMonitor`, qui utilise DeviceActivity de son côté.
+
+Le délai constaté est de l'ordre de **trois semaines**, sans garantie. Ce qui
+veut dire que la date de lancement ne se décide pas à partir du moment où le
+produit est prêt, mais à partir du moment où cette autorisation arrive.
+
+Deux mauvaises réponses à ne pas prendre en attendant :
+
+- **Retirer les API Temps d'écran pour publier plus vite.** L'application
+  n'aurait plus de bouclier, et la description, la troisième capture et les
+  notes à l'examinateur deviendraient fausses le même jour. C'est le motif de
+  retrait 2.3.1, en pire : après publication.
+- **Republier sans rien changer** en espérant un autre examinateur. Le contrôle
+  est automatique.
 
 ---
 

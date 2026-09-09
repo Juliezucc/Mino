@@ -354,14 +354,31 @@ export default function SubscriptionScreen() {
             {`Abonnement reconduit automatiquement, sauf résiliation au moins 24 h avant la fin de la période. Vendu par ${sellerOf(subscription?.source ?? (Platform.OS === 'ios' ? 'apple' : 'google'))}, et résiliable dans les réglages de votre téléphone.`}
           </Text>
         ) : null}
-        <Button
-          label="Conditions générales"
-          variant="ghost"
-          size="small"
-          full={false}
-          haptic={false}
-          onPress={() => router.push('/legal/cgv')}
-        />
+        {/* Les DEUX liens, sur l'écran d'achat lui-même.
+            Apple demande, au même endroit que le prix : la durée, le montant,
+            la reconduction, les conditions d'utilisation ET la politique de
+            confidentialité. Il n'y avait que les conditions, et c'est ce qui a
+            valu à la 1.0 un refus au motif 3.1.2. Les avoir « quelque part
+            dans les réglages » ne compte pas : la règle vise l'écran où le
+            parent engage son argent. */}
+        <View style={styles.legal}>
+          <Button
+            label="Conditions générales"
+            variant="ghost"
+            size="small"
+            full={false}
+            haptic={false}
+            onPress={() => router.push('/legal/cgv')}
+          />
+          <Button
+            label="Confidentialité"
+            variant="ghost"
+            size="small"
+            full={false}
+            haptic={false}
+            onPress={() => router.push('/legal/confidentialite')}
+          />
+        </View>
       </View>
     </Screen>
   );
@@ -389,4 +406,5 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
   },
   footer: { alignItems: 'center', gap: spacing.xs, paddingTop: spacing.md },
+  legal: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
 });
