@@ -34,7 +34,19 @@ import { trialEndForCheckout } from '../../../src/domain/billing.ts';
  * le corps, donc se servirait de notre domaine pour envoyer ce qu'il veut. Le
  * gabarit est ici, l'appelant ne choisit que lequel.
  */
-type Genre = 'bienvenue' | 'fin_essai' | 'reconduction' | 'reprise';
+type Genre =
+  | 'bienvenue'
+  | 'fin_essai'
+  | 'reconduction'
+  | 'reprise'
+  /** J+1 : la famille existe, aucun appareil d'enfant ne l'a rejointe. */
+  | 'appareil_manquant'
+  /** J+3 : l'appareil est relié, mais le bouclier n'a pas été autorisé. */
+  | 'bouclier_inactif'
+  /** Le prélèvement a échoué et l'accès court encore le temps des relances. */
+  | 'paiement_echoue'
+  /** La résiliation est enregistrée — et on demande pourquoi, une fois. */
+  | 'au_revoir';
 
 /**
  * Le genre qui n'en est pas un : la marque d'un parent qui ne veut plus rien
@@ -53,6 +65,24 @@ type Genre = 'bienvenue' | 'fin_essai' | 'reconduction' | 'reprise';
  */
 const REFUS = 'aucun_courrier';
 
+/**
+ * Les quatre réponses possibles à « qu'est-ce qui n'a pas marché ? ».
+ *
+ * Quatre, et pas davantage : au-delà, on ne clique plus. Pas de champ libre
+ * non plus — un e-mail n'est pas un formulaire, et celui qui a quelque chose à
+ * ajouter peut répondre au message, ce que le pied propose déjà.
+ *
+ * `code` est ce qui sera écrit en base, et il ne changera plus : renommer une
+ * valeur couperait une série de mesures en deux sans qu'aucune requête ne s'en
+ * plaigne.
+ */
+const MOTIFS = [
+  { code: 'prix', label: 'Trop cher' },
+  { code: 'interet', label: 'Mon enfant s’en est lassé' },
+  { code: 'technique', label: 'Ça ne marchait pas bien' },
+  { code: 'inutile', label: 'On n’en a plus besoin' },
+] as const;
+
 interface Famille {
   parentName: string | null;
   email: string | null;
@@ -64,6 +94,12 @@ interface Famille {
   lienReprise: string;
   /** Celle qui fait taire Mino, obligatoire sur un message de reconquête. */
   lienStop: string;
+  /** Le portail Stripe, pour changer une carte. Vide hors du rail Stripe. */
+  lienCarte: string;
+  /** Les quatre motifs de départ, chacun derrière son lien. */
+  motifs: { label: string; url: string }[];
+  /** Jusqu'à quand l'accès court encore. */
+  finAcces: string | null;
 }
 
 const jour = (iso: string | null) =>
@@ -245,13 +281,135 @@ function ecrire(genre: Genre, f: Famille): { sujet: string; texte: string; html:
               },
               { titre: 'Si vous voulez continuer' },
               {
-                p: `Ouvrez Mino, Réglages, Abonnement, et choisissez votre formule. Les missions de ${enfant}, ses minutes et vos réglages restent exactement où ils sont.`,
+                p: `Les missions de ${enfant}, ses minutes et vos réglages restent exactement où ils sont. Ce bouton ouvre directement le paiement pour votre compte — aucun mot de passe à retrouver :`,
               },
+              /**
+               * Le bouton qui manquait, à l'endroit qui compte le plus.
+               *
+               * Ce message dit à une famille qu'elle va perdre l'accès dans
+               * trois jours, et l'envoyait chercher elle-même « Réglages,
+               * Abonnement » dans une application où elle n'est peut-être plus
+               * connectée. C'est le moment de tout le cycle de vie où l'on a le
+               * plus à perdre à demander un effort.
+               */
+              { bouton: { label: 'Choisir ma formule', url: f.lienReprise } },
               { titre: "Si vous préférez en rester là" },
               {
                 p: "Vous n'avez rien à faire. À la fin de l'essai, Mino cesse d'encadrer les écrans, et vos données restent conservées si vous changez d'avis.",
               },
               { p: "L'équipe Mino" },
+            ]
+        : genre === 'appareil_manquant'
+          ? /**
+             * Le message le plus rentable des neuf, dit `cycle-de-vie.md`, et
+             * il frappe là où la moitié des familles abandonnent.
+             *
+             * Une famille qui n'a relié aucun appareil n'a pas vu le produit :
+             * Mino ne ferme rien, ne compte rien, n'encadre rien. Elle
+             * s'éteindra au trentième jour sans que personne ne sache
+             * pourquoi — et surtout sans que le parent ait jamais eu l'occasion
+             * de juger ce qu'il a essayé.
+             *
+             * Trois lignes, le code, un chemin. Rien d'autre : ce n'est pas le
+             * moment de parler d'abonnement.
+             */
+            [
+              { p: `Bonjour${prenom},` },
+              {
+                p: "Votre famille est prête, mais aucun appareil n'a encore rejoint Mino. Tant que c'est le cas, rien ne peut être encadré : Mino verrouille les applications depuis le téléphone ou la tablette de votre enfant, pas d'ailleurs.",
+              },
+              { titre: 'Cinq minutes, une seule fois' },
+              {
+                p: "Installez Mino sur son appareil, choisissez « J'ai un code famille », et saisissez ce code :",
+              },
+              { code: f.familyCode },
+              { bouton: { label: 'Installer Mino', url: 'https://minoapp.fr/telecharger' } },
+              {
+                p: "Si quelque chose bloque, répondez à ce message en le disant : on regarde et on vous répond.",
+              },
+              { p: "L'équipe Mino" },
+            ]
+        : genre === 'bouclier_inactif'
+          ? /**
+             * Le deuxième mur, et il est invisible.
+             *
+             * L'appareil est relié, l'application tourne, le compteur avance —
+             * et rien ne se verrouille, faute d'autorisation système. Un parent
+             * peut traverser tout son essai sans jamais avoir vu le produit,
+             * puis conclure que Mino ne sert à rien. Il aura raison sur ce
+             * qu'il a vu.
+             */
+            [
+              { p: `Bonjour${prenom},` },
+              {
+                p: `L'appareil de ${enfant} est bien relié — mais Mino n'a pas encore le droit de verrouiller les applications. Le compteur tourne, et rien ne se ferme.`,
+              },
+              { titre: 'Une autorisation à donner, sur son appareil' },
+              {
+                p: "Ouvrez Mino sur l'appareil de votre enfant, allez dans Réglages puis « Blocage des applications », et suivez les deux écrans. C'est le système qui demande, pas nous — et c'est ce qui empêche votre enfant de le retirer.",
+              },
+              {
+                p: "Sur Android, il y a deux accès distincts, dans deux écrans différents : l'accès aux données d'utilisation et la superposition d'écran. Le système ne les propose jamais ensemble.",
+              },
+              {
+                p: "Tant que ce n'est pas fait, Mino compte le temps sans le faire respecter — c'est-à-dire qu'il ne fait pas ce pour quoi vous l'avez installé.",
+              },
+              { p: "L'équipe Mino" },
+            ]
+        : genre === 'paiement_echoue'
+          ? /**
+             * Factuel, immédiat, et surtout rassurant sur le seul point qui
+             * inquiète : personne ne perd son compte pour une carte expirée.
+             *
+             * Le lien mène au portail Stripe, seul endroit où une carte se
+             * remplace. Quand il n'y en a pas — rail boutique — on renvoie vers
+             * les réglages du téléphone, parce qu'un lien mort à ce moment-là
+             * ferait perdre un client qui voulait rester.
+             */
+            [
+              { p: `Bonjour${prenom},` },
+              {
+                p: "Votre dernier paiement n'est pas passé. C'est presque toujours une carte expirée ou un plafond atteint, et cela se règle en une minute.",
+              },
+              { titre: 'Votre accès reste ouvert' },
+              {
+                p: "Nous ne coupons rien pendant que la banque réessaie. Vos enfants ne voient aucune différence, et vous ne perdez ni vos missions ni vos réglages.",
+              },
+              ...(f.lienCarte
+                ? [{ bouton: { label: 'Mettre à jour ma carte', url: f.lienCarte } } as Bloc]
+                : [
+                    {
+                      p: "Votre abonnement a été souscrit dans une boutique : le moyen de paiement se met à jour dans les réglages de votre téléphone, à la rubrique Abonnements.",
+                    } as Bloc,
+                  ]),
+              { p: "L'équipe Mino" },
+            ]
+        : genre === 'au_revoir'
+          ? /**
+             * Confirmer sans retenir, puis poser **une** question.
+             *
+             * C'est la seule source d'information sur les raisons du départ :
+             * aucun chiffre ne dit pourquoi quelqu'un s'en va. Un clic, quatre
+             * réponses, rien à écrire. Et surtout aucune tentative de
+             * rattrapage — une relance à cet instant transforme un départ
+             * neutre en mauvais souvenir, et c'est celui-là qui se raconte.
+             */
+            [
+              { p: `Bonjour${prenom},` },
+              {
+                p: f.finAcces
+                  ? `C'est fait, votre abonnement est résilié. Vous gardez l'accès à tout Mino jusqu'au ${jour(f.finAcces)}, et rien ne sera prélevé ensuite.`
+                  : "C'est fait, votre abonnement est résilié. Rien ne sera prélevé.",
+              },
+              {
+                p: 'Vos données restent conservées. Si vous revenez un jour, les missions, les minutes et les réglages seront exactement là où vous les laissez.',
+              },
+              { titre: 'Une question, une seule' },
+              {
+                p: "Qu'est-ce qui n'a pas marché ? Un clic suffit, et ça nous aide vraiment.",
+              },
+              ...f.motifs.map((m) => ({ bouton: m }) as Bloc),
+              { p: 'Merci d’avoir essayé Mino.' },
             ]
         : genre === 'reprise'
           ? /**
@@ -295,17 +453,29 @@ function ecrire(genre: Genre, f: Famille): { sujet: string; texte: string; html:
             { p: "L'équipe Mino" },
           ];
 
-  const sujet =
-    genre === 'bienvenue'
-      ? 'Bienvenue chez Mino 👋'
-      : genre === 'fin_essai'
-        ? 'Votre essai Mino se termine bientôt'
-        : genre === 'reprise'
-          ? // Le prénom vient de la base et commence par une majuscule ; le
-            // repli « votre enfant » non, et un objet qui démarre en minuscule
-            // a l'air d'un message mal fabriqué avant même d'être lu.
-            `${enfant.charAt(0).toUpperCase()}${enfant.slice(1)} peut regagner son temps d’écran`
-          : 'Votre abonnement Mino se renouvelle bientôt';
+  /**
+   * Les objets, en table plutôt qu'en cascade de ternaires.
+   *
+   * À trois genres la cascade se lisait ; à huit elle ne se lit plus, et c'est
+   * précisément le genre d'endroit où l'on finit par accrocher un message au
+   * mauvais objet sans que rien ne le signale.
+   *
+   * `enfant` commence par une majuscule quand il vient de la base, pas quand
+   * c'est le repli « votre enfant » — et un objet qui démarre en minuscule a
+   * l'air mal fabriqué avant même d'être ouvert.
+   */
+  const Enfant = `${enfant.charAt(0).toUpperCase()}${enfant.slice(1)}`;
+  const SUJETS: Record<Genre, string> = {
+    bienvenue: 'Bienvenue chez Mino 👋',
+    fin_essai: 'Votre essai Mino se termine bientôt',
+    reconduction: 'Votre abonnement Mino se renouvelle bientôt',
+    reprise: `${Enfant} peut regagner son temps d’écran`,
+    appareil_manquant: 'Il reste une étape : relier l’appareil de votre enfant',
+    bouclier_inactif: 'Mino compte le temps, mais ne verrouille encore rien',
+    paiement_echoue: 'Votre paiement n’est pas passé',
+    au_revoir: 'Votre résiliation est enregistrée',
+  };
+  const sujet = SUJETS[genre];
 
   /**
    * Le lien de désabonnement, sur le seul message qui en a besoin.
@@ -427,7 +597,7 @@ async function ecrireA(
       db.from('children').select('first_name').eq('family_id', familyId).order('created_at'),
       db
         .from('subscriptions')
-        .select('trial_ends_at, plan')
+        .select('trial_ends_at, plan, current_period_end, customer_id, source')
         .eq('family_id', familyId)
         .maybeSingle(),
     ]);
@@ -447,6 +617,27 @@ async function ecrireA(
   // fabriquer deux ne ferait que doubler ce qu'il y a à faire fuiter.
   const jeton = await jetonLien(familyId);
   const base = `${env('SUPABASE_URL')}/functions/v1/courrier`;
+  const q = encodeURIComponent(jeton);
+
+  /**
+   * Le portail Stripe, fabriqué seulement quand il servira.
+   *
+   * Il n'existe pas tant qu'aucun paiement n'a créé de client, et il n'a aucun
+   * sens sur le rail boutique — où la carte se change dans les réglages du
+   * téléphone. Un bouton « mettre à jour ma carte » qui n'ouvre rien, sur le
+   * message qui annonce un échec de paiement, ferait perdre un client qui
+   * voulait rester.
+   */
+  let lienCarte = '';
+  if (genre === 'paiement_echoue' && abonnement?.customer_id && abonnement?.source === 'stripe') {
+    lienCarte = await stripe()
+      .billingPortal.sessions.create({
+        customer: abonnement.customer_id as string,
+        return_url: `${env('APP_URL')}/abonnement`,
+      })
+      .then((s) => s.url)
+      .catch(() => '');
+  }
 
   const { sujet, texte, html } = ecrire(genre, {
     parentName: (parent?.display_name as string | null) ?? null,
@@ -455,8 +646,14 @@ async function ecrireA(
     childName: (enfants?.[0]?.first_name as string | undefined) ?? null,
     trialEndsAt: (abonnement?.trial_ends_at as string | null) ?? null,
     plan: (abonnement?.plan as string | null) ?? null,
-    lienReprise: `${base}/reprendre?t=${encodeURIComponent(jeton)}`,
-    lienStop: `${base}/stop?t=${encodeURIComponent(jeton)}`,
+    lienReprise: `${base}/reprendre?t=${q}`,
+    lienStop: `${base}/stop?t=${q}`,
+    lienCarte,
+    finAcces:
+      (abonnement?.current_period_end as string | null) ??
+      (abonnement?.trial_ends_at as string | null) ??
+      null,
+    motifs: MOTIFS.map((m) => ({ label: m.label, url: `${base}/motif?t=${q}&r=${m.code}` })),
   });
 
   await envoyer(destinataire, sujet, texte, html);
@@ -548,7 +745,8 @@ async function lot(request: Request): Promise<Response> {
    * au-delà d'un an : écrire à quelqu'un parti depuis trois ans n'est plus une
    * reconquête, c'est du démarchage.
    */
-  const depuis = (jours: number) => new Date(maintenant - jours * 86_400_000).toISOString();
+  const depuisJours = (jours: number) => new Date(maintenant - jours * 86_400_000).toISOString();
+  const depuis = depuisJours;
 
   const { data: partis } = await db
     .from('subscriptions')
@@ -562,11 +760,83 @@ async function lot(request: Request): Promise<Response> {
     return fin < new Date(maintenant).toISOString() && fin > depuis(365);
   };
 
+  /**
+   * J+1 — la famille existe, aucun appareil ne l'a rejointe.
+   *
+   * La fenêtre commence à 24 h : avant, le parent est peut-être encore en
+   * train de le faire, et le presser serait grossier. Elle s'arrête à 4 jours
+   * parce que `courriers` empêche déjà le doublon — une fenêtre large ne sert
+   * qu'à rattraper une nuit où la tâche n'a pas tourné.
+   */
+  const { data: recentes } = await db
+    .from('families')
+    .select('id, created_at')
+    .gte('created_at', depuisJours(4))
+    .lte('created_at', depuisJours(1))
+    .limit(500);
+
+  const { data: appareils } = await db
+    .from('family_devices')
+    .select('family_id, shield_status')
+    .limit(5000);
+
+  const avecAppareil = new Set((appareils ?? []).map((d) => d.family_id as string));
+  const sansAppareil = (recentes ?? []).filter((f) => !avecAppareil.has(f.id as string));
+
+  /**
+   * J+3 — l'appareil est relié, le bouclier ne l'est pas.
+   *
+   * `approved` est le seul état qui verrouille quoi que ce soit. Tout le reste
+   * — refusé, jamais demandé, non pris en charge, ou pas encore rapporté —
+   * décrit une famille qui croit être protégée et ne l'est pas.
+   */
+  const { data: relieesTot } = await db
+    .from('families')
+    .select('id, created_at')
+    .gte('created_at', depuisJours(6))
+    .lte('created_at', depuisJours(3))
+    .limit(500);
+
+  const bouclierVivant = new Set(
+    (appareils ?? [])
+      .filter((d) => d.shield_status === 'approved')
+      .map((d) => d.family_id as string),
+  );
+  const sansBouclier = (relieesTot ?? []).filter(
+    (f) => avecAppareil.has(f.id as string) && !bouclierVivant.has(f.id as string),
+  );
+
+  /** Le prélèvement qui a échoué, tant que la banque réessaie. */
+  const { data: enEchec } = await db
+    .from('subscriptions')
+    .select('family_id')
+    .eq('status', 'past_due')
+    .limit(500);
+
+  /**
+   * La résiliation, lue dans le journal plutôt que sur le miroir.
+   *
+   * `subscriptions` ne garde pas la date de la décision — il porte l'état
+   * courant, et `cancel_at_period_end` reste vrai pendant tout le mois qui
+   * suit. C'est `billing_events` qui date le geste, et c'est lui qu'il faut
+   * lire pour écrire au bon moment plutôt que trente fois de suite.
+   */
+  const { data: resiliations } = await db
+    .from('billing_events')
+    .select('family_id')
+    .eq('kind', 'resiliation_demandee')
+    .gte('occurred_at', depuisJours(2))
+    .limit(500);
+
   const surStripe = (r: { source?: string | null }) => !r.source || r.source === 'stripe';
   const tournee: Array<{ familyId: string; genre: Genre }> = [
     ...(essais ?? []).filter(surStripe).map((r) => ({ familyId: r.family_id as string, genre: 'fin_essai' as const })),
     ...(annuels ?? []).filter(surStripe).map((r) => ({ familyId: r.family_id as string, genre: 'reconduction' as const })),
     ...(partis ?? []).filter(perdue).map((r) => ({ familyId: r.family_id as string, genre: 'reprise' as const })),
+    ...sansAppareil.map((f) => ({ familyId: f.id as string, genre: 'appareil_manquant' as const })),
+    ...sansBouclier.map((f) => ({ familyId: f.id as string, genre: 'bouclier_inactif' as const })),
+    ...(enEchec ?? []).map((r) => ({ familyId: r.family_id as string, genre: 'paiement_echoue' as const })),
+    ...(resiliations ?? []).map((r) => ({ familyId: r.family_id as string, genre: 'au_revoir' as const })),
   ];
 
   let envoyes = 0;
@@ -632,6 +902,8 @@ async function reprendre(request: Request): Promise<Response> {
     );
   }
 
+  const jeton = new URL(request.url).searchParams.get('t')!;
+  const base = `${env('SUPABASE_URL')}/functions/v1/courrier`;
   const formule = new URL(request.url).searchParams.get('f') === 'monthly' ? 'monthly' : 'yearly';
   const price =
     formule === 'monthly'
@@ -680,8 +952,19 @@ async function reprendre(request: Request): Promise<Response> {
     tax_id_collection: { enabled: true },
     customer_update: abonnement?.customer_id ? { address: 'auto', name: 'auto' } : undefined,
     allow_promotion_codes: true,
-    success_url: `${env('APP_URL')}/abonnement/merci?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${env('APP_URL')}/abonnement`,
+    /**
+     * **Et surtout pas l'écran de remerciement de l'application.**
+     *
+     * Celui-ci lit l'abonnement pour le confirmer, ce qui suppose une session
+     * ouverte. Or ce parent-là arrive d'un lien d'e-mail précisément parce
+     * qu'il n'est plus connecté : on lui aurait demandé de retrouver son mot
+     * de passe juste après lui avoir pris son argent, c'est-à-dire au pire
+     * moment possible.
+     *
+     * La page rendue ici ne demande rien et dit ce qu'il reste à faire.
+     */
+    success_url: `${base}/paye?t=${jeton}`,
+    cancel_url: `${base}/reprendre?t=${jeton}`,
     metadata: { family_id: familyId },
   });
 
@@ -718,11 +1001,89 @@ async function stop(request: Request): Promise<Response> {
   );
 }
 
+/**
+ * Recueillir le motif d'un départ, en un clic.
+ *
+ * **Où il est écrit, et pourquoi pas dans une table à lui.** `billing_events`
+ * est déjà le journal des faits de facturation, sa clé `stripe_event_id` est
+ * unique, et c'est elle qui garantit qu'un parent qui reclique — ou dont la
+ * messagerie précharge les liens — ne compte pas deux fois. Une table de plus
+ * demanderait une migration pour ranger quatre valeurs.
+ *
+ * `motif:<famille>` comme clé : une réponse par famille, la première donnée.
+ * Changer d'avis en cliquant un second bouton ne réécrit rien, et c'est
+ * volontaire — la première réaction est la plus honnête.
+ */
+/**
+ * Ce qu'on montre juste après un paiement venu d'un lien d'e-mail.
+ *
+ * Ni « connectez-vous », ni « retour à mon espace » : ce parent n'a pas de
+ * session, c'est tout l'objet du parcours. On confirme, on donne le code
+ * famille — la seule chose dont il ait besoin pour la suite — et on l'envoie
+ * installer l'application là où elle sert.
+ */
+async function paye(request: Request): Promise<Response> {
+  const familyId = await familleDuJeton(new URL(request.url).searchParams.get('t'));
+  if (!familyId) {
+    return page(
+      'Merci !',
+      'Votre paiement est enregistré. Ouvrez Mino, tout y est — et si quelque chose cloche, répondez à notre message.',
+    );
+  }
+
+  const { data: famille } = await admin()
+    .from('families')
+    .select('code')
+    .eq('id', familyId)
+    .maybeSingle();
+
+  const code = (famille?.code as string | undefined) ?? '';
+
+  return page(
+    'Merci, c’est en place',
+    code
+      ? `Votre abonnement est enregistré. Il reste à installer Mino sur l'appareil de votre enfant : choisissez « J'ai un code famille » et saisissez ${code}.`
+      : "Votre abonnement est enregistré. Il reste à installer Mino sur l'appareil de votre enfant.",
+    { label: 'Installer Mino', url: 'https://minoapp.fr/telecharger' },
+  );
+}
+
+async function motif(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const familyId = await familleDuJeton(url.searchParams.get('t'));
+  const choisi = MOTIFS.find((m) => m.code === url.searchParams.get('r'));
+
+  if (!familyId || !choisi) {
+    return page('Ce lien n’est plus valable', 'Répondez simplement à notre message, on lira.');
+  }
+
+  await admin()
+    .from('billing_events')
+    .upsert(
+      {
+        family_id: familyId,
+        kind: 'motif_depart',
+        status: choisi.code,
+        stripe_event_id: `motif:${familyId}`,
+        occurred_at: new Date().toISOString(),
+      },
+      { onConflict: 'stripe_event_id', ignoreDuplicates: true },
+    );
+
+  console.log('courrier motif', familyId, choisi.code);
+  return page(
+    'Merci, c’est noté',
+    'C’est la seule façon qu’on ait de savoir ce qui ne va pas — aucun chiffre ne le dit. Si vous voulez en dire plus, répondez à notre message : quelqu’un le lit.',
+  );
+}
+
 Deno.serve(servir(async (request) => {
   const route = new URL(request.url).pathname.replace(/^\/courrier\/?/, '');
   if (route === 'lot') return await lot(request);
   if (route === 'reprendre') return await reprendre(request);
   if (route === 'stop') return await stop(request);
+  if (route === 'motif') return await motif(request);
+  if (route === 'paye') return await paye(request);
 
   const caller = await familyOfCaller(request);
   if (!caller) {
