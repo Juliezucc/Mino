@@ -301,7 +301,10 @@ function ecrire(genre: Genre, f: Famille): { sujet: string; texte: string; html:
       : genre === 'fin_essai'
         ? 'Votre essai Mino se termine bientôt'
         : genre === 'reprise'
-          ? `${enfant} peut regagner son temps d’écran`
+          ? // Le prénom vient de la base et commence par une majuscule ; le
+            // repli « votre enfant » non, et un objet qui démarre en minuscule
+            // a l'air d'un message mal fabriqué avant même d'être lu.
+            `${enfant.charAt(0).toUpperCase()}${enfant.slice(1)} peut regagner son temps d’écran`
           : 'Votre abonnement Mino se renouvelle bientôt';
 
   /**
