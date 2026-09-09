@@ -42,7 +42,17 @@ function loadPlaywright() {
 }
 
 const APP_URL = process.env.STORE_URL ?? 'http://127.0.0.1:8099/mino-preview.html';
-const SORTIE = 'store/paywall-ios.png';
+/**
+ * Une capture par abonnement, et non une pour les deux.
+ *
+ * L'écran est le même, mais la formule sélectionnée n'y est pas la même — et
+ * c'est cette sélection-là qu'App Store Connect demande de montrer, abonnement
+ * par abonnement. Déposer l'annuel en face du mensuel, c'est donner au
+ * vérificateur une image où le prix qu'il vérifie n'est pas celui qui est mis
+ * en avant.
+ */
+const SORTIE_ANNUEL = 'store/paywall-ios.png';
+const SORTIE_MENSUEL = 'store/paywall-ios-mensuel.png';
 
 const { chromium } = loadPlaywright();
 const browser = await chromium.launch();
@@ -113,7 +123,43 @@ if (!texte.includes('0 € aujourd’hui')) {
 }
 
 mkdirSync('store', { recursive: true });
-await page.screenshot({ path: SORTIE });
-console.log(`→ ${SORTIE}`);
+
+// L'annuel, présélectionné : c'est l'état dans lequel le parent trouve l'écran.
+await page.screenshot({ path: SORTIE_ANNUEL });
+console.log(`→ ${SORTIE_ANNUEL}`);
+
+// Puis le mensuel, choisi. Le cadre bleu quitte l'annuel et la ligne « Ou
+// 9,99 € par mois » passe en bleu appuyé — c'est tout ce qui change à
+// l'écran, et c'est précisément ce que la capture doit prouver.
+const mensuel = page.getByText('Ou 9,99 € par mois').first();
+await mensuel.waitFor({ state: 'visible', timeout: 15000 });
+await mensuel.click();
+await attendre(600);
+
+/**
+ * On vérifie ce que la capture doit montrer, et pas autre chose.
+ *
+ * L'état sélectionné ne se lit pas dans le balisage : React Native Web 0.21 ne
+ * reporte plus `accessibilityState` sur la page — c'est un écart réel, mais
+ * qui ne concerne que l'aperçu web, les applications natives recevant bien cet
+ * état. Ce qu'on contrôle ici est donc la seule chose qui compte pour une
+ * image : la ligne du mensuel est passée en gras bleu.
+ */
+const mensuelEnAvant = await page.evaluate(() => {
+  const ligne = [...document.querySelectorAll('div')].find(
+    (e) => e.childElementCount === 0 && e.textContent?.trim() === 'Ou 9,99 € par mois',
+  );
+  if (!ligne) return null;
+  const style = getComputedStyle(ligne);
+  return { police: style.fontFamily, couleur: style.color };
+});
+if (!mensuelEnAvant?.police.includes('Bold')) {
+  throw new Error(
+    `La formule mensuelle n'a pas été mise en avant (lu : ${JSON.stringify(mensuelEnAvant)}).`,
+  );
+}
+
+await page.screenshot({ path: SORTIE_MENSUEL });
+console.log(`→ ${SORTIE_MENSUEL}`);
 
 await browser.close();
