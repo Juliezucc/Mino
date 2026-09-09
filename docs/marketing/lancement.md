@@ -62,8 +62,13 @@ d'installation cassé, c'est acheter des essais qui ne convertiront pas.
 ## J-30 : la bêta ouverte
 
 **300 à 500 familles**, recrutées par les relais de confiance et les groupes de
-parents. Essai de 60 jours au lieu de 30 : ces familles-là méritent d'être
-traitées comme des parrains.
+parents.
+
+> **Cet essai de 60 jours n'existe plus comme réglage de produit.** Depuis le
+> 9 septembre 2026, l'essai est porté par la boutique — une offre
+> d'introduction de durée fixe — et il n'y a plus qu'une durée : trente jours.
+> Pour traiter ces familles-là autrement, il faut passer par un code
+> promotionnel de la boutique, pas par notre base.
 
 Ce qu'on installe à ce moment :
 

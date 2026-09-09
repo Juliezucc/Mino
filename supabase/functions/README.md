@@ -100,8 +100,8 @@ Carte de test `4242 4242 4242 4242`. Le parcours à vérifier, dans l'ordre :
 1. Un paiement aboutit → la ligne `subscriptions` passe en `trialing` puis
    `active` à la fin de l'essai.
 2. Résiliation depuis l'app → `cancel_at_period_end` à `true`, accès conservé.
-3. Un filleul entre un code → ligne `referrals` en `pending`, essai porté à
-   60 jours.
+3. Un filleul entre un code → ligne `referrals` en `pending`. Son essai ne
+   bouge pas : trente jours pour tout le monde, c'est le parrain qui gagne.
 4. Ce filleul paie sa première facture → la ligne passe en `credited` et le
    parrain reçoit son avoir. Vérifie-le sur la fiche client Stripe : le solde
    doit être négatif de 9,90 €.

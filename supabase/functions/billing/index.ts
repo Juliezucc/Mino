@@ -18,11 +18,7 @@ import {
   env,
   servir,
 } from '../_shared/mino.ts';
-import {
-  REFERRAL,
-  canUseReferralCode,
-  trialEndForCheckout,
-} from '../../../src/domain/billing.ts';
+import { canUseReferralCode, trialEndForCheckout } from '../../../src/domain/billing.ts';
 
 const PRICE: Record<string, string> = {
   monthly: Deno.env.get('STRIPE_PRICE_MONTHLY') ?? '',
@@ -263,18 +259,22 @@ Deno.serve(servir(async (request) => {
         // The unique constraint is the real guard; this catches the race.
         if (error) return json({ ok: false, reason: 'Cette famille a déjà été parrainée.' });
 
-        // The newcomer's side of the deal: a longer trial, applied right away.
+        /**
+         * Le filleul ne reçoit rien de plus, et son essai n'est pas touché.
+         *
+         * Il était porté à soixante jours ici même. Ce n'était plus tenable dès
+         * lors que l'essai est porté par la boutique — une offre d'introduction
+         * Apple a une durée fixe, la même pour tout le monde — et cela
+         * contredisait l'écran de paiement, qui promet trente jours à la touche
+         * précédente. Voir `REFERRAL` dans `src/domain/billing.ts`.
+         *
+         * On rend donc l'abonnement tel qu'il est, pour que l'écran se rafraîchisse
+         * sans avoir à le redemander.
+         */
         const { data: subscription } = await db
           .from('subscriptions')
-          .update({
-            trial_ends_at: new Date(
-              Date.now() + REFERRAL.refereeTrialDays * 24 * 60 * 60 * 1000,
-            ).toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq('family_id', caller.familyId)
-          .eq('status', 'trialing')
           .select('*')
+          .eq('family_id', caller.familyId)
           .maybeSingle();
 
         return json({

@@ -16,7 +16,10 @@ import { ANNUAL_PRICE_EUR, MONTHLY_PRICE_EUR, REFERRAL, TRIAL_DAYS } from '@/dom
 export const TERMS: LegalDocument = {
   title: 'Conditions générales',
   subtitle: 'Conditions générales de vente et d’utilisation de Mino',
-  updatedAt: '21 août 2026',
+  // Un contrat qui change de contenu change de date. L'article 7 vient de
+  // retirer un avantage au filleul : le laisser au 21 août ferait passer une
+  // modification pour un texte inchangé.
+  updatedAt: '9 septembre 2026',
   intro: [
     {
       kind: 'p',
@@ -144,7 +147,7 @@ export const TERMS: LegalDocument = {
         {
           kind: 'bullets',
           items: [
-            `La personne parrainée bénéficie d’une période d’essai portée à ${REFERRAL.refereeTrialDays} jours au lieu de ${TRIAL_DAYS}.`,
+            `La personne parrainée bénéficie de la période d’essai de ${TRIAL_DAYS} jours proposée à tout nouvel abonné. Le parrainage ne lui accorde aucun avantage supplémentaire.`,
             `Le parrain reçoit ${REFERRAL.referrerFreeMonths} mois d’abonnement offert lorsque son filleul devient abonné payant, c’est-à-dire à l’issue de son premier paiement effectif.`,
             'Chaque mois offert est déduit de votre prochaine facture. Si vous êtes encore en période d’essai, il en repousse le terme d’autant. Les mois offerts se cumulent.',
             `Un même parrain peut recevoir au maximum ${REFERRAL.maxFreeMonthsPerYear} mois offerts par période de douze mois.`,

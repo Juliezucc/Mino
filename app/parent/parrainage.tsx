@@ -41,7 +41,7 @@ export default function ReferralScreen() {
 
   const share = () => {
     Share.share({
-      message: `On utilise Mino à la maison : les enfants gagnent leur temps d’écran en faisant leurs missions. Avec mon code ${myCode}, tu as ${REFERRAL.refereeTrialDays} jours d’essai au lieu de ${TRIAL_DAYS}.`,
+      message: `On utilise Mino à la maison : les enfants gagnent leur temps d’écran en faisant leurs missions. Tu as ${TRIAL_DAYS} jours d’essai, et avec mon code ${myCode} tu me fais gagner un mois.`,
     }).catch(() => undefined);
   };
 
@@ -50,7 +50,12 @@ export default function ReferralScreen() {
     const result = await redeemReferral(code);
     setMessage(
       result.ok
-        ? { ok: true, text: `C’est fait : votre essai passe à ${REFERRAL.refereeTrialDays} jours.` }
+        ? {
+            ok: true,
+            // On ne remercie pas quelqu'un en lui faisant croire qu'il a gagné
+            // quelque chose : ce qu'il vient de faire, c'est offrir un mois.
+            text: 'C’est enregistré. La famille qui vous a invité recevra son mois offert dès votre premier paiement.',
+          }
         : { ok: false, text: result.reason ?? 'Ce code n’a pas pu être utilisé.' },
     );
     if (result.ok) setCode('');
@@ -75,7 +80,7 @@ export default function ReferralScreen() {
         <Text variant="cardTitle">Comment ça marche</Text>
         <View style={styles.steps}>
           {[
-            `La famille que vous parrainez démarre avec ${REFERRAL.refereeTrialDays} jours d’essai au lieu de ${TRIAL_DAYS}.`,
+            `La famille que vous invitez démarre avec ses ${TRIAL_DAYS} jours d’essai, comme tout le monde.`,
             `Dès qu’elle devient abonnée, vous recevez ${REFERRAL.referrerFreeMonths} mois offert.`,
             'Chaque mois offert est déduit de votre prochaine facture. Ils se cumulent.',
             `Maximum ${REFERRAL.maxFreeMonthsPerYear} mois offerts par an.`,
@@ -128,9 +133,13 @@ export default function ReferralScreen() {
 
       {canRedeem ? (
         <Card style={styles.block}>
-          <Text variant="cardTitle">On vous a parrainé ?</Text>
+          <Text variant="cardTitle">Un ami vous a invité ?</Text>
+          {/* Ce que ce champ fait, dit sans détour : il ne vous donne rien, il
+              donne un mois à celui qui vous a invité. Laisser croire l'inverse
+              se paierait au premier relevé bancaire. */}
           <Text variant="body" color={colors.textMuted}>
-            {`Entrez le code reçu pour passer à ${REFERRAL.refereeTrialDays} jours d’essai. Il ne peut être utilisé que pendant l’essai.`}
+            Entrez son code : il gagnera un mois d’abonnement dès votre premier paiement. Votre
+            essai, lui, ne change pas. À saisir pendant l’essai.
           </Text>
           <Field
             placeholder="Code à 6 caractères"

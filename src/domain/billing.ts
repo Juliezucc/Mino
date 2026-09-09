@@ -27,8 +27,26 @@ export const TRIAL_DAYS = 30;
 export const REFERRAL = {
   /** Months given to the referrer, once the referee actually pays. */
   referrerFreeMonths: 1,
-  /** The referee's own reward: a longer trial rather than a discount. */
-  refereeTrialDays: 60,
+  /**
+   * **Le filleul ne gagne rien de plus, et c'est délibéré.**
+   *
+   * Il recevait soixante jours d'essai au lieu de trente. Deux choses ont
+   * rendu cet avantage intenable :
+   *
+   * 1. **Le parcours d'inscription enregistre la carte à l'entrée**, et l'essai
+   *    est désormais porté par la boutique — une offre d'introduction Apple,
+   *    une offre Play. Ces offres ont une durée fixe : on ne peut pas demander
+   *    à Apple soixante jours pour celui-ci et trente pour celui-là. L'essai
+   *    long ne survivait que sur le rail Stripe, c'est-à-dire pour une minorité.
+   * 2. **Deux durées d'essai, c'est deux vérités à l'écran** — et l'écran de
+   *    paiement, lui, n'en affiche qu'une : « Vous avez 30 jours ». Promettre
+   *    le double dans l'écran de parrainage revenait à se contredire à une
+   *    touche d'intervalle.
+   *
+   * Trente jours pour tout le monde, donc. Le parrainage récompense le parrain,
+   * qui est celui qui a fait quelque chose ; le filleul reçoit ce que tout le
+   * monde reçoit, ce qui est déjà l'offre entière.
+   */
   /**
    * Cap per rolling year. Unlimited free months are an invitation to farm fake
    * accounts; twelve still rewards a genuine ambassador with a free year.
@@ -251,13 +269,11 @@ export const STRIPE_MIN_TRIAL_MS = 48 * 60 * 60 * 1000;
  * demandait `trial_period_days: 30` — un décompte NEUF, sans regarder celui
  * que la famille avait déjà entamé. Un parent qui s'abonnait au 25ᵉ jour de
  * son essai repartait donc pour trente jours : cinquante-cinq jours gratuits
- * au lieu de trente. Un filleul, qui a déjà soixante jours, en obtenait cent
- * vingt.
+ * au lieu de trente.
  *
- * C'est très exactement le cumul que `docs/ops/paiements.md` interdit de créer
- * chez Apple — « sinon un filleul cumulerait nos 60 jours et les 30 jours
- * d'Apple » — et que notre propre code faisait chez Stripe. Rien ne le
- * signalait : l'écran affiche la date que Stripe renvoie, donc il annonçait
+ * C'est très exactement le cumul qu'il fallait éviter entre notre essai et
+ * celui d'une boutique, et que notre propre code faisait chez Stripe. Rien ne
+ * le signalait : l'écran affiche la date que Stripe renvoie, donc il annonçait
  * fidèlement une date fausse.
  *
  * La règle, désormais : **l'essai appartient à Mino, pas au rail.** Il finit

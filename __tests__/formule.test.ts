@@ -94,9 +94,10 @@ describe('la fin d’essai envoyée à Stripe', () => {
     expect(fin?.toISOString()).toBe(dans(5));
   });
 
-  it('n’ajoute rien aux soixante jours d’un filleul', () => {
-    // Les 60 jours sont déjà écrits dans `trial_ends_at` au moment où le code
-    // est saisi : les redemander ici les doublerait.
+  it('n’ajoute rien à un essai déjà long', () => {
+    // La durée qui court est écrite dans `trial_ends_at` : la redemander ici
+    // la doublerait. Le cas s'est produit avec les soixante jours qu'un
+    // filleul recevait autrefois — cent vingt jours gratuits.
     const fin = trialEndForCheckout(
       { trialEndsAt: dans(60), hasPaidBefore: false },
       MAINTENANT,

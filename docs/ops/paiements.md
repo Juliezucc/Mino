@@ -138,12 +138,14 @@ Trois textes promettaient l'inverse de ce que le rail natif permet. Corrigés :
 C'est le seul endroit où les deux rails ne se comportent pas pareil, et il faut
 le traiter avant le lancement.
 
-**Ce qui marche déjà.** Les 60 jours du filleul, parce que l'essai n'appartient
-à aucune boutique : il est accordé par notre serveur, avant tout achat. Le
-parrainage continue donc de fonctionner exactement comme aujourd'hui côté
-filleul, quel que soit le rail. C'est la raison pour laquelle **l'essai ne doit
-pas être configuré comme offre d'introduction dans les boutiques** — sinon un
-filleul cumulerait nos 60 jours et les 30 jours d'Apple.
+**Ce qui ne se pose plus.** Le filleul recevait soixante jours d'essai, et c'est
+précisément ce qui interdisait de configurer l'essai comme offre d'introduction
+dans les boutiques : il aurait cumulé les deux. Le 9 septembre 2026, la règle a
+changé — **trente jours pour tout le monde, le filleul compris**. Une offre
+d'introduction Apple a une durée fixe, la même pour tous, et deux durées
+d'essai ne pouvaient de toute façon pas coexister sur un parcours qui annonce
+« Vous avez 30 jours » à l'écran de paiement. Le côté filleul du parrainage
+n'existe donc plus, et avec lui le seul obstacle aux offres d'introduction.
 
 **Ce qui ne marche pas.** Le mois offert du parrain, quand il paie via une
 boutique. On ne peut pas demander à Apple de sauter un prélèvement : `trial_end`

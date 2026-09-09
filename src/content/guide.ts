@@ -382,7 +382,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Parrainer',
         body: [
-          `Partagez votre code : la famille que vous parrainez démarre avec ${REFERRAL.refereeTrialDays} jours d’essai au lieu de ${TRIAL_DAYS}.`,
+          `Partagez votre code : la famille que vous invitez démarre avec ses ${TRIAL_DAYS} jours d’essai, comme tout le monde.`,
           `Dès qu’elle devient abonnée, vous recevez ${REFERRAL.referrerFreeMonths} mois offert, déduit de votre facture suivante. Jusqu’à ${REFERRAL.maxFreeMonthsPerYear} mois par an.`,
         ],
         where: 'Espace parent → Réglages → Parrainage',

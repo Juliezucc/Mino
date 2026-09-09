@@ -9,9 +9,19 @@ qu'**après** avoir gagné le client.
 
 | | |
 |---|---|
-| Le filleul reçoit | **60 jours d'essai** au lieu de 30 |
+| Le filleul reçoit | **ses 30 jours d'essai**, comme tout le monde — rien de plus |
 | Le parrain reçoit | **1 mois offert**, une fois que le filleul est devenu payant |
 | Plafond | **12 mois offerts par an** et par famille |
+
+> **Le filleul recevait soixante jours, et cette ligne a changé le 9 septembre
+> 2026.** Deux raisons, et la première est mécanique : le parcours d'inscription
+> enregistre désormais la carte à l'entrée, et l'essai est porté par la boutique
+> — une offre d'introduction Apple a une durée **fixe**, la même pour tout le
+> monde. L'essai long ne survivait donc que sur le rail Stripe, c'est-à-dire
+> pour une minorité de plus en plus petite. La seconde est plus simple : l'écran
+> de paiement annonce « Vous avez 30 jours », et promettre le double à une
+> touche d'intervalle, c'est se contredire devant quelqu'un à qui on demande sa
+> carte.
 
 Les trois règles sont dans `src/domain/billing.ts`, couvertes par des tests, et
 appliquées par le webhook Stripe — pas par une note de service.
@@ -37,10 +47,16 @@ qui empêche qu'une seule famille rende l'abonnement gratuit à vie en recrutant
 industriellement. Douze filleuls dans l'année, c'est déjà beaucoup de familles
 convaincues — personne d'honnête ne heurtera ce plafond.
 
-**60 jours plutôt qu'une réduction** : ce qui manque à une famille qui hésite,
-ce n'est pas 5 € — c'est le temps d'installer, de convaincre l'autre parent, et
-de voir si ça tient au-delà de la nouveauté. Un mois de plus répond exactement à
-ça. Une réduction, non.
+**Un mois offert plutôt qu'une réduction** : ce qui manque à une famille, ce
+n'est pas 5 € — c'est le temps d'installer, de convaincre l'autre parent, et de
+voir si ça tient au-delà de la nouveauté. Un mois entier répond exactement à ça.
+Une réduction, non.
+
+**Et pourquoi le filleul ne reçoit rien.** C'est contre-intuitif, et c'est
+assumé : ce qu'on lui offre est déjà l'offre entière — trente jours, sans
+condition, comme n'importe qui. L'argument qui le décide n'est pas une remise,
+c'est qu'une famille qu'il connaît utilise Mino et le lui dit. Le programme
+récompense donc celui qui a fait quelque chose.
 
 ---
 

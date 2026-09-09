@@ -310,8 +310,8 @@ describe('achat natif et achat web', () => {
   });
 
   it('garde la période d’essai en dehors des deux rails', () => {
-    // L'essai est accordé par nous, pas par une boutique : c'est ce qui permet
-    // aux 60 jours du parrainage d'exister sans dépendre d'Apple.
+    // L'essai est ouvert par nous, avant tout achat, et n'appartient donc à
+    // aucun rail : c'est ce qui le rend identique quelle que soit la boutique.
     expect(startTrial('f1').source).toBeUndefined();
   });
 });

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { REFERRAL, Plan, Referral, Subscription, addMonths, startTrial } from '@/domain/billing';
+import { Plan, Referral, Subscription, addMonths, startTrial } from '@/domain/billing';
 import { ID } from '@/domain/types';
 
 const STORAGE_KEY = 'mino.billing.local.v1';
@@ -136,14 +136,9 @@ export class LocalBillingService implements BillingService {
       return { ok: false, reason: 'Un code de parrainage ne s\u2019utilise qu\u2019\u00e0 l\u2019inscription.' };
     }
 
-    const next: Subscription = {
-      ...current,
-      trialEndsAt: new Date(
-        Date.now() + REFERRAL.refereeTrialDays * 24 * 60 * 60 * 1000,
-      ).toISOString(),
-    };
-    this.subscriptions.set(familyId, next);
-    await this.save();
-    return { ok: true, subscription: next };
+    // L'essai du filleul ne bouge pas : trente jours pour tout le monde, voir
+    // `REFERRAL` dans `src/domain/billing.ts`. Le code est enregistré, et c'est
+    // le parrain qu'il récompense.
+    return { ok: true, subscription: current };
   }
 }
