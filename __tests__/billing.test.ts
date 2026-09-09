@@ -96,6 +96,24 @@ describe('access', () => {
     });
   });
 
+  /**
+   * Un essai sans date de fin est un accès fermé — et c'est un piège.
+   *
+   * `accessOf` calcule les jours restants à partir de `trialEndsAt` : une date
+   * absente vaut zéro jour, donc « expiré ». Tout code qui écrit `trialing`
+   * sans écrire la date enferme donc dehors une famille qui vient de payer,
+   * sans qu'aucune erreur n'apparaisse nulle part — la transaction est valide,
+   * la ligne est écrite, et le verrou tombe quand même.
+   *
+   * C'est exactement le piège qu'a tendu l'arrivée des essais Apple, où la
+   * fonction qui enregistre un achat de boutique n'écrivait que
+   * `current_period_end`.
+   */
+  it('ferme l’accès d’un essai qui n’a pas de date de fin', () => {
+    const sansDate = { ...startTrial('f1', NOW), trialEndsAt: null };
+    expect(accessOf(sansDate, NOW)).toEqual({ kind: 'expired' });
+  });
+
   it('treats no subscription at all as expired', () => {
     expect(accessOf(null, NOW)).toEqual({ kind: 'expired' });
   });

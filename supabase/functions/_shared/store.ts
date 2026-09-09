@@ -243,12 +243,39 @@ export function appleToState(
   // 1 = en cours de nouvelle tentative de paiement.
   const inBillingRetry = renewal ? Number(renewal.isInBillingRetry ?? 0) === 1 : false;
 
+  /**
+   * L'essai gratuit d'Apple, qui n'existait pas quand ce code a été écrit.
+   *
+   * Le parcours d'inscription enregistre désormais la carte à l'entrée, avec
+   * une offre d'introduction « Gratuit · 1 mois » chez Apple : la quasi-totalité
+   * des abonnements iPhone naîtront donc en essai, et pas en abonnement payé.
+   *
+   * Sans cette lecture, ils arrivaient tous en `active`, et l'application
+   * annonçait « Abonnement actif · prochain paiement le 9 octobre » à quelqu'un
+   * qui n'a rien payé du tout. C'est le défaut exactement symétrique de celui
+   * corrigé sur Stripe le 9 septembre 2026 — le même écran, l'autre rail.
+   *
+   * `offerType` est le champ moderne (1 = offre d'introduction) ; `isTrialPeriod`
+   * celui des reçus plus anciens. On lit les deux : une transaction vérifiée
+   * aujourd'hui peut porter l'un ou l'autre selon sa date d'origine.
+   */
+  const enEssai =
+    Number(transaction.offerType ?? 0) === 1 ||
+    transaction.isTrialPeriod === true ||
+    transaction.isTrialPeriod === 'true';
+
   return {
     platform: 'apple',
     accountToken: (transaction.appAccountToken as string) ?? null,
     productId,
     transactionId: String(transaction.originalTransactionId ?? transaction.transactionId ?? ''),
-    status: revoked || expired ? 'canceled' : inBillingRetry ? 'past_due' : 'active',
+    status: revoked || expired
+      ? 'canceled'
+      : inBillingRetry
+        ? 'past_due'
+        : enEssai
+          ? 'trialing'
+          : 'active',
     plan: planOfProduct(productId),
     expiresAt: expiresMs > 0 ? new Date(expiresMs).toISOString() : null,
     cancelAtPeriodEnd: !willRenew,
@@ -431,17 +458,50 @@ export async function applyStoreState(
     return null;
   }
 
-  await db.from('subscriptions').upsert({
+  const { error } = await db.from('subscriptions').upsert({
     family_id: familyId,
     status: state.status,
     plan: state.plan,
     current_period_end: state.expiresAt,
+    /**
+     * **Sans cette ligne, un abonné en essai serait enfermé dehors.**
+     *
+     * `accessOf` calcule l'accès d'un abonnement `trialing` à partir de
+     * `trial_ends_at` — et une date absente vaut zéro jour restant, donc
+     * « expiré ». Un parent qui vient d'enregistrer sa carte chez Apple aurait
+     * donc perdu l'accès à la seconde même de son achat, sans qu'aucune erreur
+     * n'apparaisse nulle part : la transaction est valide, la ligne est
+     * écrite, et le verrou tombe quand même.
+     *
+     * Chez Apple, la fin de l'essai gratuit EST la date d'expiration de la
+     * transaction : tant que l'offre d'introduction court, `expiresDate`
+     * désigne le jour du premier prélèvement.
+     *
+     * On n'écrit rien quand ce n'est pas un essai : effacer la date d'essai
+     * d'une famille qui en avait un reviendrait à lui retirer le sien.
+     */
+    ...(state.status === 'trialing' ? { trial_ends_at: state.expiresAt } : {}),
     cancel_at_period_end: state.cancelAtPeriodEnd,
     source: state.platform,
     store_product_id: state.productId,
     store_transaction_id: state.transactionId,
     updated_at: new Date().toISOString(),
   });
+
+  /**
+   * L'erreur était jetée, comme elle l'était côté Stripe.
+   *
+   * C'est la seule écriture qui donne l'accès à une famille qui vient de
+   * payer. Sans lecture de l'erreur, Apple recevait un accusé de réception, la
+   * table restait en l'état, et le parent gardait un écran d'abonnement qui ne
+   * savait rien de son achat — silencieux des deux côtés, sur le chemin de
+   * l'argent. On lève : l'appelant répond alors une erreur, et la notification
+   * serveur d'Apple est rejouée.
+   */
+  if (error) {
+    console.error('achat non enregistré', familyId, state.transactionId, error.message);
+    throw new Error(`subscriptions upsert (${familyId}) : ${error.message}`);
+  }
 
   return familyId;
 }

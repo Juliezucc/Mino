@@ -63,11 +63,25 @@ Deno.serve(async (request) => {
 
     await applyStoreState(state, { familyId: caller.familyId });
 
-    if (state.status === 'active') {
+    /**
+     * Un essai qui commence est un événement, pas un silence.
+     *
+     * Le journal ne s'écrivait que pour un abonnement `active`. Depuis que la
+     * carte s'enregistre à l'inscription avec une offre d'introduction, la
+     * quasi-totalité des abonnements iPhone naissent en essai — ils
+     * disparaissaient donc entièrement des cohortes de conversion, et le
+     * tableau de bord aurait affiché zéro abonné là où il y en avait.
+     *
+     * `essai_commence` est le genre que la vue de conversion attend
+     * (`analytics.sql`), et c'est le même que celui écrit par le webhook Stripe
+     * pour un abonnement à essai. Les deux rails racontent ainsi la même
+     * histoire.
+     */
+    if (state.status === 'active' || state.status === 'trialing') {
       await db.from('billing_events').upsert(
         {
           family_id: caller.familyId,
-          kind: 'abonnement_commence',
+          kind: state.status === 'trialing' ? 'essai_commence' : 'abonnement_commence',
           status: state.status,
           plan: state.plan,
           source: state.platform,
