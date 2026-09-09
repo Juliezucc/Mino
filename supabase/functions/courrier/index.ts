@@ -23,7 +23,9 @@
 
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
 
-import { admin, env, fail, familyOfCaller, json, servir } from '../_shared/mino.ts';
+import { admin, env, fail, familyOfCaller, json, servir, stripe } from '../_shared/mino.ts';
+import { familleDuJeton, jetonLien } from '../_shared/lien.ts';
+import { trialEndForCheckout } from '../../../src/domain/billing.ts';
 
 /**
  * Les messages qu'on sait écrire, et rien d'autre.
@@ -32,7 +34,24 @@ import { admin, env, fail, familyOfCaller, json, servir } from '../_shared/mino.
  * le corps, donc se servirait de notre domaine pour envoyer ce qu'il veut. Le
  * gabarit est ici, l'appelant ne choisit que lequel.
  */
-type Genre = 'bienvenue' | 'fin_essai' | 'reconduction';
+type Genre = 'bienvenue' | 'fin_essai' | 'reconduction' | 'reprise';
+
+/**
+ * Le genre qui n'en est pas un : la marque d'un parent qui ne veut plus rien
+ * recevoir.
+ *
+ * **Pourquoi ici plutôt que dans une table à part.** `courriers` a pour clé
+ * primaire (famille, genre) et sert déjà à ne jamais écrire deux fois la même
+ * chose. Une ligne portant ce genre-là se pose exactement de la même façon, et
+ * `dejaEnvoye` la trouve sans qu'aucune requête n'ait à changer. Pas de
+ * migration, pas de table, pas de chemin oublié — et c'est ce dernier point
+ * qui compte : un désabonnement qu'une route oublie de consulter est pire
+ * qu'un désabonnement absent, parce qu'il a été promis.
+ *
+ * Les messages du cycle de vie qu'on doit légalement envoyer — l'information
+ * avant reconduction annuelle — n'en dépendent pas : voir `ecrireA`.
+ */
+const REFUS = 'aucun_courrier';
 
 interface Famille {
   parentName: string | null;
@@ -41,6 +60,10 @@ interface Famille {
   childName: string | null;
   trialEndsAt: string | null;
   plan: string | null;
+  /** L'adresse qui ouvre le paiement sans demander à se reconnecter. */
+  lienReprise: string;
+  /** Celle qui fait taire Mino, obligatoire sur un message de reconquête. */
+  lienStop: string;
 }
 
 const jour = (iso: string | null) =>
@@ -230,6 +253,36 @@ function ecrire(genre: Genre, f: Famille): { sujet: string; texte: string; html:
               },
               { p: "L'équipe Mino" },
             ]
+        : genre === 'reprise'
+          ? /**
+             * La reconquête, et la seule chose qui la rende acceptable.
+             *
+             * Ce message part à des familles dont l'accès s'est arrêté. Ce
+             * n'est pas de la prospection — l'article L. 34-5 du code des
+             * postes l'autorise auprès de ses propres clients pour un produit
+             * analogue — mais cela ne vaut que si le moyen de s'y opposer est
+             * là, lisible, et qu'il fonctionne. D'où `lienStop`, et d'où le
+             * fait que ce message ne parte qu'**une fois par famille**.
+             *
+             * Le bouton n'emmène pas vers une page de connexion, et c'est tout
+             * son objet : un parent qui a laissé tomber ne se souvient plus de
+             * ses identifiants. C'est souvent pour cela qu'il a laissé tomber.
+             */
+            [
+              { p: `Bonjour${prenom},` },
+              {
+                p: `Votre accès à Mino s'est arrêté. ${enfant} ne gagne plus de temps d'écran, et les applications ne se referment plus.`,
+              },
+              { titre: 'Tout est resté en place' },
+              {
+                p: "Les missions, les minutes déjà gagnées et vos réglages sont exactement où vous les avez laissés. Reprendre l'abonnement les rallume — il n'y a rien à refaire.",
+              },
+              { bouton: { label: 'Reprendre mon abonnement', url: f.lienReprise } },
+              {
+                p: 'Ce lien ouvre directement le paiement pour votre compte : aucun mot de passe à retrouver.',
+              },
+              { p: "L'équipe Mino" },
+            ]
         : [
             { p: `Bonjour${prenom},` },
             {
@@ -247,9 +300,28 @@ function ecrire(genre: Genre, f: Famille): { sujet: string; texte: string; html:
       ? 'Bienvenue chez Mino 👋'
       : genre === 'fin_essai'
         ? 'Votre essai Mino se termine bientôt'
-        : 'Votre abonnement Mino se renouvelle bientôt';
+        : genre === 'reprise'
+          ? `${enfant} peut regagner son temps d’écran`
+          : 'Votre abonnement Mino se renouvelle bientôt';
 
-  return { sujet, texte: enTexte(blocs), html: enHtml(blocs) };
+  /**
+   * Le lien de désabonnement, sur le seul message qui en a besoin.
+   *
+   * Il ne se met pas sur la bienvenue ni sur les rappels de facturation :
+   * ceux-là sont liés à l'exécution du contrat, et les retirer priverait le
+   * parent d'une information qu'on lui doit. Il se met ici, où le message est
+   * une sollicitation.
+   */
+  const pied: Bloc[] =
+    genre === 'reprise'
+      ? [{ p: `Ne plus recevoir ce genre de message : ${f.lienStop}` }]
+      : [];
+
+  return {
+    sujet,
+    texte: enTexte([...blocs, ...pied]),
+    html: enHtml([...blocs, ...pied]),
+  };
 }
 
 /**
@@ -267,6 +339,24 @@ async function dejaEnvoye(familyId: string, genre: Genre): Promise<boolean> {
     .select('family_id')
     .eq('family_id', familyId)
     .eq('genre', genre)
+    .maybeSingle();
+  return !!data;
+}
+
+/**
+ * A-t-on promis de se taire ?
+ *
+ * Vérifié pour la reconquête seulement. Les autres messages tiennent à
+ * l'exécution du contrat : prévenir d'un prélèvement ou d'une reconduction
+ * n'est pas une sollicitation, c'est une obligation, et un parent ne peut pas
+ * y renoncer par un clic dans un e-mail.
+ */
+async function refuse(familyId: string): Promise<boolean> {
+  const { data } = await admin()
+    .from('courriers')
+    .select('family_id')
+    .eq('family_id', familyId)
+    .eq('genre', REFUS)
     .maybeSingle();
   return !!data;
 }
@@ -346,6 +436,14 @@ async function ecrireA(
   if (!destinataire) return { envoye: false, raison: 'sans adresse' };
 
   if (await dejaEnvoye(familyId, genre)) return { envoye: false, raison: 'déjà' };
+  if (genre === 'reprise' && (await refuse(familyId))) {
+    return { envoye: false, raison: 'ne souhaite plus être contacté' };
+  }
+
+  // Un seul jeton pour les deux liens : ils désignent la même famille, et en
+  // fabriquer deux ne ferait que doubler ce qu'il y a à faire fuiter.
+  const jeton = await jetonLien(familyId);
+  const base = `${env('SUPABASE_URL')}/functions/v1/courrier`;
 
   const { sujet, texte, html } = ecrire(genre, {
     parentName: (parent?.display_name as string | null) ?? null,
@@ -354,6 +452,8 @@ async function ecrireA(
     childName: (enfants?.[0]?.first_name as string | undefined) ?? null,
     trialEndsAt: (abonnement?.trial_ends_at as string | null) ?? null,
     plan: (abonnement?.plan as string | null) ?? null,
+    lienReprise: `${base}/reprendre?t=${encodeURIComponent(jeton)}`,
+    lienStop: `${base}/stop?t=${encodeURIComponent(jeton)}`,
   });
 
   await envoyer(destinataire, sujet, texte, html);
@@ -426,10 +526,44 @@ async function lot(request: Request): Promise<Response> {
     .lte('current_period_end', dans(32))
     .limit(500);
 
+  /**
+   * La reconquête : les familles qui n'ont plus accès à rien.
+   *
+   * **Qui reçoit.** Celles dont l'essai s'est éteint sans abonnement, et
+   * celles qui ont résilié et dont la période payée est terminée. Autrement
+   * dit, exactement celles pour qui Mino ne fait plus rien.
+   *
+   * **Qui ne reçoit pas, et c'est le point qui compte.** Personne d'abonné,
+   * sur aucun rail : ni `active`, ni `trialing` en cours, ni `past_due` — un
+   * prélèvement en cours de nouvelle tentative n'est pas une famille perdue,
+   * et lui proposer de « reprendre » à ce moment-là est le meilleur moyen de
+   * lui faire ouvrir deux abonnements. La sélection ne retient donc que deux
+   * états, et jamais par exclusion : on nomme ce qu'on veut, plutôt que de
+   * lister ce qu'on écarte et d'en oublier un.
+   *
+   * **Une fenêtre au démarrage, pas depuis toujours.** On ne remonte pas
+   * au-delà d'un an : écrire à quelqu'un parti depuis trois ans n'est plus une
+   * reconquête, c'est du démarchage.
+   */
+  const depuis = (jours: number) => new Date(maintenant - jours * 86_400_000).toISOString();
+
+  const { data: partis } = await db
+    .from('subscriptions')
+    .select('family_id, status, trial_ends_at, current_period_end')
+    .in('status', ['trialing', 'canceled'])
+    .limit(500);
+
+  const perdue = (r: Record<string, unknown>) => {
+    const fin = (r.status === 'trialing' ? r.trial_ends_at : r.current_period_end) as string | null;
+    if (!fin) return false;
+    return fin < new Date(maintenant).toISOString() && fin > depuis(365);
+  };
+
   const surStripe = (r: { source?: string | null }) => !r.source || r.source === 'stripe';
   const tournee: Array<{ familyId: string; genre: Genre }> = [
     ...(essais ?? []).filter(surStripe).map((r) => ({ familyId: r.family_id as string, genre: 'fin_essai' as const })),
     ...(annuels ?? []).filter(surStripe).map((r) => ({ familyId: r.family_id as string, genre: 'reconduction' as const })),
+    ...(partis ?? []).filter(perdue).map((r) => ({ familyId: r.family_id as string, genre: 'reprise' as const })),
   ];
 
   let envoyes = 0;
@@ -449,9 +583,143 @@ async function lot(request: Request): Promise<Response> {
   return json({ examinees: tournee.length, envoyes, echecs: echecs.length });
 }
 
+/**
+ * Une page, pas du JSON : ces deux routes s'ouvrent dans un navigateur.
+ */
+function page(titre: string, phrase: string, lien?: { label: string; url: string }): Response {
+  return new Response(
+    `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Mino</title></head>
+<body style="margin:0;background:${CHARTE.fond};font-family:${CHARTE.police}">
+<table role="presentation" width="100%" style="padding:48px 16px"><tr><td align="center">
+<table role="presentation" width="100%" style="max-width:520px;background:${CHARTE.carte};border-radius:24px;padding:40px 32px">
+<tr><td>
+<p style="margin:0 0 24px;font-size:30px;font-weight:800;color:${CHARTE.encre}">mino<span style="color:${CHARTE.bleu}">.</span></p>
+<p style="margin:0 0 12px;font-size:22px;font-weight:800;color:${CHARTE.encre}">${echapper(titre)}</p>
+<p style="margin:0;font-size:16px;line-height:1.6;color:${CHARTE.doux}">${echapper(phrase)}</p>
+${lien ? `<p style="margin:28px 0 0"><a href="${lien.url}" style="display:inline-block;padding:16px 32px;background:${CHARTE.bleu};color:#FFF;text-decoration:none;border-radius:999px;font-weight:700">${echapper(lien.label)}</a></p>` : ''}
+</td></tr></table></td></tr></table></body></html>`,
+    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+  );
+}
+
+/**
+ * Ouvrir le paiement depuis un lien d'e-mail, sans demander à se reconnecter.
+ *
+ * **Pourquoi cette route vit ici et non dans `billing`.** Ce n'est pas un
+ * choix d'architecture, c'est une contrainte de passerelle : `billing` est
+ * déployée avec la vérification du jeton Supabase, et un navigateur qui suit
+ * un lien d'e-mail ne présente aucun jeton — il recevrait 401 avant même
+ * d'atteindre notre code. `courrier` est déployée avec `--no-verify-jwt`
+ * précisément pour la tournée de nuit ; ces liens y trouvent leur place.
+ *
+ * **Ce que le jeton autorise, et rien de plus** : ouvrir une page de paiement
+ * rattachée à une famille. Il ne lit aucune donnée, n'ouvre aucune session, et
+ * expire. Le pire cas est que quelqu'un paie pour une famille qui n'est pas la
+ * sienne.
+ *
+ * **Aucun essai n'est réaccordé** : `trialEndForCheckout` le refuse dès que la
+ * date est passée, ce qui est exactement la situation de ces familles-là.
+ */
+async function reprendre(request: Request): Promise<Response> {
+  const familyId = await familleDuJeton(new URL(request.url).searchParams.get('t'));
+  if (!familyId) {
+    return page(
+      'Ce lien n’est plus valable',
+      'Il a expiré, ou il a été tronqué au passage. Ouvrez Mino et rendez-vous dans Réglages, Abonnement — vous y trouverez la même chose.',
+    );
+  }
+
+  const formule = new URL(request.url).searchParams.get('f') === 'monthly' ? 'monthly' : 'yearly';
+  const price =
+    formule === 'monthly'
+      ? Deno.env.get('STRIPE_PRICE_MONTHLY')
+      : Deno.env.get('STRIPE_PRICE_YEARLY');
+  if (!price) return page('Indisponible', 'Le paiement n’est pas configuré. Écrivez-nous, on s’en occupe.');
+
+  const db = admin();
+  const [{ data: abonnement }, { data: parent }] = await Promise.all([
+    db.from('subscriptions').select('*').eq('family_id', familyId).maybeSingle(),
+    db
+      .from('parents')
+      .select('email')
+      .eq('family_id', familyId)
+      .order('created_at')
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  // Déjà couvert : on ne laisse surtout pas ouvrir un second abonnement.
+  if (abonnement && ['active', 'past_due'].includes(String(abonnement.status))) {
+    return page(
+      'Votre abonnement est déjà actif',
+      'Il n’y a rien à reprendre — tout fonctionne. Ouvrez Mino, vos enfants vous attendent.',
+    );
+  }
+
+  const trialEnd = trialEndForCheckout({
+    trialEndsAt: (abonnement?.trial_ends_at as string | null) ?? null,
+    hasPaidBefore: !!abonnement?.customer_id,
+  });
+
+  const adresse = ((parent?.email as string | null) ?? '').trim();
+
+  const session = await stripe().checkout.sessions.create({
+    mode: 'subscription',
+    line_items: [{ price, quantity: 1 }],
+    customer: (abonnement?.customer_id as string | null) ?? undefined,
+    customer_email: abonnement?.customer_id || !adresse ? undefined : adresse,
+    client_reference_id: familyId,
+    subscription_data: {
+      trial_end: trialEnd ? Math.floor(trialEnd.getTime() / 1000) : undefined,
+      metadata: { family_id: familyId },
+    },
+    automatic_tax: { enabled: true },
+    tax_id_collection: { enabled: true },
+    customer_update: abonnement?.customer_id ? { address: 'auto', name: 'auto' } : undefined,
+    allow_promotion_codes: true,
+    success_url: `${env('APP_URL')}/abonnement/merci?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${env('APP_URL')}/abonnement`,
+    metadata: { family_id: familyId },
+  });
+
+  console.log('courrier reprendre', familyId, formule);
+  return Response.redirect(session.url!, 303);
+}
+
+/**
+ * Ne plus rien recevoir de ce genre.
+ *
+ * La marque est posée dans `courriers`, sous un genre réservé, et `ecrireA` la
+ * consulte avant toute reconquête. Elle ne fait pas taire les messages liés au
+ * contrat — un prélèvement annoncé reste un prélèvement annoncé — et la page le
+ * dit, parce qu'un désabonnement qui promet plus qu'il ne tient se paie au
+ * premier relevé bancaire.
+ */
+async function stop(request: Request): Promise<Response> {
+  const familyId = await familleDuJeton(new URL(request.url).searchParams.get('t'));
+  if (!familyId) {
+    return page(
+      'Ce lien n’est plus valable',
+      'Écrivez-nous à contact@minoapp.fr et nous nous en occupons à la main.',
+    );
+  }
+
+  await admin()
+    .from('courriers')
+    .upsert({ family_id: familyId, genre: REFUS }, { onConflict: 'family_id,genre', ignoreDuplicates: true });
+
+  console.log('courrier stop', familyId);
+  return page(
+    'C’est noté',
+    'Nous ne vous écrirons plus pour vous proposer de revenir. Les messages liés à votre abonnement — un prélèvement à venir, une reconduction — continueront de partir tant que vous en avez un : la loi nous y oblige, et vous y avez droit.',
+  );
+}
+
 Deno.serve(servir(async (request) => {
   const route = new URL(request.url).pathname.replace(/^\/courrier\/?/, '');
   if (route === 'lot') return await lot(request);
+  if (route === 'reprendre') return await reprendre(request);
+  if (route === 'stop') return await stop(request);
 
   const caller = await familyOfCaller(request);
   if (!caller) {
@@ -462,6 +730,9 @@ Deno.serve(servir(async (request) => {
   }
 
   const { genre } = (await request.json()) as { genre?: Genre };
+  // `reprise` n'est pas dans cette liste, et c'est délibéré : elle se décide la
+  // nuit, sur l'état de la base. Un client qui pourrait la demander pourrait
+  // s'envoyer une relance de reconquête à volonté.
   if (genre !== 'bienvenue' && genre !== 'fin_essai' && genre !== 'reconduction') {
     return fail('Message inconnu.');
   }
