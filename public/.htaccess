@@ -1,0 +1,49 @@
+# ============================================================
+#  app.minoapp.fr — application web Mino
+#
+#  Hors ligne pour les moteurs de recherche : rien de ce qui est
+#  servi ici ne doit apparaître dans un résultat tant que les
+#  applications ne sont pas publiées sur les boutiques.
+#
+#  Certificat Let's Encrypt émis le 9 septembre 2026, couvrant
+#  app.minoapp.fr et www.app.minoapp.fr.
+# ============================================================
+
+# ---- 1. Une seule adresse : https://app.minoapp.fr ----
+# Le www doit rediriger, et pas seulement fonctionner : APP_ORIGIN
+# vaudra « https://app.minoapp.fr ». Une application chargée depuis
+# www.app.minoapp.fr serait une autre origine, et tous ses appels
+# aux fonctions Supabase seraient refusés par le navigateur.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on [OR]
+  RewriteCond %{HTTP_HOST} ^www\.app\.minoapp\.fr$ [NC]
+  RewriteRule ^ https://app.minoapp.fr%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# ---- 2. Aucun moteur n'indexe quoi que ce soit ----
+# « always » et non « set » : sans lui, l'en-tête ne sort que sur les
+# réponses réussies. Or la première réponse que reçoit un robot arrivant
+# en http est une 301 — elle serait muette, et c'est précisément celle
+# qui compte. Vérification : la ligne doit apparaître aussi sur un 301.
+<IfModule mod_headers.c>
+  Header always set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ---- 3. Ne pas exposer le contenu des dossiers ----
+Options -Indexes
+
+# ---- 4. Encodage ----
+AddDefaultCharset UTF-8
+
+# ---- 5. Application à page unique ----
+# L'export Expo est en « output: single » : toute route inconnue
+# doit rendre index.html, sinon un rechargement sur une route
+# interne tombe en 404.
+<IfModule mod_rewrite.c>
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule ^ /index.html [L]
+</IfModule>
