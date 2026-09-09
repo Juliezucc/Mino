@@ -30,6 +30,7 @@
     },
     "android": {
       "package": "fr.minoapp.mino",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F2F6FF"
