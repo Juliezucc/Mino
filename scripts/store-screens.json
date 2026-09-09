@@ -3,48 +3,48 @@
     "id": "temps-gagne",
     "caption": "Le temps d’écran se gagne",
     "subcaption": "Noah a 35 minos, et une mission qui l’attend : ranger sa chambre, +15.",
-    "path": "Découvrir avec la démo → Noah"
+    "path": "Noah"
   },
   {
     "id": "cest-fait",
     "caption": "C’est fait, et c’est lui qui le dit",
     "subcaption": "Il appuie sur « J’ai terminé », et la demande part chez Julie.",
-    "path": "Découvrir avec la démo → Noah → VOIR MES MISSIONS → Ranger ma chambre"
+    "path": "Noah → VOIR MES MISSIONS → Ranger ma chambre"
   },
   {
     "id": "vous-validez",
     "caption": "Rien ne s’ajoute sans vous",
     "subcaption": "Vous confirmez d’une touche, et les minutes arrivent sur son compteur.",
-    "path": "Découvrir avec la démo → Espace parent → code parent → défiler 470"
+    "path": "Espace parent → code parent → défiler 470"
   },
   {
     "id": "son-temps",
     "caption": "Il s’en sert quand il veut",
     "subcaption": "Jamais plus que ce qu’il a gagné, et vous reprenez la main quand vous le décidez.",
-    "path": "Découvrir avec la démo → Noah → onglet Temps"
+    "path": "Noah → onglet Temps"
   },
   {
     "id": "vos-missions",
     "caption": "Vous décidez, mission par mission",
     "subcaption": "Celles qui se comptent toutes seules, celles qui passent par vous. Ça se change en une touche.",
-    "path": "Découvrir avec la démo → Espace parent → code parent → onglet Missions-parent → défiler 1250"
+    "path": "Espace parent → code parent → onglet Missions-parent → défiler 1250"
   },
   {
     "id": "autres-ecrans",
     "caption": "Le temps gagné, sur l’écran de son choix",
     "subcaption": "Console, télé, ordinateur : il demande, vous lancez le minuteur, le décompte est le même.",
-    "path": "Découvrir avec la démo → Espace parent → code parent → onglet Réglages → Gérer les appareils"
+    "path": "Espace parent → code parent → onglet Réglages → Gérer les appareils"
   },
   {
     "id": "mino-reste",
     "caption": "Plus de minutes, et Mino est là",
     "subcaption": "Un compagnon facultatif : vous l’activez ou le coupez, et vous relisez chaque échange.",
-    "path": "Découvrir avec la démo → Léa → onglet Temps → PARLER À MINO"
+    "path": "Léa → onglet Temps → PARLER À MINO"
   },
   {
     "id": "confidentialite",
     "caption": "Aucune publicité, aucune donnée revendue",
     "subcaption": "Pas de géolocalisation, pas de traceur, et aucun enfant visible par une autre famille.",
-    "path": "Découvrir avec la démo → Espace parent → code parent → onglet Réglages → Politique de confidentialité"
+    "path": "Espace parent → code parent → onglet Réglages → Politique de confidentialité"
   }
 ]

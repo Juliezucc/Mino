@@ -1,10 +1,14 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
 import { Button, Logo, Screen, Text } from '@/components/ui';
+import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
+
+/** Le drapeau que pose `scripts/capture-store.mjs`, et personne d'autre. */
+const DEMO_FLAG = 'mino.captures.demo';
 
 const STEPS = [
   { icon: '📋', title: 'Je fais', text: 'mes missions' },
@@ -14,6 +18,49 @@ const STEPS = [
 
 export default function Welcome() {
   const router = useRouter();
+  const startDemo = useMinoStore((s) => s.startDemo);
+  const repositoryName = useMinoStore((s) => s.repository.name);
+
+  /**
+   * La porte d'entrée de la famille de démonstration, et elle n'est pas pour
+   * les visiteurs.
+   *
+   * **Pourquoi elle existe.** Les captures des boutiques sont photographiées
+   * en conduisant la vraie application (`scripts/capture-store.mjs`), et les
+   * huit écrans qu'elles montrent supposent une famille déjà vivante : Noah
+   * avec ses trente-cinq minos, une mission qui attend d'être confirmée, une
+   * sœur, un historique. Un bouton « Découvrir avec la démo » le faisait, et
+   * il a été retiré de l'accueil — à raison, il embrouillait des parents qui
+   * venaient créer leur famille. Sans remplaçant, les captures ne se refont
+   * plus, et une boutique finit par montrer une version de l'application qui
+   * n'existe plus.
+   *
+   * **Pourquoi elle est sans danger.** Elle ne s'ouvre que là où le dépôt est
+   * `local` — c'est-à-dire sans clés Supabase, donc jamais sur
+   * `app.minoapp.fr` ni dans les applications publiées, où le dépôt est
+   * `supabase`. Elle ne crée rien côté serveur, ne franchit aucun paiement,
+   * et n'écrit que dans le navigateur qui la demande.
+   *
+   * **Pourquoi un drapeau de stockage et non un paramètre d'adresse.** C'était
+   * `?demo=1` dans un premier temps, et expo-router réécrit l'adresse en
+   * `/welcome` avant que cet écran ne soit monté : la question avait disparu
+   * quand on la posait. Le stockage local, lui, survit à la redirection.
+   */
+  useEffect(() => {
+    if (Platform.OS !== 'web' || repositoryName !== 'local') return;
+    let demande = false;
+    try {
+      demande = globalThis.localStorage?.getItem(DEMO_FLAG) === '1';
+    } catch {
+      // Navigation privée, stockage refusé : il n'y a alors pas de captures à
+      // prendre, et l'accueil ordinaire est la bonne réponse.
+    }
+    if (!demande) return;
+    startDemo()
+      .then(() => router.replace('/who'))
+      .catch(() => undefined);
+  }, [repositoryName, router, startDemo]);
+
   return (
     <Screen contentStyle={styles.content}>
       <View style={styles.header}>

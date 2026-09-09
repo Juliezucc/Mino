@@ -46,6 +46,20 @@ function loadPlaywright() {
 }
 
 const APP_URL = process.env.STORE_URL ?? 'http://127.0.0.1:8099/mino-preview.html';
+
+/**
+ * Le drapeau qui charge la famille de démonstration à l'ouverture.
+ *
+ * Les huit écrans photographiés supposent une famille vivante — Noah et ses
+ * minos, une mission qui attend, une sœur, un historique — et le bouton
+ * « Découvrir avec la démo » qui la créait a été retiré de l'accueil, à raison.
+ * `app/welcome.tsx` lit donc ce drapeau, et **seulement là où le dépôt est
+ * local** : jamais sur le site ni dans les applications publiées.
+ *
+ * Un paramètre d'adresse aurait été plus lisible, et ne marche pas :
+ * expo-router réécrit l'adresse en `/welcome` avant que l'écran ne soit monté.
+ */
+const DEMO_FLAG = 'mino.captures.demo';
 const OUT = 'store';
 const RAW = '/tmp/store-raw';
 const PIN = ['1', '2', '3', '4'];
@@ -205,6 +219,21 @@ const problems = [];
 const page = await browser.newPage({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 3 });
 page.on('pageerror', (error) => problems.push(String(error).slice(0, 200)));
 
+/**
+ * L'heure est arrêtée, et ce n'est pas un détail de mise en scène.
+ *
+ * La famille de démonstration a une plage libre le mercredi après-midi. Les
+ * captures faites un mercredi montraient donc un bandeau vert « C'est ouvert,
+ * tu peux jouer sans utiliser tes minos » — sur l'écran dont la légende
+ * annonce « Le temps d'écran se gagne ». La première capture de la fiche
+ * disait le contraire de sa propre promesse, un jour sur sept, sans que rien
+ * ne le signale.
+ *
+ * Lundi 18 h : un soir de semaine ordinaire, hors plage libre, à l'heure où
+ * l'on se dispute justement pour les écrans.
+ */
+await page.clock.setFixedTime(new Date('2026-09-07T18:00:00+02:00'));
+
 const wait = (ms) => page.waitForTimeout(ms);
 
 async function open() {
@@ -266,8 +295,13 @@ async function capture(screen, viewport) {
   await page.setViewportSize(viewport);
   await open();
   // Repartir d'une démo neuve à chaque fois : une capture qui dépend de la
-  // précédente casse dès qu'on en réordonne une seule.
-  await page.evaluate(() => localStorage.clear());
+  // précédente casse dès qu'on en réordonne une seule. Le drapeau se repose
+  // juste après l'effacement, sans quoi la seconde ouverture rendrait l'accueil
+  // d'un visiteur ordinaire.
+  await page.evaluate((cle) => {
+    localStorage.clear();
+    localStorage.setItem(cle, '1');
+  }, DEMO_FLAG);
   await open();
 
   for (const instruction of screen.path.split('→').map((part) => part.trim())) {
