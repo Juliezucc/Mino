@@ -93,8 +93,8 @@ export function MissionForm({
 
   const submit = () => {
     if (!title.trim()) return setError('Donne un nom à la mission.');
-    if (minutes <= 0) return setError('Choisis le temps gagné.');
-    if (childIds.length === 0) return setError('Choisis au moins un enfant.');
+    if (minutes <= 0) return setError('Choisissez le temps gagné.');
+    if (childIds.length === 0) return setError('Choisissez au moins un enfant.');
     setError(undefined);
 
     onSubmit({

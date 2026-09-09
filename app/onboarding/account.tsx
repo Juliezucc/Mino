@@ -99,7 +99,7 @@ export default function CreateAccount() {
 
   const submit = async () => {
     const next: Record<string, string> = {};
-    if (!name.trim()) next.name = 'Indique ton prénom.';
+    if (!name.trim()) next.name = 'Indiquez votre prénom.';
     if (!compteOuvert) {
       if (!EMAIL_RE.test(email.trim())) next.email = 'Adresse e-mail invalide.';
       if (password.length < 8) next.password = 'Au moins 8 caractères.';
