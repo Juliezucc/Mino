@@ -323,7 +323,31 @@ corrigé le 9 septembre 2026. La disparition de la clause ne fait pas
 disparaître l'obligation légale, elle empêche seulement le contrat de mentir en
 attendant.
 
-**Il manque deux choses pour que ces envois existent** : les secrets SMTP
-(`SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `MAIL_REPLY_TO`) sur les
-fonctions Edge, et une planification qui appelle `courrier` — pg_cron seul ne
-sait pas faire de requête HTTP, il faut `pg_net` à côté.
+### La tournée existe désormais
+
+`courrier/lot` est la porte de service : elle cherche les familles dont l'essai
+finit dans trois jours et celles dont l'échéance annuelle tombe dans un mois, et
+leur écrit. La route ordinaire, elle, n'a pas changé — elle exige toujours un
+parent connecté et n'écrit qu'à sa propre famille.
+
+**Pourquoi il a fallu une seconde porte.** `familyOfCaller` exige un parent
+connecté, et c'est une propriété de sécurité sur la route ordinaire. Mais une
+tâche planifiée n'est le parent de personne : elle ne pouvait tout simplement
+pas appeler cette fonction. C'est pour cela que ces trois messages n'étaient
+envoyés nulle part alors que leur texte était écrit depuis des semaines.
+
+Le garde est un **secret partagé** (`COURRIER_CRON_SECRET`), pas un jeton
+d'utilisateur : il n'y a pas d'utilisateur derrière cet appel. La route est
+publique par nécessité, comme les webhooks des boutiques.
+
+`supabase/courriers-planifies.sql` pose la tâche, à 7 h UTC. Il faut d'abord :
+
+1. **Les réglages SMTP** sur les fonctions Edge : `SMTP_HOST`, `SMTP_PORT`,
+   `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, et `MAIL_REPLY_TO` si l'adresse de
+   réponse diffère. `SMTP_TLS=true` bascule sur le TLS implicite du port 465,
+   que certains hébergeurs imposent ; par défaut c'est 587 et STARTTLS.
+2. **Le secret**, fabriqué avec `openssl rand -hex 32`, posé dans les secrets
+   des fonctions ET dans le SQL de la tâche. Nulle part ailleurs.
+
+**`bienvenue` reste appelé par l'application**, au moment où le compte se crée :
+c'est le seul des trois qui ait un parent connecté sous la main.

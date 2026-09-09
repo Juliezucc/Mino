@@ -145,7 +145,9 @@ async function envoyer(destinataire: string, sujet: string, texte: string): Prom
     connection: {
       hostname: env('SMTP_HOST'),
       port: Number(Deno.env.get('SMTP_PORT') ?? '587'),
-      tls: false,
+      // 587 + STARTTLS par défaut, ce que tout hébergeur accepte. `SMTP_TLS=true`
+      // bascule sur le TLS implicite du port 465, que certains imposent.
+      tls: Deno.env.get('SMTP_TLS') === 'true',
       auth: { username: env('SMTP_USER'), password: env('SMTP_PASS') },
     },
   });
@@ -166,35 +168,35 @@ async function envoyer(destinataire: string, sujet: string, texte: string): Prom
   }
 }
 
-Deno.serve(servir(async (request) => {
-
-  const caller = await familyOfCaller(request);
-  if (!caller) return fail('Non authentifié.', 401);
-
-  const { genre } = (await request.json()) as { genre?: Genre };
-  if (genre !== 'bienvenue' && genre !== 'fin_essai' && genre !== 'reconduction') {
-    return fail('Message inconnu.');
-  }
-
+/**
+ * Écrire à une famille, une fois.
+ *
+ * Extrait de la route authentifiée le jour où il a fallu écrire à des familles
+ * dont personne n'est connecté — c'est-à-dire toutes, la nuit. Le contenu ne
+ * vient que de la base : ni l'appelant ni la tâche planifiée ne nomment le
+ * destinataire.
+ */
+async function ecrireA(
+  familyId: string,
+  genre: Genre,
+): Promise<{ envoye: boolean; raison?: string }> {
   const db = admin();
 
-  // Tout vient de la base, à partir de la famille du jeton. L'appelant ne dit
-  // que le genre du message.
   const [{ data: famille }, { data: parent }, { data: enfants }, { data: abonnement }] =
     await Promise.all([
-      db.from('families').select('code').eq('id', caller.familyId).maybeSingle(),
+      db.from('families').select('code').eq('id', familyId).maybeSingle(),
       db
         .from('parents')
         .select('display_name, email')
-        .eq('family_id', caller.familyId)
+        .eq('family_id', familyId)
         .order('created_at')
         .limit(1)
         .maybeSingle(),
-      db.from('children').select('first_name').eq('family_id', caller.familyId).order('created_at'),
+      db.from('children').select('first_name').eq('family_id', familyId).order('created_at'),
       db
         .from('subscriptions')
         .select('trial_ends_at, plan')
-        .eq('family_id', caller.familyId)
+        .eq('family_id', familyId)
         .maybeSingle(),
     ]);
 
@@ -202,9 +204,9 @@ Deno.serve(servir(async (request) => {
   // Pas d'adresse : le parent n'a pas encore donné la sienne. Ce n'est pas une
   // panne, c'est un état normal du parcours d'inscription — et il ne faut
   // surtout pas marquer le message comme envoyé.
-  if (!destinataire) return json({ envoye: false, raison: 'sans adresse' });
+  if (!destinataire) return { envoye: false, raison: 'sans adresse' };
 
-  if (await dejaEnvoye(caller.familyId, genre)) return json({ envoye: false, raison: 'déjà' });
+  if (await dejaEnvoye(familyId, genre)) return { envoye: false, raison: 'déjà' };
 
   const { sujet, texte } = ecrire(genre, {
     parentName: (parent?.display_name as string | null) ?? null,
@@ -215,16 +217,112 @@ Deno.serve(servir(async (request) => {
     plan: (abonnement?.plan as string | null) ?? null,
   });
 
+  await envoyer(destinataire, sujet, texte);
+
+  // La trace n'est écrite qu'après un envoi réussi : la marquer avant, c'est
+  // condamner le parent à ne jamais recevoir ce message si le serveur SMTP
+  // hoquette une seconde.
+  await db.from('courriers').insert({ family_id: familyId, genre });
+  return { envoye: true };
+}
+
+/**
+ * La tournée de nuit, et pourquoi elle ne pouvait pas exister avant.
+ *
+ * `familyOfCaller` exige un parent connecté — c'est une propriété de sécurité
+ * sur la route ordinaire : on n'écrit qu'à sa propre famille. Mais une tâche
+ * planifiée n'est le parent de personne. Sans cette porte-ci, les CGV
+ * promettaient un rappel avant le premier prélèvement que rien n'envoyait, et
+ * l'obligation d'information avant reconduction annuelle (article L. 215-1)
+ * n'avait aucun mécanisme.
+ *
+ * **Le garde est un secret partagé, pas un jeton d'utilisateur.** Il n'y a pas
+ * d'utilisateur derrière cet appel. `COURRIER_CRON_SECRET` est connu de la
+ * fonction et de la tâche `pg_cron`, et de personne d'autre — la route est
+ * publique par nécessité, comme les webhooks des boutiques.
+ */
+async function lot(request: Request): Promise<Response> {
+  const attendu = Deno.env.get('COURRIER_CRON_SECRET');
+  if (!attendu || request.headers.get('x-mino-cron') !== attendu) {
+    return fail('Non autorisé.', 401);
+  }
+
+  const db = admin();
+  const maintenant = Date.now();
+  const dans = (jours: number) => new Date(maintenant + jours * 86_400_000).toISOString();
+
+  /**
+   * **Une fenêtre, pas une date.** La tâche peut ne pas tourner une nuit —
+   * base en maintenance, planificateur en retard. Viser « exactement J-3 »
+   * ferait manquer ce rappel-là définitivement, alors que la table `courriers`
+   * empêche déjà tout doublon.
+   *
+   * **Et seulement les abonnés Stripe.** Apple et Google préviennent
+   * eux-mêmes leurs abonnés avant la fin d'une offre d'introduction ; écrire à
+   * notre tour ferait deux messages pour un seul prélèvement. `source` est nul
+   * tant qu'aucun paiement n'a eu lieu, donc l'essai web y figure aussi.
+   */
+  const { data: essais } = await db
+    .from('subscriptions')
+    .select('family_id, source')
+    .eq('status', 'trialing')
+    .gte('trial_ends_at', dans(2))
+    .lte('trial_ends_at', dans(4))
+    .limit(500);
+
+  /**
+   * L'information avant reconduction : entre trois mois et un mois avant
+   * l'échéance, dit la loi. On vise un mois, qui laisse le temps d'agir sans
+   * que l'échéance paraisse lointaine au point qu'on l'oublie.
+   */
+  const { data: annuels } = await db
+    .from('subscriptions')
+    .select('family_id, source')
+    .eq('status', 'active')
+    .eq('plan', 'yearly')
+    .gte('current_period_end', dans(30))
+    .lte('current_period_end', dans(32))
+    .limit(500);
+
+  const surStripe = (r: { source?: string | null }) => !r.source || r.source === 'stripe';
+  const tournee: Array<{ familyId: string; genre: Genre }> = [
+    ...(essais ?? []).filter(surStripe).map((r) => ({ familyId: r.family_id as string, genre: 'fin_essai' as const })),
+    ...(annuels ?? []).filter(surStripe).map((r) => ({ familyId: r.family_id as string, genre: 'reconduction' as const })),
+  ];
+
+  let envoyes = 0;
+  const echecs: string[] = [];
+  for (const cible of tournee) {
+    // Un échec n'arrête pas la tournée : une adresse morte ne doit pas priver
+    // les autres familles de leur rappel. Le message reste non tracé, donc il
+    // sera retenté demain.
+    try {
+      if ((await ecrireA(cible.familyId, cible.genre)).envoye) envoyes += 1;
+    } catch (error) {
+      console.error('courrier lot', cible.genre, cible.familyId, error);
+      echecs.push(cible.familyId);
+    }
+  }
+
+  return json({ examinees: tournee.length, envoyes, echecs: echecs.length });
+}
+
+Deno.serve(servir(async (request) => {
+  const route = new URL(request.url).pathname.replace(/^\/courrier\/?/, '');
+  if (route === 'lot') return await lot(request);
+
+  const caller = await familyOfCaller(request);
+  if (!caller) return fail('Non authentifié.', 401);
+
+  const { genre } = (await request.json()) as { genre?: Genre };
+  if (genre !== 'bienvenue' && genre !== 'fin_essai' && genre !== 'reconduction') {
+    return fail('Message inconnu.');
+  }
+
   try {
-    await envoyer(destinataire, sujet, texte);
+    return json(await ecrireA(caller.familyId, genre));
   } catch (error) {
-    // On n'écrit la trace qu'après un envoi réussi : marquer avant, c'est
-    // condamner le parent à ne jamais recevoir ce message si le serveur SMTP
-    // hoquette une seconde.
     console.error('courrier', genre, caller.familyId, error);
     return fail('Envoi impossible.', 502);
   }
-
-  await db.from('courriers').insert({ family_id: caller.familyId, genre });
-  return json({ envoye: true });
 }));
