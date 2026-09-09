@@ -63,6 +63,23 @@ export default function SubscriptionScreen() {
   const access = accessOf(subscription);
 
   /**
+   * L'essai engagé : payé, mais pas encore prélevé.
+   *
+   * C'est l'état normal de toute famille qui vient de s'abonner — la session
+   * Stripe est créée avec `trial_period_days`, donc l'abonnement naît
+   * `trialing` et rien n'est débité avant la fin des trente jours. Il ne
+   * ressemble à rien de ce que cet écran savait afficher : ni « essai
+   * gratuit », qui laisse croire que le paiement n'a pas pris, ni
+   * « abonnement actif », qui annoncerait un prélèvement qui n'a pas eu lieu.
+   *
+   * Il se gère en revanche exactement comme un abonnement actif : on résilie,
+   * on change de carte. Et il ne se rachète surtout pas.
+   */
+  const engage = access.kind === 'trial' && access.plan !== null;
+  const gerable = access.kind === 'active' || engage;
+  const resilie = access.kind === 'active' && access.cancelAtPeriodEnd;
+
+  /**
    * Rafraîchir avant d'afficher un prix.
    *
    * Le cas arrive vraiment : on s'abonne sur le site, puis on ouvre cet écran
@@ -166,11 +183,17 @@ export default function SubscriptionScreen() {
     }
 
     void confirmer({
-      titre: 'Résilier l’abonnement ?',
-      message: subscription?.currentPeriodEnd
-        ? `Vous gardez l’accès jusqu’au ${frenchDate(subscription.currentPeriodEnd)}. Rien ne sera prélevé ensuite.`
-        : 'Vous gardez l’accès jusqu’à la fin de la période en cours. Rien ne sera prélevé ensuite.',
-      action: 'Résilier',
+      titre: engage ? 'Annuler avant le prélèvement ?' : 'Résilier l’abonnement ?',
+      // Pendant un essai engagé, « rien ne sera prélevé ensuite » est vrai mais
+      // sonne comme un adieu à de l'argent déjà donné. Rien n'a été débité :
+      // c'est la première chose à dire, et elle enlève la peur qui fait
+      // renoncer à annuler puis se plaindre après le prélèvement.
+      message: engage
+        ? `Vous n’avez encore rien payé, et vous ne paierez rien. Vous gardez l’accès jusqu’au ${frenchDate(access.kind === 'trial' ? access.firstChargeOn : null)}.`
+        : subscription?.currentPeriodEnd
+          ? `Vous gardez l’accès jusqu’au ${frenchDate(subscription.currentPeriodEnd)}. Rien ne sera prélevé ensuite.`
+          : 'Vous gardez l’accès jusqu’à la fin de la période en cours. Rien ne sera prélevé ensuite.',
+      action: engage ? 'Annuler' : 'Résilier',
       annuler: 'Garder mon abonnement',
       destructif: true,
     }).then((oui) => {
@@ -187,11 +210,18 @@ export default function SubscriptionScreen() {
         background={access.kind === 'expired' ? colors.surface : colors.mintSoft}
         elevation="none"
       >
-        {access.kind === 'trial' ? (
+        {access.kind === 'trial' && access.plan !== null ? (
+          <>
+            <Text variant="section">Abonnement enregistré</Text>
+            <Text variant="body" color={colors.textMuted}>
+              {`Formule ${access.plan === 'yearly' ? 'annuelle' : 'mensuelle'}. Votre essai court encore ${access.daysLeft} jour${access.daysLeft > 1 ? 's' : ''} : le premier prélèvement aura lieu le ${frenchDate(access.firstChargeOn)}, et pas avant.`}
+            </Text>
+          </>
+        ) : access.kind === 'trial' ? (
           <>
             <Text variant="section">{`Essai gratuit · ${access.daysLeft} jour${access.daysLeft > 1 ? 's' : ''} restant${access.daysLeft > 1 ? 's' : ''}`}</Text>
             <Text variant="body" color={colors.textMuted}>
-              {`Vous avez accès à tout Mino. Rien n’est prélevé avant le ${frenchDate(subscription?.trialEndsAt ?? null)}, et vous pouvez arrêter en quelques secondes d’ici là.`}
+              {`Vous avez accès à tout Mino. Rien n’est prélevé avant le ${frenchDate(access.firstChargeOn)}, et vous pouvez arrêter en quelques secondes d’ici là.`}
             </Text>
           </>
         ) : access.kind === 'active' ? (
@@ -223,7 +253,7 @@ export default function SubscriptionScreen() {
         )}
       </Card>
 
-      {access.kind === 'active' && !access.cancelAtPeriodEnd ? (
+      {gerable && !resilie ? (
         <View style={styles.actions}>
           <Button
             label={
@@ -234,9 +264,13 @@ export default function SubscriptionScreen() {
             variant="secondary"
             onPress={ouvrirGestion}
           />
-          <Button label="Résilier mon abonnement" variant="danger" onPress={confirmCancel} />
+          <Button
+            label={engage ? 'Annuler avant le prélèvement' : 'Résilier mon abonnement'}
+            variant="danger"
+            onPress={confirmCancel}
+          />
         </View>
-      ) : access.kind === 'active' && access.cancelAtPeriodEnd ? (
+      ) : resilie ? (
         /**
          * Résilié, mais pas encore fini — et il faut deux portes, pas une.
          *

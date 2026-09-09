@@ -52,9 +52,31 @@ const referral = (over: Partial<Referral> = {}): Referral => ({
 describe('access', () => {
   it('runs for the whole trial and stops at its end', () => {
     const sub = startTrial('f1', NOW);
-    expect(accessOf(sub, NOW)).toEqual({ kind: 'trial', daysLeft: 30 });
-    expect(accessOf(sub, new Date(days(29)))).toEqual({ kind: 'trial', daysLeft: 1 });
+    const nu = { plan: null, firstChargeOn: sub.trialEndsAt };
+    expect(accessOf(sub, NOW)).toEqual({ kind: 'trial', daysLeft: 30, ...nu });
+    expect(accessOf(sub, new Date(days(29)))).toEqual({ kind: 'trial', daysLeft: 1, ...nu });
     expect(accessOf(sub, new Date(days(31)))).toEqual({ kind: 'expired' });
+  });
+
+  /**
+   * L'essai engagé, c'est-à-dire payé mais pas encore prélevé — l'état de toute
+   * famille qui vient de s'abonner, puisque la session Stripe porte un
+   * `trial_period_days`. L'accès est le même que pendant un essai nu ; ce qu'il
+   * faut dire au parent est l'inverse, et sans `plan` rien ne les distinguait.
+   */
+  it('distinguishes a trial with a card on file from a bare trial', () => {
+    const nu = startTrial('f1', NOW);
+    const engage = { ...nu, plan: 'yearly' as const, source: 'stripe' as const };
+
+    const a = accessOf(nu, NOW);
+    const b = accessOf(engage, NOW);
+
+    expect(a.kind).toBe('trial');
+    expect(b.kind).toBe('trial');
+    expect(a.kind === 'trial' && a.plan).toBe(null);
+    expect(b.kind === 'trial' && b.plan).toBe('yearly');
+    // Le jour du premier prélèvement est la fin de l'essai, pas autre chose.
+    expect(b.kind === 'trial' && b.firstChargeOn).toBe(nu.trialEndsAt);
   });
 
   it('keeps a cancelled subscription running until the period ends', () => {

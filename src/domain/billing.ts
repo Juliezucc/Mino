@@ -188,9 +188,34 @@ export interface Referral {
   rejectionReason?: string;
 }
 
-/** What the app should let the family do right now. */
+/**
+ * What the app should let the family do right now.
+ *
+ * **Deux essais, et les confondre coûtait cher.** Un essai peut être nu — trente
+ * jours offerts, aucune carte — ou engagé : la famille a choisi sa formule, la
+ * carte est enregistrée chez Stripe ou chez Apple, et le premier prélèvement
+ * est daté. Les deux valent `trialing`, et pendant les deux l'accès est
+ * complet ; mais ce qu'il faut dire au parent est opposé.
+ *
+ * Sans la distinction, une famille qui venait de payer retrouvait l'écran
+ * d'avant — le bandeau « encore 3 jours d'essai », les deux formules, et un
+ * bouton « CHOISIR CETTE FORMULE » bien vivant qui aurait ouvert un SECOND
+ * abonnement par-dessus le premier. Ce n'est pas seulement décourageant :
+ * c'est le double prélèvement contre lequel le reste de cet écran se protège
+ * déjà ailleurs.
+ *
+ * `plan` porte la distinction, et c'est sa raison d'être : il est nul tant
+ * qu'aucune formule n'a été achetée.
+ */
 export type Access =
-  | { kind: 'trial'; daysLeft: number }
+  | {
+      kind: 'trial';
+      daysLeft: number;
+      /** Non nul dès qu'une formule est payée : l'essai est engagé. */
+      plan: Plan | null;
+      /** Le jour du premier prélèvement — la fin de l'essai, donc. */
+      firstChargeOn: ISODate | null;
+    }
   | { kind: 'active'; renewsOn: ISODate | null; cancelAtPeriodEnd: boolean }
   | { kind: 'grace'; reason: 'past_due' }
   | { kind: 'expired' };
@@ -235,7 +260,9 @@ export function accessOf(sub: Subscription | null, now: Date = new Date()): Acce
 
   if (sub.status === 'trialing') {
     const left = sub.trialEndsAt ? daysBetween(now, new Date(sub.trialEndsAt)) : 0;
-    return left > 0 ? { kind: 'trial', daysLeft: left } : { kind: 'expired' };
+    return left > 0
+      ? { kind: 'trial', daysLeft: left, plan: sub.plan, firstChargeOn: sub.trialEndsAt }
+      : { kind: 'expired' };
   }
 
   if (sub.status === 'past_due') return { kind: 'grace', reason: 'past_due' };

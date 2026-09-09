@@ -28,13 +28,32 @@ import { colors, spacing } from '@/theme';
 const TENTATIVES = 6;
 const ATTENTE_MS = 1500;
 
+/**
+ * L'abonnement est-il en place ?
+ *
+ * **Attendre `active` était l'erreur, et elle frappait tout le monde.** La
+ * session Stripe est créée avec `trial_period_days` : un premier abonnement
+ * naît donc `trialing`, carte enregistrée, rien de débité. Il ne deviendra
+ * `active` que trente jours plus tard, au premier prélèvement. Cet écran
+ * guettait un état qui n'arrive pas ce jour-là — et tout parent qui venait de
+ * s'abonner restait devant « nous confirmons auprès de notre banque », à la
+ * seconde même où il fallait le rassurer.
+ *
+ * Ce qui prouve que le paiement a été pris est ailleurs : `plan`, que seul le
+ * webhook écrit, et jamais la redirection.
+ */
+function enPlace(sub: { status: string; plan: string | null } | null): boolean {
+  if (!sub) return false;
+  return sub.status === 'active' || (sub.status === 'trialing' && sub.plan !== null);
+}
+
 export default function Merci() {
   const router = useRouter();
   const loadBilling = useMinoStore((s) => s.loadBilling);
   const subscription = useMinoStore((s) => s.subscription);
   const [patiente, setPatiente] = useState(true);
 
-  const actif = subscription?.status === 'active';
+  const actif = enPlace(subscription);
 
   useEffect(() => {
     let vivant = true;
@@ -43,7 +62,7 @@ export default function Merci() {
       for (let essai = 0; essai < TENTATIVES; essai += 1) {
         await loadBilling().catch(() => undefined);
         if (!vivant) return;
-        if (useMinoStore.getState().subscription?.status === 'active') break;
+        if (enPlace(useMinoStore.getState().subscription)) break;
         await new Promise((suite) => setTimeout(suite, ATTENTE_MS));
       }
       if (vivant) setPatiente(false);
@@ -64,7 +83,16 @@ export default function Merci() {
 
       <Text variant="body" color={colors.textMuted} center>
         {actif
-          ? 'Votre abonnement est actif. Toute la famille en profite, sur tous vos appareils.'
+          ? subscription?.status === 'trialing'
+            ? // Ne pas dire « actif » à quelqu'un qui n'a pas encore été
+              // débité : il chercherait le prélèvement sur son relevé, ne le
+              // trouverait pas, et écrirait au support.
+              `Tout est en place. Votre essai continue${
+                subscription.trialEndsAt
+                  ? ` jusqu’au ${new Date(subscription.trialEndsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}`
+                  : ''
+              }, et rien n’est prélevé avant.`
+            : 'Votre abonnement est actif. Toute la famille en profite, sur tous vos appareils.'
           : patiente
             ? 'Nous confirmons votre abonnement auprès de notre banque, quelques secondes…'
             : // Ne jamais laisser croire à un échec : l'argent est parti, et

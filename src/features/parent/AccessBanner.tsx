@@ -41,7 +41,12 @@ export function AccessBanner({ access }: Props) {
             body: 'Tout continue de fonctionner. Mettez à jour votre moyen de paiement quand vous pouvez.',
             label: 'Mettre à jour',
           }
-        : access.kind === 'trial' && access.daysLeft <= 3
+        : // Une famille qui a DÉJÀ choisi sa formule n'a rien à décider : sa
+          // carte est enregistrée, le prélèvement est daté, l'accès continue
+          // sans rien faire. Lui montrer « encore 3 jours d'essai · voir les
+          // formules » l'envoie racheter ce qu'elle a acheté — et sur le web,
+          // ce bouton ouvre un second abonnement. On se tait.
+          access.kind === 'trial' && access.plan === null && access.daysLeft <= 3
           ? {
               tone: colors.surfaceMuted,
               title:
