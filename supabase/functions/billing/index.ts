@@ -9,6 +9,7 @@
 
 import {
   admin,
+  appelant,
   fail,
   familyOfCaller,
   json,
@@ -28,13 +29,48 @@ const PRICE: Record<string, string> = {
 };
 
 Deno.serve(servir(async (request) => {
-
-  const caller = await familyOfCaller(request);
-  if (!caller) return fail('Non authentifié.', 401);
-
   const url = new URL(request.url);
   const route = url.pathname.replace(/^\/billing\/?/, '');
   const db = admin();
+
+  /**
+   * **L'appareil de l'enfant a le droit de savoir si la famille est à jour —
+   * et sans ce droit, la fin de l'essai ne s'applique pas chez lui.**
+   *
+   * Toute cette fonction exige un parent, ce qui est juste : personne d'autre
+   * n'achète, ne résilie ni ne réclame un mois offert. Mais la lecture de
+   * l'abonnement suivait la même règle, et l'appareil d'un enfant recevait
+   * donc 401. `loadBilling` avalait l'échec, `subscription` restait nul — et
+   * `isLocked(null)` vaut « déverrouillé », délibérément, pour ne pas mettre
+   * dehors une famille dont le réseau a hoqueté.
+   *
+   * Conséquence : sur la tablette de l'enfant, les missions qui se comptent
+   * toutes seules continuaient d'accorder des minutes **après la fin des
+   * trente jours**, indéfiniment. Le verrou tenait sur l'écran du parent et
+   * nulle part où il compte.
+   *
+   * On rend donc cette seule route lisible par l'appareil aussi. Il n'y
+   * apprend rien qu'il ne devrait savoir : l'état et les dates de sa propre
+   * famille. Les identifiants de facturation, eux, sont retirés — un appareil
+   * d'enfant n'a aucune raison de connaître le client Stripe de ses parents.
+   */
+  if (route === 'subscription') {
+    const qui = await appelant(request);
+    if (!qui) return fail('Non authentifié.', 401);
+
+    const { data } = await db
+      .from('subscriptions')
+      .select('*')
+      .eq('family_id', qui.familyId)
+      .maybeSingle();
+
+    if (!data) return json(null);
+    const { customerId, subscriptionId, ...sansIdentifiants } = rowToSubscription(data);
+    return json(qui.role === 'device' ? sansIdentifiants : { customerId, subscriptionId, ...sansIdentifiants });
+  }
+
+  const caller = await familyOfCaller(request);
+  if (!caller) return fail('Non authentifié.', 401);
 
   try {
     switch (route) {
