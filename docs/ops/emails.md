@@ -296,3 +296,34 @@ L'étape 4 doit être franchie **avant la première famille qui n'est pas la
 vôtre**. Sans confirmation, n'importe qui peut ouvrir un compte avec l'adresse
 d'un autre. Entre vous et vos enfants, c'est sans conséquence. Avec un inconnu,
 non.
+
+---
+
+## Ce qui n'est pas encore envoyé, et ce que ça engage
+
+Trois envois sont écrits côté fonction `courrier` et **ne partent jamais** :
+rien ne les déclenche. Les planifications de `supabase/planification.sql` ne
+couvrent que les purges.
+
+| Envoi | Quand | Ce que son absence coûte |
+|---|---|---|
+| `fin_essai` | J-3 avant le premier prélèvement | Un parent débité sans rappel. C'est la première cause de demande de remboursement d'un abonnement à essai. |
+| `reconduction` | Entre 3 mois et 1 mois avant l'échéance annuelle | **Une obligation légale**, article L. 215-1 du code de la consommation. |
+| `bienvenue` | À la création de la famille | Rien de légal, mais c'est le seul moment où un parent lit ce qu'on lui écrit. |
+
+**Sur `reconduction`, la date est connue.** L'obligation ne vise que les
+abonnements dont Agence Wheb est vendeur, c'est-à-dire ceux pris sur le site
+via Stripe : pour un abonnement souscrit dans une application, Apple et Google
+sont vendeurs et s'en chargent. Le premier abonnement annuel Stripe date du
+**9 octobre 2026** ; la fenêtre d'information s'ouvre donc en **juillet 2027**.
+
+**Les CGV ne le promettent plus.** L'article 6 annonçait « Nous vous prévenons
+par e-mail avant la fin de la période d'essai » alors que rien ne partait —
+corrigé le 9 septembre 2026. La disparition de la clause ne fait pas
+disparaître l'obligation légale, elle empêche seulement le contrat de mentir en
+attendant.
+
+**Il manque deux choses pour que ces envois existent** : les secrets SMTP
+(`SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`, `MAIL_REPLY_TO`) sur les
+fonctions Edge, et une planification qui appelle `courrier` — pg_cron seul ne
+sait pas faire de requête HTTP, il faut `pg_net` à côté.

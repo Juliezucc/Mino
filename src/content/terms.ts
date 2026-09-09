@@ -136,8 +136,28 @@ export const TERMS: LegalDocument = {
           text: 'À l’issue de l’essai, l’abonnement choisi démarre automatiquement, sauf si vous avez résilié avant son terme. Vous pouvez résilier à tout moment pendant l’essai, en quelques secondes depuis votre compte, sans avoir à vous justifier et sans qu’aucune somme ne soit due.',
         },
         {
+          /**
+           * Cette phrase promettait « Nous vous prévenons par e-mail avant la
+           * fin de la période d'essai ». Le tuyau d'envoi existe, l'envoi
+           * planifié n'existe pas : le contrat annonçait donc un courrier que
+           * personne ne recevait. Une clause qu'on ne tient pas vaut moins que
+           * pas de clause du tout.
+           *
+           * Ce qui la remplace est vrai aujourd'hui : la date est écrite avant
+           * la confirmation, elle reste consultable, et les boutiques
+           * préviennent d'elles-mêmes leurs abonnés avant la conversion d'un
+           * essai.
+           *
+           * **Reste dû, et daté.** L'article L. 215-1 impose d'informer le
+           * consommateur avant la reconduction tacite d'un abonnement annuel.
+           * Cela ne concerne pas les abonnements pris dans une boutique — Apple
+           * et Google sont vendeurs et s'en chargent — mais bien ceux pris sur
+           * le site. Le premier abonnement annuel Stripe date du 9 octobre
+           * 2026 : la fenêtre d'information s'ouvre en juillet 2027. Voir
+           * `docs/ops/emails.md`.
+           */
           kind: 'p',
-          text: 'Nous vous prévenons par e-mail avant la fin de la période d’essai.',
+          text: 'La date de votre premier prélèvement vous est indiquée à l’écran avant que vous ne confirmiez, et reste consultable à tout moment dans Réglages → Abonnement. Pour un abonnement souscrit dans l’application, l’App Store ou Google Play vous prévient également avant la fin de l’essai.',
         },
       ],
     },
