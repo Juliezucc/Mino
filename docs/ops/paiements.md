@@ -364,6 +364,60 @@ plus tard, de mémoire.
 
 ---
 
+## La recette du rail Stripe, en conditions réelles
+
+**Tout ce qui précède n'est qu'une configuration tant que personne n'a payé une
+fois.** Les tests du dépôt couvrent les règles ; ils ne peuvent rien dire de la
+signature d'un webhook, d'un secret vide ou d'une origine mal ouverte. Cette
+recette-là se conduit une fois, avant l'annonce, avec une vraie carte.
+
+**Elle coûte environ 45 centimes** : les 9,99 € se remboursent, la commission
+de Stripe ne se rembourse pas.
+
+### Le compte
+
+Un compte **neuf**, créé pour l'occasion. Ni celui de démonstration — son
+abonnement est forcé à `active` jusqu'en 2099 pour l'examinateur d'Apple, il ne
+peut donc rien démontrer — ni un compte déjà passé par une boutique, qui
+mélangerait deux rails. Il faut une famille encore en `trialing` pour voir la
+transition se produire.
+
+### Les six moments à observer
+
+| # | Ce qu'on fait | Ce qui doit être vrai |
+|---|---|---|
+| 1 | Créer le compte, un enfant, une mission | `subscriptions.status` = `trialing`, `trial_ends_at` à trente jours |
+| 2 | Payer le mensuel par carte | Stripe renvoie sur `/abonnement/merci` |
+| 3 | Relire la base | `status` = `active`, `plan` = `monthly`, `current_period_end` dans un mois |
+| 4 | Ouvrir le portail client | En-tête `Mino`, les deux formules, l'annulation à la fin de la période |
+| 5 | Résilier depuis le portail | `cancel_at_period_end` = `true`, et l'accès demeure |
+| 6 | Se rembourser depuis Stripe | `status` = `canceled` |
+
+```sql
+select status, plan, trial_ends_at, current_period_end, cancel_at_period_end, updated_at
+from subscriptions order by updated_at desc limit 3;
+
+select kind, status, source, amount_cents, net_cents, occurred_at
+from billing_events order by occurred_at desc limit 10;
+```
+
+`source` doit valoir `stripe`, et `net_cents` refléter la commission —
+autrement dit `STORE_COMMISSION_RATE` s'applique bien au rail web comme aux
+boutiques.
+
+### Ce que chaque échec voudrait dire
+
+- **Rien ne bouge en base après le paiement** : le webhook n'arrive pas. Le
+  journal de l'endpoint chez Stripe donne le code de réponse — 400 pour une
+  signature refusée, 404 pour une adresse fausse.
+- **La session de paiement ne s'ouvre pas** : `billing` a refusé. Sans Stripe
+  Tax configuré, l'erreur ne parle pas de taxes ; sans appelant authentifié,
+  c'est un 401.
+- **Le navigateur bloque l'appel sans message clair** : `APP_ORIGIN` ne
+  correspond pas à l'adresse d'où l'application web est servie.
+
+---
+
 ## Ce qui a été vérifié, et ce qui ne l'a pas été
 
 **Vérifié** : les règles de rail (qui vend, où l'on résilie, ce que chaque rail
