@@ -87,8 +87,13 @@ export default function ShieldSetup() {
       // Ni accordée, ni refusée franchement : la fenêtre système ne s'est pas
       // ouverte. Le dire vaut mieux que de réafficher le même écran.
       else if (next === 'not-determined') {
+        // Le message nommait iOS sur les deux systèmes. Envoyer un parent
+        // Android vérifier « Réglages → Temps d'écran » le fait chercher un
+        // écran qui n'existe pas chez lui.
         setEchec(
-          'iOS n’a pas ouvert la demande. Vérifiez que le Temps d’écran est activé sur cet appareil : Réglages → Temps d’écran.',
+          Platform.OS === 'android'
+            ? 'Le réglage s’est ouvert sans être accordé. Revenez-y : il en faut deux, l’accès aux données d’utilisation et la superposition d’écran.'
+            : 'iOS n’a pas ouvert la demande. Vérifiez que le Temps d’écran est activé sur cet appareil : Réglages → Temps d’écran.',
         );
       }
     } catch (e) {
@@ -193,21 +198,59 @@ export default function ShieldSetup() {
         </>
       ) : status === 'denied' ? (
         <Card background={colors.yellowSoft} elevation="none" style={styles.block}>
-          <Text variant="cardTitle">Autorisation refusée</Text>
+          <Text variant="cardTitle">
+            {Platform.OS === 'android' ? 'Il manque une autorisation' : 'Autorisation refusée'}
+          </Text>
           <Text variant="body" color={colors.textMuted}>
             Mino continue de fonctionner : les missions, le compteur et les demandes restent
             identiques. Seul le verrouillage automatique est désactivé.
           </Text>
-          {/* Ici `openSettings()` est le bon geste, et c'est le seul endroit où
-              il l'est : une fois l'autorisation refusée, iOS ajoute un
-              interrupteur « Temps d'écran » sur la fiche de Mino, et c'est
-              exactement là que ce bouton dépose le parent. Le nom du bouton le
-              dit, pour qu'il ne promette pas le réglage général du système. */}
-          <Button
-            label="Ouvrir la fiche de Mino dans les Réglages"
-            variant="secondary"
-            onPress={() => Linking.openSettings().catch(() => undefined)}
-          />
+          {/**
+           * Deux systèmes, deux gestes — et le second n'existait pas.
+           *
+           * **Sur iOS**, `openSettings()` est exactement le bon geste : une fois
+           * l'autorisation refusée, le système ajoute un interrupteur « Temps
+           * d'écran » sur la fiche de Mino, et c'est là que ce bouton dépose le
+           * parent.
+           *
+           * **Sur Android, c'était une impasse**, et elle a été trouvée à la
+           * première ouverture sur un vrai appareil. Les deux accès dont le
+           * bouclier a besoin ne figurent pas sur la fiche de l'application :
+           * ils vivent dans « Accès spécial », trois niveaux plus loin, et la
+           * fiche affiche même « Aucune autorisation accordée » — ce qui donne
+           * à un parent la certitude d'être au bon endroit et rien à y toucher.
+           *
+           * On redemande donc l'autorisation, ce qui rouvre le bon écran du
+           * système. Et on dit qu'il y en a deux : Android ne les présente
+           * jamais ensemble, si bien qu'un parent qui vient d'en accorder une
+           * revient ici en pensant avoir terminé.
+           */}
+          {Platform.OS === 'android' ? (
+            <>
+              <Text variant="body" color={colors.textMuted}>
+                Android demande deux accès distincts, dans deux écrans différents : l’accès aux
+                données d’utilisation, pour savoir quelle application est ouverte, et la
+                superposition d’écran, pour afficher Mino par-dessus.
+              </Text>
+              <Button
+                label="Ouvrir le réglage manquant"
+                variant="secondary"
+                loading={busy}
+                onPress={ask}
+              />
+              <Text variant="caption" color={colors.textSubtle}>
+                Il faudra sans doute y revenir deux fois — le système ne les propose pas ensemble.
+                À la main : Réglages → Applications → Accès spécial → Accès aux données
+                d’utilisation, puis Superposition d’écran.
+              </Text>
+            </>
+          ) : (
+            <Button
+              label="Ouvrir la fiche de Mino dans les Réglages"
+              variant="secondary"
+              onPress={() => Linking.openSettings().catch(() => undefined)}
+            />
+          )}
         </Card>
       ) : (
         <>
