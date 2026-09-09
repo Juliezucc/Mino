@@ -182,17 +182,35 @@ pire chose qu'un programme de parrainage puisse faire.
    neuf centimes.
 3. **S'inscrire au programme Small Business d'Apple.** 15 % au lieu de 30 %.
    Cinq minutes, et l'oublier double la commission.
-4. **Ne configurer aucune offre d'introduction** — voir le parrainage ci-dessus.
-   Cette ligne a failli être défaite le jour du lancement iOS : rien, dans App
-   Store Connect, ne dit qu'une offre d'introduction ferait double emploi avec
-   notre essai, et l'absence d'offre ressemble à un oubli. Elle n'en est pas
-   un. **L'essai appartient à Mino** : il est accordé par le serveur à la
-   création de la famille, avant tout achat, et il court quel que soit le rail.
+4. **Les offres d'introduction : « Gratuit · 1 mois », sur les deux formules et
+   les deux boutiques.**
+
+   Cette ligne disait exactement le contraire jusqu'au 9 septembre 2026, et
+   elle avait raison **tant que l'essai était accordé par notre serveur** : une
+   offre de boutique se serait ajoutée au nôtre, et un filleul aurait cumulé
+   les deux. Le parcours d'inscription a renversé la règle en plaçant la carte
+   à l'entrée — voir `docs/ops/parcours-inscription.md`. C'est désormais la
+   boutique qui porte l'essai de celui qui s'abonne, et sans offre
+   d'introduction le paywall promet « 0 € aujourd'hui » pendant qu'Apple
+   débite.
+
+   > ⏳ **Une échéance invisible.** App Store Connect impose une date de fin sur
+   > ce formulaire : il n'existe pas d'option « sans fin ». Les offres sont donc
+   > posées jusqu'au **31/12/2040**. Le jour où elles expireraient, les nouveaux
+   > abonnés iPhone seraient débités immédiatement alors que l'application leur
+   > promet trente jours — sans qu'aucune alerte ne se déclenche nulle part.
+   > C'est écrit ici parce que ce n'est écrit à aucun autre endroit.
+
    Le même piège existait côté Stripe, où `checkout` demandait
    `trial_period_days: 30` sans regarder l'essai déjà entamé — 55 jours
    gratuits pour un parent qui s'abonnait au 25ᵉ jour, 120 pour un filleul. Il
    envoie désormais `trial_end` à la date déjà enregistrée
    (`trialEndForCheckout`, dans `domain/billing.ts`, six tests).
+
+   **Reste à faire côté Play** : `verifyGooglePurchase` rend `active` pour tout
+   abonnement en cours, essai compris. Chez Apple, `offerType` et
+   `isTrialPeriod` distinguent les deux ; chez Google la détection passe par
+   les offres du plan de base, et elle attend la sortie Android.
 5. **Activer les notifications serveur à serveur** : App Store Server
    Notifications V2 vers `…/store-notifications/apple`, et Real-time Developer
    Notifications (Pub/Sub) vers `…/store-notifications/google`.
