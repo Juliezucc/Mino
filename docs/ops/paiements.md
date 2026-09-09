@@ -326,6 +326,32 @@ plus tard, de mémoire.
 8. **Les secrets** : `supabase secrets set` avec la clé `sk_live_`, les
    nouveaux `price_`, le nouveau `whsec_`, et `APP_URL` / `APP_ORIGIN` sur
    `https://minoapp.fr`.
+
+   > **Vérifier qu'un secret n'est pas vide, parce que rien ne le dira.**
+   > `supabase secrets set STRIPE_WEBHOOK_SECRET="$WHSEC"` accepte sans broncher
+   > une variable non renseignée — et `$WHSEC` est vide dès que la commande qui
+   > devait le remplir a échoué, ce qui arrive au moindre changement d'onglet de
+   > terminal, où `STRIPE_SECRET_KEY` n'existe plus.
+   >
+   > Un `STRIPE_WEBHOOK_SECRET` vide fait refuser **toutes** les notifications
+   > de Stripe : le parent paie, et son abonnement reste `trialing` pour
+   > toujours. Rien n'échoue visiblement, ni au paiement, ni au déploiement.
+   >
+   > `supabase secrets list` le trahit pourtant. La colonne DIGEST est un
+   > SHA-256 non salé de la valeur — deux secrets de même valeur y ont le même
+   > condensé, ce qui se vérifie sur `APP_URL` et `APP_ORIGIN`. Et le condensé
+   > de la chaîne vide est toujours le même :
+   >
+   > ```
+   > e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+   > ```
+   >
+   > Le voir en face d'un nom de secret, c'est le voir vide. Le réflexe, avant
+   > de poser quoi que ce soit : `echo "${#WHSEC}"`.
+   >
+   > Enfin, Stripe ne rend le secret de signature **qu'à la création** de
+   > l'endpoint. Perdu, il ne se relit pas par l'API : on supprime l'endpoint et
+   > on le recrée.
 9. **Vérifier que le site répond** sur `/abonnement` et `/abonnement/merci`.
    Stripe y renvoie le client à la seconde où il a payé.
 
