@@ -1,10 +1,9 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
 import { Button, Logo, Screen, Text } from '@/components/ui';
-import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
 const STEPS = [
@@ -15,16 +14,6 @@ const STEPS = [
 
 export default function Welcome() {
   const router = useRouter();
-  const startDemo = useMinoStore((s) => s.startDemo);
-  const [loading, setLoading] = useState(false);
-
-  const onDemo = async () => {
-    setLoading(true);
-    await startDemo();
-    setLoading(false);
-    router.replace('/who');
-  };
-
   return (
     <Screen contentStyle={styles.content}>
       <View style={styles.header}>
@@ -57,7 +46,6 @@ export default function Welcome() {
       </View>
 
       <View style={styles.actions}>
-        <Button label="Découvrir avec la démo" icon="✨" onPress={onDemo} loading={loading} />
         <Button
           label="Créer ma famille"
           variant="secondary"

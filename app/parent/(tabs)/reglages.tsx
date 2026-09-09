@@ -18,7 +18,6 @@ export default function ParentSettings() {
   const repositoryName = useMinoStore((s) => s.repository.name);
   const lockParent = useMinoStore((s) => s.lockParent);
   const resetAll = useMinoStore((s) => s.resetAll);
-  const startDemo = useMinoStore((s) => s.startDemo);
   const subscription = useMinoStore((s) => s.subscription);
   const notifications = useMinoStore((s) => s.notifications);
   const device = useMinoStore((s) => s.device);
@@ -65,17 +64,6 @@ export default function ParentSettings() {
     });
   };
 
-  const reloadDemo = () => {
-    void confirmer({
-      titre: 'Recharger la démo ?',
-      message: 'Les données actuelles seront remplacées.',
-      action: 'Recharger',
-    }).then(async (oui) => {
-      if (!oui) return;
-      await startDemo();
-      router.replace('/who');
-    });
-  };
 
   return (
     <Screen contentStyle={styles.content}>
@@ -291,7 +279,6 @@ export default function ParentSettings() {
           lockParent();
           router.replace('/who');
         }} />
-        <Button label="Recharger les données de démo" variant="secondary" onPress={reloadDemo} />
         <Button label="Réinitialiser l’application" variant="danger" onPress={confirmReset} />
       </View>
 
