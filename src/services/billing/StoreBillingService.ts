@@ -1,5 +1,6 @@
-import { Plan, Referral, Subscription, manageSubscriptionUrl } from '@/domain/billing';
+import { PRODUITS, Plan, Referral, Subscription, manageSubscriptionUrl } from '@/domain/billing';
 import { ID } from '@/domain/types';
+import { OffreApple } from '@/domain/offrePromo';
 
 import { BillingService, CheckoutOutcome } from './BillingService';
 import { NativeStore } from './native';
@@ -42,6 +43,16 @@ export class StoreBillingService implements BillingService {
     }) => Promise<Subscription | null>,
     /** Le jeton qui relie l'achat à la famille — voir `native.ts`. */
     private readonly accountToken: (familyId: ID) => Promise<string>,
+    /**
+     * L'offre promotionnelle signée par le serveur, quand la famille a un mois
+     * à récupérer. Elle ne peut pas être signée ici : la clé d'App Store
+     * Connect ne quitte jamais Supabase.
+     */
+    // Optionnel : une fausse boutique d'essai n'a pas de mois à récupérer, et
+    // devoir en fournir un pour construire l'objet obligerait chaque test à
+    // décrire une mécanique qu'il n'exerce pas.
+    private readonly offreParrainage: () => Promise<{ offre: OffreApple; plan: Plan } | null> =
+      async () => null,
   ) {
     this.name = `store-${store.platform}`;
   }
@@ -159,6 +170,50 @@ export class StoreBillingService implements BillingService {
   }
 
   /** Les réglages du téléphone : le seul endroit où la résiliation existe. */
+  /**
+   * Ouvrir la feuille de paiement avec l'offre du parrainage.
+   *
+   * Le serveur vérifie qu'il y a bien un mois dû avant de signer quoi que ce
+   * soit : rien de ce qui décide n'est calculé ici. Et rien n'est décompté au
+   * clic — c'est la notification d'Apple, une fois l'offre réellement
+   * appliquée, qui retire le mois de l'ardoise. Un parent qui referme la
+   * feuille ne perd rien.
+   */
+  async redeemReferralMonth(familyId: ID): Promise<CheckoutOutcome> {
+    if (this.store.platform !== 'apple') {
+      return { kind: 'failed', reason: 'Disponible seulement sur iPhone et iPad pour l’instant.' };
+    }
+
+    const signee = await this.offreParrainage().catch(() => null);
+    if (!signee) return { kind: 'failed', reason: 'Aucun mois offert à récupérer.' };
+
+    // La signature vaut pour UN produit : celui de la formule en cours, que le
+    // serveur nomme avec l'offre. En choisir un autre ici invaliderait la
+    // signature, et Apple ouvrirait la feuille au plein tarif sans rien dire.
+    const cible = PRODUITS[signee.plan];
+
+    const accountToken = await this.accountToken(familyId);
+
+    let purchase;
+    try {
+      purchase = await this.store.purchase({ productId: cible, accountToken, offre: signee.offre });
+    } catch (erreur) {
+      const dit = erreur instanceof Error ? erreur.message.trim() : '';
+      return { kind: 'failed', reason: dit || 'L’offre n’a pas pu être appliquée.' };
+    }
+
+    if (!purchase) return { kind: 'abandoned' };
+
+    await this.confirm({
+      familyId,
+      platform: this.store.platform,
+      token: purchase.token,
+      productId: purchase.productId,
+    }).catch(() => null);
+
+    return { kind: 'done' };
+  }
+
   async openPortal(): Promise<{ url: string }> {
     return { url: manageSubscriptionUrl(this.store.platform === 'apple' ? 'apple' : 'google')! };
   }

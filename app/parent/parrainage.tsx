@@ -16,11 +16,17 @@ const STATUS_LABEL: Record<string, { label: string; tone: string }> = {
 };
 
 /**
- * Referral.
+ * Le parrainage.
  *
- * Two-sided on purpose: the newcomer gets a longer trial, the referrer gets a
- * month once that newcomer actually pays. Rewarding at sign-up instead would
- * pay for accounts rather than for customers.
+ * **À sens unique, et c'est délibéré.** Le filleul reçoit ses trente jours
+ * d'essai comme tout le monde ; le parrain reçoit un mois, une fois que ce
+ * filleul a réellement payé. Récompenser à l'inscription reviendrait à payer
+ * pour des comptes plutôt que pour des clients — c'est par là que ce genre de
+ * programme se fait vider.
+ *
+ * Cet écran a longtemps promis soixante jours au filleul. Ce n'est plus le cas
+ * depuis que l'essai est porté par la boutique : une offre d'introduction a une
+ * durée fixe, la même pour tous.
  */
 export default function ReferralScreen() {
   const router = useRouter();
@@ -28,6 +34,7 @@ export default function ReferralScreen() {
   const referrals = useMinoStore((s) => s.referrals);
   const subscription = useMinoStore((s) => s.subscription);
   const redeemReferral = useMinoStore((s) => s.redeemReferral);
+  const recupererMoisOffert = useMinoStore((s) => s.recupererMoisOffert);
 
   const [code, setCode] = useState('');
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -38,6 +45,31 @@ export default function ReferralScreen() {
   const myCode = data.family.referralCode;
   const earned = creditedMonthsInYear(referrals, data.family.id);
   const canRedeem = subscription?.status === 'trialing';
+
+  /**
+   * Le mois dû, et le geste qu'Apple impose pour l'obtenir.
+   *
+   * `creditMonths` compte ce que Mino doit encore au parrain. Sur le web il ne
+   * dépasse jamais zéro longtemps : le mois est appliqué par le serveur au
+   * moment où le filleul paie. Sur l'App Store, il attend — l'offre
+   * promotionnelle doit être acceptée par l'abonné, elle ne s'applique pas
+   * toute seule. Sans ce bouton, le mois resterait compté et jamais donné.
+   */
+  const moisDus = subscription?.creditMonths ?? 0;
+
+  const recuperer = async () => {
+    setLoading(true);
+    setMessage(null);
+    const issue = await recupererMoisOffert();
+    if (issue.kind === 'done') {
+      setMessage({ ok: true, text: 'C’est fait : votre mois offert s’applique à votre prochaine échéance.' });
+    } else if (issue.kind === 'failed') {
+      setMessage({ ok: false, text: issue.reason });
+    }
+    // `abandoned` : la feuille a été refermée. Ce n'est pas un échec, et le
+    // mois reste dû — rien à dire.
+    setLoading(false);
+  };
 
   const share = () => {
     Share.share({
@@ -75,6 +107,19 @@ export default function ReferralScreen() {
         </Text>
         <Button label="Partager mon code" icon="🎁" onPress={share} />
       </Card>
+
+      {moisDus > 0 ? (
+        <Card style={styles.block} background={colors.mintSoft} elevation="none">
+          <Text variant="cardTitle">
+            {moisDus > 1 ? `${moisDus} mois vous attendent` : 'Un mois vous attend'}
+          </Text>
+          <Text variant="body" color={colors.textMuted}>
+            Votre filleul s’est abonné. Confirmez pour l’appliquer à votre prochaine échéance —
+            l’App Store demande votre accord, il ne peut pas le faire à votre place.
+          </Text>
+          <Button label="Récupérer mon mois offert" icon="🎁" loading={loading} onPress={recuperer} />
+        </Card>
+      ) : null}
 
       <Card style={styles.block}>
         <Text variant="cardTitle">Comment ça marche</Text>

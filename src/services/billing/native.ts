@@ -1,3 +1,4 @@
+import { OffreApple } from '@/domain/offrePromo';
 import { Plan } from '@/domain/billing';
 
 /**
@@ -58,7 +59,15 @@ export interface NativeStore {
    * Ouvre la feuille de paiement du système. C'est Face ID et rien d'autre :
    * aucun formulaire, aucune carte à saisir, aucune sortie de l'application.
    */
-  purchase(input: { productId: string; accountToken: string }): Promise<StorePurchase | null>;
+  purchase(input: {
+    productId: string;
+    accountToken: string;
+    /**
+     * L'offre promotionnelle signée par le serveur — le mois offert du
+     * parrainage, chez Apple. Absente pour un achat ordinaire.
+     */
+    offre?: OffreApple;
+  }): Promise<StorePurchase | null>;
 
   /**
    * Rétablit un achat déjà payé. Apple l'exige explicitement — un client qui a

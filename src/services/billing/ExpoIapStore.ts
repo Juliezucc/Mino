@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
-import { ANNUAL_PRICE_EUR, MONTHLY_PRICE_EUR, Plan } from '@/domain/billing';
+import { ANNUAL_PRICE_EUR, MONTHLY_PRICE_EUR, PRODUITS, Plan } from '@/domain/billing';
+import { OffreApple } from '@/domain/offrePromo';
 
 import { NativeStore, StoreProduct, StorePurchase } from './native';
 
@@ -34,17 +35,12 @@ import { NativeStore, StoreProduct, StorePurchase } from './native';
  */
 
 /**
- * Les identifiants déclarés dans App Store Connect et dans la Play Console.
- *
- * Le serveur en déduit la formule en cherchant `month` ou `yearly`/`annual`
- * dans la chaîne — voir `planOfProduct` dans `_shared/store.ts`. Renommer un
- * produit sans garder ces mots donne un abonnement sans formule, et une facture
- * qu'on ne sait plus rattacher.
+ * Les identifiants des produits vivent désormais dans `domain/billing.ts` : le
+ * serveur en a besoin lui aussi pour signer les offres promotionnelles, et une
+ * fonction Edge ne peut pas importer un module React Native. Réexportés ici
+ * pour ne pas déplacer les appels.
  */
-export const PRODUITS: Record<Plan, string> = {
-  monthly: 'mino.premium.monthly',
-  yearly: 'mino.premium.yearly',
-};
+export { PRODUITS };
 
 /** Le prix affiché si la boutique ne rend pas de montant numérique. */
 const PRIX_DE_REPLI: Record<Plan, number> = {
@@ -217,7 +213,11 @@ export class ExpoIapStore implements NativeStore {
    *   `StoreBillingService` le traduit par « abandonné », sans écran rouge ;
    * — la boutique refuse : on lève.
    */
-  async purchase(input: { productId: string; accountToken: string }): Promise<StorePurchase | null> {
+  async purchase(input: {
+    productId: string;
+    accountToken: string;
+    offre?: OffreApple;
+  }): Promise<StorePurchase | null> {
     const iap = await this.connexion();
 
     const jeton = EST_UUID.test(input.accountToken) ? input.accountToken : null;
@@ -278,7 +278,28 @@ export class ExpoIapStore implements NativeStore {
         .requestPurchase({
           type: 'subs',
           request: {
-            apple: { sku: input.productId, appAccountToken: jeton },
+            apple: {
+              sku: input.productId,
+              appAccountToken: jeton,
+              /**
+               * L'offre promotionnelle, quand il y en a une.
+               *
+               * StoreKit refuse une signature qu'il n'a pas demandée, et
+               * l'applique sans un mot quand elle est juste : la feuille de
+               * paiement annonce alors « 1 mois gratuit, puis … ». Une
+               * signature absente ou fausse ne produit aucune erreur — le plein
+               * tarif s'affiche, comme si l'offre n'existait pas.
+               */
+              withOffer: input.offre
+                ? {
+                    identifier: input.offre.identifier,
+                    keyIdentifier: input.offre.keyIdentifier,
+                    nonce: input.offre.nonce,
+                    signature: input.offre.signature,
+                    timestamp: input.offre.timestamp,
+                  }
+                : undefined,
+            },
             google: {
               skus: [input.productId],
               obfuscatedAccountId: jeton,

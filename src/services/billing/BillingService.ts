@@ -64,6 +64,21 @@ export interface BillingService {
   restore?(familyId: ID): Promise<CheckoutOutcome>;
 
   /**
+   * Récupérer le mois offert d'un parrainage.
+   *
+   * **Absent partout sauf sur l'App Store, et c'est le sujet.** Chez Stripe le
+   * mois est donné sans que personne n'ait rien à faire : la date d'essai
+   * recule, ou un avoir est porté au solde. Apple ne connaît ni l'un ni
+   * l'autre : son seul mécanisme est l'offre promotionnelle, et elle doit être
+   * **acceptée** par l'abonné — la feuille de paiement s'ouvre, il confirme, et
+   * le mois s'applique au renouvellement suivant.
+   *
+   * D'où cette méthode, et l'écran qui va avec. Là où elle n'existe pas, il n'y
+   * a rien à proposer parce qu'il n'y a rien à faire.
+   */
+  redeemReferralMonth?(familyId: ID): Promise<CheckoutOutcome>;
+
+  /**
    * Où l'on gère son abonnement : changer de formule, mettre à jour sa carte,
    * résilier. Cela doit rester atteignable en trois clics — c'est une
    * obligation légale en France, pas une politesse.

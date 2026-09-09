@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 
-import { Subscription } from '@/domain/billing';
+import { Plan, Subscription } from '@/domain/billing';
+import { OffreApple } from '@/domain/offrePromo';
 import { ID } from '@/domain/types';
 import { getAccessToken, getSupabaseClient } from '@/data/supabaseRepository';
 
@@ -46,7 +47,7 @@ export function getBillingService(): BillingService {
 
     instance =
       onDevice && store && api
-        ? new StoreBillingService(api, store, confirmPurchase, storeAccountToken)
+        ? new StoreBillingService(api, store, confirmPurchase, storeAccountToken, offreParrainage)
         : (api ?? new LocalBillingService());
   }
   return instance;
@@ -77,6 +78,25 @@ async function confirmPurchase(input: {
   const { data, error } = await client.functions.invoke('store-purchase', { body: input });
   if (error) return null;
   return (data as { subscription?: Subscription })?.subscription ?? null;
+}
+
+/**
+ * L'offre promotionnelle signée, quand la famille a un mois de parrainage à
+ * récupérer.
+ *
+ * Le serveur vérifie qu'il est réellement dû avant de signer : la clé d'App
+ * Store Connect ne quitte jamais Supabase, et une application qui pourrait
+ * signer ses propres offres pourrait s'offrir des mois gratuits.
+ */
+async function offreParrainage(): Promise<{ offre: OffreApple; plan: Plan } | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  const { data, error } = await client.functions.invoke('billing/promo', { body: {} });
+  if (error) return null;
+
+  const rendu = data as { offre?: OffreApple; plan?: Plan } | null;
+  return rendu?.offre && rendu.plan ? { offre: rendu.offre, plan: rendu.plan } : null;
 }
 
 /**

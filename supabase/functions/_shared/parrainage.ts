@@ -37,8 +37,8 @@ export async function record(input: {
   plan?: string | null;
   amountCents?: number | null;
   occurredAt?: string;
-}) {
-  const { error } = await admin()
+}): Promise<boolean> {
+  const { data, error } = await admin()
     .from('billing_events')
     .upsert(
       {
@@ -51,12 +51,26 @@ export async function record(input: {
         occurred_at: input.occurredAt ?? new Date().toISOString(),
       },
       { onConflict: 'stripe_event_id', ignoreDuplicates: true },
-    );
+    )
+    .select('stripe_event_id');
 
   // Une ligne de journal manquante ne doit jamais faire échouer un webhook : la
   // boutique rejouerait, et le miroir — ce que l'application lit réellement —
   // est déjà juste.
-  if (error) console.error('journal facturation', input.kind, error);
+  if (error) {
+    console.error('journal facturation', input.kind, error);
+    return false;
+  }
+
+  /**
+   * Vrai seulement si la ligne vient d'être écrite.
+   *
+   * L'unicité de `stripe_event_id` sert déjà à ne pas compter deux fois une
+   * notification rejouée. Rendre cette information permet de s'en servir comme
+   * verrou : un décompte qui ne doit avoir lieu qu'une fois s'accroche à cette
+   * réponse plutôt qu'à un drapeau qu'il faudrait inventer ailleurs.
+   */
+  return (data ?? []).length > 0;
 }
 
 /**

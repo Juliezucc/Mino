@@ -18,7 +18,9 @@ import {
   env,
   servir,
 } from '../_shared/mino.ts';
-import { canUseReferralCode, trialEndForCheckout } from '../../../src/domain/billing.ts';
+import { PRODUITS, canUseReferralCode, trialEndForCheckout } from '../../../src/domain/billing.ts';
+import { OFFRE_PARRAINAGE } from '../../../src/domain/offrePromo.ts';
+import { signerOffre } from '../_shared/appleOffre.ts';
 
 const PRICE: Record<string, string> = {
   monthly: Deno.env.get('STRIPE_PRICE_MONTHLY') ?? '',
@@ -195,6 +197,59 @@ Deno.serve(servir(async (request) => {
           .single();
 
         return json(rowToSubscription(row));
+      }
+
+      /* ------------------------------------- le mois offert, chez Apple */
+      /**
+       * Signer l'offre promotionnelle qui donne au parrain son mois.
+       *
+       * **Pourquoi une route, et pas un traitement côté serveur.** Chez Stripe,
+       * le mois est donné sans que personne n'ait rien à faire : on recule la
+       * date d'essai, ou on porte un avoir au solde. Apple ne connaît ni l'un
+       * ni l'autre. Son seul mécanisme — l'offre promotionnelle — doit être
+       * **acceptée par l'abonné** : la feuille de paiement s'ouvre, il confirme,
+       * et le mois s'applique. Il faut donc un écran, et donc une route.
+       *
+       * La signature n'est jamais faite à l'avance : elle porte un horodatage
+       * qu'Apple refuse au-delà de quelques minutes.
+       */
+      case 'promo': {
+        const { data } = await db
+          .from('subscriptions')
+          .select('*')
+          .eq('family_id', caller.familyId)
+          .maybeSingle();
+
+        if (!data?.plan) return fail('Aucun abonnement.', 404);
+        if (data.source !== 'apple') return fail('Offre réservée aux abonnements App Store.', 409);
+        if ((data.credit_months ?? 0) < 1) return fail('Aucun mois offert à récupérer.', 409);
+
+        const { data: famille } = await db
+          .from('families')
+          .select('store_account_token')
+          .eq('id', caller.familyId)
+          .maybeSingle();
+
+        // Sans ce jeton, l'offre ne peut être rattachée à personne — et une
+        // offre qu'Apple ne sait pas rattacher est une offre qu'il refuse.
+        if (!famille?.store_account_token) return fail('Achat non rattaché à la famille.', 409);
+
+        const offre = await signerOffre({
+          productId: PRODUITS[data.plan as 'monthly' | 'yearly'],
+          offerId: OFFRE_PARRAINAGE[data.plan as 'monthly' | 'yearly'],
+          appAccountToken: famille.store_account_token as string,
+        });
+
+        /**
+         * On ne décompte rien ici, et c'est délibéré.
+         *
+         * Une signature n'est pas un mois consommé : le parent peut refermer la
+         * feuille de paiement. Le décompte a lieu quand la notification d'Apple
+         * revient avec `offerType` 2 — c'est-à-dire quand le mois a réellement
+         * été accordé. Décompter au clic reviendrait à retirer un mois à
+         * quelqu'un qui a hésité.
+         */
+        return json({ offre, plan: data.plan });
       }
 
       /* -------------------------------------------- cancel and come back */

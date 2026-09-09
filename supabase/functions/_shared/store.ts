@@ -10,7 +10,7 @@
 // elle se referme ici ou nulle part.
 
 import { admin, env } from './mino.ts';
-import { settleReferral } from './parrainage.ts';
+import { record, settleReferral } from './parrainage.ts';
 
 export type StorePlatform = 'apple' | 'google';
 
@@ -27,6 +27,12 @@ export interface StoreState {
   cancelAtPeriodEnd: boolean;
   /** Prix payé en centimes, hors taxes quand la boutique le donne. */
   amountCents: number | null;
+  /**
+   * Une offre promotionnelle vient d'être appliquée — chez nous, le mois offert
+   * du parrainage. C'est le seul signal qui dise qu'un mois mis de côté a
+   * réellement été consommé.
+   */
+  promoAppliquee?: boolean;
 }
 
 /** 15 % (Small Business / abonnements Play) ou 30 % (Apple, première année). */
@@ -106,7 +112,10 @@ function chargeJws(jws: string): Record<string, unknown> {
 /** La clé privée d'App Store Connect, importée une fois par instance. */
 let cleApple: Promise<CryptoKey> | null = null;
 
-function chargerCleApple(): Promise<CryptoKey> {
+// Exportée pour `appleOffre.ts`, qui signe les offres promotionnelles avec la
+// même clé — App Store Connect n'en propose qu'une, et sa page le dit :
+// « les API du serveur de l'App Store ET les offres promotionnelles ».
+export function chargerCleApple(): Promise<CryptoKey> {
   if (cleApple) return cleApple;
 
   cleApple = (async () => {
@@ -265,6 +274,11 @@ export function appleToState(
     transaction.isTrialPeriod === true ||
     transaction.isTrialPeriod === 'true';
 
+  // 2 = offre promotionnelle. Chez Mino il n'en existe qu'une, le mois offert
+  // du parrainage : la voir ici, c'est savoir qu'un mois mis de côté vient
+  // d'être dépensé pour de bon.
+  const promoAppliquee = Number(transaction.offerType ?? 0) === 2;
+
   return {
     platform: 'apple',
     accountToken: (transaction.appAccountToken as string) ?? null,
@@ -281,6 +295,7 @@ export function appleToState(
     expiresAt: expiresMs > 0 ? new Date(expiresMs).toISOString() : null,
     cancelAtPeriodEnd: !willRenew,
     amountCents: typeof transaction.price === 'number' ? Math.round(transaction.price / 10) : null,
+    promoAppliquee,
   };
 }
 
@@ -600,6 +615,40 @@ export async function applyStoreState(
     await settleReferral(familyId, `${state.platform}:${state.transactionId}`).catch((e) =>
       console.error('parrainage non réglé', familyId, state.transactionId, e),
     );
+  }
+
+  /**
+   * Le mois offert vient d'être appliqué : on le retire de l'ardoise.
+   *
+   * `credit_months` compte ce que Mino doit encore au parrain. Ne pas le
+   * décompter le laisserait réclamer le même mois indéfiniment — une offre
+   * promotionnelle par renouvellement, gratuitement, jusqu'à ce que quelqu'un
+   * s'en aperçoive dans les comptes.
+   *
+   * Le verrou est la ligne de journal : sa clé est unique, et Apple rejoue ses
+   * notifications. Si elle existait déjà, la même transaction a déjà été
+   * comptée et rien ne bouge.
+   */
+  if (state.promoAppliquee) {
+    const neuf = await record({
+      familyId,
+      kind: 'parrainage_consomme',
+      eventId: `${state.platform}:${state.transactionId}:promo`,
+      plan: state.plan,
+    }).catch(() => false);
+
+    if (neuf) {
+      const { data: courant } = await db
+        .from('subscriptions')
+        .select('credit_months')
+        .eq('family_id', familyId)
+        .maybeSingle();
+
+      await db
+        .from('subscriptions')
+        .update({ credit_months: Math.max(0, (courant?.credit_months ?? 0) - 1) })
+        .eq('family_id', familyId);
+    }
   }
 
   return familyId;

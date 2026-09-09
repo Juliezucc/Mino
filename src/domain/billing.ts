@@ -57,6 +57,24 @@ export const REFERRAL = {
 export type Plan = 'monthly' | 'yearly';
 
 /**
+ * Les identifiants de produit déclarés dans App Store Connect et dans la Play
+ * Console.
+ *
+ * Ils vivent ici plutôt que dans le service de boutique parce que le serveur en
+ * a besoin lui aussi — signer une offre promotionnelle demande de nommer le
+ * produit, et une fonction Edge ne peut pas importer un module React Native.
+ *
+ * Le serveur déduit la formule en cherchant `month` ou `yearly`/`annual` dans
+ * la chaîne (`planOfProduct`, dans `_shared/store.ts`). Renommer un produit
+ * sans garder ces mots donne un abonnement sans formule, et une facture qu'on
+ * ne sait plus rattacher.
+ */
+export const PRODUITS: Record<Plan, string> = {
+  monthly: 'mino.premium.monthly',
+  yearly: 'mino.premium.yearly',
+};
+
+/**
  * Par où l'argent est passé.
  *
  * Deux rails, un seul abonnement. Dans l'application, Apple et Google

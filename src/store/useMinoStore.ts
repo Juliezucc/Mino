@@ -194,6 +194,13 @@ interface MinoState {
   loadBilling: () => Promise<void>;
   choosePlan: (plan: Plan) => Promise<CheckoutOutcome>;
   restorePurchases: () => Promise<CheckoutOutcome>;
+  /**
+   * Récupérer le mois offert d'un parrainage, là où il faut le demander.
+   *
+   * Chez Stripe il arrive tout seul. Chez Apple, l'offre promotionnelle doit
+   * être acceptée par l'abonné — d'où un geste, et donc une action.
+   */
+  recupererMoisOffert: () => Promise<CheckoutOutcome>;
   cancelSubscription: () => Promise<void>;
   resumeSubscription: () => Promise<void>;
   /** Remplacer la formule sur l'abonnement en cours, sans en ouvrir un second. */
@@ -1073,6 +1080,22 @@ export const useMinoStore = create<MinoState>((set, get) => {
       }
 
       const result = await billing.restore(familyId);
+      await get().loadBilling();
+      return result;
+    },
+
+    async recupererMoisOffert() {
+      const familyId = get().data?.family.id;
+      if (!familyId) return { kind: 'failed' as const, reason: 'Aucune famille.' };
+
+      const billing = getBillingService();
+      if (!billing.redeemReferralMonth) {
+        // Sur le web et dans la démo, il n'y a rien à demander : le mois est
+        // donné par le serveur, ou il n'y a pas de boutique du tout.
+        return { kind: 'failed' as const, reason: 'Rien à récupérer ici.' };
+      }
+
+      const result = await billing.redeemReferralMonth(familyId);
       await get().loadBilling();
       return result;
     },
