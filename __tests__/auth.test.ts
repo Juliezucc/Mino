@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
-import { LocalAuthService, SupabaseAuthService } from '@/services/auth';
+import { LocalAuthService, SupabaseAuthService, setAuthService } from '@/services/auth';
+import { useMinoStore } from '@/store/useMinoStore';
 
 /**
  * The parent PIN is the shortest secret in the product and the one a child is
@@ -220,5 +221,151 @@ describe('les causes d’échec qu’on a le droit de nommer', () => {
       .setPassword('Un-Mot-De-Passe-2026');
 
     expect(r.reason).toMatch(/lien/);
+  });
+});
+
+/**
+ * Le fondateur anonyme, et pourquoi il ne doit pas être pris pour une tablette.
+ *
+ * Le nouveau parcours d'inscription (`docs/ops/parcours-inscription.md`) fait
+ * créer la famille et le premier enfant AVANT de demander son adresse au
+ * parent : il commence donc sur une session anonyme, exactement comme la
+ * tablette d'un enfant.
+ *
+ * La règle d'avant — « une adresse, donc un parent » — en aurait fait un
+ * appareil d'enfant. Conséquence concrète : `app/parent-pin.tsx` lui aurait
+ * refusé le choix de son propre code parent, parce que cet écran protège
+ * justement un enfant de ce choix-là. Le parent aurait été enfermé dehors par
+ * une protection écrite contre son enfant.
+ *
+ * C'est donc la base qui tranche, avec la fonction dont elle se sert elle-même
+ * à chaque politique.
+ */
+describe('parent ou appareil, tranché par la base', () => {
+  const avec = (estParent: unknown, rpcError: unknown = null, email: string | null = null) =>
+    new SupabaseAuthService({
+      auth: {
+        getSession: async () => ({ data: { session: { user: { id: 'u-1', email } } } }),
+        getUser: async () => ({ data: { user: { id: 'u-1', email } }, error: null }),
+        signOut: async () => ({ error: null }),
+      },
+      rpc: async () => ({ data: estParent, error: rpcError }),
+    } as never);
+
+  it('reconnaît le fondateur anonyme comme un parent', async () => {
+    const s = await avec(true).session();
+    expect(s.kind).toBe('parent');
+    // Il n'a pas encore d'adresse, et ce n'est pas ce qui le définit.
+    expect(s.email).toBeNull();
+  });
+
+  it('laisse la tablette d’un enfant être un appareil', async () => {
+    const s = await avec(false).session();
+    expect(s.kind).toBe('device');
+  });
+
+  it('retombe sur l’adresse quand le réseau ne répond pas', async () => {
+    // Refuser une session parce que le réseau manque serait bien pire que de
+    // la décrire approximativement : l'ancien raccourci reste vrai pour tous
+    // les comptes déjà constitués.
+    const s = await avec(null, { message: 'Failed to fetch' }, 'claire@exemple.fr').session();
+    expect(s.kind).toBe('parent');
+  });
+
+  it('et une session anonyme reste un appareil quand le réseau manque', async () => {
+    const s = await avec(null, { message: 'Failed to fetch' }).session();
+    expect(s.kind).toBe('device');
+  });
+});
+
+/**
+ * Le défaut qui ferait disparaître une famille entière.
+ *
+ * Au troisième écran du nouveau parcours, le parent a déjà créé sa famille,
+ * son premier enfant et sa première mission — sur une session anonyme. Il
+ * donne alors son adresse.
+ *
+ * Appeler `signUp` à ce moment-là ouvre un SECOND utilisateur Supabase et
+ * abandonne le premier. Tout ce que le parent vient de faire reste attaché à
+ * une identité que plus personne ne porte : il se retrouve devant une
+ * application vide, et rien à l'écran ne dit où c'est passé. C'est le pire des
+ * défauts possibles à cet endroit, parce qu'il frappe exactement au moment où
+ * l'on vient de gagner la confiance de quelqu'un.
+ *
+ * `createAccount` ne distinguait que « parent » et « le reste », parce qu'au
+ * moment où il a été écrit « le reste » ne pouvait être qu'une absence de
+ * session.
+ */
+describe('donner son adresse sans perdre sa famille', () => {
+  const espion = (kind: 'parent' | 'device' | 'none') => {
+    const appels: string[] = [];
+    setAuthService({
+      name: 'espion',
+      remote: true,
+      session: async () => ({ kind, userId: kind === 'none' ? null : 'u-1', email: null }),
+      onChange: () => () => undefined,
+      signUp: async () => {
+        appels.push('signUp');
+        return { ok: true };
+      },
+      linkEmail: async () => {
+        appels.push('linkEmail');
+        return { ok: true };
+      },
+      signIn: async () => ({ ok: true }),
+      signOut: async () => undefined,
+      signInAsDevice: async () => undefined,
+      resumeFromLink: async () => ({ ok: true }),
+      setParentPin: async () => ({ ok: true }),
+      verifyParentPin: async () => ({ ok: true }),
+      setPassword: async () => ({ ok: true }),
+      sendPasswordLink: async () => ({ ok: true }),
+      changeEmail: async () => ({ ok: true }),
+      deleteAccount: async () => ({ ok: true }),
+    } as never);
+    return appels;
+  };
+
+  afterEach(() => setAuthService(null));
+
+  it('habille la session anonyme, au lieu d’en ouvrir une seconde', async () => {
+    const appels = espion('device');
+
+    await useMinoStore.getState().createAccount({
+      parentName: 'Julie',
+      email: 'julie@exemple.fr',
+      password: 'Un-Mot-De-Passe-2026',
+      consentAt: new Date().toISOString(),
+    });
+
+    expect(appels).toContain('linkEmail');
+    // Celui-là aurait coûté la famille.
+    expect(appels).not.toContain('signUp');
+  });
+
+  it('inscrit normalement quand il n’y a aucune session', async () => {
+    const appels = espion('none');
+
+    await useMinoStore.getState().createAccount({
+      parentName: 'Julie',
+      email: 'julie@exemple.fr',
+      password: 'Un-Mot-De-Passe-2026',
+      consentAt: new Date().toISOString(),
+    });
+
+    expect(appels).toContain('signUp');
+    expect(appels).not.toContain('linkEmail');
+  });
+
+  it('ne redemande rien à un parent déjà identifié', async () => {
+    const appels = espion('parent');
+
+    await useMinoStore.getState().createAccount({
+      parentName: 'Julie',
+      email: 'julie@exemple.fr',
+      consentAt: new Date().toISOString(),
+    });
+
+    expect(appels).toEqual([]);
   });
 });
