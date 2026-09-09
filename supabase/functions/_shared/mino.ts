@@ -144,10 +144,25 @@ export async function familyOfCaller(
     .maybeSingle();
 
   if (!parent) return null;
+
+  /**
+   * Une chaîne vide n'est pas une adresse — et `??` ne le sait pas.
+   *
+   * Deux sources rendent `''` plutôt que `null` : un utilisateur anonyme, chez
+   * qui Supabase renvoie une adresse vide, et une ligne `parents` dont
+   * l'adresse n'a pas encore été écrite. `??` ne rattrape que `null` et
+   * `undefined`, donc le vide traversait tout le chemin jusqu'à Stripe, qui
+   * répondait `Invalid email address:` — avec rien après les deux-points, ce
+   * qui est la description exacte du problème et n'aide personne à le trouver.
+   *
+   * Le parcours d'inscription rend ce cas ordinaire : le parent existe et
+   * n'a pas encore donné d'adresse pendant deux écrans entiers.
+   */
+  const brute = ((parent.email as string | null) ?? auth.user.email ?? '').trim();
   return {
     familyId: parent.family_id as string,
     userId: auth.user.id,
-    email: (parent.email as string | null) ?? auth.user.email ?? null,
+    email: brute || null,
   };
 }
 

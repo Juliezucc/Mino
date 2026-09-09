@@ -90,7 +90,12 @@ Deno.serve(servir(async (request) => {
           mode: 'subscription',
           line_items: [{ price, quantity: 1 }],
           customer: existing?.customer_id ?? undefined,
-          customer_email: existing?.customer_id ? undefined : (caller.email ?? undefined),
+          // Jamais une chaîne vide : Stripe la refuse, et une adresse absente
+          // n'est pas une erreur — Checkout la demandera lui-même. Le garde-fou
+          // est double, ici et dans `familyOfCaller`, parce que la valeur
+          // traverse deux frontières avant d'arriver là.
+          customer_email:
+            existing?.customer_id || !caller.email?.trim() ? undefined : caller.email.trim(),
           client_reference_id: caller.familyId,
           subscription_data: {
             trial_end: trialEnd ? Math.floor(trialEnd.getTime() / 1000) : undefined,
