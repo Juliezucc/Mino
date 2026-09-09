@@ -1,4 +1,18 @@
-import { Plan } from './billing';
+/**
+ * `import type`, et il faut le garder tel quel.
+ *
+ * Ce fichier est lu par deux moteurs qui ne résolvent pas les chemins de la
+ * même façon. Metro accepte `./billing` ; Deno, qui exécute les fonctions Edge,
+ * exige l'extension et refuse de bundler — « Module not found … Maybe add a
+ * '.ts' extension ». Ajouter `.ts` ici casserait la compilation de
+ * l'application, l'inverse casse le déploiement du serveur.
+ *
+ * `import type` sort du dilemme : la ligne est effacée avant toute résolution,
+ * des deux côtés. Elle tient parce que `Plan` n'est qu'un type — si un jour on
+ * a besoin d'une valeur de `billing` ici, il faudra la déplacer, pas retirer
+ * ce mot-clé.
+ */
+import type { Plan } from './billing';
 
 /**
  * L'offre promotionnelle Apple qui délivre le mois du parrainage.
