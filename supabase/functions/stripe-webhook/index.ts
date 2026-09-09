@@ -80,7 +80,23 @@ async function record(input: {
   if (error) console.error('journal facturation', input.kind, error);
 }
 
-/** Mirrors a Stripe subscription into our table. */
+/**
+ * Mirrors a Stripe subscription into our table.
+ *
+ * **L'écriture dont l'échec était jeté, et c'était la seule qui compte.**
+ * Cette ligne est ce qui donne l'accès à une famille qui vient de payer. Son
+ * erreur n'était pas lue : `subscriptions.family_id` référence `families(id)`,
+ * donc un identifiant qui n'existe pas dans la base fait échouer l'insertion —
+ * et la fonction répondait quand même `200 OK`. Stripe affichait une livraison
+ * réussie, la table restait vide, le parent gardait « Essai gratuit » après
+ * avoir donné sa carte, et rien nulle part ne disait qu'il s'était passé
+ * quelque chose. C'est le mode de panne le plus cher qu'un produit payant
+ * puisse avoir : silencieux des deux côtés.
+ *
+ * On lève donc, ce qui fait répondre 500, ce qui fait réessayer Stripe — le
+ * comportement voulu, et déjà décrit plus bas : ces gestionnaires sont écrits
+ * pour être rejoués sans dégât.
+ */
 async function sync(subscription: Stripe.Subscription) {
   const familyId =
     (subscription.metadata?.family_id as string | undefined) ??
@@ -90,11 +106,13 @@ async function sync(subscription: Stripe.Subscription) {
       : undefined);
 
   if (!familyId) {
+    // Réessayer n'y changerait rien : cet abonnement n'a jamais porté de
+    // famille. On le dit fort, et on rend la main.
     console.error('abonnement sans family_id', subscription.id);
     return null;
   }
 
-  await admin()
+  const { error } = await admin()
     .from('subscriptions')
     .upsert({
       family_id: familyId,
@@ -107,6 +125,11 @@ async function sync(subscription: Stripe.Subscription) {
       subscription_id: subscription.id,
       updated_at: new Date().toISOString(),
     });
+
+  if (error) {
+    console.error('abonnement non enregistré', familyId, subscription.id, error.message);
+    throw new Error(`subscriptions upsert (${familyId}) : ${error.message}`);
+  }
 
   return familyId;
 }
