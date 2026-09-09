@@ -159,7 +159,7 @@ Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appa
 
 ### Serai-je prélevé à la fin de l’essai ?
 
-L’essai dure trente jours et rien n’est prélevé pendant cette période : aucune carte ne vous est demandée pour commencer. Vous ne payez qu’au moment où vous choisissez une formule, à la fin de l’essai.
+L’essai dure trente jours et rien n’est prélevé pendant cette période. Votre moyen de paiement est enregistré à l’inscription, sans être débité : c’est ce qui permet à l’abonnement de démarrer tout seul au trentième jour si vous ne faites rien. La date du premier prélèvement est écrite à l’écran avant que vous ne confirmiez, et vous pouvez résilier à tout moment avant : dans ce cas, rien ne vous est facturé.
 
 ### Comment annuler mon abonnement ?
 
