@@ -104,6 +104,31 @@ create table if not exists parents (
 alter table parents drop column if exists pin;
 alter table parents add column if not exists consent_at timestamptz;
 
+/**
+ * Un parent sans nom ni adresse, et pourquoi c'est légitime.
+ *
+ * Le parcours d'inscription (voir `docs/ops/parcours-inscription.md`) crée la
+ * famille et le premier enfant AVANT de demander quoi que ce soit au parent :
+ * il voit sa famille exister d'abord, il donne son adresse ensuite. Entre les
+ * deux, il est authentifié — Supabase ouvre une session anonyme — mais on ne
+ * sait de lui ni son prénom ni son e-mail.
+ *
+ * Or l'appartenance à une famille se lit dans cette table, et nulle part
+ * ailleurs : `auth_family_ids()` fait `select family_id from parents where
+ * user_id = auth.uid()`. Sans ligne ici, l'utilisateur anonyme ne voit pas la
+ * famille qu'il vient de créer et ne peut pas y ajouter d'enfant. La ligne
+ * doit donc exister tout de suite.
+ *
+ * Restaient deux `not null` qui obligeaient à inventer une adresse. Écrire une
+ * chaîne vide dans `email` aurait été le pire des deux mondes : la colonne
+ * aurait cessé de mentir sur sa nullité en mentant sur son contenu, et tout le
+ * code qui lit `parent.email` aurait affiché du vide sans savoir pourquoi.
+ *
+ * Un parent qui n'a pas encore donné son adresse n'en a pas. `null` le dit.
+ */
+alter table parents alter column email        drop not null;
+alter table parents alter column display_name drop not null;
+
 create table if not exists children (
   id               text primary key,
   family_id        text not null references families (id) on delete cascade,
@@ -467,9 +492,69 @@ drop policy if exists parents_select on parents;
 create policy parents_select on parents
   for select using (family_id = any (coalesce((select auth_family_ids_array()), '{}'::text[])));
 
+/**
+ * Qui a le droit de devenir parent d'une famille.
+ *
+ * **La faille que cela ferme, et un enfant pouvait l'ouvrir.** La condition
+ * était `user_id = auth.uid()` — seulement. Elle vérifie qu'on s'inscrit
+ * soi-même, jamais dans QUELLE famille. Or la tablette d'un enfant est un
+ * utilisateur authentifié, et elle connaît l'identifiant de sa propre famille :
+ * il est dans les données qu'elle lit légitimement.
+ *
+ * Il lui suffisait donc d'écrire une ligne dans `parents` avec son propre
+ * `user_id` et le `family_id` sous ses yeux. `auth_is_parent()` devenait vrai,
+ * et avec lui tout le reste : confirmer ses propres missions, s'accorder des
+ * minutes, supprimer un profil, résilier l'abonnement. Toutes les politiques
+ * qui protègent l'espace parent s'appuient sur cette fonction ; aucune ne
+ * protégeait la fonction elle-même.
+ *
+ * Deux cas sont légitimes, et seulement deux :
+ *
+ * 1. **Fonder.** Une famille qui n'a encore aucun parent : c'est l'inscription,
+ *    y compris celle d'une session anonyme qui vient de créer sa famille au
+ *    premier écran du parcours.
+ * 2. **Se réécrire.** Un parent qui renvoie sa propre ligne — la
+ *    synchronisation le fait à chaque écriture de la famille.
+ *
+ * Le second cas exige `auth_is_parent()`, et c'est lui qui referme la porte :
+ * un appareil d'enfant appartient bien à la famille (`auth_family_ids()` lit
+ * aussi `family_devices`), mais il n'est parent de personne.
+ */
+create or replace function family_has_parent(fid text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from parents where family_id = fid)
+$$;
+
+/**
+ * Déjà parent de CETTE famille — la nuance est tout le correctif.
+ *
+ * `auth_is_parent()` ne dit que « parent quelque part », ce qui ne protège
+ * rien ici. Et cette fonction est définie plus bas dans le fichier, après les
+ * tables dont elle dépend : la nommer ici échouerait à la création.
+ */
+create or replace function is_parent_of(fid text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from parents where family_id = fid and user_id = auth.uid()
+  )
+$$;
+
 drop policy if exists parents_insert on parents;
 create policy parents_insert on parents
-  for insert with check (user_id = auth.uid());
+  for insert with check (
+    user_id = auth.uid()
+    and (not family_has_parent(family_id) or is_parent_of(family_id))
+  );
 
 drop policy if exists parents_update on parents;
 create policy parents_update on parents
