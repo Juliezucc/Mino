@@ -7,6 +7,32 @@
     Google demande une justification écrite pour les deux premières au moment
     de publier. Voir docs/blocage-ecrans.md.
   -->
+  <!--
+    Voir les applications lançables, et rien d'autre.
+
+    **Le défaut que cela répare.** Depuis Android 11, une application ne voit
+    plus les autres : le système filtre la visibilité des paquets. Sans cette
+    déclaration, `queryIntentActivities` dans `PickerActivity` renvoie une liste
+    quasi vide — le parent n'a rien à cocher, il coche donc zéro application, et
+    le bouclier ne recouvre jamais rien. Silencieusement : aucune erreur, aucun
+    message, juste un écran de sélection presque vide qu'on prend pour un bug
+    d'affichage.
+
+    On déclare l'intention plutôt que `QUERY_ALL_PACKAGES`. Les deux donnent
+    accès à la même liste ici, mais l'autorisation large est restreinte par
+    Google, demande une justification écrite à chaque mise à jour, et
+    n'accorderait rien de plus : Mino n'a besoin de voir que ce qui se lance
+    depuis l'écran d'accueil, puisque c'est cela que le parent encadre.
+
+    La liste ne quitte jamais l'appareil — voir `PickerActivity`.
+  -->
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="android.intent.category.LAUNCHER" />
+    </intent>
+  </queries>
+
   <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
                    tools:ignore="ProtectedPermissions" />
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
