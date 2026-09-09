@@ -77,3 +77,38 @@ couramment ignorés par les clients FTP, donc il faut les voir des deux côtés.
 **Et `.env` n'est pas versionné.** Il vit sur la machine qui exporte. Une
 machine neuve exporte donc un paquet creux du premier coup, et le `grep`
 ci-dessus est ce qui l'attrape.
+
+### Un export qui échoue laisse le précédent en place, intact et convaincant
+
+Relevé le 9 septembre 2026 par la session qui publie : `npx expo export`
+s'arrêtait sur `Unable to resolve module react-native-qrcode-svg` — la
+dépendance était déclarée et dans le verrou, mais pas installée, faute d'un
+`npm install` après le `git pull`. Le dossier `dist/` restait celui d'avant,
+complet, daté, et parfaitement crédible. On regarde alors un dossier périmé en
+croyant regarder un neuf.
+
+**D'où la règle : `npm install` après chaque `git pull`, avant d'exporter.** Et
+la vérification qui tranche vraiment : **l'empreinte du paquet**. Comparer
+`dist/_expo/static/js/web/entry-*.js` à ce que sert le serveur est le seul
+contrôle qui distingue « rien n'a changé » de « quelque chose a échoué ».
+
+### Choisir des marqueurs qui survivent
+
+Trois qualités pour un marqueur : une **chaîne littérale** (les noms de modules
+disparaissent à la minification), **atteinte depuis l'application** (un module
+que seule une fonction Edge consomme n'entre jamais dans le paquet web), et
+**neuve** (elle doit distinguer ce paquet-ci du précédent).
+
+`OFFRE_PARRAINAGE` échoue au deuxième critère et c'est structurel : côté
+application, les quatre fichiers qui importent `domain/offrePromo` n'en prennent
+que le type `OffreApple`, effacé à la compilation. La constante n'est lue que
+par `billing/index.ts`, qui tourne chez Supabase — l'offre est signée par le
+serveur, c'est l'architecture qui le veut.
+
+Marqueurs sûrs, à ce jour :
+
+| Chaîne | Ce qu'elle prouve |
+|---|---|
+| `bpnmmkignvpysbkcfpzz` | les variables `EXPO_PUBLIC_*` sont entrées dans le paquet |
+| `minoapp.fr/telecharger` | l'écran d'installation avec le code QR est là |
+| `Récupérer mon mois offert` | l'écran de parrainage est à jour |
