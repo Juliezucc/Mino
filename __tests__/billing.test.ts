@@ -117,6 +117,27 @@ describe('access', () => {
   it('treats no subscription at all as expired', () => {
     expect(accessOf(null, NOW)).toEqual({ kind: 'expired' });
   });
+
+  /**
+   * « Expiré » et « pas encore lu » se ressemblent, et les confondre coûte
+   * cher aux deux bouts.
+   *
+   * `accessOf(null)` rend « expiré » parce qu'il faut bien rendre quelque
+   * chose. Mais `null` ne dit pas « terminé », il dit « on ne sait pas
+   * encore ». `isLocked` le sait depuis toujours et laisse passer dans le
+   * doute — ce test l'atteste, et il explique pourquoi un parent pouvait créer
+   * une mission pendant que son accueil lui annonçait la fin de son essai.
+   *
+   * Les écrans, eux, avaient hérité de la valeur sans la nuance : le bandeau
+   * annonçait la fin d'un essai qui venait de commencer, et le paywall en
+   * concluait que la famille était déjà servie — il s'effaçait, et personne ne
+   * voyait jamais le prix.
+   */
+  it('ne verrouille pas une famille dont on ignore l’abonnement', () => {
+    expect(accessOf(null, NOW)).toEqual({ kind: 'expired' });
+    expect(isLocked(null, 'confirm', NOW)).toBe(false);
+    expect(isLocked(null, 'mission.write', NOW)).toBe(false);
+  });
 });
 
 describe('adding months', () => {

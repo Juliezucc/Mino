@@ -63,7 +63,24 @@ export default function OnboardingAbonnement() {
 
   const billing = getBillingService();
   const access = accessOf(subscription);
-  const dejaServi = access.kind !== 'trial' || access.plan !== null;
+
+  /**
+   * On ne s'efface que sur une certitude.
+   *
+   * `accessOf(null)` vaut « expiré », et cette valeur-là avait un effet
+   * désastreux ici : un abonnement pas encore chargé faisait conclure que la
+   * famille était déjà servie, et le paywall se sautait lui-même. Le parent
+   * traversait l'inscription sans jamais voir l'écran de paiement, et
+   * atterrissait sur un accueil qui lui annonçait la fin d'un essai qui venait
+   * de commencer.
+   *
+   * `subscription !== null` d'abord : tant qu'on ne sait pas, on reste. C'est
+   * la même règle que `src/domain/access.ts` applique au verrou — un fait
+   * connu, jamais une ignorance — sauf qu'ici elle penche dans l'autre sens,
+   * et c'est cohérent : dans le doute on montre le prix, on ne l'offre pas.
+   */
+  const dejaServi =
+    subscription !== null && (access.kind !== 'trial' || access.plan !== null);
 
   useEffect(() => {
     loadBilling().catch(() => undefined);

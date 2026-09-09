@@ -21,13 +21,30 @@ import { colors, spacing } from '@/theme';
  */
 interface Props {
   access: Access;
+  /**
+   * A-t-on vraiment lu l'abonnement ?
+   *
+   * `accessOf(null)` vaut « expiré », et `null` ne veut pas dire « terminé » :
+   * il veut dire « on ne sait pas encore » — au démarrage, le temps que la
+   * facturation réponde, ou quand elle ne répond pas du tout.
+   *
+   * Le bandeau annonçait donc « Votre essai est terminé » à une famille qui
+   * venait de s'inscrire, dont l'essai courait depuis trente secondes.
+   * `src/domain/access.ts` avait déjà tranché la question pour le verrou —
+   * « verrouille sur un fait connu, jamais sur une ignorance » — et c'est
+   * précisément pour ça que le parent pouvait quand même créer une mission
+   * pendant que l'écran lui annonçait la fin de son essai. L'écran n'avait
+   * jamais reçu la même consigne.
+   */
+  connu: boolean;
 }
 
-export function AccessBanner({ access }: Props) {
+export function AccessBanner({ access, connu }: Props) {
   const router = useRouter();
 
-  const content =
-    access.kind === 'expired'
+  const content = !connu
+    ? null
+    : access.kind === 'expired'
       ? {
           tone: colors.yellowSoft,
           title: 'Votre essai est terminé',

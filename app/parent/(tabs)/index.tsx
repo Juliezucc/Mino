@@ -101,7 +101,7 @@ export default function ParentHome() {
 
       {/* Un verrou qu'on découvre en appuyant sur un bouton met en colère :
           celui-là s'annonce ici, avant de gêner. */}
-      <AccessBanner access={access} />
+      <AccessBanner access={access} connu={subscription !== null} />
 
       {/* Avant la première minute gagnée, la seule chose utile à dire est ce
           qui vient après. Voir `FirstStepCard`. */}
