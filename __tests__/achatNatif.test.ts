@@ -663,3 +663,65 @@ it('les délais ne gênent pas le cas normal', async () => {
   const produits = await new ExpoIapStore('apple', async () => iap).products();
   expect(produits.map((p) => p.priceLabel)).toEqual(['9,99 €', '79,99 €']);
 });
+
+/**
+ * Ce qui ne concerne qu'Android, et qui n'était éprouvé nulle part.
+ *
+ * Play Billing **exige** un jeton d'offre pour tout abonnement. Sa lecture se
+ * faisait hors du garde-fou de délai — donc une liaison muette rendait, sur
+ * Android seulement, exactement le bouton qui tourne sans fin qu'on venait de
+ * corriger ailleurs. Et son absence partait quand même chez Google, qui
+ * refusait avec un message dont la cause est chez nous : un produit dont
+ * l'offre de base n'est pas configurée dans la Play Console.
+ */
+describe('le rail Google', () => {
+  it('dit que l’offre manque au lieu de laisser Play refuser', async () => {
+    // Un produit vendable, mais sans offre de base configurée.
+    const { iap, journal } = fausseBoutique({
+      produits: [{ ...mensuel, offre: undefined }],
+      surDemande: ({ emet }) =>
+        emet({ id: 'tx-1', productId: PRODUITS.monthly, purchaseToken: 'jeton' }),
+    });
+
+    const boutique = new ExpoIapStore('google', async () => iap, { feuille: 200 });
+
+    await expect(
+      boutique.purchase({ productId: PRODUITS.monthly, accountToken: JETON }),
+    ).rejects.toThrow(/Google Play/);
+
+    // Et surtout : rien n'a été demandé à la boutique.
+    expect(journal.demandes).toHaveLength(0);
+  });
+
+  it('cesse d’attendre un jeton d’offre qui n’arrive jamais', async () => {
+    const { iap } = fausseBoutique({ produits: [{ ...mensuel, offre: 'jeton-offre' }] });
+    // La lecture des offres reste muette : sans délai, Android tournait sans fin.
+    iap.fetchProducts = () => new Promise<never>(() => undefined);
+
+    const boutique = new ExpoIapStore('google', async () => iap, { liaison: 50, feuille: 200 });
+
+    await expect(
+      boutique.purchase({ productId: PRODUITS.monthly, accountToken: JETON }),
+    ).rejects.toThrow(/n’a pas répondu/);
+  });
+
+  it('joint le jeton d’offre à la demande d’achat', async () => {
+    const { iap, journal } = fausseBoutique({
+      produits: [{ ...mensuel, offre: 'jeton-offre' }],
+      surDemande: ({ emet }) =>
+        emet({ id: 'tx-2', productId: PRODUITS.monthly, purchaseToken: 'jeton' }),
+    });
+
+    await new ExpoIapStore('google', async () => iap).purchase({
+      productId: PRODUITS.monthly,
+      accountToken: JETON,
+    });
+
+    const demande = journal.demandes[0] as {
+      request: { google: { subscriptionOffers: { offerToken: string }[] } };
+    };
+    expect(demande.request.google.subscriptionOffers).toEqual([
+      { sku: PRODUITS.monthly, offerToken: 'jeton-offre' },
+    ]);
+  });
+});

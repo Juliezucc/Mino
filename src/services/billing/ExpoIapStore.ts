@@ -273,7 +273,36 @@ export class ExpoIapStore implements NativeStore {
     const iap = await this.connexion();
 
     const jeton = EST_UUID.test(input.accountToken) ? input.accountToken : null;
-    const offre = this.platform === 'google' ? await this.offrePour(iap, input.productId) : null;
+
+    /**
+     * Le jeton d'offre de Play, et les deux façons dont il faisait échouer
+     * l'achat en silence.
+     *
+     * **Il se lisait hors de tout garde-fou.** Cet appel précède la promesse
+     * qui porte le délai : sur Android, une liaison muette rendait donc
+     * exactement le bouton qui tourne sans fin qu'on venait de corriger
+     * ailleurs. Le chemin iOS était protégé, l'autre non.
+     *
+     * **Et son absence n'était pas une erreur.** Play Billing **exige** un
+     * jeton d'offre pour tout abonnement : sans lui, l'achat part quand même,
+     * échoue chez Google, et le parent reçoit un message de la boutique qui ne
+     * dit rien de la cause. Or la cause est chez nous — un produit dont
+     * l'offre de base n'est pas configurée dans la Play Console — et c'est
+     * exactement ce qu'il faut lire dans les journaux le jour où ça arrive.
+     */
+    let offre: string | null = null;
+    if (this.platform === 'google') {
+      offre = await this.avant(
+        'offres Play',
+        this.delais.liaison ?? DELAI_LIAISON_MS,
+        this.offrePour(iap, input.productId),
+      );
+      if (!offre) {
+        throw new Error(
+          'Cette formule n’a pas d’offre configurée sur Google Play. Réessayez plus tard.',
+        );
+      }
+    }
 
     return new Promise<StorePurchase | null>((resolve, reject) => {
       const abonnements: Abonnement[] = [];
@@ -391,7 +420,9 @@ export class ExpoIapStore implements NativeStore {
             google: {
               skus: [input.productId],
               obfuscatedAccountId: jeton,
-              subscriptionOffers: offre ? [{ sku: input.productId, offerToken: offre }] : [],
+              // Jamais vide : Play refuse un abonnement sans jeton d'offre, et
+              // le cas est écarté plus haut avec une phrase qui dit pourquoi.
+              subscriptionOffers: [{ sku: input.productId, offerToken: offre }],
             },
           },
         })
