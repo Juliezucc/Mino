@@ -281,6 +281,37 @@ plus tard, de mémoire.
    Stripe Tax calcule zéro et on encaisse sans collecter la TVA due. Et sans
    Stripe Tax du tout, `billing` demande un calcul que Stripe refuse : la
    session de paiement échoue, sur une erreur qui ne parle pas de taxes.
+
+   > **« Stripe Tax activé » et « immatriculé » sont deux choses différentes,
+   > et le tableau de bord ne le dit pas.** L'adresse de siège, la catégorie de
+   > produit et le calcul automatique peuvent être verts partout pendant que la
+   > liste des immatriculations est vide — auquel cas Stripe conclut que tu
+   > n'as d'obligation nulle part, et facture 0 %. L'immatriculation est en
+   > outre **propre à chaque mode** : celle du test n'existe pas en réel.
+   >
+   > La vérité tient en une commande, et elle ne ment pas :
+   >
+   > ```bash
+   > curl -s https://api.stripe.com/v1/tax/registrations -u "$STRIPE_SECRET_KEY:"
+   > ```
+   >
+   > Vide, il faut la créer. Le `place_of_supply_scheme` n'est pas facultatif —
+   > sans lui, Stripe refuse avec un message qui tourne en rond (« requires
+   > `standard` to be specified ») :
+   >
+   > ```bash
+   > curl -s https://api.stripe.com/v1/tax/registrations \
+   >   -u "$STRIPE_SECRET_KEY:" \
+   >   -d country=FR \
+   >   -d "country_options[fr][type]=standard" \
+   >   -d "country_options[fr][standard][place_of_supply_scheme]=standard" \
+   >   -d active_from=now
+   > ```
+   >
+   > Créer cet objet n'immatricule auprès d'aucune administration : il déclare à
+   > Stripe un fait déjà vrai. Vendre ailleurs dans l'Union suppose en revanche
+   > une immatriculation **OSS**, à demander sur impots.gouv.fr — sans elle, la
+   > disponibilité du site reste la France.
 5. **Le portail client**, en entier : en-tête `Mino`, redirection vers
    `https://minoapp.fr/abonnement`, annulation à la fin de la période,
    changement d'offre entre les deux tarifs, quantité désactivée, « mettre fin
