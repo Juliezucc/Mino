@@ -14,6 +14,7 @@ import {
 import { createSupabaseRepository } from '@/data/supabaseRepository';
 import * as actions from '@/domain/actions';
 import { GatedAction, LOCKED_MESSAGE, isLocked } from '@/domain/access';
+import { envoyerCourrier } from '@/services/courrier';
 import { Plan, Referral, Subscription } from '@/domain/billing';
 import { DeviceKind } from '@/domain/devices';
 import { AvatarKey, FamilyData, ID, ISODate, RepeatRule } from '@/domain/types';
@@ -594,6 +595,20 @@ export const useMinoStore = create<MinoState>((set, get) => {
       publish(data, { status: 'ready', activeChildId: null, parentUnlocked: true });
       await get().repository.persist(data, { kind: 'bootstrap' });
       await get().loadBilling();
+
+      /**
+       * La bienvenue part d'ici, et d'ici seulement.
+       *
+       * C'est le premier instant du parcours où l'on connaît une adresse — aux
+       * deux écrans précédents, le parent n'en avait pas donné. L'envoyer plus
+       * tôt reviendrait à écrire à personne.
+       *
+       * `void` et jamais `await` : un e-mail qui ne part pas ne doit pas
+       * retenir un parent devant un bouton qui tourne. Sa famille existe, elle
+       * est enregistrée, c'est ce qui compte — et la fonction refuse d'elle-même
+       * d'écrire deux fois à la même famille.
+       */
+      void envoyerCourrier('bienvenue').catch(() => undefined);
       return { ok: true };
     },
 
