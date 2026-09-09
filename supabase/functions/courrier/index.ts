@@ -185,24 +185,51 @@ function ecrire(genre: Genre, f: Famille): { sujet: string; texte: string; html:
           { p: 'À très vite,\nL\'équipe Mino' },
         ]
       : genre === 'fin_essai'
-        ? [
-            { p: `Bonjour${prenom},` },
-            {
-              p: `Votre essai gratuit se termine le ${jour(f.trialEndsAt)}. À cette date, ${
-                f.plan === 'yearly' ? '79,99 € pour un an' : '9,99 € pour un mois'
-              } sera prélevé, puis l'abonnement se renouvellera automatiquement.`,
-            },
-            { titre: 'Si vous voulez continuer' },
-            { p: `Vous n'avez rien à faire. Tout reste en place pour ${enfant}.` },
-            { titre: 'Si vous préférez arrêter' },
-            {
-              p: `Ouvrez Mino, Réglages, Abonnement, puis « Résilier ». Deux touches, et rien ne sera prélevé. Vous gardez l'accès jusqu'au ${jour(f.trialEndsAt)}.`,
-            },
-            {
-              p: 'Nous préférons vous le dire franchement plutôt que de compter sur un oubli.',
-            },
-            { p: "L'équipe Mino" },
-          ]
+        ? /**
+           * Deux essais très différents, et un seul message pour les deux.
+           *
+           * **Le défaut que cela répare.** Ce message annonçait un prélèvement
+           * à tout le monde. Or `plan` est nul tant qu'aucune formule n'a été
+           * choisie : ces familles-là n'ont donné aucun moyen de paiement, et
+           * rien ne leur sera prélevé — leur essai s'arrête, simplement.
+           * Écrire « 9,99 € sera prélevé » à quelqu'un qui n'a jamais donné de
+           * carte, c'est l'alarmer et se décrédibiliser d'un seul coup, à
+           * l'instant précis où l'on essaie de le convaincre de rester.
+           */
+          f.plan
+          ? [
+              { p: `Bonjour${prenom},` },
+              {
+                p: `Votre essai gratuit se termine le ${jour(f.trialEndsAt)}. À cette date, ${
+                  f.plan === 'yearly' ? '79,99 € pour un an' : '9,99 € pour un mois'
+                } sera prélevé, puis l'abonnement se renouvellera automatiquement.`,
+              },
+              { titre: 'Si vous voulez continuer' },
+              { p: `Vous n'avez rien à faire. Tout reste en place pour ${enfant}.` },
+              { titre: 'Si vous préférez arrêter' },
+              {
+                p: `Ouvrez Mino, Réglages, Abonnement, puis « Résilier ». Deux touches, et rien ne sera prélevé. Vous gardez l'accès jusqu'au ${jour(f.trialEndsAt)}.`,
+              },
+              {
+                p: 'Nous préférons vous le dire franchement plutôt que de compter sur un oubli.',
+              },
+              { p: "L'équipe Mino" },
+            ]
+          : [
+              { p: `Bonjour${prenom},` },
+              {
+                p: `Votre essai gratuit se termine le ${jour(f.trialEndsAt)}. Vous n'avez enregistré aucun moyen de paiement : rien ne sera prélevé, et il n'y a rien à résilier.`,
+              },
+              { titre: 'Si vous voulez continuer' },
+              {
+                p: `Ouvrez Mino, Réglages, Abonnement, et choisissez votre formule. Les missions de ${enfant}, ses minutes et vos réglages restent exactement où ils sont.`,
+              },
+              { titre: "Si vous préférez en rester là" },
+              {
+                p: "Vous n'avez rien à faire. À la fin de l'essai, Mino cesse d'encadrer les écrans, et vos données restent conservées si vous changez d'avis.",
+              },
+              { p: "L'équipe Mino" },
+            ]
         : [
             { p: `Bonjour${prenom},` },
             {

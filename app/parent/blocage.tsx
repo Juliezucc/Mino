@@ -430,8 +430,9 @@ export default function ShieldSetup() {
         * Cet écran est le dernier de l'installation, et il ne proposait rien
         * d'autre que le guide ou le retour. Un parent pressé — c'est-à-dire
         * tous — n'avait donc le choix qu'entre lire cinq pages et reculer.
-        * Sur le web, où le bouclier n'existe pas et où la seule carte affichée
-        * est celle du guide, l'écran était une impasse complète.
+        * Sur le web, où le bouclier n'existe pas, l'écran était une impasse
+        * complète : il n'y avait ni verrou à régler, ni chemin pour en poser
+        * un ailleurs.
         */}
       <Button
         label="Terminer, aller à mon espace"

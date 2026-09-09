@@ -12,6 +12,7 @@ import { Stripe, admin, env, fail, stripe } from '../_shared/mino.ts';
 // dans `_shared/parrainage.ts` le jour où un filleul a pu payer ailleurs que
 // chez Stripe : le règlement du parrainage n'a rien de propre à un rail.
 import { record, settleReferral } from '../_shared/parrainage.ts';
+import { MONTHLY_PRICE_EUR } from '../../../src/domain/billing.ts';
 
 const iso = (seconds: number | null | undefined) =>
   seconds ? new Date(seconds * 1000).toISOString() : null;
@@ -56,6 +57,58 @@ function planOf(subscription: Stripe.Subscription): 'monthly' | 'yearly' | null 
  * comportement voulu, et déjà décrit plus bas : ces gestionnaires sont écrits
  * pour être rejoués sans dégât.
  */
+/**
+ * Donner enfin les mois de parrainage mis de côté.
+ *
+ * **Le trou que cela bouche.** `rewardReferrer` sait récompenser un parrain
+ * déjà client — il recule sa fin d'essai, ou lui porte un avoir. Mais un
+ * parrain encore en essai, sans client de facturation chez Stripe, ne pouvait
+ * recevoir ni l'un ni l'autre : son mois partait dans `credit_months`, « en
+ * attendant ». Et rien, nulle part, ne le dépensait ensuite. Le compte était
+ * tenu et jamais soldé — l'écran de parrainage affichait « Mois offert ✓ »
+ * pour un mois que personne n'allait jamais donner.
+ *
+ * Le moment juste est celui-ci : le parrain vient de s'abonner, il a donc
+ * maintenant un client chez Stripe. L'avoir est porté à son solde, et Stripe le
+ * déduit de la première facture réelle — la fin d'essai reste à sa date, ce qui
+ * évite d'annoncer un prélèvement à un jour et de le passer à un autre.
+ *
+ * **Rejouable.** Le verrou est la ligne de journal, dont la clé est unique :
+ * Stripe rejoue ses notifications, et la seconde ne dépense rien.
+ */
+async function depenserMoisOfferts(
+  familyId: string,
+  subscription: Stripe.Subscription,
+  eventId: string,
+): Promise<void> {
+  if (typeof subscription.customer !== 'string') return;
+
+  const { data } = await admin()
+    .from('subscriptions')
+    .select('credit_months')
+    .eq('family_id', familyId)
+    .maybeSingle();
+
+  const mois = Number(data?.credit_months ?? 0);
+  if (mois < 1) return;
+
+  const neuf = await record({
+    familyId,
+    kind: 'parrainage_consomme',
+    eventId: `${eventId}:credit`,
+    amountCents: -Math.round(MONTHLY_PRICE_EUR * 100) * mois,
+  }).catch(() => false);
+  if (!neuf) return;
+
+  await stripe().customers.createBalanceTransaction(subscription.customer, {
+    amount: -Math.round(MONTHLY_PRICE_EUR * 100) * mois,
+    currency: 'eur',
+    description: `Parrainage Mino — ${mois} mois offert${mois > 1 ? 's' : ''}`,
+  });
+
+  await admin().from('subscriptions').update({ credit_months: 0 }).eq('family_id', familyId);
+}
+
 async function sync(subscription: Stripe.Subscription) {
   const familyId =
     (subscription.metadata?.family_id as string | undefined) ??
@@ -143,6 +196,10 @@ Deno.serve(async (request) => {
           status: statusOf(subscription),
           plan: planOf(subscription),
         };
+
+        if (event.type === 'customer.subscription.created') {
+          await depenserMoisOfferts(familyId, subscription, event.id);
+        }
 
         if (event.type === 'customer.subscription.deleted') {
           await record({ ...common, kind: 'resiliation_effective' });

@@ -4,6 +4,7 @@ import { Share, StyleSheet, View } from 'react-native';
 
 import { Button, Card, Field, Screen, ScreenHeader, Text } from '@/components/ui';
 import { REFERRAL, TRIAL_DAYS, creditedMonthsInYear } from '@/domain/billing';
+import { getBillingService } from '@/services/billing';
 import { useFamily } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
@@ -56,6 +57,14 @@ export default function ReferralScreen() {
    * toute seule. Sans ce bouton, le mois resterait compté et jamais donné.
    */
   const moisDus = subscription?.creditMonths ?? 0;
+
+  /**
+   * Y a-t-il un geste à faire, ou rien du tout ? C'est le service qui le sait :
+   * seule la boutique expose une méthode pour réclamer le mois. Le demander au
+   * service plutôt qu'à la plateforme laisse la doublure locale et les essais
+   * répondre juste.
+   */
+  const aDemander = !!getBillingService().redeemReferralMonth;
 
   const recuperer = async () => {
     setLoading(true);
@@ -113,11 +122,37 @@ export default function ReferralScreen() {
           <Text variant="cardTitle">
             {moisDus > 1 ? `${moisDus} mois vous attendent` : 'Un mois vous attend'}
           </Text>
-          <Text variant="body" color={colors.textMuted}>
-            Votre filleul s’est abonné. Confirmez pour l’appliquer à votre prochaine échéance —
-            l’App Store demande votre accord, il ne peut pas le faire à votre place.
-          </Text>
-          <Button label="Récupérer mon mois offert" icon="🎁" loading={loading} onPress={recuperer} />
+          {/**
+           * Un bouton là où il agit, une phrase là où il n'agirait pas.
+           *
+           * Ce bloc offrait « Récupérer mon mois offert » à tout le monde. Or
+           * `redeemReferralMonth` n'existe que sur le rail boutique : sur le
+           * web, le bouton répondait invariablement « Rien à récupérer ici » —
+           * un bouton mort, sur l'écran qui promet un cadeau.
+           *
+           * Et ailleurs qu'à l'App Store, il n'y a rien à demander : le mois
+           * est porté au solde du client au moment où l'abonnement démarre, et
+           * Stripe le déduit de la première facture réelle.
+           */}
+          {aDemander ? (
+            <>
+              <Text variant="body" color={colors.textMuted}>
+                Votre filleul s’est abonné. Confirmez pour l’appliquer à votre prochaine échéance —
+                l’App Store demande votre accord, il ne peut pas le faire à votre place.
+              </Text>
+              <Button
+                label="Récupérer mon mois offert"
+                icon="🎁"
+                loading={loading}
+                onPress={recuperer}
+              />
+            </>
+          ) : (
+            <Text variant="body" color={colors.textMuted}>
+              Votre filleul s’est abonné. {moisDus > 1 ? 'Ces mois seront déduits' : 'Ce mois sera déduit'}{' '}
+              de votre prochaine facture, sans rien avoir à faire.
+            </Text>
+          )}
         </Card>
       ) : null}
 
