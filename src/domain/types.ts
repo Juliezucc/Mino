@@ -32,8 +32,18 @@ export interface Family {
 export interface Parent {
   id: ID;
   familyId: ID;
-  displayName: string;
-  email: string;
+  /**
+   * Nuls tant que le parent ne s'est pas encore présenté.
+   *
+   * Le parcours d'inscription crée la famille et le premier enfant avant de
+   * demander quoi que ce soit : entre ces écrans, le parent existe, il est
+   * authentifié, et on ne sait de lui ni son prénom ni son adresse. Écrire une
+   * chaîne vide aurait été pire que `null` — la colonne aurait cessé de mentir
+   * sur sa nullité en mentant sur son contenu, et chaque écran aurait affiché
+   * du vide sans pouvoir distinguer « pas encore donné » de « donné vide ».
+   */
+  displayName: string | null;
+  email: string | null;
   createdAt: ISODate;
   /**
    * Quand ce parent a déclaré être titulaire de l'autorité parentale.
