@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 
-import { Screen, ScreenHeader, Text } from '@/components/ui';
+import { Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
 import { childrenOfMission } from '@/domain/missions';
 import { MissionForm, MissionFormValue } from '@/features/parent/MissionForm';
 import { useFamily } from '@/store/selectors';
@@ -86,14 +86,13 @@ export default function EditMission() {
     );
     if (!enAttente || value.minutes === mission.minutes) return submit(value);
 
-    Alert.alert(
-      'Une demande attend déjà',
-      `Le nouveau temps s’appliquera aux prochaines fois. La demande en attente reste à ${mission.minutes} min, comme annoncé à l’enfant quand il a terminé.`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Enregistrer', onPress: () => void submit(value) },
-      ],
-    );
+    void confirmer({
+      titre: 'Une demande attend déjà',
+      message: `Le nouveau temps s’appliquera aux prochaines fois. La demande en attente reste à ${mission.minutes} min, comme annoncé à l’enfant quand il a terminé.`,
+      action: 'Enregistrer',
+    }).then((oui) => {
+      if (oui) void submit(value);
+    });
   };
 
   return (

@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Card, Chip, Field, Screen, ScreenHeader, Text } from '@/components/ui';
+import { Button, Card, Chip, Field, Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
 import {
   DEVICE_KINDS,
   DEVICE_SUGGESTIONS,
@@ -52,16 +52,14 @@ export default function DevicesScreen() {
   };
 
   const confirmRemove = (id: string, name: string) => {
-    Alert.alert('Retirer cet appareil ?', `« ${name} » ne sera plus proposé à vos enfants.`, [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Retirer',
-        style: 'destructive',
-        onPress: () => {
-          removeDevice(id).catch(() => undefined);
-        },
-      },
-    ]);
+    void confirmer({
+      titre: 'Retirer cet appareil ?',
+      message: `« ${name} » ne sera plus proposé à vos enfants.`,
+      action: 'Retirer',
+      destructif: true,
+    }).then((oui) => {
+      if (oui) removeDevice(id).catch(() => undefined);
+    });
   };
 
   const alreadyAdded = (name: string) =>

@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import {
   Avatar,
@@ -13,6 +13,7 @@ import {
   SectionHeader,
   Text,
   TimeCapsules,
+  confirmer,
 } from '@/components/ui';
 import { balanceDetail } from '@/domain/ledger';
 import { missionsForChild } from '@/domain/missions';
@@ -45,21 +46,16 @@ export default function ParentChildDetail() {
   };
 
   const confirmDelete = () => {
-    Alert.alert(
-      'Supprimer le profil ?',
-      `Toutes les données de ${child.firstName} seront effacées de cet appareil.`,
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteChild(child.id);
-            router.back();
-          },
-        },
-      ],
-    );
+    void confirmer({
+      titre: 'Supprimer le profil ?',
+      message: `Toutes les données de ${child.firstName} seront effacées de cet appareil.`,
+      action: 'Supprimer',
+      destructif: true,
+    }).then(async (oui) => {
+      if (!oui) return;
+      await deleteChild(child.id);
+      router.back();
+    });
   };
 
   return (

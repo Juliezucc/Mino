@@ -15,3 +15,4 @@ export { EmptyState } from './EmptyState';
 export { SectionHeader } from './SectionHeader';
 export { StatusPill } from './StatusPill';
 export { ScreenHeader } from './ScreenHeader';
+export { confirmer } from './confirmer';

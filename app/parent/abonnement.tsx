@@ -1,9 +1,9 @@
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Card, Screen, ScreenHeader, Text } from '@/components/ui';
+import { Button, Card, Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
 import {
   ANNUAL_PRICE_EUR,
   MONTHLY_PRICE_EUR,
@@ -154,36 +154,28 @@ export default function SubscriptionScreen() {
   const confirmCancel = () => {
     if (!canCancelInApp(subscription)) {
       const seller = sellerOf(subscription?.source);
-      Alert.alert(
-        'Résilier l’abonnement',
-        `Votre abonnement a été souscrit via ${seller}. La résiliation se fait dans les réglages de votre téléphone, en deux touches — nous vous y emmenons.`,
-        [
-          { text: 'Plus tard', style: 'cancel' },
-          {
-            text: 'M’y emmener',
-            onPress: ouvrirGestion,
-          },
-        ],
-      );
+      void confirmer({
+        titre: 'Résilier l’abonnement',
+        message: `Votre abonnement a été souscrit via ${seller}. La résiliation se fait dans les réglages de votre téléphone, en deux touches — nous vous y emmenons.`,
+        action: 'M’y emmener',
+        annuler: 'Plus tard',
+      }).then((oui) => {
+        if (oui) ouvrirGestion();
+      });
       return;
     }
 
-    Alert.alert(
-      'Résilier l’abonnement ?',
-      subscription?.currentPeriodEnd
+    void confirmer({
+      titre: 'Résilier l’abonnement ?',
+      message: subscription?.currentPeriodEnd
         ? `Vous gardez l’accès jusqu’au ${frenchDate(subscription.currentPeriodEnd)}. Rien ne sera prélevé ensuite.`
         : 'Vous gardez l’accès jusqu’à la fin de la période en cours. Rien ne sera prélevé ensuite.',
-      [
-        { text: 'Garder mon abonnement', style: 'cancel' },
-        {
-          text: 'Résilier',
-          style: 'destructive',
-          onPress: () => {
-            cancelSubscription().catch(() => setError('La résiliation a échoué.'));
-          },
-        },
-      ],
-    );
+      action: 'Résilier',
+      annuler: 'Garder mon abonnement',
+      destructif: true,
+    }).then((oui) => {
+      if (oui) cancelSubscription().catch(() => setError('La résiliation a échoué.'));
+    });
   };
 
   return (

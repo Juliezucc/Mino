@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { Button, Card, Field, Screen, ScreenHeader, Text } from '@/components/ui';
+import { Button, Card, Field, Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
 import { getAuthService } from '@/services/auth';
 import { useParent } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -87,20 +87,16 @@ export default function CompteParent() {
   };
 
   const seDeconnecter = () => {
-    Alert.alert(
-      'Se déconnecter ?',
-      'Rien ne sera perdu : vos enfants, leurs missions et leurs minutes restent sur votre compte. Il faudra votre mot de passe pour revenir.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Se déconnecter',
-          onPress: async () => {
-            await signOut();
-            router.replace('/welcome');
-          },
-        },
-      ],
-    );
+    void confirmer({
+      titre: 'Se déconnecter ?',
+      message:
+        'Rien ne sera perdu : vos enfants, leurs missions et leurs minutes restent sur votre compte. Il faudra votre mot de passe pour revenir.',
+      action: 'Se déconnecter',
+    }).then(async (oui) => {
+      if (!oui) return;
+      await signOut();
+      router.replace('/welcome');
+    });
   };
 
   /**
@@ -114,24 +110,20 @@ export default function CompteParent() {
     if (confirmation.trim().toLowerCase() !== 'supprimer') {
       return setErreur('Écrivez « supprimer » dans le champ pour confirmer.');
     }
-    Alert.alert(
-      'Supprimer définitivement ?',
-      'Les profils de vos enfants, leurs missions, leur historique et les minutes gagnées seront effacés. Rien de tout cela ne peut être récupéré.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            setOccupe(true);
-            const r = await deleteAccount();
-            setOccupe(false);
-            if (!r.ok) return setErreur(r.reason ?? 'La suppression n’a pas abouti.');
-            router.replace('/welcome');
-          },
-        },
-      ],
-    );
+    void confirmer({
+      titre: 'Supprimer définitivement ?',
+      message:
+        'Les profils de vos enfants, leurs missions, leur historique et les minutes gagnées seront effacés. Rien de tout cela ne peut être récupéré.',
+      action: 'Supprimer',
+      destructif: true,
+    }).then(async (oui) => {
+      if (!oui) return;
+      setOccupe(true);
+      const r = await deleteAccount();
+      setOccupe(false);
+      if (!r.ok) return setErreur(r.reason ?? 'La suppression n’a pas abouti.');
+      router.replace('/welcome');
+    });
   };
 
   return (

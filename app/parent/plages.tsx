@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { Button, Card, Chip, Field, Screen, ScreenHeader, Text } from '@/components/ui';
+import { Button, Card, Chip, Field, Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
 import {
   JOURS,
   decritFenetre,
@@ -99,14 +99,14 @@ export default function PlagesLibres() {
   };
 
   const supprimer = (id: string, nom: string) =>
-    Alert.alert('Supprimer cette plage ?', `« ${nom} » ne s’ouvrira plus.`, [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Supprimer',
-        style: 'destructive',
-        onPress: () => removeFreeWindow(id).catch(() => undefined),
-      },
-    ]);
+    void confirmer({
+      titre: 'Supprimer cette plage ?',
+      message: `« ${nom} » ne s’ouvrira plus.`,
+      action: 'Supprimer',
+      destructif: true,
+    }).then((oui) => {
+      if (oui) removeFreeWindow(id).catch(() => undefined);
+    });
 
   return (
     <Screen contentStyle={styles.content}>

@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { Button, Card, Chip, Logo, Screen, SectionHeader, Text } from '@/components/ui';
+import { Button, Card, Chip, Logo, Screen, SectionHeader, Text, confirmer } from '@/components/ui';
 import { accessOf } from '@/domain/billing';
 import { QUIET_FROM_HOUR, QUIET_UNTIL_HOUR } from '@/domain/notifications';
 import { getNotificationService } from '@/services/notifications';
@@ -40,34 +40,28 @@ export default function ParentSettings() {
           : 'Aucun abonnement actif';
 
   const confirmReset = () => {
-    Alert.alert(
-      'Réinitialiser Mino ?',
-      'Toutes les données de la famille seront effacées de cet appareil.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Réinitialiser',
-          style: 'destructive',
-          onPress: async () => {
-            await resetAll();
-            router.replace('/welcome');
-          },
-        },
-      ],
-    );
+    void confirmer({
+      titre: 'Réinitialiser Mino ?',
+      message: 'Toutes les données de la famille seront effacées de cet appareil.',
+      action: 'Réinitialiser',
+      destructif: true,
+    }).then(async (oui) => {
+      if (!oui) return;
+      await resetAll();
+      router.replace('/welcome');
+    });
   };
 
   const reloadDemo = () => {
-    Alert.alert('Recharger la démo ?', 'Les données actuelles seront remplacées.', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Recharger',
-        onPress: async () => {
-          await startDemo();
-          router.replace('/who');
-        },
-      },
-    ]);
+    void confirmer({
+      titre: 'Recharger la démo ?',
+      message: 'Les données actuelles seront remplacées.',
+      action: 'Recharger',
+    }).then(async (oui) => {
+      if (!oui) return;
+      await startDemo();
+      router.replace('/who');
+    });
   };
 
   return (

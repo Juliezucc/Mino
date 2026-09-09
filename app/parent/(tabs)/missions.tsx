@@ -1,8 +1,18 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Avatar, Button, Card, EmptyState, MinutesBadge, Screen, SectionHeader, Text } from '@/components/ui';
+import {
+  Avatar,
+  Button,
+  Card,
+  EmptyState,
+  MinutesBadge,
+  Screen,
+  SectionHeader,
+  Text,
+  confirmer,
+} from '@/components/ui';
 import { ROUTINES, suits } from '@/domain/missionLibrary';
 import { childrenOfMission, describeRepeat } from '@/domain/missions';
 import { useChildren, useFamily } from '@/store/selectors';
@@ -31,16 +41,14 @@ export default function ParentMissions() {
   );
 
   const confirmArchive = (missionId: string, title: string) => {
-    Alert.alert('Supprimer la mission ?', `« ${title} » ne sera plus proposée aux enfants.`, [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Supprimer',
-        style: 'destructive',
-        onPress: () => {
-          archiveMission(missionId).catch(() => undefined);
-        },
-      },
-    ]);
+    void confirmer({
+      titre: 'Supprimer la mission ?',
+      message: `« ${title} » ne sera plus proposée aux enfants.`,
+      action: 'Supprimer',
+      destructif: true,
+    }).then((oui) => {
+      if (oui) archiveMission(missionId).catch(() => undefined);
+    });
   };
 
   return (
