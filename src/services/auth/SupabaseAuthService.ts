@@ -119,15 +119,39 @@ export class SupabaseAuthService implements AuthService {
     const range = local.session?.user;
     if (!range) return NO_SESSION;
 
-    const decrire = (user: { id: string; email?: string | null }): Session => ({
-      // An anonymous user is a child's device; a real e-mail is a parent.
-      kind: user.email ? 'parent' : 'device',
+    /**
+     * Parent ou appareil — et c'est la base qui le dit, pas l'adresse.
+     *
+     * **Le raccourci que cela remplace.** La règle était « une adresse, donc un
+     * parent ; pas d'adresse, donc la tablette d'un enfant ». Elle a tenu tant
+     * qu'un parent avait forcément une adresse dès la première seconde. Le
+     * parcours d'inscription y met fin : le parent fonde sa famille sur une
+     * session anonyme et ne donne son adresse qu'au troisième écran. Entre les
+     * deux, il aurait été pris pour la tablette de son enfant — et
+     * `app/parent-pin.tsx` lui aurait refusé le choix de son propre code
+     * parent, précisément parce qu'il protège un enfant de ce choix-là.
+     *
+     * `auth_is_parent()` est la fonction dont la base se sert pour trancher la
+     * même question, à chaque politique. Poser la question à celui qui décide,
+     * plutôt que la deviner ici, c'est aussi la seule façon que les deux
+     * réponses ne divergent jamais.
+     *
+     * Hors ligne, on retombe sur l'ancien raccourci : il reste vrai pour tous
+     * les comptes déjà constitués, et refuser une session parce que le réseau
+     * manque serait bien pire que de la décrire approximativement.
+     */
+    const decrire = (user: { id: string; email?: string | null }, parent?: boolean): Session => ({
+      kind: (parent ?? !!user.email) ? 'parent' : 'device',
       userId: user.id,
       email: user.email ?? null,
     });
 
     const { data, error } = await this.client.auth.getUser();
-    if (!error && data.user) return decrire(data.user);
+    if (!error && data.user) {
+      const { data: estParent, error: rpc } = await this.client.rpc('auth_is_parent');
+      if (rpc) trace('session/auth_is_parent', rpc);
+      return decrire(data.user, rpc ? undefined : estParent === true);
+    }
 
     if (error && DISPARU(error)) {
       trace('session', error);
@@ -212,6 +236,39 @@ export class SupabaseAuthService implements AuthService {
         reason:
           'Votre compte est créé. Ouvrez le lien de confirmation envoyé à votre adresse, puis connectez-vous.',
       };
+    }
+    return { ok: true };
+  }
+
+  /**
+   * Habiller une session anonyme d'une adresse et d'un mot de passe.
+   *
+   * `updateUser` et non `signUp` : c'est le même utilisateur qui continue, donc
+   * la famille, l'enfant et la mission créés aux écrans précédents restent
+   * attachés à lui. `signUp` en aurait ouvert un second et abandonné le
+   * premier — le parent aurait retrouvé une application vide.
+   *
+   * **Ce qu'il faut savoir sur l'adresse, et dire au parent.** Tant que la
+   * confirmation par e-mail est active, Supabase n'attache pas l'adresse
+   * immédiatement : il l'envoie en attente et la valide au clic sur le lien.
+   * Le mot de passe, lui, prend tout de suite. Concrètement, la famille marche
+   * sans rien attendre sur CET appareil, mais se connecter ailleurs suppose
+   * d'avoir cliqué. L'écran doit donc le dire, au lieu de laisser croire que
+   * tout est rangé.
+   */
+  async linkEmail({ email, password }: { email: string; password: string }): Promise<AuthResult> {
+    const { error } = await this.client.auth.updateUser(
+      { email: email.trim().toLowerCase(), password },
+      { emailRedirectTo: adresseDeRetour('confirme') },
+    );
+    trace('linkEmail', error);
+    if (error) {
+      const dit = MESSAGE_PAR_CODE[error.code ?? ''];
+      if (dit) return { ok: false, ...dit };
+      // Même règle que `signUp` : une adresse déjà prise reçoit la même
+      // phrase que n'importe quelle autre, sans quoi on distribue la liste de
+      // ses clients à qui veut l'essayer.
+      return { ok: false, reason: 'Impossible d’enregistrer cette adresse. Vérifiez-la et réessayez.' };
     }
     return { ok: true };
   }

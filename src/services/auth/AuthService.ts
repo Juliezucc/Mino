@@ -63,6 +63,20 @@ export interface AuthService {
   signIn(input: { email: string; password: string }): Promise<AuthResult>;
   signOut(): Promise<void>;
   /**
+   * Donner une adresse et un mot de passe à une session qui n'en avait pas.
+   *
+   * C'est ce qui permet au parcours d'inscription de créer la famille et le
+   * premier enfant AVANT de demander quoi que ce soit : le parent commence
+   * sur une session anonyme, et la garde — on ne fait que l'habiller.
+   *
+   * **Ne jamais appeler `signUp` à sa place.** `signUp` sur une session
+   * anonyme ouvre un SECOND utilisateur et abandonne le premier — avec la
+   * famille, l'enfant et la première mission dessus. Le parent se retrouve
+   * devant une application vide, et rien n'indique où est passé ce qu'il
+   * venait de créer.
+   */
+  linkEmail(input: { email: string; password: string }): Promise<AuthResult>;
+  /**
    * L'identité d'un appareil qui vient de rejoindre une famille avec le code.
    *
    * Anonyme, et volontairement moins privilégiée qu'un parent : c'est elle que

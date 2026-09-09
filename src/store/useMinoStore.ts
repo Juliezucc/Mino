@@ -473,13 +473,36 @@ export const useMinoStore = create<MinoState>((set, get) => {
        * apprendre pourquoi. On saute l'inscription et on ne crée que ce qui
        * manque.
        */
+      /**
+       * Trois états, et les confondre coûte une famille.
+       *
+       * `kind === 'parent'` — il est déjà identifié : rien à créer côté compte.
+       *
+       * `kind === 'device'` **avec une session ouverte** — c'est le fondateur
+       * du nouveau parcours : il a créé sa famille et son premier enfant sur
+       * une session anonyme, et vient donner son adresse. Il faut l'habiller,
+       * pas le réinscrire. `signUp` ouvrirait ici un SECOND utilisateur et
+       * abandonnerait le premier, avec la famille et l'enfant dessus — le
+       * parent se retrouverait devant une application vide, sans que rien ne
+       * dise où est passé ce qu'il venait de faire.
+       *
+       * `kind === 'none'` — personne : c'est une inscription ordinaire.
+       *
+       * Le code d'avant ne distinguait que « parent » et « le reste », parce
+       * qu'au moment où il a été écrit, « le reste » ne pouvait être qu'une
+       * absence de session.
+       */
       const ouverte = await getAuthService().session();
       if (ouverte.kind !== 'parent') {
         if (!password) return { ok: false, reason: 'Choisissez un mot de passe.' };
-        // The account first: without an identity there is nothing to attach a
-        // family to, and every row the backend stores is scoped by it.
-        const signUp = await getAuthService().signUp({ email, password });
-        if (!signUp.ok) return signUp;
+        const auth = getAuthService();
+        const compte =
+          ouverte.kind === 'device'
+            ? await auth.linkEmail({ email, password })
+            : // Sans identité, il n'y a rien à quoi rattacher une famille :
+              // chaque ligne que le serveur écrira est cadrée par elle.
+              await auth.signUp({ email, password });
+        if (!compte.ok) return compte;
       }
 
       // Pas de code à poser quand il y en a déjà un : le redemander à quelqu'un

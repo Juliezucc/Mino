@@ -6,6 +6,17 @@ import {
   LocalTimerScreenTimeService,
 } from '@/services/screenTime';
 
+/**
+ * Un lundi, à midi — et cette constante existe pour une raison.
+ *
+ * La famille de démonstration porte une plage libre le mercredi de 14 h à
+ * 16 h. Pendant une plage libre, `startSession` refuse de dépenser des
+ * minutes : l'écran est déjà ouvert, il n'y a rien à payer. Un test qui
+ * n'impose pas sa date hérite donc de l'heure du jour, et se met à échouer le
+ * mercredi après-midi — vert six jours sur sept.
+ */
+const LUNDI = new Date('2026-08-17T15:00:00Z');
+
 describe('using screen time', () => {
   it('bills only the minutes actually spent', () => {
     const start = new Date('2026-08-17T15:00:00Z');
@@ -43,19 +54,28 @@ describe('using screen time', () => {
   });
 
   it('refuses to start a session the child cannot afford', () => {
-    const data = buildDemoFamily();
+    const data = buildDemoFamily(LUNDI);
     const elliott = data.children[1];
 
-    expect(() => startSession(data, { childId: elliott.id, minutes: 30 })).toThrow();
-    expect(() => startSession(data, { childId: elliott.id, minutes: 0 })).toThrow();
+    expect(() => startSession(data, { childId: elliott.id, minutes: 30 }, LUNDI)).toThrow();
+    expect(() => startSession(data, { childId: elliott.id, minutes: 0 }, LUNDI)).toThrow();
   });
 
   it('refuses two sessions at once for the same child', () => {
-    const data = buildDemoFamily();
+    // L'heure est fixée, et ce n'est pas de la coquetterie : la démo porte une
+    // plage libre le mercredi de 14 h à 16 h, pendant laquelle `startSession`
+    // refuse de dépenser des minutes puisque l'écran est déjà ouvert. Sans
+    // date, ce test échouait le mercredi entre 14 h et 16 h, et lui seul —
+    // vert six jours sur sept, rouge deux heures par semaine. Le genre de
+    // défaut qu'on met une matinée à croire.
+    const quand = new Date('2026-08-17T15:00:00Z'); // un lundi
+    const data = buildDemoFamily(quand);
     const noah = data.children[0];
-    const started = startSession(data, { childId: noah.id, minutes: 10 });
+    const started = startSession(data, { childId: noah.id, minutes: 10 }, quand);
 
-    expect(() => startSession(started.data, { childId: noah.id, minutes: 10 })).toThrow();
+    expect(() =>
+      startSession(started.data, { childId: noah.id, minutes: 10 }, quand),
+    ).toThrow();
   });
 
   it('records parent adjustments as ledger entries', () => {

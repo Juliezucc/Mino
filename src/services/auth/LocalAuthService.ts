@@ -57,6 +57,26 @@ export class LocalAuthService implements AuthService {
   }
 
   /**
+   * L'adresse arrive sur une session qui existe déjà — et surtout, on garde
+   * son `userId`.
+   *
+   * C'est tout ce que la doublure a besoin de reproduire : hors ligne comme en
+   * ligne, celui qui a fondé la famille aux premiers écrans reste le même
+   * après avoir donné son adresse. Une doublure qui changerait d'identité ici
+   * laisserait passer, hors ligne, exactement le défaut qu'on veut empêcher en
+   * ligne — la famille orpheline d'un second utilisateur.
+   */
+  async linkEmail({ email }: { email: string; password: string }): Promise<AuthResult> {
+    const actuelle = await this.session();
+    await this.publish({
+      kind: 'parent',
+      userId: actuelle.userId ?? 'local-parent',
+      email: email.trim(),
+    });
+    return { ok: true };
+  }
+
+  /**
    * Le remplaçant local ne connaissait que « parent » : un appareil qui
    * rejoignait avec le code gardait donc une session vide, et rien à l'écran
    * ne pouvait savoir qu'il avait affaire à la tablette d'un enfant. C'est

@@ -64,10 +64,18 @@ describe('declared devices', () => {
   });
 });
 
+/**
+ * Un lundi, à midi. La famille de démonstration porte une plage libre le
+ * mercredi de 14 h à 16 h, et pendant une plage libre `startSession` refuse de
+ * dépenser des minutes — l'écran est déjà ouvert. Un test sans date héritait
+ * de l'heure du jour et échouait le mercredi après-midi, lui seul.
+ */
+const LUNDI = new Date('2026-08-17T15:00:00Z');
+
 describe('sessions', () => {
   it('starts immediately on the device Mino runs on', () => {
     const { data, childId } = demo();
-    const out = actions.startSession(data, { childId, minutes: 20 });
+    const out = actions.startSession(data, { childId, minutes: 20 }, LUNDI);
     expect(out.session.status).toBe('running');
     expect(out.session.deviceId).toBeUndefined();
   });
@@ -89,7 +97,9 @@ describe('sessions', () => {
       children: data.children.map((c) => (c.id === childId ? { ...c, requireApproval: true } : c)),
     };
 
-    expect(actions.startSession(strict, { childId, minutes: 10 }).session.status).toBe('requested');
+    expect(actions.startSession(strict, { childId, minutes: 10 }, LUNDI).session.status).toBe(
+      'requested',
+    );
   });
 
   it('starts the clock when the parent approves, not when the child asked', () => {
