@@ -4,7 +4,11 @@ import { StyleSheet, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot';
 import { Avatar, Button, Card, Screen, Text } from '@/components/ui';
-import { useChildren } from '@/store/selectors';
+import {
+  InstallerSurLAppareil,
+  SANS_BOUCLIER,
+} from '@/features/onboarding/InstallerSurLAppareil';
+import { useChildren, useFamily } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
@@ -32,8 +36,28 @@ import { colors, spacing } from '@/theme';
 export default function OnboardingAppareil() {
   const router = useRouter();
   const enfants = useChildren();
+  const famille = useFamily();
   const lockDeviceTo = useMinoStore((s) => s.lockDeviceTo);
   const [busy, setBusy] = useState(false);
+
+  /**
+   * Dans un navigateur, la question n'a pas de réponse.
+   *
+   * « À qui est cet appareil ? » suppose qu'on tient l'appareil en question. Un
+   * parent qui vient de s'abonner depuis son ordinateur n'a rien à régler ici :
+   * il lui manque l'application sur le téléphone de son enfant, et c'est tout
+   * ce qui compte. Lui poser la question revenait à lui faire choisir entre
+   * trois réponses fausses, puis à le déposer sur un tableau de bord — abonné,
+   * et sans le produit.
+   */
+  if (SANS_BOUCLIER && famille) {
+    return (
+      <InstallerSurLAppareil
+        code={famille.family.code}
+        onTermine={() => router.replace('/parent')}
+      />
+    );
+  }
 
   const choisir = async (childId: string | null, versLeBlocage: boolean) => {
     setBusy(true);
