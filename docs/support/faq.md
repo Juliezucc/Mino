@@ -69,7 +69,7 @@ Sur l’appareil où Mino est installé, oui, s’il a des minos : c’est le pr
 
 ### Et si mon enfant désinstalle Mino ?
 
-Les restrictions posées par le système ne disparaissent pas avec l’application : elles ont été autorisées par un adulte et se lèvent de la même façon. Vous pouvez aussi empêcher la suppression d’applications dans les réglages de son appareil — le guide explique où.
+Sur iPhone et iPad, les restrictions posées par le système ne disparaissent pas avec l’application : elles ont été autorisées par un adulte et se lèvent de la même façon. Sur Android, le blocage s’arrête avec Mino — mais vous le voyez : l’appareil cesse de donner de ses nouvelles, et votre écran Appareils le signale. Sur les deux, vous pouvez empêcher la suppression d’applications dans les réglages de son appareil, et le guide explique où.
 
 ### Mon enfant a changé l’heure de son téléphone
 
@@ -205,7 +205,7 @@ Quatre-vingt-dix jours. Passé ce délai, le détail est effacé — quelle miss
 
 ### Comment supprimer mon compte et nos données ?
 
-Depuis Réglages, « Gérer mon compte », tout en bas. L’effacement est immédiat et définitif : profils des enfants, missions, historique, minutes gagnées. Rien ne peut être récupéré ensuite, et personne chez nous ne le peut non plus. Résiliez votre abonnement avant, depuis l’App Store ou le Play Store : supprimer le compte ne l’annule pas. Les factures déjà émises sont conservées dix ans, comme la loi comptable l’exige, et elles ne contiennent aucune donnée d’enfant.
+Depuis Réglages, « Gérer mon compte », tout en bas. L’effacement est immédiat et définitif : profils des enfants, missions, historique, minutes gagnées. Rien ne peut être récupéré ensuite, et personne chez nous ne le peut non plus. Vous pouvez aussi supprimer le profil d’un seul enfant sans supprimer votre compte : ses missions, son historique et ses minutes partent avec lui. Résiliez votre abonnement avant, là où vous l’avez souscrit — voir « Comment annuler mon abonnement ? » : supprimer le compte ne l’annule pas. Les factures déjà émises sont conservées dix ans, comme la loi comptable l’exige, et elles ne contiennent aucune donnée d’enfant.
 
 ### Mon enfant discute avec Mino : qu’est-ce que c’est ?
 
