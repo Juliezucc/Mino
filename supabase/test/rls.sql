@@ -41,17 +41,20 @@ end $$;
 create or replace function seed() returns void language plpgsql
 security definer set search_path = public, auth as $$
 begin
-  delete from families where id in ('fam-1', 'fam-2');
+  delete from families where id in ('fam-1', 'fam-2', 'fam-anon');
   delete from auth.users where id in (
     '11111111-1111-1111-1111-111111111111',
     '22222222-2222-2222-2222-222222222222',
-    '33333333-3333-3333-3333-333333333333'
+    '33333333-3333-3333-3333-333333333333',
+    -- Le fondateur anonyme : il n'a pas d'adresse, et c'est tout le sujet.
+    '44444444-4444-4444-4444-444444444444'
   );
 
   insert into auth.users (id, email) values
     ('11111111-1111-1111-1111-111111111111', 'julie@mino.app'),
     ('22222222-2222-2222-2222-222222222222', 'tablette@mino.app'),
-    ('33333333-3333-3333-3333-333333333333', 'autre@mino.app');
+    ('33333333-3333-3333-3333-333333333333', 'autre@mino.app'),
+    ('44444444-4444-4444-4444-444444444444', null);
 
   insert into families (id, name, code, referral_code) values
     ('fam-1', 'Martin', 'MARTIN1', 'PARRAIN1'),
@@ -321,6 +324,140 @@ do $$ begin
     (select count(*) = 0 from children where family_id = 'fam-2'),
     'voir les enfants de la famille d''à côté'
   );
+end $$;
+
+-- ============================================ le parent pas encore identifié
+
+/**
+ * Le premier écran du parcours d'inscription, avant toute adresse.
+ *
+ * `docs/ops/parcours-inscription.md` fait créer la famille et le premier
+ * enfant AVANT de demander son e-mail au parent : il voit sa famille exister
+ * d'abord. Entre les deux il est authentifié, mais anonymement — Supabase
+ * ouvre une session sans adresse.
+ *
+ * Tout le parcours repose donc sur une question à laquelle on ne pouvait pas
+ * répondre en lisant les politiques : **une session anonyme a-t-elle le droit
+ * de fonder une famille ?** Si la réponse est non, il n'y a pas de parcours du
+ * tout, et mieux vaut le savoir avant d'écrire quatre écrans.
+ *
+ * L'appartenance se lit dans `parents` **ou** dans `family_devices`
+ * (`auth_family_ids()`). Un fondateur n'a ni l'un ni l'autre : sa ligne
+ * `parents` doit donc exister dès le premier écran, sans nom et sans adresse —
+ * d'où les deux `not null` retirés dans `schema.sql`.
+ */
+
+\echo ''
+\echo 'Session anonyme — le parent qui n''a pas encore donné son adresse'
+
+set session "mino.uid" = '44444444-4444-4444-4444-444444444444';
+
+do $$ begin
+  perform assert(not auth_is_parent(), 'un anonyme n''est encore le parent de personne');
+
+  perform assert(
+    0 = (select count(*) from auth_family_ids() f),
+    'il n''appartient à aucune famille'
+  );
+
+  -- Écran 1 : fonder la famille.
+  perform assert(
+    not refuses($sql$
+      insert into families (id, name, code, referral_code)
+      values ('fam-anon', 'Nouvelle', 'ANON001', 'PARRAIN9')
+    $sql$),
+    'fonder une famille'
+  );
+
+  -- Sans nom et sans e-mail : il ne les a pas encore donnés.
+  perform assert(
+    not refuses($sql$
+      insert into parents (id, family_id, user_id, display_name, email, consent_at)
+      values ('par-anon', 'fam-anon', '44444444-4444-4444-4444-444444444444',
+              null, null, now())
+    $sql$),
+    's''inscrire comme parent, sans nom ni adresse'
+  );
+
+  perform assert(
+    array['fam-anon'] = (select array_agg(f) from auth_family_ids() f),
+    'il voit alors la famille qu''il vient de fonder'
+  );
+
+  -- Écran 1, suite : l'enfant, qui est la raison d'être de tout l'écran.
+  perform assert(
+    not refuses($sql$
+      insert into children (id, family_id, first_name, age, avatar_key)
+      values ('enf-anon', 'fam-anon', 'Lou', 7, 'fox')
+    $sql$),
+    'ajouter son premier enfant'
+  );
+end $$;
+
+-- --- Ce qu'une session anonyme ne doit pas pouvoir faire pour autant --------
+
+do $$ begin
+  perform assert(
+    (select count(*) = 0 from children where family_id = 'fam-1'),
+    'ne pas voir les enfants d''une famille qui n''est pas la sienne'
+  );
+
+  perform assert(
+    refuses($sql$
+      insert into parents (id, family_id, user_id, display_name, email)
+      values ('par-vol', 'fam-1', '44444444-4444-4444-4444-444444444444', null, null)
+    $sql$),
+    's''inviter dans une famille existante en s''y déclarant parent'
+  );
+
+  perform assert(
+    refuses($sql$
+      update parents set display_name = 'Voleur' where id = 'par-1'
+    $sql$),
+    'modifier le parent d''une autre famille'
+  );
+end $$;
+
+-- --- L'élévation de privilège que la tablette d'un enfant pouvait s'offrir --
+
+/**
+ * Le cas qui a motivé la reprise de `parents_insert`.
+ *
+ * La condition était `user_id = auth.uid()` — seulement. Elle vérifie qu'on
+ * s'inscrit soi-même, jamais dans QUELLE famille. Or l'appareil d'un enfant
+ * est authentifié et connaît l'identifiant de sa propre famille : il le lit
+ * légitimement, il est dans ses données.
+ *
+ * Il lui suffisait d'écrire une ligne dans `parents` pour que
+ * `auth_is_parent()` devienne vrai, et avec elle tout l'espace parent :
+ * confirmer ses propres missions, s'accorder des minutes, supprimer un profil,
+ * résilier l'abonnement. Chaque politique de ce fichier s'appuie sur cette
+ * fonction ; aucune ne protégeait la fonction elle-même.
+ */
+
+\echo ''
+\echo 'Session appareil — l''enfant qui essaie de se promouvoir parent'
+
+set session "mino.uid" = '22222222-2222-2222-2222-222222222222';
+
+do $$ begin
+  perform assert(not auth_is_parent(), 'la tablette n''est pas parent, au départ');
+
+  perform assert(
+    array['fam-1'] = (select array_agg(f) from auth_family_ids() f),
+    'elle connaît pourtant l''identifiant de sa famille — c''est normal'
+  );
+
+  perform assert(
+    refuses($sql$
+      insert into parents (id, family_id, user_id, display_name, email)
+      values ('par-usurpe', 'fam-1', '22222222-2222-2222-2222-222222222222',
+              'Moi', 'enfant@ruse.fr')
+    $sql$),
+    'SE DÉCLARER PARENT DE SA PROPRE FAMILLE'
+  );
+
+  perform assert(not auth_is_parent(), 'et elle ne l''est toujours pas');
 end $$;
 
 -- ------------------------------------------------------------- le total
