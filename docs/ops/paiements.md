@@ -207,10 +207,20 @@ pire chose qu'un programme de parrainage puisse faire.
    envoie désormais `trial_end` à la date déjà enregistrée
    (`trialEndForCheckout`, dans `domain/billing.ts`, six tests).
 
-   **Reste à faire côté Play** : `verifyGooglePurchase` rend `active` pour tout
-   abonnement en cours, essai compris. Chez Apple, `offerType` et
-   `isTrialPeriod` distinguent les deux ; chez Google la détection passe par
-   les offres du plan de base, et elle attend la sortie Android.
+   **Côté Play, la détection existe désormais — mais elle dépend d'un réglage
+   de la console.** L'API v2 de Google ne rend aucun champ qui distingue une
+   période gratuite d'une période payée : ce qu'elle rend, ce sont les
+   **étiquettes** posées sur l'offre. L'offre « 30 jours offerts » doit donc
+   porter l'étiquette `essai` dans la Play Console, sur les deux formules.
+   Sans elle, `googleToState` lit un abonnement payé là où il y a un essai, et
+   l'application annonce un prélèvement à quelqu'un qui n'a rien payé.
+   (`GOOGLE_TRIAL_OFFER_TAG` permet de changer ce mot sans redéployer.)
+
+   Corrigé du même coup : `SUBSCRIPTION_STATE_CANCELED` était traité comme une
+   fin d'abonnement. Chez Google, il désigne un abonnement **résilié qui court
+   encore** — `EXPIRED` étant celui qui est fini. L'accès tombait donc à
+   l'instant du clic sur « résilier », alors que la période est payée et que
+   l'écran des réglages promet le contraire.
 5. **Activer les notifications serveur à serveur** : App Store Server
    Notifications V2 vers `…/store-notifications/apple`, et Real-time Developer
    Notifications (Pub/Sub) vers `…/store-notifications/google`.

@@ -6,23 +6,24 @@ produit qui **compte**.
 
 ---
 
-## ⚠️ Ce code n'a jamais été compilé
+## Ce qui a été compilé, et ce qui ne l'a pas encore été
 
-À écrire en gras parce que la suite en dépend : **aucune ligne de Swift ni de
-Kotlin de ce dossier n'a été compilée.** Ni Xcode ni le SDK Android n'existaient
-sur la machine qui l'a écrit.
+Cette section a longtemps dit que rien ici n'avait jamais vu un compilateur.
+Ce n'est plus vrai, et la laisser telle quelle ferait douter d'un code qui
+tourne.
 
-Ce qui est vérifié, en revanche :
-
-- le côté JavaScript compile (`npm run typecheck`) et ses 233 tests passent ;
-- la couture bascule correctement : sans module natif, `getScreenTimeService()`
-  rend le minuteur honnête, et rien d’autre dans l’application ne change ;
-- l'architecture suit ce que documentent Apple et Google.
-
-Traitez donc ce dossier comme **un point de départ solide, pas comme un
-livrable fini**. La première compilation trouvera des choses : une signature qui
-a bougé, un import manquant, une API dépréciée. C'est normal et c'est rapide —
-ce qui prend du temps, c'est l'architecture, et elle est là.
+- **Swift : compilé et publié.** Le module est parti dans le build iOS de
+  production et l'application a été validée par Apple.
+- **Kotlin : compilé.** Le premier passage par Gradle a trouvé trois défauts,
+  dont deux qui empêchaient purement et simplement la compilation — un
+  `compileSdk` écrit en dur, une `Activity` sans `onBackPressedDispatcher`, une
+  notification construite avec une API postérieure au minimum déclaré. Les
+  trois sont corrigés.
+- **Ce qui reste à éprouver, et c'est le vrai reste : le comportement sur un
+  appareil.** Compiler prouve que le code est bien formé, pas que le bouclier se
+  lève. Les autorisations Android (accès aux statistiques d'usage, superposition
+  d'écran) s'accordent à la main dans les réglages du système, et un émulateur
+  ne se comporte pas toujours comme un téléphone sur ce terrain-là.
 
 ---
 

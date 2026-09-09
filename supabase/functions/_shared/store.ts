@@ -391,6 +391,96 @@ async function googleAccessToken(): Promise<string> {
   return body.access_token as string;
 }
 
+/**
+ * L'étiquette qui, dans la Play Console, désigne l'offre d'essai gratuit.
+ *
+ * Google ne dit pas « ceci est un essai » : contrairement à Apple et son
+ * `offerType`, l'API v2 ne rend aucun champ qui distingue une période gratuite
+ * d'une période payée. Ce qu'elle rend, ce sont les **étiquettes** posées sur
+ * l'offre au moment de sa création — et c'est le mécanisme que Google
+ * documente pour qu'un serveur sache quelle offre s'applique.
+ *
+ * Il faut donc que l'offre « 30 jours offerts » porte l'étiquette `essai` dans
+ * la Play Console. Si elle change de nom un jour, cette variable
+ * d'environnement évite d'avoir à redéployer du code.
+ */
+const ETIQUETTE_ESSAI = (Deno.env.get('GOOGLE_TRIAL_OFFER_TAG') ?? 'essai').toLowerCase();
+
+/**
+ * Traduit un abonnement Play vérifié en état d'abonnement.
+ *
+ * Séparé de l'appel réseau pour la même raison qu'`appleToState` : c'est ici
+ * que sont les décisions, et une décision se relit.
+ */
+export function googleToState(
+  purchase: Record<string, any>,
+  purchaseToken: string,
+): StoreState {
+  const line = purchase.lineItems?.[0] ?? {};
+  const state = String(purchase.subscriptionState ?? '');
+  const productId = String(line.productId ?? '');
+
+  /**
+   * L'essai gratuit, qui arrivait en « abonnement payé ».
+   *
+   * Le parcours d'inscription enregistre le moyen de paiement à l'entrée : la
+   * quasi-totalité des abonnements Android naîtront donc en essai. Sans cette
+   * lecture, ils étaient tous écrits `active` — et un abonnement `active` sans
+   * `trial_ends_at` fait dire à l'application « prochain paiement le … » à
+   * quelqu'un qui n'a rien payé.
+   *
+   * Pire, et c'est ce qui a été corrigé côté Apple le 9 septembre 2026 : c'est
+   * `trial_ends_at` qui porte l'accès pendant l'essai. L'oublier enfermait le
+   * parent dehors à la seconde même de son achat.
+   */
+  const etiquettes: string[] = Array.isArray(line.offerDetails?.offerTags)
+    ? line.offerDetails.offerTags.map((t: unknown) => String(t).toLowerCase())
+    : [];
+  const enEssai =
+    etiquettes.includes(ETIQUETTE_ESSAI) ||
+    /essai|trial|free/i.test(String(line.offerDetails?.offerId ?? ''));
+
+  /**
+   * « Résilié » chez Google ne veut pas dire « terminé ».
+   *
+   * `SUBSCRIPTION_STATE_CANCELED` désigne un abonnement que le parent a résilié
+   * et **qui court encore jusqu'à sa date d'expiration** — Google réserve
+   * `EXPIRED` à celui qui est vraiment fini. Le traiter comme `canceled`
+   * retirait l'accès à l'instant du clic, alors que la période est payée.
+   * L'écran des réglages promet exactement l'inverse : « Résilié · actif
+   * jusqu'à la fin de la période ». La loi française aussi.
+   *
+   * Écrit en `active` avec sa date de fin, `accessOf` fait le reste tout seul :
+   * l'accès tombe le jour venu, sans qu'aucune tâche n'ait à passer.
+   */
+  const encoreDu =
+    state === 'SUBSCRIPTION_STATE_ACTIVE' || state === 'SUBSCRIPTION_STATE_CANCELED';
+
+  return {
+    platform: 'google',
+    accountToken: purchase.externalAccountIdentifiers?.obfuscatedExternalAccountId ?? null,
+    productId,
+    transactionId: String(purchase.latestOrderId ?? purchaseToken),
+    status: encoreDu
+      ? enEssai
+        ? 'trialing'
+        : 'active'
+      : // Le paiement est en échec et Google réessaie. On garde l'accès, comme
+        // sur le rail Stripe : couper pendant une nouvelle tentative punit une
+        // carte expirée avant même que son porteur ne l'apprenne.
+        state === 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD' || state === 'SUBSCRIPTION_STATE_ON_HOLD'
+        ? 'past_due'
+        : 'canceled',
+    plan: planOfProduct(productId),
+    expiresAt: line.expiryTime ?? null,
+    // Google dit « ne se renouvellera pas » plutôt que « annulé ».
+    cancelAtPeriodEnd:
+      line.autoRenewingPlan?.autoRenewEnabled === false ||
+      state === 'SUBSCRIPTION_STATE_CANCELED',
+    amountCents: null,
+  };
+}
+
 /** L'état réel d'un abonnement Play, demandé à Google. */
 export async function verifyGooglePurchase(purchaseToken: string): Promise<StoreState> {
   const token = await googleAccessToken();
@@ -402,28 +492,7 @@ export async function verifyGooglePurchase(purchaseToken: string): Promise<Store
   );
 
   if (!response.ok) throw new Error(`Play a refusé la vérification (${response.status}).`);
-  const purchase = await response.json();
-
-  const line = purchase.lineItems?.[0] ?? {};
-  const state = String(purchase.subscriptionState ?? '');
-
-  return {
-    platform: 'google',
-    accountToken: purchase.externalAccountIdentifiers?.obfuscatedExternalAccountId ?? null,
-    productId: String(line.productId ?? ''),
-    transactionId: String(purchase.latestOrderId ?? purchaseToken),
-    status:
-      state === 'SUBSCRIPTION_STATE_ACTIVE'
-        ? 'active'
-        : state === 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD' || state === 'SUBSCRIPTION_STATE_ON_HOLD'
-          ? 'past_due'
-          : 'canceled',
-    plan: planOfProduct(String(line.productId ?? '')),
-    expiresAt: line.expiryTime ?? null,
-    // Google dit « ne se renouvellera pas » plutôt que « annulé ».
-    cancelAtPeriodEnd: line.autoRenewingPlan?.autoRenewEnabled === false,
-    amountCents: null,
-  };
+  return googleToState(await response.json(), purchaseToken);
 }
 
 /* ------------------------------------------------------------- application */
