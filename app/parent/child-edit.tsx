@@ -79,7 +79,7 @@ export default function EditChild() {
         <ScreenHeader
           onBack={() => router.back()}
           title={`Modifier ${child.firstName}`}
-          subtitle="Prénom, âge et avatar. Rien de ce qu’il a gagné n’est touché."
+          subtitle="Prénom, âge et avatar. Rien de ce qui a été gagné n’est touché."
         />
         <ChildForm
           initial={child}

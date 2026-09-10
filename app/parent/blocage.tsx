@@ -530,7 +530,7 @@ export default function ShieldSetup() {
             </Card>
           ) : null}
           <Text variant="caption" color={colors.textSubtle} center>
-            À faire sur l’appareil de votre enfant, une seule fois.
+            À faire une seule fois sur chaque appareil confié à un enfant.
           </Text>
         </>
       )}

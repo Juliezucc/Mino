@@ -48,7 +48,7 @@ export function AccessBanner({ access, connu }: Props) {
       ? {
           tone: colors.yellowSoft,
           title: 'Votre essai est terminé',
-          body: 'Les missions que vos enfants déclarent vous attendent — rien n’est perdu. Reprenez l’abonnement pour les confirmer.',
+          body: 'Les missions déjà déclarées vous attendent — rien n’est perdu. Reprenez l’abonnement pour les confirmer.',
           label: 'Voir les formules',
         }
       : access.kind === 'grace'

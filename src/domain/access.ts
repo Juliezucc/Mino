@@ -70,4 +70,4 @@ export function isLocked(
 
 /** Ce qu'on dit au parent, une fois, à l'endroit où il vient de buter. */
 export const LOCKED_MESSAGE =
-  'Votre essai est terminé. Reprenez l’abonnement pour confirmer les missions — celles que vos enfants ont déclarées vous attendent, rien n’est perdu.';
+  'Votre essai est terminé. Reprenez l’abonnement pour confirmer les missions — celles déjà déclarées vous attendent, rien n’est perdu.';

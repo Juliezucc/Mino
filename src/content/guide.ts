@@ -52,9 +52,9 @@ export const GUIDE: GuideChapter[] = [
         screen: 'accueil',
       },
       {
-        title: 'Ajoutez vos enfants',
+        title: 'Ajoutez un profil par enfant',
         body: [
-          'Espace parent → Enfants → Ajouter un enfant. Un prénom, un âge, un personnage. C’est tout ce que Mino sait d’eux, et c’est volontaire.',
+          'Espace parent → Enfants → Ajouter un enfant. Un prénom, un âge, un personnage. C’est tout ce que Mino en sait, et c’est volontaire.',
           'L’âge sert à deux choses. Il filtre les missions proposées — on ne suggère pas « passer l’aspirateur » à un enfant de 5 ans — et il décide du registre de l’application.',
           'Jusqu’à 12 ans, Mino parle en minos, félicite, et affiche de très gros boutons. À partir de 13 ans il passe en version ado : des minutes, un ton sobre, pas de confettis, et des missions qui ont du sens à cet âge — réviser, gérer son linge, une heure sans téléphone.',
         ],
@@ -71,7 +71,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Installez Mino sur l’appareil de l’enfant',
         body: [
-          'Sur son appareil à lui, téléchargez Mino depuis l’App Store ou le Play Store. Ne vous connectez pas avec votre compte : il n’y en a pas besoin.',
+          'Sur l’appareil de l’enfant, téléchargez Mino depuis l’App Store ou le Play Store. Ne vous connectez pas avec votre compte : il n’y en a pas besoin.',
           'Si l’appareil est partagé entre plusieurs enfants, une seule installation suffit — chacun choisira son profil au lancement.',
         ],
         outside: true,
@@ -107,7 +107,7 @@ export const GUIDE: GuideChapter[] = [
         title: 'Vérifiez que l’espace parent est bien protégé',
         body: [
           'Depuis l’appareil de l’enfant, essayez d’entrer dans « Espace parent ». Le code doit vous être demandé.',
-          'Vérifiez aussi qu’il voit bien son compteur et ses missions à lui, et pas ceux de son frère ou de sa sœur.',
+          'Vérifiez aussi que le bon profil s’affiche : le compteur et les missions doivent être ceux de l’enfant qui utilise cet appareil.',
         ],
         screen: 'enfantAccueil',
         tip: 'Quoi qu’il arrive, l’appareil d’un enfant ne peut techniquement pas confirmer une mission ni s’ajouter du temps : la base de données le lui refuse.',
@@ -162,7 +162,7 @@ export const GUIDE: GuideChapter[] = [
     id: 'quotidien',
     title: 'La journée type',
     icon: '🔁',
-    summary: 'Ce qui se passe entre le moment où il range sa chambre et celui où il allume la télé.',
+    summary: 'Ce qui se passe entre la chambre rangée et la télé allumée.',
     duration: '3 minutes',
     steps: [
       {
@@ -173,7 +173,7 @@ export const GUIDE: GuideChapter[] = [
         screen: 'enfantMissions',
       },
       {
-        title: 'Il appuie sur « J’ai terminé »',
+        title: 'L’enfant appuie sur « J’ai terminé »',
         body: [
           'Un seul bouton, vert, impossible à rater. La mission passe en attente et vous recevez la demande.',
         ],
@@ -191,14 +191,14 @@ export const GUIDE: GuideChapter[] = [
         tip: 'Validez vite. Un enfant de 6 ans qui attend son temps jusqu’au lendemain ne fait plus le lien entre l’effort et la récompense.',
       },
       {
-        title: 'Il voit sa récompense arriver',
+        title: 'La récompense arrive tout de suite',
         body: [
-          'Mino le félicite, le compteur monte sous ses yeux. C’est le moment qui fait revenir l’enfant le lendemain — c’est pour lui que tout le reste existe.',
+          'Mino célèbre la mission, le compteur monte sous ses yeux. C’est le moment qui fait revenir l’enfant le lendemain — c’est pour ce moment-là que tout le reste existe.',
         ],
         screen: 'enfantCelebration',
       },
       {
-        title: 'Il choisit quand en profiter',
+        title: 'L’enfant choisit quand en profiter',
         body: [
           'Dans « Mon temps », il décide combien de minos utiliser et lance une session. Seul le temps réellement écoulé est décompté : s’il arrête au bout de 10 minutes sur 20, les 10 autres lui restent.',
         ],
@@ -229,7 +229,7 @@ export const GUIDE: GuideChapter[] = [
         title: 'Sur iPhone et iPad',
         body: [
           'Réglages → Temps d’écran → Limites d’app. Ajoutez une limite quotidienne sur les applications concernées, à la hauteur de ce que votre enfant peut raisonnablement gagner dans la journée.',
-          'Activez ensuite « Utiliser un code pour le Temps d’écran », avec un code différent de celui qui déverrouille l’appareil — sinon votre enfant lèvera la limite lui-même.',
+          'Activez ensuite « Utiliser un code pour le Temps d’écran », avec un code différent de celui qui déverrouille l’appareil — sinon votre enfant lèvera la limite sans vous.',
           'Excluez Mino de la limite, pour qu’il puisse toujours ouvrir ses missions.',
         ],
         outside: true,
@@ -245,7 +245,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Ce vers quoi nous allons',
         body: [
-          'Le réglage manuel ci-dessus est une étape, pas la destination. Mino est développé pour prendre la main lui-même : les applications que vous choisissez restent verrouillées, et le verrou se lève exactement le temps que votre enfant a gagné — plus de limite quotidienne à estimer à l’avance, plus d’écart entre ce qu’il a mérité et ce qu’il peut faire.',
+          'Le réglage manuel ci-dessus est une étape, pas la destination. Mino est développé pour prendre la main lui-même : les applications que vous choisissez restent verrouillées, et le verrou se lève exactement le temps que votre enfant a gagné — plus de limite quotidienne à estimer à l’avance, plus d’écart entre le temps mérité et le temps réellement disponible.',
           'Cela demande une autorisation d’Apple et de Google, que nous demandons expressément pour cet usage. Quand elle sera accordée, un écran « Blocage des applications » vous proposera d’autoriser Mino et de choisir les applications concernées. Rien de ce que vous avez réglé ci-dessus ne sera perdu : ce sera simplement devenu inutile.',
         ],
         where: 'Espace parent → Réglages → Blocage des applications',
@@ -264,7 +264,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Un seul écran est automatique',
         body: [
-          'Celui où Mino est installé. Là, votre enfant lance son temps lui-même et le minuteur démarre aussitôt — c’est le fonctionnement normal, celui de son appareil.',
+          'Celui où Mino est installé. Là, votre enfant lance son temps sans passer par vous et le minuteur démarre aussitôt — c’est le fonctionnement normal, celui de son appareil.',
           'Une Nintendo Switch, une PlayStation, une télévision ou l’ordinateur familial n’ouvrent leur temps de jeu à aucune application extérieure. Il n’existe aucun moyen, pour Mino, de démarrer ou d’arrêter une console. Plutôt que d’ignorer ces écrans — souvent les seuls chez les plus jeunes — Mino en fait un échange encadré.',
         ],
       },
@@ -272,7 +272,7 @@ export const GUIDE: GuideChapter[] = [
         title: 'Déclarez vos appareils',
         body: [
           'Réglages → Appareils de la maison. Une console, une télé, un ordinateur : ajoutez-les en un geste depuis les suggestions, ou nommez les vôtres — « Switch de la chambre », « Télé du salon ».',
-          'Tant que vous n’avez rien déclaré, vos enfants ne peuvent utiliser leur temps que sur l’appareil où Mino est installé.',
+          'Tant que vous n’avez rien déclaré, le temps gagné ne peut être utilisé que sur l’appareil où Mino est installé.',
         ],
         where: 'Espace parent → Réglages → Appareils de la maison',
         screen: 'parentAppareils',
@@ -306,7 +306,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Et si vous voulez confirmer même sur son téléphone',
         body: [
-          'Par défaut, sur l’appareil où Mino est installé, votre enfant démarre son temps tout seul : le compteur est à lui, il en dispose.',
+          'Par défaut, sur l’appareil où Mino est installé, votre enfant démarre son temps sans vous : le compteur lui appartient, et le temps gagné s’utilise librement.',
           'Si vous préférez que chaque session passe par vous, ouvrez sa fiche dans Enfants et choisissez « Il me demande d’abord ». Toutes ses sessions attendront alors votre accord, sur tous les écrans.',
         ],
         where: 'Espace parent → Enfants → l’enfant',
@@ -318,7 +318,7 @@ export const GUIDE: GuideChapter[] = [
     id: 'doser',
     title: 'Bien doser les minos',
     icon: '⚖️',
-    summary: 'Combien vaut une mission, et quoi faire quand il en gagne trop.',
+    summary: 'Combien vaut une mission, et quoi faire quand le compteur s’emballe.',
     duration: '3 minutes',
     steps: [
       {
@@ -340,9 +340,9 @@ export const GUIDE: GuideChapter[] = [
         tip: 'Le total d’une journée doit correspondre à ce que vous accepteriez de toute façon. Additionnez vos missions avant d’arrêter la liste.',
       },
       {
-        title: 'S’il en gagne trop',
+        title: 'Si le compteur monte trop vite',
         body: [
-          'Baissez les valeurs des missions, ou retirez-en. Ne renvoyez pas « à refaire » une mission réellement accomplie pour freiner le compteur : c’est la façon la plus rapide de casser la confiance dans le système, et il n’y reviendra pas.',
+          'Baissez les valeurs des missions, ou retirez-en. Ne renvoyez pas « à refaire » une mission réellement accomplie pour freiner le compteur : c’est la façon la plus rapide de casser la confiance dans le système, et cette confiance-là ne revient pas.',
         ],
         where: 'Espace parent → Missions',
       },

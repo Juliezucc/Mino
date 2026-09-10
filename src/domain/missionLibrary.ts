@@ -63,7 +63,7 @@ export const ROUTINES: MissionRoutine[] = [
     repeat: { kind: 'weekdays', days: [1, 2, 3, 4, 5] },
     suggestions: [
       { id: 'lever', title: 'Me lever à la première fois', icon: '⏰', minutes: 10, ages: [5, 12] },
-      { id: 'habiller', title: 'M’habiller tout seul', icon: '👕', minutes: 5, ages: [5, 9] },
+      { id: 'habiller', title: 'M’habiller sans aide', icon: '👕', minutes: 5, ages: [5, 9] },
       { id: 'petit-dej', title: 'Prendre mon petit-déjeuner', icon: '🥣', minutes: 5, ages: [5, 12] },
       { id: 'dents-matin', title: 'Me brosser les dents', icon: '🪥', minutes: 5, ages: [5, 12] },
       { id: 'cartable', title: 'Préparer mon cartable', icon: '🎒', minutes: 10, ages: [6, 17] },
@@ -180,7 +180,7 @@ export const ROUTINES: MissionRoutine[] = [
     tagline: 'L’autonomie du quotidien',
     repeat: { kind: 'daily' },
     suggestions: [
-      { id: 'douche', title: 'Prendre ma douche tout seul', icon: '🚿', minutes: 15, ages: [6, 12] },
+      { id: 'douche', title: 'Prendre ma douche sans aide', icon: '🚿', minutes: 15, ages: [6, 12] },
       { id: 'mains', title: 'Me laver les mains en rentrant', icon: '🧼', minutes: 5, ages: [5, 9] },
       { id: 'coiffer', title: 'Me coiffer', icon: '💇', minutes: 5, ages: [5, 12] },
       { id: 'bouger', title: 'Bouger 30 minutes dehors', icon: '⚽', minutes: 20, ages: [5, 17] },
@@ -201,7 +201,7 @@ export const ROUTINES: MissionRoutine[] = [
         icon: '🐶',
         minutes: 15,
         ages: [6, 17],
-        safety: 'Une sortie seul(e) avec le chien reste une décision de l’adulte.',
+        safety: 'Sortir le chien sans adulte reste votre décision.',
       },
       {
         id: 'aspirateur',
@@ -228,7 +228,7 @@ export const ROUTINES: MissionRoutine[] = [
       { id: 'lessive', title: 'Lancer et étendre une lessive', icon: '🧺', minutes: 20, ages: [13, 17] },
       { id: 'affaires-sport', title: 'Préparer mon sac de sport', icon: '🎽', minutes: 10, ages: [13, 17] },
       { id: 'planning', title: 'Noter mon planning de la semaine', icon: '🗓️', minutes: 10, ages: [13, 17] },
-      { id: 'rdv', title: 'Gérer un rendez-vous tout seul', icon: '📞', minutes: 15, ages: [15, 17] },
+      { id: 'rdv', title: 'Gérer un rendez-vous moi-même', icon: '📞', minutes: 15, ages: [15, 17] },
     ],
   },
   {

@@ -118,7 +118,7 @@ export function BouclierBanner() {
       <Text variant="body" color={colors.textMuted}>
         Sur cet appareil, Mino compte les minutes mais ne ferme aucune
         application. Votre enfant ne peut pas encore lancer son temps d’écran :
-        ce serait dépenser ce qu’il a gagné en échange de rien.
+        ce serait dépenser des minutes déjà gagnées en échange de rien.
       </Text>
       {/* Le chemin exact, parce qu'Android ne le donne pas : les deux accès
           dont Mino a besoin ne sont pas sur sa fiche, ils sont trois niveaux

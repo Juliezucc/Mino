@@ -15,7 +15,7 @@ const AMOUNTS = [5, 10, 15, 30];
 const REASONS = [
   'Coup de main spontané',
   'Belle journée',
-  'Gentil avec son frère ou sa sœur',
+  'Un geste pour son frère ou sa sœur',
   'Bon bulletin',
   'Juste parce que',
 ];

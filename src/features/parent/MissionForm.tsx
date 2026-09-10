@@ -228,7 +228,7 @@ export function MissionForm({
           question qu'un parent se pose, une fois qu'il sait quoi et combien. */}
       <View style={styles.block}>
         <Text variant="label" color={colors.textMuted}>
-          Quand il aura terminé
+          Une fois la mission terminée
         </Text>
         <View style={styles.row}>
           <Chip
@@ -246,7 +246,7 @@ export function MissionForm({
         </View>
         <Text variant="caption" color={colors.textSubtle}>
           {autoApprove
-            ? 'Les minutes arriveront dès qu’il appuie sur « J’ai terminé ». Vous serez prévenu, sans avoir rien à faire — pratique pour ce que vous voyez de toute façon, comme se brosser les dents.'
+            ? 'Les minutes arriveront dès l’appui sur « J’ai terminé ». Vous serez prévenu, sans avoir rien à faire — pratique pour ce que vous voyez de toute façon, comme se brosser les dents.'
             : 'La demande arrivera sur votre accueil, et les minutes n’arriveront qu’après votre confirmation.'}
         </Text>
       </View>

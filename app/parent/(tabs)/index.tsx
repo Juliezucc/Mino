@@ -200,7 +200,7 @@ export default function ParentHome() {
         <View style={styles.section}>
           <SectionHeader
             title="Écrans en cours"
-            subtitle="Le compte à rebours tourne aussi chez votre enfant"
+            subtitle="Le compte à rebours tourne aussi côté enfant"
           />
           {runningSessions.map((session) => {
             const child = children.find((c) => c.id === session.childId);

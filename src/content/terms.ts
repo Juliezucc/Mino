@@ -41,7 +41,7 @@ export const TERMS: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: 'Mino permet à un parent de définir de petites responsabilités du quotidien, appelées missions, et d’accorder à son enfant du temps d’écran lorsqu’elles sont accomplies. L’enfant signale qu’il a terminé, le parent confirme ou la remet à faire, et le temps accordé s’ajoute au compteur de l’enfant. Le parent peut décider, mission par mission, que certaines se comptent sans confirmation.',
+          text: 'Mino permet à un parent de définir de petites responsabilités du quotidien, appelées missions, et d’accorder à son enfant du temps d’écran lorsqu’elles sont accomplies. L’enfant signale la mission comme terminée, le parent confirme ou la remet à faire, et le temps accordé s’ajoute au compteur de l’enfant. Le parent peut décider, mission par mission, que certaines se comptent sans confirmation.',
         },
         {
           kind: 'note',
@@ -95,7 +95,7 @@ export const TERMS: LegalDocument = {
             'Toute mission impliquant la cuisine, un appareil électroménager, un objet tranchant, une source de chaleur ou un produit d’entretien doit être réalisée en présence et sous la surveillance d’un adulte.',
             'Aucune mission ne doit conduire un enfant à sortir seul du domicile sans votre accord exprès et adapté à son âge.',
             'La garde d’un frère ou d’une sœur par un mineur ne décharge en aucun cas l’adulte de sa responsabilité : un adulte responsable doit rester joignable et disponible.',
-            'Vous restez seul décisionnaire du temps d’écran accordé à votre enfant et des contenus auxquels il accède.',
+            'Vous restez seul décisionnaire du temps d’écran accordé à votre enfant et des contenus auxquels votre enfant accède.',
           ],
         },
         {

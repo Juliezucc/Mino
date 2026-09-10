@@ -107,13 +107,13 @@ export default function ParentChildDetail() {
         />
         <View style={styles.row}>
           <Chip
-            label="Il s’en sert quand il veut"
+            label="Sans me demander"
             icon="▶️"
             selected={!child.requireApproval}
             onPress={() => editChild(child.id, { requireApproval: false }).catch(() => undefined)}
           />
           <Chip
-            label="Il me demande d’abord"
+            label="En me demandant d’abord"
             icon="🙋"
             selected={child.requireApproval === true}
             onPress={() => editChild(child.id, { requireApproval: true }).catch(() => undefined)}

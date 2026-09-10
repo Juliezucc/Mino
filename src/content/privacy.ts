@@ -168,7 +168,7 @@ export const PRIVACY: LegalDocument = {
         },
         {
           kind: 'p',
-          text: 'L’enfant est informé, sous chaque conversation, que Mino est un personnage et que ses parents peuvent lire ce qu’il écrit. Nous ne présentons jamais cet espace comme privé.',
+          text: 'L’enfant est informé, sous chaque conversation, que Mino est un personnage et que ses parents peuvent lire ces échanges. Nous ne présentons jamais cet espace comme privé.',
         },
         {
           kind: 'p',
@@ -221,7 +221,7 @@ export const PRIVACY: LegalDocument = {
           kind: 'rows',
           rows: [
             { label: 'Compte, enfants, missions', value: 'Pendant toute la durée de l’abonnement, puis 3 ans après la dernière activité — ou immédiatement, si vous demandez la suppression.' },
-            { label: 'Historique détaillé (missions faites, minutes dépensées)', value: '90 jours. Au-delà, le détail est effacé et seul le total des minutes est conservé : le compteur de votre enfant reste juste, mais nous ne gardons pas la trace de ce qu’il a fait il y a six mois.' },
+            { label: 'Historique détaillé (missions faites, minutes dépensées)', value: '90 jours. Au-delà, le détail est effacé et seul le total des minutes est conservé : le compteur de votre enfant reste juste, mais nous ne gardons pas la trace de ce qui a été fait il y a six mois.' },
             { label: 'Factures', value: '10 ans, conformément aux obligations comptables françaises.' },
             { label: 'Conversations avec Mino', value: '30 jours, puis effacement automatique.' },
             { label: 'Journaux techniques', value: '12 mois au maximum.' },

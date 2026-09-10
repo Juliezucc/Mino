@@ -102,7 +102,7 @@ export const FAQ: FaqEntry[] = [
     id: 'faut-il-installer-cote-parent',
     question: 'Dois-je aussi installer Mino sur mon téléphone ?',
     answer:
-      'Oui. C’est depuis votre téléphone que vous créez les missions, confirmez les demandes et suivez le temps en cours. L’application de l’enfant ne sert qu’à lui.',
+      'Oui. C’est depuis votre téléphone que vous créez les missions, confirmez les demandes et suivez le temps en cours. L’application de l’enfant ne fait rien de tout cela.',
     category: 'installation',
     keywords: ['deux applications', 'telephone parent', 'mon telephone', 'cote parent'],
   },
@@ -181,7 +181,7 @@ export const FAQ: FaqEntry[] = [
     id: 'temps-ecoule',
     question: 'Que se passe-t-il quand le temps est écoulé ?',
     answer:
-      'L’enfant reçoit un avertissement cinq minutes avant, puis les applications choisies se referment. Rien n’est perdu : il retrouve ses minos dès qu’il en gagne de nouveaux.',
+      'L’enfant reçoit un avertissement cinq minutes avant, puis les applications choisies se referment. Rien n’est perdu : chaque nouvelle mission confirmée rapporte de nouveaux minos.',
     category: 'temps-ecran',
     keywords: ['fin du temps', 'temps ecoule', 'coupure', 'ferme', 'stop', 'avertissement'],
   },
@@ -189,7 +189,7 @@ export const FAQ: FaqEntry[] = [
     id: 'arreter-session',
     question: 'Puis-je arrêter le temps en cours à distance ?',
     answer:
-      'Oui. L’accueil de l’espace parent affiche la session en cours et le temps restant ; vous pouvez l’arrêter d’un geste. Les minutes non utilisées reviennent à l’enfant — on ne lui prend pas ce qu’il a gagné.',
+      'Oui. L’accueil de l’espace parent affiche la session en cours et le temps restant ; vous pouvez l’arrêter d’un geste. Les minutes non utilisées reviennent à l’enfant — on ne reprend jamais ce qui a été gagné.',
     category: 'temps-ecran',
     keywords: ['arreter', 'stopper', 'couper', 'a distance', 'session en cours', 'interrompre', 'diner', 'repas'],
   },
@@ -203,9 +203,9 @@ export const FAQ: FaqEntry[] = [
   },
   {
     id: 'enfant-lance-son-temps',
-    question: 'Mon enfant peut-il lancer son temps tout seul ?',
+    question: 'Est-ce que mon enfant peut lancer son temps sans moi ?',
     answer:
-      'Sur l’appareil où Mino est installé, oui, s’il a des minos : c’est le principe même, il dépense ce qu’il a gagné. Si vous préférez confirmer chaque fois, activez « Demander avant chaque session » sur sa fiche. Sur les autres écrans, votre confirmation est toujours requise.',
+      'Sur l’appareil où Mino est installé, oui, si le compteur n’est pas vide : c’est le principe même, on dépense ce qu’on a gagné. Si vous préférez confirmer chaque fois, activez « Demander avant chaque session » sur sa fiche. Sur les autres écrans, votre confirmation est toujours requise.',
     category: 'temps-ecran',
     keywords: ['lancer seul', 'demarrer son temps', 'autonomie', 'sans demander', 'validation'],
   },
@@ -240,7 +240,7 @@ export const FAQ: FaqEntry[] = [
     id: 'enfant-ne-voit-pas-mission',
     question: 'Mon enfant ne voit pas sa mission',
     answer:
-      'Vérifiez sa récurrence : une mission « certains jours » n’apparaît que les jours choisis. Vérifiez aussi qu’elle lui est bien attribuée, et pas seulement à son frère ou à sa sœur. Une mission déjà terminée disparaît de sa liste : c’est voulu, pour qu’il ne voie que ce qui lui reste à faire.',
+      'Vérifiez sa récurrence : une mission « certains jours » n’apparaît que les jours choisis. Vérifiez aussi qu’elle lui est bien attribuée, et pas seulement à son frère ou à sa sœur. Une mission déjà terminée disparaît de sa liste : c’est voulu, pour ne laisser à l’écran que ce qui reste à faire.',
     category: 'missions',
     keywords: ['ne voit pas', 'mission absente', 'liste vide', 'disparu', 'invisible'],
   },
@@ -465,7 +465,7 @@ export const FAQ: FaqEntry[] = [
     id: 'parler-a-mino',
     question: 'Mon enfant discute avec Mino : qu’est-ce que c’est ?',
     answer:
-      'Quand son temps d’écran est terminé, Mino reste et peut discuter avec lui — une vingtaine d’échanges par jour, puis il l’envoie jouer. Mino connaît ses missions du jour, propose des défis sans écran, et ne confirme jamais une mission ni ne donne de minutes : cela n’appartient qu’à vous. Vous pouvez lire toutes leurs conversations, et votre enfant en est prévenu.',
+      'Quand son temps d’écran est terminé, Mino reste et peut discuter avec votre enfant — une vingtaine d’échanges par jour, puis il l’envoie jouer. Mino connaît ses missions du jour, propose des défis sans écran, et ne confirme jamais une mission ni ne donne de minutes : cela n’appartient qu’à vous. Vous pouvez lire toutes leurs conversations, et votre enfant en est prévenu.',
     category: 'confidentialite',
     keywords: ['discuter', 'parler', 'chat', 'ia', 'intelligence artificielle', 'compagnon', 'personnage'],
     route: '/parent/enfants',
@@ -501,7 +501,7 @@ export const FAQ: FaqEntry[] = [
     id: 'reconnexion-a-chaque-fois',
     question: 'Mon enfant doit rechoisir son profil à chaque ouverture',
     answer:
-      'Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appareil est celui d’un seul enfant, réservez-le-lui dans Réglages → « Cet appareil » : il ouvrira toujours directement sur lui.',
+   'Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appareil est celui d’un seul enfant, réservez-le-lui dans Réglages → « Cet appareil » : Mino s’ouvrira toujours directement sur son profil.',
     category: 'compte',
     keywords: ['reconnexion', 'rechoisir', 'profil a chaque fois', 'se reconnecter', 'redemande'],
     route: '/parent/(tabs)/reglages',
