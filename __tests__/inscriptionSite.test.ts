@@ -154,18 +154,21 @@ describe('la première ouverture d’une famille venue du site', () => {
  * ------------------------------------------------ le jour où la famille s'inscrit
  *
  * **Le défaut, et il frappe précisément au pire moment.** Cinq routines sur
- * douze ne tournent pas tous les jours : quatre du lundi au vendredi, et « Ma
- * part à la maison » seulement le mercredi et le samedi. Une famille qui
- * s'inscrit le samedi — le jour où l'on s'occupe de ce genre de choses — paie,
- * installe l'application, tend la tablette à son enfant, et l'enfant voit
- * **« Aucune mission pour aujourd'hui »**.
+ * douze ne tournent pas tous les jours, et leurs jours ne se devinent pas :
+ * seule « Routine du matin » suit le lundi-vendredi entier. « Devoirs et
+ * école » et « Travail et révisions » sautent le mercredi ; « Coup de main à
+ * la maison » et « Ma part à la maison » ne tournent que le mercredi et le
+ * samedi. Une famille qui s'inscrit le samedi — le jour où l'on s'occupe de ce
+ * genre de choses — paie, installe l'application, tend la tablette à son
+ * enfant, et l'enfant voit **« Aucune mission pour aujourd'hui »**.
  *
  * Rien n'est cassé, et c'est ce qui rend le défaut coûteux : le produit
  * fonctionne exactement comme prévu, et la première impression est celle d'une
  * application vide. Personne ne reste pour vérifier lundi.
  *
- * Le pire cas n'est pas le week-end : « Ma part à la maison » proposée un jeudi
- * ne montre rien avant le samedi. Deux jours entiers.
+ * Le pire cas n'est pas le week-end : « Devoirs et école » proposée un mardi
+ * soir ne montre rien le mercredi, le jour où l'enfant est justement à la
+ * maison.
  *
  * **La correction retenue** : on garde toutes les routines, et l'écran dit
  * quand les missions reprennent — voir `prochaineJournee` et le groupe
@@ -306,5 +309,58 @@ describe('la prochaine journée', () => {
     };
 
     expect(prochaineJournee(jamais, 'enfant-web', samedi)).toBeNull();
+  });
+});
+
+/**
+ * ------------------------------------------------ les jours, écrits noir sur blanc
+ *
+ * **Pourquoi cet essai existe.** J'ai décrit ces récurrences par « quatre
+ * routines du lundi au vendredi », et c'était faux pour trois d'entre elles :
+ * « Devoirs et école » et « Travail et révisions » sautent le mercredi, et
+ * « Coup de main à la maison » ne tourne que le mercredi et le samedi. Le
+ * calcul, lui, lit le vrai tableau et n'a jamais été faux — mais la description
+ * est partie sur le site, où elle aurait pu être recopiée dans un traitement.
+ *
+ * Une valeur qu'on décrit de mémoire finit toujours par diverger de la valeur.
+ * Celles-ci décident du jour où un enfant a quelque chose à faire, et de la
+ * phrase que le site annonce à ses parents avant qu'ils ne paient.
+ */
+describe('les jours de chaque routine', () => {
+  it('sont exactement ceux-ci, et rien d’autre', () => {
+    const jours = Object.fromEntries(
+      ROUTINES.map((r) => [r.id, r.repeat.kind === 'daily' ? 'tous les jours' : (r.repeat.days ?? [])]),
+    );
+
+    expect(jours).toEqual({
+      matin: [1, 2, 3, 4, 5],
+      coucher: 'tous les jours',
+      ensemble: 'tous les jours',
+      // Le mercredi manque, et ce n'est pas un oubli : c'est le jour sans
+      // école de la semaine française.
+      ecole: [1, 2, 4, 5],
+      table: 'tous les jours',
+      chambre: 'tous les jours',
+      soin: 'tous les jours',
+      // Mercredi et samedi : les deux jours où l'enfant est à la maison.
+      maison: [3, 6],
+      autonomie: 'tous les jours',
+      travail: [1, 2, 4, 5],
+      equilibre: 'tous les jours',
+      'maison-ado': [3, 6],
+    });
+  });
+
+  it('font que « Devoirs et école » ne montre rien le mercredi', () => {
+    // Le cas qu'une description en « lundi-vendredi » rate, et il tombe le jour
+    // où l'enfant est le plus disponible.
+    const mardi = new Date('2026-09-15T18:00:00.000Z');
+    const data = familleDuSite({ routineId: 'ecole', age: 9, creeeLe: mardi });
+    const mercredi = new Date('2026-09-16T10:00:00.000Z');
+
+    expect(missionsForChild(data, 'enfant-web', mercredi)).toHaveLength(0);
+    expect(nommerLeJour(prochaineJournee(data, 'enfant-web', mercredi)!.jour, mercredi)).toBe(
+      'demain',
+    );
   });
 });
