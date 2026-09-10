@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { writeDeviceProfile } from '@/data/deviceProfile';
+import { readDeviceProfile, writeDeviceProfile } from '@/data/deviceProfile';
 import { etatDe, phraseDe, aRegler } from '@/domain/shieldReport';
 import { DeviceManagedScreenTimeService } from '@/services/screenTime';
 
@@ -170,5 +170,59 @@ describe('l’appareil en compteur seul, vu du parent', () => {
     // dont on sait quelque chose.
     const vieux = { ...appareil, seenAt: '2020-01-01T00:00:00.000Z' };
     expect(etatDe(vieux)).toBe('muet');
+  });
+});
+
+/**
+ * « C'est mon téléphone à moi », et le bandeau qui l'oubliait.
+ *
+ * L'inscription pose la question et répond, mot pour mot : « Rien à bloquer
+ * ici. » Afficher ensuite au même parent, sur le même appareil, « le blocage
+ * n'est pas actif, votre enfant ne peut pas lancer son temps d'écran » revient
+ * à lui reprocher la réponse qu'on lui a demandée — et un avertissement faux
+ * apprend à ignorer les vrais.
+ *
+ * La dispense n'est pas définitive : `lastChildId` la referme dès qu'un profil
+ * enfant s'ouvre ici. Un parent qui prête son téléphone n'a rien à déclarer.
+ */
+describe('le téléphone du parent', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  /** La règle du bandeau, telle qu'il la lit dans le profil de l'appareil. */
+  const dispense = (p: { usagePersonnel: boolean; lastChildId: string | null }) =>
+    p.usagePersonnel && !p.lastChildId;
+
+  it('se retient d’une inscription à l’autre', async () => {
+    await writeDeviceProfile({ usagePersonnel: true });
+    const relu = await readDeviceProfile();
+    expect(relu.usagePersonnel).toBe(true);
+    expect(dispense(relu)).toBe(true);
+  });
+
+  it('cesse d’être personnel dès qu’un enfant s’en sert', async () => {
+    await writeDeviceProfile({ usagePersonnel: true, lastChildId: 'noah' });
+    expect(dispense(await readDeviceProfile())).toBe(false);
+  });
+
+  it('ne dispense ni la tablette partagée ni l’appareil réservé', async () => {
+    // Les deux autres réponses de l'inscription mènent au réglage du blocage :
+    // elles doivent être rappelées à l'ordre tant qu'il n'est pas posé.
+    await writeDeviceProfile({ usagePersonnel: false, lockedChildId: null });
+    expect(dispense(await readDeviceProfile())).toBe(false);
+
+    await writeDeviceProfile({ usagePersonnel: false, lockedChildId: 'noah' });
+    expect(dispense(await readDeviceProfile())).toBe(false);
+  });
+
+  it('ne dispense jamais l’enfant de la vérification du bouclier', async () => {
+    // La dispense ne concerne QUE le bandeau. Si un enfant se sert quand même
+    // de cet appareil, ses minutes restent protégées : on refuse la séance.
+    await writeDeviceProfile({ usagePersonnel: true });
+    const service = new DeviceManagedScreenTimeService(natifSansDroit());
+    await expect(
+      service.grant({ sessionId: 'ses_1', childId: 'c1', minutes: 20 }),
+    ).rejects.toThrow(/blocage/i);
   });
 });

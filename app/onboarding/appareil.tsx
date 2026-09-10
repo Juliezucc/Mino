@@ -42,6 +42,7 @@ export default function OnboardingAppareil() {
   const enfants = useChildren();
   const famille = useFamily();
   const lockDeviceTo = useMinoStore((s) => s.lockDeviceTo);
+  const setUsagePersonnel = useMinoStore((s) => s.setUsagePersonnel);
   const [busy, setBusy] = useState(false);
 
   /**
@@ -66,6 +67,17 @@ export default function OnboardingAppareil() {
   const choisir = async (childId: string | null, versLeBlocage: boolean) => {
     setBusy(true);
     await lockDeviceTo(childId).catch(() => undefined);
+    /**
+     * Retenir « c'est mon téléphone à moi », qui était posé puis jeté.
+     *
+     * Les trois réponses écrivaient jusqu'ici la même chose — un
+     * `lockedChildId`, nul pour deux d'entre elles — si bien que le téléphone
+     * du parent et la tablette du salon devenaient indiscernables. Sans
+     * conséquence tant que rien ne s'y appuyait ; le bandeau du bouclier s'y
+     * appuie, et reprocherait au parent, sur son propre téléphone, un blocage
+     * qu'on vient de lui dire de ne pas régler là. Voir `DeviceProfile`.
+     */
+    await setUsagePersonnel(!versLeBlocage && childId === null).catch(() => undefined);
     setBusy(false);
     // Le blocage enchaîne directement : c'est la seule étape qui fait de Mino
     // un contrôle parental, et la seule qu'on ne peut pas faire à la place du

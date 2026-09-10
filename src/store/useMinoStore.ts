@@ -120,6 +120,11 @@ interface MinoState {
    */
   setCompteurSeul: (valeur: boolean) => Promise<void>;
   /**
+   * « C'est mon téléphone à moi » : aucun enfant ne joue ici, il n'y a rien à
+   * verrouiller. Voir `DeviceProfile.usagePersonnel`.
+   */
+  setUsagePersonnel: (valeur: boolean) => Promise<void>;
+  /**
    * Dire au reste de la famille dans quel état est le bouclier ICI.
    *
    * Jamais attendu par l'appelant : c'est un rapport, pas une action.
@@ -868,6 +873,10 @@ export const useMinoStore = create<MinoState>((set, get) => {
         ...(childId ? { lastChildId: childId } : {}),
       });
       set({ device });
+    },
+
+    async setUsagePersonnel(valeur) {
+      set({ device: await writeDeviceProfile({ usagePersonnel: valeur }) });
     },
 
     async setCompteurSeul(valeur) {

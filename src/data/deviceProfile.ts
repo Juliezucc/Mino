@@ -76,12 +76,34 @@ export interface DeviceProfile {
    * fait que compter.
    */
   compteurSeul: boolean;
+
+  /**
+   * « C'est mon téléphone à moi » — la troisième réponse de l'inscription.
+   *
+   * Elle était posée, puis jetée : les trois réponses écrivaient la même chose
+   * dans ce fichier (un `lockedChildId`, nul pour deux d'entre elles), si bien
+   * que le téléphone du parent et la tablette du salon devenaient
+   * indiscernables. Sans conséquence tant que rien ne s'appuyait dessus.
+   *
+   * Le bandeau du bouclier s'y appuie, lui, et le lui reprocherait : « le
+   * blocage n'est pas actif, votre enfant ne peut pas lancer son temps
+   * d'écran » sur un appareil où aucun enfant ne joue, et où le parent a
+   * précisément répondu qu'il n'y avait rien à bloquer. Un avertissement faux
+   * apprend à ignorer les vrais.
+   *
+   * Ce n'est pas une dispense définitive : il suffit qu'un profil enfant soit
+   * ouvert ici une fois — `lastChildId` cesse alors d'être nul — pour que le
+   * bandeau revienne. Un parent qui prête son téléphone n'a rien à déclarer, et
+   * l'appareil s'en aperçoit tout seul.
+   */
+  usagePersonnel: boolean;
 }
 
 export const NO_DEVICE_PROFILE: DeviceProfile = {
   lockedChildId: null,
   lastChildId: null,
   compteurSeul: false,
+  usagePersonnel: false,
 };
 
 export async function readDeviceProfile(): Promise<DeviceProfile> {
@@ -93,6 +115,7 @@ export async function readDeviceProfile(): Promise<DeviceProfile> {
       lockedChildId: parsed.lockedChildId ?? null,
       lastChildId: parsed.lastChildId ?? null,
       compteurSeul: parsed.compteurSeul === true,
+      usagePersonnel: parsed.usagePersonnel === true,
     };
   } catch {
     // Un réglage d'appareil illisible ne doit jamais empêcher l'application de

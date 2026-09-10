@@ -49,6 +49,22 @@ export function BouclierBanner() {
   const setCompteurSeul = useMinoStore((s) => s.setCompteurSeul);
 
   /**
+   * Le téléphone du parent, tant qu'aucun enfant ne s'en est servi.
+   *
+   * L'inscription demande « à qui est cet appareil ? », et la troisième réponse
+   * est « c'est mon téléphone à moi » — à quoi Mino répond, mot pour mot :
+   * « Rien à bloquer ici. » Lui afficher ensuite « le blocage n'est pas actif,
+   * votre enfant ne peut pas lancer son temps d'écran » sur ce même appareil,
+   * c'est lui reprocher la réponse qu'on lui a demandée. Un avertissement faux
+   * apprend à ignorer les vrais.
+   *
+   * `lastChildId` referme la porte : dès qu'un profil enfant est ouvert ici une
+   * fois, l'appareil cesse d'être personnel et le bandeau revient. Un parent
+   * qui prête son téléphone n'a rien à déclarer.
+   */
+  const personnel = useMinoStore((s) => s.device.usagePersonnel && !s.device.lastChildId);
+
+  /**
    * `undefined` tant qu'on n'a pas demandé : sans cette distinction, le bandeau
    * apparaissait une fraction de seconde à chaque ouverture de l'espace parent,
    * y compris chez les familles dont le bouclier fonctionne — et un avertissement
@@ -73,6 +89,7 @@ export function BouclierBanner() {
    * installer Mino sur l'appareil de l'enfant.
    */
   if (etat === undefined || etat === 'approved' || etat === 'unsupported') return null;
+  if (personnel) return null;
 
   if (compteurSeul) {
     return (
