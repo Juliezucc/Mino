@@ -46,7 +46,16 @@ export const colors = {
   mintInk: '#1A7A54',
   yellowInk: '#956300',
   pinkInk: '#CC0037',
-  dangerInk: '#D30027',
+  /**
+   * Le rouge des messages d'erreur, mesuré sur son propre fond.
+   *
+   * `#D30027` donnait 4,52:1 sur `dangerSoft` — au-dessus du minimum légal de
+   * 4,5, sous la règle de 5:1 que ce projet s'impose. Or c'est précisément le
+   * texte qu'on lit mal : court, rouge sur rose, et lu par quelqu'un à qui il
+   * vient d'arriver quelque chose. Assombri jusqu'à 5,27:1 sur le rose, 6,43
+   * sur blanc, 5,94 sur le bleu clair — les trois fonds où il apparaît.
+   */
+  dangerInk: '#C00022',
 
   // Text
   navy: '#1A1D2E',
