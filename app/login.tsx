@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 
@@ -22,7 +22,16 @@ export default function Login() {
   const router = useRouter();
   const signIn = useMinoStore((s) => s.signIn);
 
-  const [email, setEmail] = useState('');
+  /**
+   * L'adresse déjà saisie, quand on arrive de l'inscription.
+   *
+   * Un parent dont l'inscription a échoué sur son adresse vient de la taper.
+   * La lui redemander, c'est lui faire refaire le geste qui n'a pas marché — et
+   * c'est le moment exact où l'on referme une application.
+   */
+  const { email: fourni } = useLocalSearchParams<{ email?: string }>();
+
+  const [email, setEmail] = useState(typeof fourni === 'string' ? fourni : '');
   const [password, setPassword] = useState('');
   /**
    * Deux messages, et pas un seul — c'est la correction, et elle vaut d'être

@@ -308,6 +308,39 @@ export default function CreateAccount() {
           </Text>
         ) : null}
 
+        {/**
+          * ------------------------------- la sortie de celui qui a déjà un compte
+          *
+          * **Le défaut.** Une inscription qui échoue sur l'adresse — le cas le
+          * plus fréquent étant, de loin, une adresse déjà prise — laissait le
+          * parent devant un message et rien d'autre. Il retape, il réessaie, il
+          * abandonne, avec un compte parfaitement valable qui l'attendait.
+          *
+          * **Pourquoi on ne lui dit pas simplement « ce compte existe déjà ».**
+          * `SupabaseAuthService` s'y refuse délibérément, et il a raison :
+          * répondre différemment selon que l'adresse est prise ou libre livre
+          * la liste des clients de Mino, une adresse à la fois. Pour une
+          * application de familles, c'est dire qui a des enfants et lesquels
+          * s'en servent.
+          *
+          * **Ce qu'on fait à la place.** On offre le chemin sans confirmer
+          * quoi que ce soit. Cette phrase est vraie pour tout le monde : celui
+          * qui n'a pas de compte ne trouvera rien au bout, celui qui en a un le
+          * retrouve en une touche, et personne n'apprend rien sur personne.
+          * L'adresse voyage avec lui — la retaper, c'est refaire le geste qui
+          * vient d'échouer.
+          */}
+        {errors.email || erreur ? (
+          <Button
+            label="J’ai déjà un compte avec cette adresse"
+            variant="ghost"
+            haptic={false}
+            onPress={() =>
+              router.replace({ pathname: '/login', params: { email: email.trim() } })
+            }
+          />
+        ) : null}
+
         <Text variant="caption" color={colors.textSubtle}>
           Mino ne collecte aucune donnée inutile : pas de géolocalisation, pas de publicité, pas de
           suivi marketing côté enfant.
