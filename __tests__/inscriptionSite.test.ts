@@ -1,7 +1,7 @@
 import { accessOf } from '@/domain/billing';
 import { inscriptionInachevee, isFirstRun } from '@/domain/firstRun';
 import { ROUTINES, convientA } from '@/domain/missionLibrary';
-import { missionsForChild } from '@/domain/missions';
+import { missionsForChild, nommerLeJour, prochaineJournee } from '@/domain/missions';
 import { parentGate } from '@/domain/parentGate';
 import { FamilyData } from '@/domain/types';
 
@@ -167,10 +167,11 @@ describe('la première ouverture d’une famille venue du site', () => {
  * Le pire cas n'est pas le week-end : « Ma part à la maison » proposée un jeudi
  * ne montre rien avant le samedi. Deux jours entiers.
  *
- * Ces essais constatent l'état actuel — ils ne le corrigent pas. La correction
- * appartient au produit : soit le tunnel ne propose que des routines
- * quotidiennes, soit l'écran de l'enfant dit quand la première mission arrive
- * au lieu de dire qu'il n'y a rien.
+ * **La correction retenue** : on garde toutes les routines, et l'écran dit
+ * quand les missions reprennent — voir `prochaineJournee` et le groupe
+ * d'essais du même nom, plus bas. Ce groupe-ci constate ce qui reste vrai
+ * après elle : les missions n'apparaissent toujours pas le samedi, et c'est
+ * voulu. Ce qui change, c'est ce que l'enfant en apprend.
  */
 describe('une famille qui s’inscrit le week-end', () => {
   const samedi = new Date('2026-09-12T10:00:00.000Z');
@@ -205,5 +206,105 @@ describe('une famille qui s’inscrit le week-end', () => {
     const data = familleDuSite({ routineId: enSemaine.id, age: 9, creeeLe: samedi });
 
     expect(missionsForChild(data, 'enfant-web', lundi).length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * --------------------------------------------- dire quand, au lieu de dire rien
+ *
+ * La correction retenue : on garde toutes les routines, et l'écran annonce le
+ * jour où les missions reprennent. Un enfant à qui l'on dit « tes missions
+ * reprennent lundi · 5 missions t'attendent » apprend quelque chose de vrai ;
+ * « ton parent va bientôt t'en proposer une » lui apprend le contraire de ce
+ * qui est.
+ */
+describe('la prochaine journée', () => {
+  const samedi = new Date('2026-09-12T10:00:00.000Z');
+
+  it('trouve le lundi quand la routine est en semaine', () => {
+    const data = familleDuSite({ routineId: 'matin', age: 9, creeeLe: samedi });
+    const suite = prochaineJournee(data, 'enfant-web', samedi)!;
+
+    expect(suite).not.toBeNull();
+    expect(suite.jour.getDay()).toBe(1); // lundi
+    expect(suite.missions.length).toBeGreaterThan(0);
+    expect(nommerLeJour(suite.jour, samedi)).toBe('lundi');
+  });
+
+  it('dit « demain » plutôt que de nommer le jour, quand c’est demain', () => {
+    // Un enfant de six ans comprend « demain » avant « dimanche ».
+    const vendredi = new Date('2026-09-11T10:00:00.000Z');
+    const data = familleDuSite({ routineId: 'coucher', age: 9, creeeLe: vendredi });
+    const suite = prochaineJournee(data, 'enfant-web', vendredi)!;
+
+    expect(nommerLeJour(suite.jour, vendredi)).toBe('demain');
+  });
+
+  it('rend null quand il n’y a vraiment rien — et c’est la seule fois', () => {
+    // Le seul cas où « ton parent va bientôt t'en proposer une » est vrai.
+    const data = familleDuSite({ routineId: 'matin', age: 9, creeeLe: samedi });
+    const sansRien = { ...data, assignments: [] };
+
+    expect(prochaineJournee(sansRien, 'enfant-web', samedi)).toBeNull();
+  });
+
+  it('ignore les missions archivées', () => {
+    const data = familleDuSite({ routineId: 'matin', age: 9, creeeLe: samedi });
+    const archivees = { ...data, missions: data.missions.map((m) => ({ ...m, archived: true })) };
+
+    expect(prochaineJournee(archivees, 'enfant-web', samedi)).toBeNull();
+  });
+
+  it('ne regarde pas les missions d’un autre enfant', () => {
+    const data = familleDuSite({ routineId: 'matin', age: 9, creeeLe: samedi });
+    expect(prochaineJournee(data, 'quelquun-dautre', samedi)).toBeNull();
+  });
+
+  it('trouve le mercredi pour une routine du mercredi et du samedi', () => {
+    // Le pire cas, et il ne tombe pas le week-end : « Ma part à la maison »
+    // proposée un jeudi ne montre rien pendant deux jours.
+    const jeudi = new Date('2026-09-10T10:00:00.000Z');
+    const data = familleDuSite({ routineId: 'maison-ado', age: 15, creeeLe: jeudi });
+    const suite = prochaineJournee(data, 'enfant-web', jeudi)!;
+
+    expect(suite.jour.getDay()).toBe(6); // samedi
+    expect(nommerLeJour(suite.jour, jeudi)).toBe('samedi');
+  });
+
+  /**
+   * Le changement d'heure.
+   *
+   * L'écran annonce un jour de la semaine à un enfant : se tromper deux fois
+   * par an suffit à rendre la phrase fausse au moment où elle compte. Les
+   * essais tournent à l'heure de Paris — voir `jest.setup.ts` — donc la nuit du
+   * passage à l'heure d'été est réellement traversée ici.
+   *
+   * Réserve honnête sur la portée de cet essai : il ne tomberait pas si l'on
+   * remplaçait le constructeur `Date` par une addition de millisecondes, parce
+   * que le décalage se joue à deux heures du matin et que la comparaison porte
+   * sur la date. Il verrouille le comportement attendu, pas l'implémentation
+   * qui le produit.
+   */
+  it('ne se trompe pas de jour au changement d’heure', () => {
+    // Nuit du 28 au 29 mars 2026 : la France passe à l'heure d'été.
+    const veille = new Date('2026-03-28T10:00:00.000Z'); // un samedi
+    const data = familleDuSite({ routineId: 'coucher', age: 9, creeeLe: veille });
+    const suite = prochaineJournee(data, 'enfant-web', veille)!;
+
+    expect(suite.jour.getDay()).toBe(0); // dimanche 29, et non samedi 28
+    expect(suite.jour.getDate()).toBe(29);
+  });
+
+  it('ne cherche pas au-delà d’une semaine', () => {
+    // Une règle de récurrence ne peut rien rendre au-delà que la semaine ne
+    // contienne déjà, et une boucle sans borne sur des données venues du client
+    // est une boucle qu'on regrette.
+    const data = familleDuSite({ routineId: 'matin', age: 9, creeeLe: samedi });
+    const jamais = {
+      ...data,
+      missions: data.missions.map((m) => ({ ...m, repeat: { kind: 'weekdays' as const, days: [] } })),
+    };
+
+    expect(prochaineJournee(jamais, 'enfant-web', samedi)).toBeNull();
   });
 });

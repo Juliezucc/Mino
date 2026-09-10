@@ -16,10 +16,10 @@ import {
   confirmer,
 } from '@/components/ui';
 import { balanceDetail } from '@/domain/ledger';
-import { missionsForChild } from '@/domain/missions';
+import { missionsForChild, nommerLeJour } from '@/domain/missions';
 import { MissionCard } from '@/features/child/MissionCard';
 import { HistoryList } from '@/features/history/HistoryList';
-import { useChild, useFamily, useHistory } from '@/store/selectors';
+import { useChild, useFamily, useHistory, useProchaineJournee } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
@@ -33,6 +33,7 @@ export default function ParentChildDetail() {
   const adjustBalance = useMinoStore((s) => s.adjustBalance);
   const deleteChild = useMinoStore((s) => s.deleteChild);
   const editChild = useMinoStore((s) => s.editChild);
+  const prochaine = useProchaineJournee(id);
 
   if (!child || !data) return null;
 
@@ -174,8 +175,17 @@ export default function ParentChildDetail() {
         />
         {missions.length === 0 ? (
           <Card elevation="none" background={colors.surfaceMuted}>
+            {/**
+             * « Aucune mission pour aujourd'hui » se lisait comme « vous n'en
+             * avez créé aucune », alors que le parent en a souvent cinq — qui
+             * ne tournent simplement pas ce jour-là. Le parent est celui qui
+             * peut agir : c'est à lui qu'il faut dire quel jour, pour qu'il
+             * décide si cela lui convient.
+             */}
             <Text variant="body" color={colors.textMuted} center>
-              Aucune mission pour aujourd’hui.
+              {prochaine
+                ? `Rien de prévu aujourd’hui. ${prochaine.missions.length} mission${prochaine.missions.length > 1 ? 's' : ''} ${prochaine.missions.length > 1 ? 'reprennent' : 'reprend'} ${nommerLeJour(prochaine.jour)}.`
+                : 'Aucune mission pour aujourd’hui.'}
             </Text>
           </Card>
         ) : (

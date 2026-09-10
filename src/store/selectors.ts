@@ -7,7 +7,7 @@ import {
   pendingCompletions,
   uncelebratedCompletions,
 } from '@/domain/ledger';
-import { ChildMission, missionsForChild } from '@/domain/missions';
+import { ChildMission, missionsForChild, prochaineJournee } from '@/domain/missions';
 import { Child, FamilyData, ID, ScreenTimeBalance } from '@/domain/types';
 
 import { useMinoStore } from './useMinoStore';
@@ -120,5 +120,20 @@ export function useRunningSession(childId: ID | null | undefined) {
   return useMemo(
     () => (childId ? sessions.find((s) => s.childId === childId && s.status === 'running') ?? null : null),
     [sessions, childId],
+  );
+}
+
+/**
+ * Ce qui attend cet enfant, quand rien ne l'attend aujourd'hui.
+ *
+ * Voir `prochaineJournee` : cinq routines sur douze ne tournent pas tous les
+ * jours, et un enfant à qui l'on annonce « pas encore de mission » un samedi
+ * alors que cinq l'attendent lundi n'apprend rien de vrai.
+ */
+export function useProchaineJournee(childId: ID | null | undefined) {
+  const data = useFamily();
+  return useMemo(
+    () => (data && childId ? prochaineJournee(data, childId) : null),
+    [data, childId],
   );
 }

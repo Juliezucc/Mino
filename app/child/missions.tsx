@@ -5,7 +5,13 @@ import { StyleSheet, View } from 'react-native';
 import { EmptyState, MinutesBadge, Screen, ScreenHeader, Text } from '@/components/ui';
 import { unitOf } from '@/domain/ageBand';
 import { MissionCard } from '@/features/child/MissionCard';
-import { useActiveChild, useBalance, useChildMissions } from '@/store/selectors';
+import { nommerLeJour } from '@/domain/missions';
+import {
+  useActiveChild,
+  useBalance,
+  useChildMissions,
+  useProchaineJournee,
+} from '@/store/selectors';
 import { colors, spacing } from '@/theme';
 
 /**
@@ -25,6 +31,7 @@ export default function ChildMissions() {
   const child = useActiveChild();
   const missions = useChildMissions(child?.id);
   const balance = useBalance(child?.id);
+  const prochaine = useProchaineJournee(child?.id);
 
   if (!child) return null;
 
@@ -50,16 +57,46 @@ export default function ChildMissions() {
               ? unit === 'minos'
                 ? 'Ton parent confirme · tes minos arrivent après'
                 : 'En attente de confirmation'
-              : 'Tout est fait pour aujourd’hui !'}
+              : // « Tout est fait » suppose qu'il y avait quelque chose à
+                // faire. Une journée sans mission programmée n'est pas une
+                // journée terminée, et féliciter quelqu'un qui n'a rien fait
+                // vide la phrase de son sens les jours où elle est méritée.
+                missions.length > 0
+                ? 'Tout est fait pour aujourd’hui !'
+                : 'Rien de prévu aujourd’hui'}
         </Text>
       </View>
 
       {missions.length === 0 ? (
-        <EmptyState
-          title="Pas encore de mission"
-          message="Ton parent va bientôt t’en proposer une."
-          expression="motivated"
-        />
+        /**
+         * Rien aujourd'hui ne veut pas dire rien du tout.
+         *
+         * Cinq routines sur douze ne tournent pas tous les jours. Un enfant
+         * dont le parent a choisi « Routine du matin » un samedi lisait « ton
+         * parent va bientôt t'en proposer une » alors que cinq l'attendaient
+         * déjà : c'était faux, et c'est la première chose que voit l'enfant
+         * d'une famille qui vient de s'inscrire par le site.
+         *
+         * On lui dit donc **quand**, et **combien** — icône et texte, comme
+         * partout ailleurs sur ses écrans.
+         */
+        prochaine ? (
+          <EmptyState
+            title={`Tes missions reprennent ${nommerLeJour(prochaine.jour)} 🌙`}
+            message={
+              unit === 'minos'
+                ? `${prochaine.missions.length} mission${prochaine.missions.length > 1 ? 's' : ''} t’attend${prochaine.missions.length > 1 ? 'ent' : ''}. Aujourd’hui, tu peux te reposer !`
+                : `${prochaine.missions.length} mission${prochaine.missions.length > 1 ? 's' : ''} ${prochaine.missions.length > 1 ? 'sont prévues' : 'est prévue'}. Rien à faire aujourd’hui.`
+            }
+            expression="happy"
+          />
+        ) : (
+          <EmptyState
+            title="Pas encore de mission"
+            message="Ton parent va bientôt t’en proposer une."
+            expression="motivated"
+          />
+        )
       ) : allDone ? (
         <EmptyState
           title="Tout est fait ! 🎉"
