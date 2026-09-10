@@ -101,7 +101,23 @@ export function Button({
               {icon}
             </Text>
           ) : null}
-          <Text variant={isKid ? 'buttonKid' : 'button'} color={tone.fg} numberOfLines={1}>
+          {/**
+            * Deux lignes, et non une — c'est ce qui sépare « prend en charge
+            * les grandes polices » de la case cochée à tort.
+            *
+            * Le bouton grandit avec le texte : sa hauteur est un `minHeight`,
+            * pas une hauteur. Mais son intitulé était coupé à une ligne, si
+            * bien qu'à 200 % — le seuil d'Apple pour « Police plus grande » —
+            * « Terminer, aller à mon espace » devenait « Terminer, aller… » sur
+            * le bouton principal de chaque écran. Une personne malvoyante y
+            * perdait précisément ce qu'elle avait agrandi pour lire.
+            */}
+          <Text
+            variant={isKid ? 'buttonKid' : 'button'}
+            color={tone.fg}
+            numberOfLines={2}
+            style={styles.label}
+          >
             {label}
           </Text>
         </View>
@@ -123,6 +139,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   icon: { fontSize: 20 },
+  // `flexShrink` plutôt que rien : sans lui, un intitulé sur deux lignes pousse
+  // au-delà du bouton au lieu de se replier dedans.
+  label: { flexShrink: 1 },
   secondaryBorder: {
     borderWidth: 1.5,
     borderColor: colors.border,

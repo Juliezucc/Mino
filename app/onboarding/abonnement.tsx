@@ -343,7 +343,15 @@ export default function OnboardingAbonnement() {
        * est exactement ce qu'il fait : rendre service à la personne qui l'a
        * invité.
        */}
-      <Pressable onPress={() => router.push('/parent/parrainage')} hitSlop={8}>
+      {/* Le seul élément touchable de l'application qui ne s'annonçait pas
+          comme un bouton : VoiceOver lisait la phrase sans dire qu'on pouvait
+          appuyer dessus, et le Contrôle vocal n'avait rien à viser. */}
+      <Pressable
+        onPress={() => router.push('/parent/parrainage')}
+        accessibilityRole="button"
+        accessibilityLabel="Signaler que vous avez été invité par un ami"
+        hitSlop={8}
+      >
         <Text variant="caption" color={colors.textMuted} center>
           Un ami vous a invité ? Signalez-le, il gagnera un mois.
         </Text>
