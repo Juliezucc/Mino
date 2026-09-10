@@ -151,3 +151,60 @@ describe('sessions', () => {
     expect(() => actions.startSession(first.data, { childId, minutes: 10 })).toThrow();
   });
 });
+
+/**
+ * ------------------------------------------------------- corriger l'âge après coup
+ *
+ * Le prénom, l'âge et l'avatar n'étaient saisissables qu'à la création. La
+ * fiche de l'enfant les affichait ensuite — « 9 ans » — sans permettre d'y
+ * toucher : un parent qui s'était trompé d'une touche n'avait que la
+ * suppression du profil, donc la perte de tout l'historique, pour se rattraper.
+ *
+ * Et l'âge n'est pas une mention d'état civil, c'est un réglage du produit : il
+ * décide du registre au seuil de 13 ans, et des missions proposées.
+ */
+describe('modifier le profil d’un enfant', () => {
+  it('fait basculer le registre quand l’âge franchit 13 ans', () => {
+    const { data, childId } = demo();
+    const avant = data.children.find((c) => c.id === childId)!;
+    expect(unitOf(avant)).toBe('minos');
+
+    const apres = actions.updateChild(data, childId, { age: 14 });
+    const grandi = apres.children.find((c) => c.id === childId)!;
+
+    expect(unitOf(grandi)).toBe('minutes');
+    expect(bandForAge(grandi.age)).toBe('ado');
+  });
+
+  it('ne touche ni au compteur, ni à l’historique, ni aux missions', () => {
+    // C'est toute la différence avec la seule sortie qui existait — supprimer
+    // le profil et le recréer, qui emporte tout.
+    const { data, childId } = demo();
+    const apres = actions.updateChild(data, childId, { age: 14, firstName: 'Noa' });
+
+    expect(balanceOf(apres.transactions, childId)).toBe(balanceOf(data.transactions, childId));
+    expect(apres.transactions).toEqual(data.transactions);
+    expect(apres.completions).toEqual(data.completions);
+    expect(apres.assignments).toEqual(data.assignments);
+    expect(apres.missions).toEqual(data.missions);
+  });
+
+  it('garde l’identifiant, qui est ce à quoi tout le reste est rattaché', () => {
+    const { data, childId } = demo();
+    const apres = actions.updateChild(data, childId, {
+      id: 'autre-chose',
+      age: 10,
+    } as Partial<Child>);
+
+    expect(apres.children.find((c) => c.id === childId)?.age).toBe(10);
+    expect(apres.children.some((c) => c.id === 'autre-chose')).toBe(false);
+  });
+
+  it('ne modifie que l’enfant nommé', () => {
+    const { data } = demo();
+    const deux = { ...data, children: [...data.children, child({ id: 'c2', age: 7 })] };
+    const apres = actions.updateChild(deux, data.children[0].id, { age: 15 });
+
+    expect(apres.children.find((c) => c.id === 'c2')?.age).toBe(7);
+  });
+});

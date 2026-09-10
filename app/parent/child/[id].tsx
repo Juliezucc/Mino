@@ -68,6 +68,24 @@ export default function ParentChildDetail() {
         <Text variant="body" color={colors.textMuted}>
           {`${child.age} ans`}
         </Text>
+        {/**
+         * Le bouton qui manquait, juste sous ce qu'il sert à corriger.
+         *
+         * L'âge s'affichait ici sans être modifiable nulle part : un parent qui
+         * s'était trompé d'une touche n'avait que la suppression du profil —
+         * donc la perte de tout l'historique — pour se rattraper. Or l'âge
+         * décide du registre de l'application au seuil de 13 ans, et des
+         * missions proposées.
+         */}
+        <Button
+          label="Modifier le profil"
+          icon="✏️"
+          variant="secondary"
+          full={false}
+          onPress={() =>
+            router.push({ pathname: '/parent/child-edit', params: { id: child.id } })
+          }
+        />
         <Text variant="display" color={colors.blueInk}>
           {`${balance.minutes}:00`}
         </Text>
