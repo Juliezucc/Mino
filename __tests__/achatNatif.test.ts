@@ -14,7 +14,7 @@
  * close, l'abandon distingué de l'échec —, se décide dans ce fichier.
  */
 
-import { MONTHLY_PRICE_EUR, Subscription } from '@/domain/billing';
+import { MONTHLY_PRICE_EUR, Subscription, accessOf, canCancelInApp } from '@/domain/billing';
 import { ExpoIapStore, ModuleIap, PRODUITS } from '@/services/billing/ExpoIapStore';
 import { StoreBillingService } from '@/services/billing/StoreBillingService';
 import { BillingService } from '@/services/billing/BillingService';
@@ -491,13 +491,23 @@ describe('branchée sur StoreBillingService', () => {
       async () => JETON,
     );
 
-    // Ni Apple ni Google n'exposent d'API d'annulation : un bouton « résilier »
-    // dans l'application serait un bouton qui ment. Le contrat le prévoit —
-    // `cancel` y est facultatif —, et TypeScript sait déjà qu'il est absent
-    // ici ; on le vérifie tout de même à l'exécution, puisque c'est la seule
-    // chose qui protège l'écran d'abonnement.
+    /**
+     * Ni Apple ni Google n'exposent d'API d'annulation : une résiliation
+     * obtenue depuis l'application serait un mensonge.
+     *
+     * Cet essai vérifiait autrefois que `cancel` était **absent** de l'objet.
+     * C'était prendre le moyen pour la fin, et le moyen a changé : le service
+     * délègue maintenant au serveur quand l'abonnement vient de Stripe — le
+     * parcours d'une famille venue du site — et refuse quand il vient d'une
+     * boutique. Ce qui doit tenir, et qui est vérifié ici, c'est qu'aucune
+     * résiliation ne s'obtienne sur un rail boutique, et que l'écran soit
+     * envoyé vers les réglages du téléphone.
+     *
+     * `serveur` ne connaît aucun abonnement ; c'est le cas prudent, et il doit
+     * pencher du côté de la boutique, puisque c'est celui de cette classe.
+     */
     const vu = service as BillingService;
-    expect(vu.cancel).toBeUndefined();
+    await expect(vu.cancel!('fam-1')).rejects.toThrow(/réglages de votre téléphone/i);
     expect((await vu.openPortal('fam-1')).url).toContain('apple.com');
   });
 
@@ -1130,5 +1140,174 @@ describe('ce que la boutique dit quand ça se passe mal', () => {
     await expect(echouer('E_BIZARRE', 'Something inexplicable')).rejects.toThrow(
       /rien n’a été prélevé/i,
     );
+  });
+});
+
+/**
+ * ------------------------------------------- la famille venue du site, dans l'app
+ *
+ * Le tunnel de minoapp.fr fait payer par Stripe, puis la famille télécharge
+ * l'application. C'est le parcours principal de la publicité, et il traverse
+ * `StoreBillingService` — qui, lui, est écrit pour une boutique.
+ *
+ * Deux choses doivent tenir, et une seule tenait.
+ */
+describe('un abonnement payé sur le web, ouvert dans l’application', () => {
+  const stripeActif: Subscription = {
+    familyId: 'fam-web',
+    status: 'active',
+    plan: 'yearly',
+    trialEndsAt: null,
+    currentPeriodEnd: '2027-01-01T00:00:00.000Z',
+    cancelAtPeriodEnd: false,
+    creditMonths: 0,
+    source: 'stripe',
+  };
+
+  const serveurStripe = (journal: string[]) =>
+    ({
+      name: 'faux-serveur',
+      capability: 'stripe-web',
+      getSubscription: async () => stripeActif,
+      startCheckout: async () => ({ kind: 'failed' as const, reason: 'jamais' }),
+      openPortal: async () => {
+        journal.push('portal');
+        return { url: 'https://billing.stripe.com/p/session_x' };
+      },
+      cancel: async () => {
+        journal.push('cancel');
+        return { ...stripeActif, cancelAtPeriodEnd: true };
+      },
+      resume: async () => {
+        journal.push('resume');
+        return stripeActif;
+      },
+      changePlan: async () => {
+        journal.push('changePlan');
+        return { ...stripeActif, plan: 'monthly' as const };
+      },
+      listReferrals: async () => [],
+      redeemReferralCode: async () => ({ ok: false }),
+    }) as unknown as BillingService;
+
+  const monter = (journal: string[]) => {
+    const { iap } = fausseBoutique({ produits: [mensuel, annuel] });
+    return new StoreBillingService(
+      serveurStripe(journal),
+      new ExpoIapStore('apple', async () => iap),
+      async () => null,
+      async () => JETON,
+    );
+  };
+
+  it('n’affiche pas de paywall : l’abonnement est rendu tel quel', async () => {
+    // Ce qui doit tenir, et qui tenait déjà. `getSubscription` interroge le
+    // serveur, seul détenteur de la vérité, et ne redemande rien à la boutique
+    // — il n'y a rien à y trouver, l'achat n'est pas passé par elle.
+    const service = monter([]);
+    const sub = await service.getSubscription('fam-web');
+    expect(sub).toEqual(stripeActif);
+    expect(accessOf(sub, new Date('2026-06-01T00:00:00.000Z')).kind).toBe('active');
+  });
+
+  /**
+   * Ce qui ne tenait pas, et qui aurait coûté un prélèvement.
+   *
+   * `canCancelInApp` rend `true` — il lit la source, et il a raison. L'écran
+   * affichait donc le vrai bouton « Résilier », le parent confirmait, et
+   * `cancelSubscription()` du magasin trouvait `cancel` indéfini sur ce
+   * service et retournait sans rien faire. Aucune erreur, aucun indicateur :
+   * le parent croyait avoir résilié et se faisait prélever le mois suivant.
+   */
+  it('résilie vraiment, en passant par le serveur', async () => {
+    const journal: string[] = [];
+    const service = monter(journal);
+
+    expect(canCancelInApp(stripeActif)).toBe(true);
+    const apres = await service.cancel!('fam-web');
+
+    expect(journal).toEqual(['cancel']);
+    expect(apres.cancelAtPeriodEnd).toBe(true);
+  });
+
+  it('reprend et change de formule par le même chemin', async () => {
+    const journal: string[] = [];
+    const service = monter(journal);
+
+    await service.resume!('fam-web');
+    // Surtout pas `startCheckout` : sur un rail Stripe il ouvrirait un SECOND
+    // abonnement par-dessus celui qui court, et la famille paierait deux fois.
+    await service.changePlan!({ familyId: 'fam-web', plan: 'monthly' });
+
+    expect(journal).toEqual(['resume', 'changePlan']);
+  });
+
+  it('envoie vers le portail Stripe, pas vers les réglages d’Apple', async () => {
+    const journal: string[] = [];
+    const service = monter(journal);
+
+    const { url } = await service.openPortal('fam-web');
+    expect(journal).toEqual(['portal']);
+    expect(url).toMatch(/billing\.stripe\.com/);
+    expect(url).not.toMatch(/apple\.com/);
+  });
+});
+
+/**
+ * Et le rail boutique, inchangé : Apple et Google n'exposent aucune API pour
+ * résilier. Un service qui prétendrait le contraire produirait exactement le
+ * défaut qu'on vient de réparer, dans l'autre sens.
+ */
+describe('un abonnement acheté dans la boutique', () => {
+  const appleActif: Subscription = {
+    familyId: 'fam-store',
+    status: 'active',
+    plan: 'monthly',
+    trialEndsAt: null,
+    currentPeriodEnd: '2027-01-01T00:00:00.000Z',
+    cancelAtPeriodEnd: false,
+    creditMonths: 0,
+    source: 'apple',
+  };
+
+  const monter = (journal: string[]) => {
+    const { iap } = fausseBoutique({ produits: [mensuel, annuel] });
+    const serveur = {
+      name: 'faux-serveur',
+      capability: 'stripe-web',
+      getSubscription: async () => appleActif,
+      startCheckout: async () => ({ kind: 'failed' as const, reason: 'jamais' }),
+      openPortal: async () => ({ url: 'https://billing.stripe.com/p/session_x' }),
+      cancel: async () => {
+        journal.push('cancel');
+        return appleActif;
+      },
+      listReferrals: async () => [],
+      redeemReferralCode: async () => ({ ok: false }),
+    } as unknown as BillingService;
+
+    return new StoreBillingService(
+      serveur,
+      new ExpoIapStore('apple', async () => iap),
+      async () => null,
+      async () => JETON,
+    );
+  };
+
+  it('refuse de résilier, et le dit au lieu de se taire', async () => {
+    const journal: string[] = [];
+    const service = monter(journal);
+
+    expect(canCancelInApp(appleActif)).toBe(false);
+    await expect(service.cancel!('fam-store')).rejects.toThrow(/réglages de votre téléphone/i);
+    // Et surtout : le serveur n'a pas été appelé. Résilier chez nous un
+    // abonnement qu'Apple continue de prélever couperait l'accès à quelqu'un
+    // qui paie toujours.
+    expect(journal).toEqual([]);
+  });
+
+  it('envoie vers les réglages du téléphone', async () => {
+    const { url } = await monter([]).openPortal('fam-store');
+    expect(url).toMatch(/apps\.apple\.com\/account\/subscriptions/);
   });
 });

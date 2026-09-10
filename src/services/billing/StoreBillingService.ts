@@ -1,4 +1,11 @@
-import { PRODUITS, Plan, Referral, Subscription, manageSubscriptionUrl } from '@/domain/billing';
+import {
+  PRODUITS,
+  Plan,
+  Referral,
+  Subscription,
+  isStore,
+  manageSubscriptionUrl,
+} from '@/domain/billing';
 import { ID } from '@/domain/types';
 import { OffreApple } from '@/domain/offrePromo';
 
@@ -315,12 +322,73 @@ export class StoreBillingService implements BillingService {
     return { kind: 'done' };
   }
 
-  async openPortal(): Promise<{ url: string }> {
+  /**
+   * ------------------------------------------------ gérer, selon le rail réel
+   *
+   * **Le défaut, et le tunnel du site allait le rendre ordinaire.** Ces trois
+   * méthodes étaient absentes, avec une bonne raison écrite juste ici : Apple
+   * et Google n'exposent aucune API pour résilier ou changer de formule. Sauf
+   * que l'absence était décidée sur **la plateforme** — on est dans
+   * l'application, donc c'est une boutique — alors que ce qui compte est le
+   * rail par lequel l'abonnement a été payé.
+   *
+   * Un parent qui s'abonne par Stripe sur minoapp.fr, puis installe
+   * l'application, a un abonnement de source `stripe` dans un service qui se
+   * croit forcément en boutique. `canCancelInApp()` rend alors `true` — il lit
+   * la source, et il a raison — l'écran affiche donc le vrai bouton
+   * « Résilier », le parent confirme… et `cancelSubscription()` du magasin
+   * trouve `cancel` indéfini et **retourne sans rien faire**. Pas d'erreur, pas
+   * d'indicateur : le parent croit avoir résilié, et se fait prélever le mois
+   * suivant. C'est exactement le scénario que le commentaire d'origine
+   * annonçait vouloir éviter, retourné.
+   *
+   * Il était atteignable avant le tunnel — il fallait payer sur le web puis
+   * installer l'application. Le tunnel SEA en fait le chemin principal.
+   *
+   * On délègue donc au serveur quand la source n'est pas une boutique, et on
+   * refuse bruyamment quand elle en est une. Un `throw` plutôt qu'un retour
+   * silencieux : l'écran affiche le message sous les boutons.
+   */
+  private async railBoutique(familyId: ID): Promise<boolean> {
+    const connu = await this.api.getSubscription(familyId).catch(() => null);
+    // Rien de connu : on suppose la boutique, qui est le cas de cette classe.
+    return connu ? isStore(connu.source) : true;
+  }
+
+  private static readonly VERS_LES_REGLAGES =
+    'Cet abonnement a été souscrit dans une boutique. La gestion se fait dans les réglages de votre téléphone.';
+
+  async openPortal(familyId: ID): Promise<{ url: string }> {
+    if (!(await this.railBoutique(familyId))) return this.api.openPortal(familyId);
     return { url: manageSubscriptionUrl(this.store.platform === 'apple' ? 'apple' : 'google')! };
   }
 
-  // `cancel` et `resume` sont absents, et c'est le sujet : Apple et Google ne
-  // les exposent pas. L'écran d'abonnement le sait et renvoie vers openPortal.
+  async cancel(familyId: ID): Promise<Subscription> {
+    if (await this.railBoutique(familyId)) throw new Error(StoreBillingService.VERS_LES_REGLAGES);
+    if (!this.api.cancel) throw new Error(StoreBillingService.VERS_LES_REGLAGES);
+    return this.api.cancel(familyId);
+  }
+
+  async resume(familyId: ID): Promise<Subscription> {
+    if (await this.railBoutique(familyId)) throw new Error(StoreBillingService.VERS_LES_REGLAGES);
+    if (!this.api.resume) throw new Error(StoreBillingService.VERS_LES_REGLAGES);
+    return this.api.resume(familyId);
+  }
+
+  /**
+   * Changer de formule, et surtout pas en ouvrir une seconde.
+   *
+   * Même raisonnement, avec une conséquence plus chère si on la rate : sur un
+   * rail Stripe, `startCheckout` créerait un second abonnement par-dessus celui
+   * qui court, et la famille serait prélevée deux fois.
+   */
+  async changePlan(input: { familyId: ID; plan: Plan }): Promise<Subscription> {
+    if (await this.railBoutique(input.familyId)) {
+      throw new Error(StoreBillingService.VERS_LES_REGLAGES);
+    }
+    if (!this.api.changePlan) throw new Error(StoreBillingService.VERS_LES_REGLAGES);
+    return this.api.changePlan(input);
+  }
 
   listReferrals(familyId: ID): Promise<Referral[]> {
     return this.api.listReferrals(familyId);
