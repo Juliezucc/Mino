@@ -62,6 +62,71 @@ function aUnEssai(produit: ProduitBoutique): boolean {
   return (produit.subscriptionOffers ?? []).filter(Boolean).some(estLEssai);
 }
 
+/* ------------------------------------------ ce que la boutique dit, en français */
+
+/**
+ * Refermer la feuille de paiement n'est pas une erreur — encore faut-il le
+ * reconnaître.
+ *
+ * Le code de l'annulation n'était cherché que sous une seule forme,
+ * `user-cancelled`. Selon la plateforme et la version de la liaison, il arrive
+ * en `E_USER_CANCELLED`, `user_cancelled`, ou `USER_CANCELED` — et l'annulation
+ * devenait alors une erreur rouge affichée à quelqu'un qui a simplement changé
+ * d'avis. C'est le meilleur moyen qu'il ne revienne pas.
+ */
+function estUneAnnulation(erreur: ErreurBoutique): boolean {
+  const brut = `${erreur.code ?? ''} ${erreur.message ?? ''}`.toLowerCase();
+  return /cancel/.test(brut) || /annul/.test(brut);
+}
+
+/**
+ * ------------------------------------------- « Failed to request purchase »
+ *
+ * **Le défaut : la boutique parle anglais, et le parent lisait l'anglais.**
+ * Le message brut d'`expo-iap` était affiché tel quel, faute de mieux. Sur
+ * l'écran d'un parent français qui vient d'engager 9,99 €, « Failed to request
+ * purchase » ne dit rien, n'indique rien à faire, et donne surtout le
+ * sentiment que quelque chose s'est cassé.
+ *
+ * **Ce qui avait motivé l'affichage brut, et comment on le garde.** Une
+ * version antérieure remplaçait toute erreur par « Le paiement n'a pas
+ * abouti » — une phrase qui décrit le symptôme et rien d'autre, alors que la
+ * boutique est précise. On a donc besoin des deux : une phrase française pour
+ * le parent, et le texte d'origine pour qui devra diagnostiquer. Le premier va
+ * à l'écran, le second dans la console.
+ *
+ * Les causes traduites ici sont celles qu'un parent peut rencontrer et sur
+ * lesquelles il peut agir. Le reste tombe dans une phrase qui ne ment pas :
+ * on ne sait pas, et on dit quoi faire ensuite.
+ */
+function messageBoutique(erreur: ErreurBoutique): string {
+  const brut = `${erreur.code ?? ''} ${erreur.message ?? ''}`;
+  console.warn('[boutique]', brut.trim());
+
+  const dit = brut.toLowerCase();
+
+  if (/network|connect|timeout|réseau/.test(dit)) {
+    return 'La boutique n’a pas répondu. Vérifiez votre connexion et réessayez.';
+  }
+  if (/already own|already purchas|déjà/.test(dit)) {
+    return 'Cet abonnement est déjà actif sur ce compte. Touchez « Restaurer mes achats ».';
+  }
+  if (/not allowed|restrict|not authorized|unauthorized/.test(dit)) {
+    return 'Les achats sont bloqués sur cet appareil, sans doute par un contrôle parental ou une restriction du compte.';
+  }
+  if (/deferred|pending|approval/.test(dit)) {
+    return 'L’achat attend l’accord du titulaire du compte. Il se terminera dès qu’il aura été approuvé.';
+  }
+  if (/unavailable|not found|invalid product|item_unavailable/.test(dit)) {
+    return 'Cette formule n’est pas disponible sur ce compte pour le moment. Réessayez dans quelques minutes.';
+  }
+  if (/not initialized|connection|billing unavailable/.test(dit)) {
+    return 'La boutique n’est pas joignable sur cet appareil. Vérifiez que vous êtes connecté à votre compte, puis réessayez.';
+  }
+
+  return 'Le paiement n’a pas pu être lancé. Réessayez dans un instant — rien n’a été prélevé.';
+}
+
 /** Le prix affiché si la boutique ne rend pas de montant numérique. */
 const PRIX_DE_REPLI: Record<Plan, number> = {
   monthly: MONTHLY_PRICE_EUR,
@@ -495,8 +560,11 @@ export class ExpoIapStore implements NativeStore {
           void encaisser(achat);
         }),
         iap.purchaseErrorListener((erreur) => {
-          if (erreur.code === 'user-cancelled') termine(null);
-          else termine(null, new Error(erreur.message || 'La boutique a refusé le paiement.'));
+          // `null` sans erreur = « abandonné ». Refermer la feuille est un
+          // choix, pas une panne, et un écran rouge à quelqu'un qui a hésité
+          // est le meilleur moyen qu'il ne revienne pas.
+          if (estUneAnnulation(erreur)) termine(null);
+          else termine(null, new Error(messageBoutique(erreur)));
         }),
       );
 
@@ -547,9 +615,20 @@ export class ExpoIapStore implements NativeStore {
             if (achat && normaliser(achat).preuve) void encaisser(achat);
           }
         })
-        .catch((erreur: unknown) =>
-          termine(null, erreur instanceof Error ? erreur : new Error('Paiement impossible.')),
-        );
+        /**
+         * Ce chemin-ci laissait passer le message d'origine tel quel : c'est
+         * lui qui affichait « Failed to request purchase » à un parent
+         * français. Une annulation y arrive aussi parfois, selon la
+         * plateforme — auquel cas ce n'est pas une erreur du tout.
+         */
+        .catch((erreur: unknown) => {
+          const dit = erreur instanceof Error ? erreur.message : String(erreur ?? '');
+          const code = (erreur as { code?: string } | null)?.code;
+          const boutique: ErreurBoutique = { code: code ?? '', message: dit };
+
+          if (estUneAnnulation(boutique)) return termine(null);
+          termine(null, new Error(messageBoutique(boutique)));
+        });
     });
   }
 

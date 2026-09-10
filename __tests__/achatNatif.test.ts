@@ -211,10 +211,15 @@ describe('payer', () => {
     expect(achat).toBeNull();
   });
 
-  it('lève quand la boutique refuse pour de bon', async () => {
+  it('lève quand la boutique refuse pour de bon, et en français', async () => {
+    // La boutique parle anglais. Cet essai vérifiait autrefois que son message
+    // arrivait tel quel jusqu'à l'écran ; il vérifie maintenant qu'il n'y
+    // arrive JAMAIS. Voir `messageBoutique` : le texte d'origine part dans la
+    // console, où il sert au diagnostic, et le parent lit une phrase qui dit
+    // quoi faire.
     const { iap } = fausseBoutique({
       produits: [mensuel],
-      surDemande: ({ echoue }) => echoue('network-error', 'Pas de réseau'),
+      surDemande: ({ echoue }) => echoue('network-error', 'Network request failed'),
     });
 
     await expect(
@@ -222,7 +227,7 @@ describe('payer', () => {
         productId: PRODUITS.monthly,
         accountToken: JETON,
       }),
-    ).rejects.toThrow('Pas de réseau');
+    ).rejects.toThrow(/connexion/i);
   });
 
   it('clôt une transaction rejouée sans la confondre avec la nôtre', async () => {
@@ -417,18 +422,23 @@ describe('branchée sur StoreBillingService', () => {
 
 
   /**
-   * Ce que la boutique dit doit arriver jusqu'à l'écran.
+   * La cause doit arriver jusqu'à l'écran — mais en français.
    *
-   * Toute erreur repartait sous « Le paiement n'a pas abouti », qui décrit le
-   * symptôme et rien d'autre. Le premier achat en bac à sable a échoué
-   * exactement comme ça : feuille de paiement ouverte, achat confirmé, et pas
-   * un mot sur la cause. Il a fallu lire le code pour savoir quelles causes
-   * étaient seulement possibles.
+   * Deux corrections successives, et il faut les tenir ensemble. Toute erreur
+   * repartait d'abord sous « Le paiement n'a pas abouti », qui décrit le
+   * symptôme et rien d'autre : on a donc laissé passer le message de la
+   * boutique. Sauf qu'il est en anglais, et qu'un parent qui vient d'engager
+   * 9,99 € lisait « Failed to request purchase ».
+   *
+   * L'équilibre est ailleurs : une phrase française qui dit quoi faire à
+   * l'écran, et le texte d'origine dans la console pour qui devra
+   * diagnostiquer. On ne revient donc PAS au message passe-partout d'avant —
+   * celui-ci nomme une cause et une action.
    */
-  it('remonte la raison donnée par la boutique, pas une phrase passe-partout', async () => {
+  it('rend une phrase française qui dit quoi faire, jamais l’anglais de la boutique', async () => {
     const { iap } = fausseBoutique({
       produits: [mensuel],
-      surDemande: ({ echoue }) => echoue('unknown', 'Ce compte n’est pas éligible.'),
+      surDemande: ({ echoue }) => echoue('E_ITEM_UNAVAILABLE', 'Item unavailable'),
     });
 
     const service = new StoreBillingService(
@@ -438,10 +448,10 @@ describe('branchée sur StoreBillingService', () => {
       async () => JETON,
     );
 
-    expect(await service.startCheckout({ familyId: 'fam-1', plan: 'monthly' })).toEqual({
-      kind: 'failed',
-      reason: 'Ce compte n’est pas éligible.',
-    });
+    const issue = await service.startCheckout({ familyId: 'fam-1', plan: 'monthly' });
+    expect(issue.kind).toBe('failed');
+    expect(issue.kind === 'failed' && issue.reason).toMatch(/pas disponible/i);
+    expect(issue.kind === 'failed' && issue.reason).not.toMatch(/unavailable/i);
   });
 
   /**
@@ -452,7 +462,7 @@ describe('branchée sur StoreBillingService', () => {
    * repli du dessus existe toujours, mais il ne sert que si l'erreur remonte
    * sans message du tout — d'où ce test, qui dit lequel des deux répond.
    */
-  it('laisse la couche boutique fournir la phrase quand le magasin se tait', async () => {
+  it('parle quand même quand la boutique se tait complètement', async () => {
     const { iap } = fausseBoutique({
       produits: [mensuel],
       surDemande: ({ echoue }) => echoue('unknown', ''),
@@ -465,10 +475,11 @@ describe('branchée sur StoreBillingService', () => {
       async () => JETON,
     );
 
-    expect(await service.startCheckout({ familyId: 'fam-1', plan: 'monthly' })).toEqual({
-      kind: 'failed',
-      reason: 'La boutique a refusé le paiement.',
-    });
+    // Le seul fait qui compte pour quelqu'un dont l'écran affiche une erreur
+    // après avoir engagé de l'argent : personne ne lui a rien pris.
+    const issue = await service.startCheckout({ familyId: 'fam-1', plan: 'monthly' });
+    expect(issue.kind).toBe('failed');
+    expect(issue.kind === 'failed' && issue.reason).toMatch(/rien n’a été prélevé/i);
   });
 
   it('renvoie vers les réglages du téléphone pour résilier', async () => {
@@ -1053,5 +1064,71 @@ describe('l’achat rendu sous un autre nom', () => {
     expect(preuves).toEqual([
       { productId: PRODUITS.monthly, token: 'jeton-play', accountToken: null },
     ]);
+  });
+});
+
+/**
+ * ---------------------------------------------------------------------------
+ * « Failed to request purchase »
+ * ---------------------------------------------------------------------------
+ *
+ * Relevé sur un vrai téléphone, en annulant un paiement. Deux défauts dans la
+ * même ligne.
+ *
+ * **La boutique parle anglais, et le parent lisait l'anglais.** Le message brut
+ * était affiché tel quel. Sur l'écran de quelqu'un qui vient d'engager 9,99 €,
+ * « Failed to request purchase » ne dit rien, n'indique rien à faire, et donne
+ * le sentiment que quelque chose s'est cassé.
+ *
+ * **Et refermer la feuille était pris pour une panne.** Le code de
+ * l'annulation n'était cherché que sous une seule forme. Selon la plateforme,
+ * il arrive sous trois ou quatre — et l'annulation devenait alors une erreur
+ * rouge affichée à quelqu'un qui a simplement changé d'avis.
+ */
+describe('ce que la boutique dit quand ça se passe mal', () => {
+  const echouer = async (code: string, message: string) => {
+    const { iap } = fausseBoutique({
+      produits: [{ ...mensuel, offre: 'jeton-base' }],
+      surDemande: ({ echoue }) => echoue(code, message),
+    });
+    return new ExpoIapStore('apple', async () => iap).purchase({
+      productId: PRODUITS.monthly,
+      accountToken: JETON,
+    });
+  };
+
+  it('traite l’annulation comme un abandon, sous toutes ses formes', async () => {
+    // `null` sans exception = « abandonné » : l'écran ne montre rien, et c'est
+    // exactement ce qu'il faut à quelqu'un qui a hésité.
+    await expect(echouer('user-cancelled', 'Cancelled')).resolves.toBeNull();
+    await expect(echouer('E_USER_CANCELLED', 'User cancelled')).resolves.toBeNull();
+    await expect(echouer('USER_CANCELED', 'canceled')).resolves.toBeNull();
+    await expect(echouer('', 'The user canceled the purchase')).resolves.toBeNull();
+  });
+
+  it('ne laisse jamais passer l’anglais de la boutique', async () => {
+    await expect(echouer('E_UNKNOWN', 'Failed to request purchase')).rejects.toThrow(
+      /paiement n’a pas pu être lancé/i,
+    );
+  });
+
+  it('traduit ce sur quoi le parent peut agir', async () => {
+    await expect(echouer('E_NETWORK_ERROR', 'Network request failed')).rejects.toThrow(
+      /connexion/i,
+    );
+    await expect(echouer('E_ALREADY_OWNED', 'Item already owned')).rejects.toThrow(
+      /Restaurer mes achats/i,
+    );
+    await expect(echouer('E_ITEM_UNAVAILABLE', 'Item unavailable')).rejects.toThrow(
+      /pas disponible/i,
+    );
+  });
+
+  it('dit qu’aucun prélèvement n’a eu lieu quand elle ne sait pas', async () => {
+    // Le seul fait qui compte pour quelqu'un qui vient d'engager de l'argent et
+    // dont l'écran affiche une erreur qu'il ne comprend pas.
+    await expect(echouer('E_BIZARRE', 'Something inexplicable')).rejects.toThrow(
+      /rien n’a été prélevé/i,
+    );
   });
 });
