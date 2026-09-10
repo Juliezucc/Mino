@@ -19,6 +19,7 @@ import { isFirstRun } from '@/domain/firstRun';
 import { accessOf } from '@/domain/billing';
 import { AccessBanner } from '@/features/parent/AccessBanner';
 import { BouclierBanner } from '@/features/parent/BouclierBanner';
+import { CodeParentBanner } from '@/features/parent/CodeParentBanner';
 import { NotificationsBanner } from '@/features/parent/NotificationsBanner';
 import { FirstStepCard } from '@/features/parent/FirstStepCard';
 import { RequestCard } from '@/features/parent/RequestCard';
@@ -104,6 +105,11 @@ export default function ParentHome() {
       {/* Un verrou qu'on découvre en appuyant sur un bouton met en colère :
           celui-là s'annonce ici, avant de gêner. */}
       <AccessBanner access={access} connu={subscription !== null} />
+
+      {/* Avant le bouclier, et volontairement : un espace parent sans serrure
+          s'ouvre à l'enfant tout de suite, et se répare en dix secondes. Le
+          blocage, lui, demande de traverser les réglages du système. */}
+      <CodeParentBanner />
 
       {/* Le blocage est le produit. Tant qu'il n'est pas actif sur cet
           appareil-ci — et tant que le parent n'a pas dit qu'il n'en voulait

@@ -1,7 +1,9 @@
 import { Platform } from 'react-native';
 
 import { ANNUAL_PRICE_EUR, MONTHLY_PRICE_EUR, PRODUITS, Plan } from '@/domain/billing';
+import { buildReport } from '@/domain/diagnostics';
 import { OffreApple } from '@/domain/offrePromo';
+import { deviceContext, getDiagnosticsService } from '@/services/diagnostics';
 
 import { NativeStore, StoreProduct, StorePurchase } from './native';
 
@@ -102,6 +104,36 @@ function estUneAnnulation(erreur: ErreurBoutique): boolean {
 function messageBoutique(erreur: ErreurBoutique): string {
   const brut = `${erreur.code ?? ''} ${erreur.message ?? ''}`;
   console.warn('[boutique]', brut.trim());
+
+  /**
+   * Le texte brut de la boutique doit sortir de l'appareil.
+   *
+   * **Ce qui manquait, constaté sur un vrai paiement.** Un achat a échoué sur
+   * un iPhone en TestFlight avec le message de repli — celui qui dit « rien
+   * n'a été prélevé » parce qu'on ne sait pas. La deuxième tentative est
+   * passée. Impossible ensuite de savoir ce qu'Apple avait répondu la première
+   * fois : le seul endroit où il était écrit est `console.warn`, c'est-à-dire
+   * la console d'un Mac branché en USB. Un défaut qu'on ne peut pas lire est
+   * un défaut qu'on ne corrigera pas.
+   *
+   * Un échec de paiement est le pire endroit où perdre une trace : c'est le
+   * seul écran où un parent qui voulait payer renonce.
+   *
+   * Ce qui part est le code et le message de la boutique — du texte technique
+   * d'Apple ou de Google, jamais une donnée de la famille — dans la même table
+   * que les autres signalements. Et jamais attendu : un envoi qui échoue ne
+   * doit pas ajouter une panne à une panne.
+   */
+  void getDiagnosticsService()
+    .send(
+      buildReport({
+        kind: 'crash',
+        message: 'achat refusé par la boutique',
+        stack: brut.trim(),
+        context: deviceContext({ route: 'paywall' }),
+      }),
+    )
+    .catch(() => undefined);
 
   const dit = brut.toLowerCase();
 

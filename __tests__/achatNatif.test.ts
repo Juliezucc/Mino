@@ -19,6 +19,7 @@ import { ExpoIapStore, ModuleIap, PRODUITS } from '@/services/billing/ExpoIapSto
 import { StoreBillingService } from '@/services/billing/StoreBillingService';
 import { BillingService } from '@/services/billing/BillingService';
 import { StorePurchase } from '@/services/billing/native';
+import { setDiagnosticsService } from '@/services/diagnostics';
 
 const JETON = 'a1b2c3d4-1111-2222-3333-444455556666';
 
@@ -1309,5 +1310,71 @@ describe('un abonnement acheté dans la boutique', () => {
   it('envoie vers les réglages du téléphone', async () => {
     const { url } = await monter([]).openPortal('fam-store');
     expect(url).toMatch(/apps\.apple\.com\/account\/subscriptions/);
+  });
+});
+
+/**
+ * ------------------------------------------- ce que la boutique a vraiment dit
+ *
+ * **Ce qui manquait, constaté sur un vrai paiement.** Un achat a échoué en
+ * TestFlight avec le message de repli — celui qui dit « rien n'a été prélevé »
+ * parce qu'on ne sait pas. La deuxième tentative est passée. Impossible ensuite
+ * de savoir ce qu'Apple avait répondu : le seul endroit où c'était écrit est
+ * `console.warn`, c'est-à-dire la console d'un Mac branché en USB.
+ *
+ * Un échec de paiement est le pire endroit où perdre une trace : c'est le seul
+ * écran où quelqu'un qui voulait payer renonce.
+ */
+describe('l’erreur brute de la boutique', () => {
+  it('part dans les signalements, avec son code et son texte', async () => {
+    const envoyes: { message: string; stack?: string }[] = [];
+    setDiagnosticsService({
+      send: async (report: { message: string; stack?: string }) => {
+        envoyes.push(report);
+        return { ok: true as const };
+      },
+      flush: async () => undefined,
+    } as never);
+
+    const { iap } = fausseBoutique({
+      produits: [mensuel],
+      surDemande: ({ echoue }) => echoue('E_UNKNOWN', 'Something inexplicable'),
+    });
+    const store = new ExpoIapStore('apple', async () => iap);
+
+    await store
+      .purchase({ productId: PRODUITS.monthly, accountToken: JETON })
+      .catch(() => undefined);
+
+    expect(envoyes).toHaveLength(1);
+    expect(envoyes[0].stack).toContain('E_UNKNOWN');
+    expect(envoyes[0].stack).toContain('Something inexplicable');
+    setDiagnosticsService(null);
+  });
+
+  it('ne signale rien quand le parent a simplement refermé la feuille', async () => {
+    // Renoncer n'est pas une panne, et un journal plein d'hésitations est un
+    // journal où l'on ne voit plus les vrais échecs.
+    const envoyes: unknown[] = [];
+    setDiagnosticsService({
+      send: async (r: unknown) => {
+        envoyes.push(r);
+        return { ok: true as const };
+      },
+      flush: async () => undefined,
+    } as never);
+
+    const { iap } = fausseBoutique({
+      produits: [mensuel],
+      surDemande: ({ echoue }) => echoue('E_USER_CANCELLED', 'User cancelled'),
+    });
+    const store = new ExpoIapStore('apple', async () => iap);
+
+    await store
+      .purchase({ productId: PRODUITS.monthly, accountToken: JETON })
+      .catch(() => undefined);
+
+    expect(envoyes).toEqual([]);
+    setDiagnosticsService(null);
   });
 });
