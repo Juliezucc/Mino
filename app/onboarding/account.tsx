@@ -332,7 +332,7 @@ export default function CreateAccount() {
           */}
         {errors.email || erreur ? (
           <Button
-            label="J’ai déjà un compte avec cette adresse"
+            label="Se connecter avec cette adresse"
             variant="ghost"
             haptic={false}
             onPress={() =>

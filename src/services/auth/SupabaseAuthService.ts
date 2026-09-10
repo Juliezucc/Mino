@@ -261,8 +261,23 @@ export class SupabaseAuthService implements AuthService {
       // c'est la protection contre les fuites qui vient de parler.
       const dit = MESSAGE_PAR_CODE[error.code ?? ''];
       if (dit) return { ok: false, ...dit };
-      // Deliberately the same message whether the address is free or taken.
-      return { ok: false, reason: 'Impossible de créer le compte. Vérifiez l’adresse et réessayez.' };
+      /**
+       * La même phrase, que l'adresse soit libre ou prise — et surtout, une
+       * phrase qui mène quelque part.
+       *
+       * L'ancienne disait « Vérifiez l'adresse et réessayez ». Pour quelqu'un
+       * dont l'adresse est parfaitement correcte et déjà la sienne, c'est une
+       * consigne impossible à suivre : il la relit, la retape, recommence, et
+       * finit par abandonner devant un compte qui l'attendait.
+       *
+       * Celle-ci nomme les deux issues réelles sans dire laquelle s'applique.
+       * Elle est donc vraie dans les deux cas, et utile dans les deux cas.
+       */
+      return {
+        ok: false,
+        reason:
+          'Impossible de créer un compte avec cette adresse. Connectez-vous si elle est déjà la vôtre, ou essayez-en une autre.',
+      };
     }
     if (!data.session) {
       return {
@@ -303,7 +318,11 @@ export class SupabaseAuthService implements AuthService {
       // Même règle que `signUp` : une adresse déjà prise reçoit la même
       // phrase que n'importe quelle autre, sans quoi on distribue la liste de
       // ses clients à qui veut l'essayer.
-      return { ok: false, reason: 'Impossible d’enregistrer cette adresse. Vérifiez-la et réessayez.' };
+      return {
+        ok: false,
+        reason:
+          'Impossible d’enregistrer cette adresse. Si elle est déjà rattachée à un compte Mino, connectez-vous ; sinon, essayez-en une autre.',
+      };
     }
     return { ok: true };
   }
