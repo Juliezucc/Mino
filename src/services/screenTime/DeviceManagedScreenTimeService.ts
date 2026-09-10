@@ -1,3 +1,4 @@
+import { NO_DEVICE_PROFILE, readDeviceProfile } from '@/data/deviceProfile';
 import { ID } from '@/domain/types';
 
 import {
@@ -28,6 +29,15 @@ export class DeviceManagedScreenTimeService implements ScreenTimeService {
   /** Kept only to bill the time used; the shield itself is the native side's. */
   private grants = new Map<ID, ScreenTimeGrant>();
 
+  /**
+   * Les séances ouvertes sans bouclier, parce que le parent a choisi le
+   * compteur seul. Elles ne se distinguent d'aucune autre côté grand livre —
+   * seul le module natif n'a rien à en faire, ni pour l'échéance ni pour le
+   * verrou. Sans cette liste, `revoke` aurait appelé un bouclier qui n'existe
+   * pas et laissé la séance ouverte dans le registre.
+   */
+  private sansBouclier = new Set<ID>();
+
   constructor(private readonly native: NativeScreenTime) {}
 
   authorization(): Promise<ScreenTimeAuthorization> {
@@ -51,6 +61,57 @@ export class DeviceManagedScreenTimeService implements ScreenTimeService {
   }
 
   async grant(params: { sessionId: ID; childId: ID; minutes: number }): Promise<ScreenTimeGrant> {
+    /**
+     * **Refuser de lever un verrou qui n'existe pas.**
+     *
+     * Ce service levait le bouclier sans avoir jamais vérifié qu'il était en
+     * place. Sur un appareil où l'autorisation n'a pas été accordée — le cas de
+     * toute famille qui n'a pas fini l'installation — l'enchaînement était le
+     * suivant : l'enfant lance sa séance, le grand livre débite ses minutes, le
+     * compte à rebours démarre… et aucune application ne s'ouvre ni ne se
+     * ferme, parce qu'il n'y a rien à ouvrir ni à fermer.
+     *
+     * Autrement dit, l'enfant paie de son temps gagné pour rien. C'est la seule
+     * chose que Mino ne doit jamais faire : les minutes sont méritées, et un
+     * registre en ajout seul ne les rend pas.
+     *
+     * On lève donc ici, avant toute écriture. L'écran de l'enfant referme la
+     * séance et affiche une phrase qui ne l'accuse de rien — ce n'est pas lui
+     * qui a laissé l'installation en plan.
+     *
+     * **Sauf si le parent a dit qu'il voulait le compteur seul**, et ce cas-là
+     * n'est pas une panne : une famille peut très bien se servir de Mino comme
+     * d'un décompte convenu entre eux, sans rien verrouiller — c'est courant
+     * avec un adolescent, chez qui le bouclier se négocie mal. Cette réponse-là
+     * ne se devine pas depuis le système : l'autorisation manque exactement de
+     * la même façon dans les deux cas. Elle est donc demandée au parent, dans
+     * son espace, et gardée sur cet appareil-ci (voir `DeviceProfile`).
+     */
+    const droit = await this.native.authorizationStatus().catch(() => 'denied' as const);
+    if (droit !== 'approved') {
+      const { compteurSeul } = await readDeviceProfile().catch(() => NO_DEVICE_PROFILE);
+      if (!compteurSeul) {
+        throw new Error(
+          'Le blocage n’est pas encore réglé sur cet appareil. Demande à un parent d’ouvrir Mino : tes minutes t’attendent, elles ne sont pas perdues.',
+        );
+      }
+      // Compteur seul : la séance existe, le temps se décompte, et il n'y a
+      // simplement pas de verrou à lever. On n'appelle pas le module natif —
+      // il refuserait, et il aurait raison.
+      const debut = new Date();
+      const fin = new Date(debut.getTime() + params.minutes * 60_000);
+      const sans: ScreenTimeGrant = {
+        sessionId: params.sessionId,
+        childId: params.childId,
+        minutes: params.minutes,
+        startedAt: debut.toISOString(),
+        endsAt: fin.toISOString(),
+      };
+      this.grants.set(params.sessionId, sans);
+      this.sansBouclier.add(params.sessionId);
+      return sans;
+    }
+
     const startedAt = new Date();
     const endsAt = new Date(startedAt.getTime() + params.minutes * 60_000);
 
@@ -69,6 +130,19 @@ export class DeviceManagedScreenTimeService implements ScreenTimeService {
 
   async revoke(sessionId: ID): Promise<{ consumedMinutes: number }> {
     const grant = this.grants.get(sessionId);
+
+    // Compteur seul : rien n'a été levé, il n'y a rien à reposer. Appeler le
+    // module natif ici jetait — et la séance restait ouverte dans le grand
+    // livre, à consommer des minutes que plus personne ne refermait.
+    if (this.sansBouclier.has(sessionId)) {
+      this.sansBouclier.delete(sessionId);
+      this.grants.delete(sessionId);
+      if (!grant) return { consumedMinutes: 0 };
+      const ecouleMs = Date.now() - new Date(grant.startedAt).getTime();
+      return {
+        consumedMinutes: Math.min(grant.minutes, Math.max(0, Math.round(ecouleMs / 60_000))),
+      };
+    }
 
     /**
      * Ce qu'il restait, demandé AVANT de reposer le bouclier — `shield()`
@@ -104,6 +178,15 @@ export class DeviceManagedScreenTimeService implements ScreenTimeService {
 
   async status(childId: ID): Promise<ScreenTimeStatus> {
     const grant = [...this.grants.values()].find((g) => g.childId === childId);
+
+    // Compteur seul : le module natif ne sait rien de cette séance — il n'a
+    // pas d'échéance à tenir. C'est la nôtre qui compte, et sans ce détour le
+    // compte à rebours de l'enfant s'affichait à zéro dès la première seconde.
+    if (grant && this.sansBouclier.has(grant.sessionId)) {
+      const resteS = Math.max(0, Math.round((new Date(grant.endsAt).getTime() - Date.now()) / 1000));
+      return { active: resteS > 0, grant, remainingSeconds: resteS };
+    }
+
     // The native side is the authority on how long is left: it survives the app
     // being killed, and this map does not.
     const remainingMs = await this.native.remaining();

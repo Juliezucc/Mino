@@ -18,6 +18,7 @@ import { balanceDetail } from '@/domain/ledger';
 import { isFirstRun } from '@/domain/firstRun';
 import { accessOf } from '@/domain/billing';
 import { AccessBanner } from '@/features/parent/AccessBanner';
+import { BouclierBanner } from '@/features/parent/BouclierBanner';
 import { FirstStepCard } from '@/features/parent/FirstStepCard';
 import { RequestCard } from '@/features/parent/RequestCard';
 import { ScreenRequestCard } from '@/features/parent/ScreenRequestCard';
@@ -102,6 +103,11 @@ export default function ParentHome() {
       {/* Un verrou qu'on découvre en appuyant sur un bouton met en colère :
           celui-là s'annonce ici, avant de gêner. */}
       <AccessBanner access={access} connu={subscription !== null} />
+
+      {/* Le blocage est le produit. Tant qu'il n'est pas actif sur cet
+          appareil-ci — et tant que le parent n'a pas dit qu'il n'en voulait
+          pas — il faut le dire ici, là où il regarde de toute façon. */}
+      <BouclierBanner />
 
       {/* Avant la première minute gagnée, la seule chose utile à dire est ce
           qui vient après. Voir `FirstStepCard`. */}

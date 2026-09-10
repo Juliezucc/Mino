@@ -16,6 +16,7 @@ import {
 import { getBillingService } from '@/services/billing';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
+import { useRetourBloque } from '@/hooks/useRetourBloque';
 
 function frenchDate(iso: string | null): string {
   if (!iso) return '—';
@@ -78,6 +79,9 @@ const OFFRE: Record<Plan, { etiquette: string; grand: string; petit: string; bad
  * doit pas revoir un écran de paiement en installant l'application.
  */
 export default function OnboardingAbonnement() {
+  // Le bouton retour d'Android sortait de l'inscription et rendait l'accueil :
+  // vu du parent, une déconnexion au milieu de la création de sa famille.
+  useRetourBloque();
   const router = useRouter();
   const subscription = useMinoStore((s) => s.subscription);
   const choosePlan = useMinoStore((s) => s.choosePlan);
@@ -112,6 +116,41 @@ export default function OnboardingAbonnement() {
   useEffect(() => {
     loadBilling().catch(() => undefined);
   }, [loadBilling]);
+
+  /**
+   * ------------------------------------------ ne promettre que ce qui aura lieu
+   *
+   * **Le défaut, relevé sur un vrai téléphone Android.** Cet écran annonçait
+   * « 0 € aujourd'hui » et « Commencer mes 30 jours » à partir d'une constante,
+   * c'est-à-dire sans jamais demander à la boutique ce qu'elle allait faire.
+   * Google a prélevé 9,99 € dans la seconde et envoyé un courriel annonçant la
+   * reconduction un mois plus tard — parce que la Play Console ne portait pas
+   * d'offre d'essai valide, et que Play facture alors le forfait de base. Pas
+   * une erreur, pas un avertissement : la promesse d'un côté, le débit de
+   * l'autre.
+   *
+   * On demande donc, et on dit ce qu'on obtient comme réponse. `null` — le cas
+   * d'iOS, où l'offre d'introduction se règle dans App Store Connect et ne se
+   * lit pas depuis l'application — laisse la formulation habituelle : on
+   * n'affirme pas une absence qu'on n'a pas constatée, ce serait la même faute
+   * dans l'autre sens.
+   */
+  const [essaiPossible, setEssaiPossible] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let vivant = true;
+    billing
+      .trialAvailable?.()
+      .then((reponse) => {
+        if (vivant) setEssaiPossible(reponse);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivant = false;
+    };
+  }, [billing]);
+
+  const sansEssai = essaiPossible === false;
 
   /**
    * Ceux qui ont déjà l'accès ne voient jamais cet écran.
@@ -163,12 +202,14 @@ export default function OnboardingAbonnement() {
     <Screen contentStyle={styles.content}>
       <View style={styles.entete}>
         <Text variant="hero" center>
-          0 € aujourd’hui
+          {sansEssai ? 'Mino en entier' : '0 € aujourd’hui'}
         </Text>
         <Text variant="body" color={colors.textMuted} center>
-          {`Vous avez ${TRIAL_DAYS} jours pour voir si Mino marche chez vous.${
-            finEssai ? ` Le premier prélèvement aura lieu le ${frenchDate(finEssai)}.` : ''
-          }`}
+          {sansEssai
+            ? 'Sans engagement : vous pouvez résilier à tout moment depuis les réglages de votre téléphone.'
+            : `Vous avez ${TRIAL_DAYS} jours pour voir si Mino marche chez vous.${
+                finEssai ? ` Le premier prélèvement aura lieu le ${frenchDate(finEssai)}.` : ''
+              }`}
         </Text>
       </View>
 
@@ -238,7 +279,7 @@ export default function OnboardingAbonnement() {
       </Pressable>
 
       <Button
-        label={`Commencer mes ${TRIAL_DAYS} jours`}
+        label={sansEssai ? 'S’ABONNER' : `Commencer mes ${TRIAL_DAYS} jours`}
         onPress={souscrire}
         loading={loading}
         disabled={loading}
@@ -259,9 +300,13 @@ export default function OnboardingAbonnement() {
        * « 6,67 € / mois » ferait de cette phrase une publicité mensongère.
        */}
       <Text variant="caption" color={colors.textMuted} center>
-        {selected === 'yearly'
-          ? `0 € pendant ${TRIAL_DAYS} jours, puis ${formatPrice(ANNUAL_PRICE_EUR / 12)} / mois facturés ${formatPrice(ANNUAL_PRICE_EUR)} par an. Sans engagement, résiliable à tout moment.`
-          : `0 € pendant ${TRIAL_DAYS} jours, puis ${formatPrice(MONTHLY_PRICE_EUR)} par mois. Sans engagement, résiliable à tout moment.`}
+        {sansEssai
+          ? selected === 'yearly'
+            ? `${formatPrice(ANNUAL_PRICE_EUR / 12)} / mois facturés ${formatPrice(ANNUAL_PRICE_EUR)} par an, à partir d’aujourd’hui. Sans engagement, résiliable à tout moment.`
+            : `${formatPrice(MONTHLY_PRICE_EUR)} par mois, à partir d’aujourd’hui. Sans engagement, résiliable à tout moment.`
+          : selected === 'yearly'
+            ? `0 € pendant ${TRIAL_DAYS} jours, puis ${formatPrice(ANNUAL_PRICE_EUR / 12)} / mois facturés ${formatPrice(ANNUAL_PRICE_EUR)} par an. Sans engagement, résiliable à tout moment.`
+            : `0 € pendant ${TRIAL_DAYS} jours, puis ${formatPrice(MONTHLY_PRICE_EUR)} par mois. Sans engagement, résiliable à tout moment.`}
       </Text>
 
       <Card background={colors.surfaceMuted} elevation="none" style={styles.rassure}>
@@ -269,7 +314,9 @@ export default function OnboardingAbonnement() {
             que l'abonnement couvre. Les prix, eux, y sont déjà — les répéter
             ici les diluait sans rien ajouter. */}
         <Text variant="caption" color={colors.textMuted}>
-          {`${finEssai ? `Le ${frenchDate(finEssai)}` : 'À la fin de l’essai'}, votre abonnement démarre et se renouvelle ensuite automatiquement jusqu’à résiliation. Un abonnement couvre toute la famille : autant d’enfants et d’appareils que vous voulez, sans supplément.`}
+          {sansEssai
+            ? 'Votre abonnement démarre aujourd’hui et se renouvelle automatiquement jusqu’à résiliation. Un abonnement couvre toute la famille : autant d’enfants et d’appareils que vous voulez, sans supplément.'
+            : `${finEssai ? `Le ${frenchDate(finEssai)}` : 'À la fin de l’essai'}, votre abonnement démarre et se renouvelle ensuite automatiquement jusqu’à résiliation. Un abonnement couvre toute la famille : autant d’enfants et d’appareils que vous voulez, sans supplément.`}
         </Text>
       </Card>
 

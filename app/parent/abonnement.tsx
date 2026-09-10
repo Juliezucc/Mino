@@ -518,8 +518,19 @@ export default function SubscriptionScreen() {
       ) : null}
 
       <View style={styles.footer}>
+        {/**
+          * L'essai ne se mentionne qu'à qui peut encore en avoir un.
+          *
+          * Cette ligne s'affichait pour tout le monde, abonnés compris : un
+          * parent qui vient de payer 9,99 € lisait « essai de 30 jours » en bas
+          * de l'écran de son abonnement. On lui annonce, au choix, qu'il a payé
+          * pour rien ou que son paiement n'a pas pris — et c'est précisément à
+          * cet endroit-là qu'il vient vérifier.
+          */}
         <Text variant="caption" color={colors.textSubtle} center>
-          {`Un abonnement couvre toute la famille · essai de ${TRIAL_DAYS} jours · ${formatPrice(MONTHLY_PRICE_EUR)} par mois`}
+          {access.kind === 'trial' || access.kind === 'expired'
+            ? `Un abonnement couvre toute la famille · essai de ${TRIAL_DAYS} jours · ${formatPrice(MONTHLY_PRICE_EUR)} par mois`
+            : `Un abonnement couvre toute la famille : autant d’enfants et d’appareils que vous voulez, sans supplément.`}
         </Text>
         {/* Apple exige que la durée, le prix et le renouvellement soient dits
             sur l'écran d'achat lui-même — pas seulement dans les conditions.

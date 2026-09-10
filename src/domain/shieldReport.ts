@@ -21,7 +21,7 @@ import { ISODate } from './types';
  */
 export const PERIME_HEURES = 72;
 
-export type EtatBouclier = 'actif' | 'coupe' | 'a-regler' | 'muet' | 'inconnu';
+export type EtatBouclier = 'actif' | 'compteur-seul' | 'coupe' | 'a-regler' | 'muet' | 'inconnu';
 
 export interface AppareilRapporte {
   id: string;
@@ -50,6 +50,11 @@ export function etatDe(appareil: AppareilRapporte, maintenant: Date = new Date()
   switch (appareil.status) {
     case 'approved':
       return 'actif';
+    // Le parent a dit qu'il ne voulait pas du blocage sur cet appareil-là.
+    // Ce n'est pas une panne, et le lui signaler en jaune tous les jours
+    // reviendrait à lui reprocher sa propre décision.
+    case 'compteur-seul':
+      return 'compteur-seul';
     case 'denied':
       return 'coupe';
     case 'not-determined':
@@ -78,6 +83,13 @@ export function phraseDe(etat: EtatBouclier): { titre: string; detail: string; g
       return {
         titre: 'Blocage actif',
         detail: 'Les applications encadrées s’ouvrent avec le temps gagné, et pas autrement.',
+        grave: false,
+      };
+    case 'compteur-seul':
+      return {
+        titre: 'Compteur seul, à votre demande',
+        detail:
+          'Vous avez choisi de ne pas verrouiller les applications sur cet appareil. Mino compte le temps gagné et le décompte, sans rien fermer. Vous pouvez activer le blocage quand vous voulez.',
         grave: false,
       };
     case 'coupe':

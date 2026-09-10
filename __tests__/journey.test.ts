@@ -505,6 +505,65 @@ describe('célébrer plusieurs missions à la fois', () => {
     await store().markCelebrated(id);
     expect(uncelebratedCompletions(useMinoStore.getState().data!, noah.id)).toHaveLength(0);
   });
+
+  /**
+   * ------------------------------------------------------------ l'écran blanc
+   *
+   * Relevé sur une vraie tablette : un parent valide une mission depuis
+   * l'espace parent, repasse sur le profil de son enfant, et tombe sur un écran
+   * entièrement blanc — pas un mot, pas un bouton. Il faut connaître le geste
+   * « retour » pour en sortir, et un enfant de cinq ans ne le connaît pas.
+   *
+   * La cause : deux endroits décidaient de ce qu'il y avait à fêter, à deux
+   * instants différents. La coquille de l'espace enfant ouvrait l'écran ;
+   * l'écran refaisait le calcul à son montage, quelques images plus tard. Il
+   * suffisait qu'un rafraîchissement venu du serveur passe entre les deux — et
+   * il passe, justement quand le parent vient de valider depuis le même
+   * appareil — pour que la liste arrive vide.
+   *
+   * Celui qui ouvre nomme donc ce qu'il a vu, et c'est ce que tient ce test :
+   * une complétion déjà marquée comme fêtée se fête quand même si on la nomme.
+   */
+  it('fête ce qu’on lui nomme, même si la liste a bougé entre-temps', async () => {
+    const noah = store().data!.children.find((c) => c.firstName === 'Noah')!;
+    const missionId = await store().addMission({
+      title: 'Mettre la table',
+      icon: '🍽️',
+      minutes: 10,
+      repeat: { kind: 'daily' },
+      childIds: [noah.id],
+    });
+    const { id } = await store().completeMission(noah.id, missionId);
+    await store().approveCompletion(id);
+
+    // Le rafraîchissement qui arrive entre l'ouverture et le montage.
+    await store().markCelebrated(id);
+    expect(uncelebratedCompletions(useMinoStore.getState().data!, noah.id)).toHaveLength(0);
+
+    const fete = celebrationFor(useMinoStore.getState().data!, noah.id, [id]);
+    expect(fete.completions.map((c) => c.id)).toEqual([id]);
+    expect(fete.minutes).toBe(10);
+  });
+
+  it('ne nomme jamais deux fois la même complétion', async () => {
+    // La coquille nomme ce qu'elle a vu ; l'écran y ajoute ce qui attend
+    // encore. Si les deux se recoupent — le cas ordinaire — le total ne doit
+    // pas doubler : c'est le chiffre que l'enfant lit en grand.
+    const noah = store().data!.children.find((c) => c.firstName === 'Noah')!;
+    const missionId = await store().addMission({
+      title: 'Sortir le chien',
+      icon: '🐕',
+      minutes: 20,
+      repeat: { kind: 'daily' },
+      childIds: [noah.id],
+    });
+    const { id } = await store().completeMission(noah.id, missionId);
+    await store().approveCompletion(id);
+
+    const fete = celebrationFor(useMinoStore.getState().data!, noah.id, [id]);
+    expect(fete.completions).toHaveLength(1);
+    expect(fete.minutes).toBe(20);
+  });
 });
 
 describe('la toute première ouverture', () => {

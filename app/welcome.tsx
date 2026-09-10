@@ -93,10 +93,24 @@ export default function Welcome() {
       </View>
 
       <View style={styles.actions}>
+        {/**
+          * `replace` et non `push`, et c'est le correctif d'un défaut qui
+          * coûtait la famille entière.
+          *
+          * L'inscription enchaîne ensuite tous ses écrans en `replace` — voulu :
+          * on ne revient pas en arrière dans une inscription. Mais cette
+          * première marche-ci était un `push`, si bien que l'accueil restait au
+          * fond de la pile pendant toute l'inscription et jusque dans l'espace
+          * parent. La flèche « retour » du dernier écran trouvait donc quelque
+          * chose à dépiler, et ce quelque chose était « Créer ma famille » :
+          * un parent qui venait de créer la sienne, de payer, et de réserver la
+          * tablette à son enfant se retrouvait devant l'écran qui lui annonce
+          * qu'il n'a pas de compte. Vu de sa place, Mino l'avait déconnecté.
+          */}
         <Button
           label="Créer ma famille"
           variant="secondary"
-          onPress={() => router.push('/onboarding/child')}
+          onPress={() => router.replace('/onboarding/child')}
         />
         <Button label="J’ai déjà un compte" variant="ghost" onPress={() => router.push('/login')} />
         {/* The child's own device starts here, and nowhere else: joining is

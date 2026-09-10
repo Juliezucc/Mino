@@ -64,6 +64,27 @@ export interface BillingService {
   restore?(familyId: ID): Promise<CheckoutOutcome>;
 
   /**
+   * L'essai gratuit sera-t-il vraiment appliqué au moment de payer ?
+   *
+   * **Ce n'est pas une question rhétorique, et la réponse a déjà été non.** Sur
+   * un vrai téléphone Android, l'écran annonçait « 0 € pendant 30 jours »,
+   * Google a prélevé 9,99 € le jour même, et le courriel de confirmation a
+   * annoncé la reconduction un mois plus tard. Aucune erreur nulle part : la
+   * Play Console ne portait tout simplement pas d'offre d'essai valide, et
+   * Play a donc facturé le forfait de base — ce qu'il est censé faire.
+   *
+   * L'écran de paiement ne peut pas continuer à promettre à partir d'une
+   * constante ce que seule la boutique décide. Il demande ici.
+   *
+   * Trois réponses : `true` (l'essai existe et ce compte y a droit), `false`
+   * (il n'y en aura pas — le dire vaut infiniment mieux que le prélèvement
+   * surprise, première cause d'avis à une étoile), `null` pour « on ne sait
+   * pas », qui est la réponse honnête sur iOS comme sur le web et qui laisse
+   * l'écran à sa formulation habituelle.
+   */
+  trialAvailable?(): Promise<boolean | null>;
+
+  /**
    * Récupérer le mois offert d'un parrainage.
    *
    * **Absent partout sauf sur l'App Store, et c'est le sujet.** Chez Stripe le

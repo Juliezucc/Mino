@@ -11,6 +11,7 @@ import {
 import { useChildren, useFamily } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
+import { useRetourBloque } from '@/hooks/useRetourBloque';
 
 /**
  * À qui est cet appareil — la question qu'on ne posait jamais.
@@ -34,6 +35,9 @@ import { colors, spacing } from '@/theme';
  * rangé son téléphone.
  */
 export default function OnboardingAppareil() {
+  // Le bouton retour d'Android sortait de l'inscription et rendait l'accueil :
+  // vu du parent, une déconnexion au milieu de la création de sa famille.
+  useRetourBloque();
   const router = useRouter();
   const enfants = useChildren();
   const famille = useFamily();

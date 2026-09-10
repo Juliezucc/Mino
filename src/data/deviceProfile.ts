@@ -48,9 +48,41 @@ export interface DeviceProfile {
   lockedChildId: ID | null;
   /** Le dernier profil ouvert, pour rouvrir dessus. */
   lastChildId: ID | null;
+  /**
+   * **« Le compteur seul, sans le blocage » — dit par le parent, ici même.**
+   *
+   * Sans ce réglage, Mino n'avait que deux comportements possibles sur un
+   * appareil où le bouclier n'est pas autorisé, et les deux étaient mauvais :
+   *
+   * — laisser l'enfant lancer sa séance quand même. Il paie ses minutes
+   *   gagnées, le compte à rebours démarre, et aucune application ne s'ouvre ni
+   *   ne se ferme, puisqu'il n'y a rien à ouvrir ni à fermer. Mino lui prend son
+   *   temps mérité en échange de rien ;
+   *
+   * — refuser la séance. Correct pour une famille qui voulait le blocage et n'a
+   *   pas fini l'installation ; insultant pour celle qui n'en veut pas et se
+   *   sert de Mino comme d'un compteur de temps convenu entre eux — un usage
+   *   parfaitement légitime, surtout avec un adolescent.
+   *
+   * Ces deux familles ne se distinguent par aucun signal technique : dans les
+   * deux cas, l'autorisation manque. Seul le parent sait laquelle il est, et
+   * c'est donc à lui qu'on le demande — une fois, explicitement, depuis son
+   * espace. Tant qu'il n'a pas répondu, on refuse : entre prendre le temps d'un
+   * enfant pour rien et faire attendre un parent, le choix est vite fait.
+   *
+   * Sur cet appareil-ci et pas dans la famille, pour la même raison que le
+   * reste de ce fichier : le bouclier est une propriété du téléphone. La
+   * tablette du salon peut être encadrée pendant que le téléphone du grand ne
+   * fait que compter.
+   */
+  compteurSeul: boolean;
 }
 
-export const NO_DEVICE_PROFILE: DeviceProfile = { lockedChildId: null, lastChildId: null };
+export const NO_DEVICE_PROFILE: DeviceProfile = {
+  lockedChildId: null,
+  lastChildId: null,
+  compteurSeul: false,
+};
 
 export async function readDeviceProfile(): Promise<DeviceProfile> {
   try {
@@ -60,6 +92,7 @@ export async function readDeviceProfile(): Promise<DeviceProfile> {
     return {
       lockedChildId: parsed.lockedChildId ?? null,
       lastChildId: parsed.lastChildId ?? null,
+      compteurSeul: parsed.compteurSeul === true,
     };
   } catch {
     // Un réglage d'appareil illisible ne doit jamais empêcher l'application de
@@ -82,7 +115,13 @@ export async function writeDeviceProfile(patch: Partial<DeviceProfile>): Promise
  * une autre famille, ne doit pas laisser l'application ouvrir sur un profil qui
  * n'existe plus — elle retomberait sur un écran vide sans rien expliquer.
  */
-export function profileToOpen(profile: DeviceProfile, children: { id: ID }[]): ID | null {
+export function profileToOpen(
+  // `Pick` et non `DeviceProfile` : cette fonction ne décide que du profil à
+  // rouvrir. Lui demander le réglage du bouclier n'aurait aucun sens, et
+  // l'exiger obligerait chaque appelant à le fournir pour rien.
+  profile: Pick<DeviceProfile, 'lockedChildId' | 'lastChildId'>,
+  children: { id: ID }[],
+): ID | null {
   const exists = (id: ID | null) => (id && children.some((c) => c.id === id) ? id : null);
   return exists(profile.lockedChildId) ?? exists(profile.lastChildId);
 }

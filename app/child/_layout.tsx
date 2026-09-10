@@ -42,7 +42,19 @@ export default function ChildLayout() {
     const neufs = uncelebrated.filter((c) => !vus.current.has(c.id));
     if (neufs.length === 0) return;
     for (const c of neufs) vus.current.add(c.id);
-    router.push('/child/celebration');
+    /**
+     * On nomme ce qu'on a vu, et c'est le correctif de l'écran blanc.
+     *
+     * L'écran refaisait le calcul à son montage, quelques images plus tard. Il
+     * suffisait qu'un rafraîchissement venu du serveur passe entre les deux —
+     * et il passe, justement quand le parent vient de valider depuis le même
+     * appareil — pour qu'il trouve une liste vide et n'affiche rien du tout :
+     * un écran blanc, sans bouton, sur le profil d'un enfant de cinq ans.
+     */
+    router.push({
+      pathname: '/child/celebration',
+      params: { completionId: neufs.map((c) => c.id).join(',') },
+    });
   }, [uncelebrated, pathname, router]);
 
   if (!activeChildId) return <Redirect href="/who" />;

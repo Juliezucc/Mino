@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { MascotClip } from '@/components/mascot';
 import { Button, Confetti, Screen, Text, TimeRing } from '@/components/ui';
@@ -51,19 +51,72 @@ export default function Celebration() {
    * marquer célébrées vide la liste dont l'écran se sert, et l'écran se
    * viderait sous les yeux de l'enfant.
    *
-   * `completionId` reste accepté, mais n'est plus qu'un filet : l'écran
-   * s'ouvre parfois sur une complétion qui vient d'arriver et que le magasin
-   * n'a pas encore reprise.
+   * `completionId` porte ce que l'appelant a vu — une complétion, ou plusieurs
+   * séparées par des virgules. Ce n'est plus un filet mais la source : c'est
+   * lui qui empêche l'écran de s'ouvrir sur du vide quand un rafraîchissement
+   * est passé entre la décision d'ouvrir et le montage.
    */
   const fermeRef = useRef(false);
   const lotRef = useRef<Lot | null>(null);
   if (!lotRef.current && data && child) {
-    lotRef.current = celebrationFor(data, child.id, completionId);
+    lotRef.current = celebrationFor(data, child.id, (completionId ?? '').split(',').filter(Boolean));
   }
   const lot = lotRef.current?.completions ?? [];
   const minutes = lotRef.current?.minutes ?? 0;
 
   const [ringValue, setRingValue] = useState(Math.max(0, balance - minutes));
+
+  // Une seule fermeture, même sur trois appuis : un enfant de cinq ans qui
+  // trouve qu'il ne se passe rien tape plusieurs fois, et deux `back()`
+  // remonteraient d'un écran de trop — il se retrouverait ailleurs que là d'où
+  // il vient.
+  const close = useCallback(() => {
+    if (fermeRef.current) return;
+    fermeRef.current = true;
+    if (router.canGoBack()) router.back();
+    else router.replace('/child');
+  }, [router]);
+
+  /**
+   * ------------------------------------------------- l'écran blanc, et sa fin
+   *
+   * **Le défaut, tel qu'il a été vécu.** Un parent valide une mission depuis
+   * l'espace parent, repasse sur le profil de son enfant — et tombe sur un
+   * écran entièrement blanc. Pas un message, pas un bouton : rien. Il faut
+   * connaître le geste « retour » pour en sortir, et un enfant de cinq ans ne
+   * le connaît pas. C'est le pire écran que Mino puisse afficher, et il
+   * arrivait au moment précis de la récompense.
+   *
+   * **D'où il venait.** Deux endroits décident, à deux instants différents, de
+   * ce qu'il y a à fêter : la coquille de l'espace enfant, qui pousse cet
+   * écran-ci dès qu'une complétion attend sa fête, et cet écran-là, qui refait
+   * le calcul à son montage. Entre les deux, quelques images — largement de
+   * quoi laisser passer un rafraîchissement venu du serveur qui dit que tout a
+   * déjà été fêté. La liste arrivait vide, et `return null` rendait un écran
+   * sans rien dessus ni aucune sortie.
+   *
+   * **Ce qu'on fait à la place.** Rien à fêter n'est pas un état : c'est un
+   * écran à quitter, tout de suite et tout seul. Et tant que la famille n'est
+   * pas chargée, on montre une attente — jamais du blanc — avec un filet de
+   * sécurité qui referme au bout de quelques secondes. Le principe : de cet
+   * écran, on ressort toujours, y compris quand il n'a rien à montrer.
+   */
+  const attente = !child || lotRef.current === null;
+  const rienAFeter = lotRef.current !== null && lot.length === 0;
+
+  useEffect(() => {
+    if (rienAFeter) close();
+  }, [rienAFeter, close]);
+
+  useEffect(() => {
+    if (!attente) return;
+    // Le filet : si la famille n'est jamais arrivée — hors ligne au mauvais
+    // moment, profil disparu — l'enfant ne reste pas devant une attente sans
+    // fin. Trois secondes, c'est plus long que tout chargement normal.
+    const minuteur = setTimeout(close, 3_000);
+    return () => clearTimeout(minuteur);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attente]);
 
   useEffect(() => {
     if (lot.length === 0) return;
@@ -78,7 +131,15 @@ export default function Celebration() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lot.length]);
 
-  if (!child || lot.length === 0) return null;
+  // Une attente visible plutôt qu'un écran vide : quelques dixièmes de seconde
+  // le plus souvent, et de toute façon refermée par le minuteur ci-dessus.
+  if (!child || lot.length === 0) {
+    return (
+      <Screen background={colors.surface} contentStyle={styles.content} scroll={false}>
+        <ActivityIndicator color={colors.blueInk} size="large" />
+      </Screen>
+    );
+  }
 
   // A fourteen-year-old showered in confetti closes the app. Same moment,
   // different volume.
@@ -91,17 +152,6 @@ export default function Celebration() {
 
   const missionDe = (completion: MissionCompletion) =>
     data?.missions.find((m) => m.id === completion.missionId);
-
-  // Une seule fermeture, même sur trois appuis : un enfant de cinq ans qui
-  // trouve qu'il ne se passe rien tape plusieurs fois, et deux `back()`
-  // remonteraient d'un écran de trop — il se retrouverait ailleurs que là d'où
-  // il vient.
-  const close = () => {
-    if (fermeRef.current) return;
-    fermeRef.current = true;
-    if (router.canGoBack()) router.back();
-    else router.replace('/child');
-  };
 
   return (
     // Défilable dès qu'il y a un récapitulatif : une famille de trois enfants

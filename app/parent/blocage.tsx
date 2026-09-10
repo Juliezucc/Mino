@@ -12,6 +12,7 @@ import { ScreenTimeAuthorization, getScreenTimeService } from '@/services/screen
 import { useFamily } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
+import { useRetourBloque } from '@/hooks/useRetourBloque';
 
 /**
  * Where a parent hands Mino the right to lock and unlock the apps.
@@ -24,6 +25,19 @@ import { colors, radii, spacing } from '@/theme';
 export default function ShieldSetup() {
   const service = getScreenTimeService();
   const router = useRouter();
+
+  /**
+   * Le bouton retour d'Android, ici aussi.
+   *
+   * Cet écran est le dernier de l'inscription, atteint en `replace` : dépiler
+   * ramenait à l'accueil, c'est-à-dire à « Créer ma famille » pour quelqu'un
+   * qui vient de la créer. La flèche du bandeau savait déjà l'éviter ; le
+   * bouton matériel, lui, ne demandait rien à personne.
+   */
+  useRetourBloque(() => {
+    router.replace('/parent');
+    return true;
+  });
 
   const [status, setStatus] = useState<ScreenTimeAuthorization>('not-determined');
   const [count, setCount] = useState(0);
@@ -121,6 +135,32 @@ export default function ShieldSetup() {
    */
   const dansUnNavigateur = Platform.OS === 'web';
 
+  /**
+   * Ce qu'on montre d'une panne système, et ce qu'on garde pour soi.
+   *
+   * **Le défaut que cela répare.** Le message brut du système s'affichait tel
+   * quel, en petit, sous les consignes. Sur une tablette Samsung, ça a donné
+   * six lignes de trace Java au milieu de l'écran d'un parent :
+   *
+   *     Call to function 'MinoScreenTime.requestAuthorization' has been
+   *     rejected. → Caused by: java.lang.NoSuchMethodError: No virtual method
+   *     unsafeCheckOpNoThrow(…) in class Landroid/app/AppOpsManager…
+   *
+   * Un message d'erreur qu'on ne comprend pas ne rassure personne : il dit
+   * « ce logiciel est cassé », et il le dit au moment où l'on demande la
+   * permission de contrôler l'appareil d'un enfant.
+   *
+   * La trace part donc dans la console — elle y sert à qui sait la lire — et
+   * l'écran garde une phrase. Le message est conservé tel quel quand il vient
+   * de nous : ceux-là sont écrits pour être lus.
+   */
+  const lisible = (message: string): string => {
+    const technique = /NoSuchMethodError|java\.lang|Landroid\/|has been rejected|Exception|at [\w.$]+\(/i;
+    if (!technique.test(message)) return message;
+    console.warn('[bouclier]', message);
+    return 'Le système n’a pas répondu comme prévu sur cet appareil. Accordez les accès à la main par le chemin ci-dessus, et écrivez-nous si cela recommence.';
+  };
+
   const manual =
     Platform.OS === 'android'
       ? 'Application Family Link → votre enfant → Contrôles → Limites de temps par application.'
@@ -137,11 +177,14 @@ export default function ShieldSetup() {
         * dans l'historique : l'accueil de bienvenue. Un parent qui vient de
         * créer sa famille se retrouvait devant « Créer mon compte parent »,
         * c'est-à-dire devant l'écran qui lui annonce qu'elle n'existe pas.
+        *
+        * **Le garde-fou `canGoBack()` ne suffisait pas**, et c'est ce qui a été
+        * observé sur une vraie tablette : il répondait « oui », puisque
+        * l'accueil traînait encore au fond de la pile. Il n'y a donc plus de
+        * condition. Cet écran a une seule sortie possible — l'espace parent —
+        * qu'on y arrive par la fin de l'inscription ou depuis les réglages.
         */}
-      <ScreenHeader
-        onBack={() => (router.canGoBack() ? router.back() : router.replace('/parent'))}
-        title="Blocage des applications"
-      />
+      <ScreenHeader onBack={() => router.replace('/parent')} title="Blocage des applications" />
 
       <View style={styles.hero}>
         <Mascot expression={status === 'approved' ? 'proud' : 'motivated'} size={110} />
@@ -330,11 +373,18 @@ export default function ShieldSetup() {
       ) : (
         <>
           <View style={styles.steps}>
-            {[
-              'Vous autorisez Mino à gérer le temps d’écran de cet appareil.',
-              'Vous choisissez les applications à encadrer, dans le sélecteur du système.',
-              'Elles restent verrouillées, et s’ouvrent le temps que votre enfant a gagné.',
-            ].map((step, index) => (
+            {(Platform.OS === 'android'
+              ? [
+                  'Vous accordez à Mino deux accès, dans les paramètres d’Android.',
+                  'Vous choisissez les applications à encadrer.',
+                  'Mino les referme, et les rouvre le temps que votre enfant a gagné.',
+                ]
+              : [
+                  'Vous autorisez Mino à gérer le temps d’écran de cet appareil.',
+                  'Vous choisissez les applications à encadrer, dans le sélecteur du système.',
+                  'Elles restent verrouillées, et s’ouvrent le temps que votre enfant a gagné.',
+                ]
+            ).map((step, index) => (
               <View key={step} style={styles.step}>
                 <View style={styles.number}>
                   <Text variant="caption" color={colors.onBrand}>
@@ -362,59 +412,120 @@ export default function ShieldSetup() {
               pas l'exiger avant. On le rattrape après, et on l'explique.       */}
           {echec ? (
             <Card background={colors.yellowSoft} elevation="none" style={styles.guide}>
-              <Text variant="bodyStrong">Une chose à activer d’abord</Text>
-              <Text variant="body" color={colors.textMuted}>
-                Mino s’appuie sur le Temps d’écran d’Apple. Il doit être activé sur cet
-                appareil — c’est lui qui demandera votre code, et qui empêchera votre enfant
-                de retirer le blocage.
-              </Text>
-              {/* La méprise que produit le Partage familial, et qui coûte un
-                  quart d'heure : la page « Temps d'écran » d'un iPhone de
-                  parent propose aussi les enfants du groupe. On règle alors
-                  consciencieusement le mauvais appareil.                     */}
-              <Text variant="body" color={colors.textMuted}>
-                Si la page vous propose les membres de votre famille, ne choisissez personne :
-                restez sur les réglages de cet appareil-ci, celui que votre enfant utilise.
-              </Text>
+              {/**
+                * **Deux systèmes, deux marches à suivre — et une seule était
+                * écrite.** Cette carte parlait du Temps d'écran d'Apple, de
+                * l'app « Réglages » et d'un code à quatre chiffres. Sur une
+                * tablette Android, rien de tout cela n'existe : le menu
+                * s'appelle « Paramètres », il n'y a pas de Temps d'écran, et
+                * les deux accès dont Mino a besoin vivent dans « Accès
+                * spécial ». Un parent qui suivait ces consignes cherchait des
+                * écrans qui n'étaient pas sur son appareil, puis concluait que
+                * l'application se trompait — au moment précis où on lui demande
+                * de nous confier le contrôle de celui de son enfant.
+                */}
+              {Platform.OS === 'android' ? (
+                <>
+                  <Text variant="bodyStrong">Deux accès à accorder</Text>
+                  <Text variant="body" color={colors.textMuted}>
+                    Android ne permet pas de les demander par une simple question : il faut les
+                    activer dans les paramètres, et il les range dans deux écrans différents qu’il
+                    ne propose jamais ensemble.
+                  </Text>
 
-              <View style={styles.steps}>
-                {[
-                  'Quittez Mino et ouvrez l’app Réglages — l’icône grise en forme de rouage.',
-                  'Touchez « Temps d’écran ». S’il vous propose de l’activer, activez-le ; s’il est déjà actif, passez à la suite.',
-                  'Faites défiler jusqu’en bas de cette page, jusqu’à « Verrouiller les réglages du temps d’écran ». Choisissez un code à 4 chiffres que votre enfant ne connaît pas.',
-                  'Revenez dans Mino et appuyez de nouveau sur « C’est fait, réessayer ».',
-                ].map((etape, index) => (
-                  <View key={etape} style={styles.step}>
-                    <View style={styles.number}>
-                      <Text variant="caption" color={colors.onBrand}>
-                        {index + 1}
-                      </Text>
-                    </View>
-                    <Text variant="body" color={colors.textMuted} style={styles.stepText}>
-                      {etape}
-                    </Text>
+                  <View style={styles.steps}>
+                    {[
+                      'L’accès aux données d’utilisation : il permet à Mino de savoir quelle application est ouverte.',
+                      'La superposition d’écran : il permet à Mino de s’afficher par-dessus pour refermer.',
+                    ].map((etape, index) => (
+                      <View key={etape} style={styles.step}>
+                        <View style={styles.number}>
+                          <Text variant="caption" color={colors.onBrand}>
+                            {index + 1}
+                          </Text>
+                        </View>
+                        <Text variant="body" color={colors.textMuted} style={styles.stepText}>
+                          {etape}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
-                ))}
-              </View>
 
-              {/* PAS de bouton « ouvrir les Réglages » ici, et c'est délibéré.
-                  `Linking.openSettings()` ouvre la fiche de Mino dans les
-                  Réglages — jamais le Temps d'écran, qui est ailleurs. iOS
-                  n'expose aucun moyen public d'y emmener quelqu'un : les
-                  adresses `App-Prefs:` que l'on trouve partout sont privées, et
-                  Apple refuse à la revue les applications qui s'en servent.
+                  {/* Un vrai bouton, et non un chemin à recopier : `ask()`
+                      rouvre le paramètre qui manque encore — celui des données
+                      d'utilisation d'abord, la superposition ensuite. C'est le
+                      système qui s'ouvre, on ne fait que l'appeler. */}
+                  <Button
+                    label="Ouvrir les paramètres"
+                    icon="⚙️"
+                    onPress={ask}
+                    loading={busy}
+                  />
 
-                  Un bouton qui promet d'ouvrir un réglage et dépose le parent
-                  sur une page sans rapport est pire que pas de bouton : il lui
-                  fait croire que l'application se trompe, au moment précis où on
-                  lui demande de nous faire confiance. Le chemin est donc écrit,
-                  en toutes lettres, et il tient en quatre gestes.            */}
-              <Button label="C’est fait, réessayer" onPress={ask} loading={busy} />
+                  <Text variant="caption" color={colors.textSubtle}>
+                    Il faudra revenir ici entre les deux : Android n’en accorde qu’un à la fois.
+                    Si le bouton n’ouvre rien, le chemin à la main est Paramètres → Applications →
+                    Accès spécial → Accès aux données d’utilisation, puis Superposition d’écran.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text variant="bodyStrong">Une chose à activer d’abord</Text>
+                  <Text variant="body" color={colors.textMuted}>
+                    Mino s’appuie sur le Temps d’écran d’Apple. Il doit être activé sur cet
+                    appareil — c’est lui qui demandera votre code, et qui empêchera votre enfant
+                    de retirer le blocage.
+                  </Text>
+                  {/* La méprise que produit le Partage familial, et qui coûte un
+                      quart d'heure : la page « Temps d'écran » d'un iPhone de
+                      parent propose aussi les enfants du groupe. On règle alors
+                      consciencieusement le mauvais appareil.                     */}
+                  <Text variant="body" color={colors.textMuted}>
+                    Si la page vous propose les membres de votre famille, ne choisissez personne :
+                    restez sur les réglages de cet appareil-ci, celui que votre enfant utilise.
+                  </Text>
 
-              {/* Le message d'iOS, en petit et en dernier. Il ne sert pas au
-                  parent — il sert au support le jour où la cause est ailleurs. */}
+                  <View style={styles.steps}>
+                    {[
+                      'Quittez Mino et ouvrez l’app Réglages — l’icône grise en forme de rouage.',
+                      'Touchez « Temps d’écran ». S’il vous propose de l’activer, activez-le ; s’il est déjà actif, passez à la suite.',
+                      'Faites défiler jusqu’en bas de cette page, jusqu’à « Verrouiller les réglages du temps d’écran ». Choisissez un code à 4 chiffres que votre enfant ne connaît pas.',
+                      'Revenez dans Mino et appuyez de nouveau sur « C’est fait, réessayer ».',
+                    ].map((etape, index) => (
+                      <View key={etape} style={styles.step}>
+                        <View style={styles.number}>
+                          <Text variant="caption" color={colors.onBrand}>
+                            {index + 1}
+                          </Text>
+                        </View>
+                        <Text variant="body" color={colors.textMuted} style={styles.stepText}>
+                          {etape}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* PAS de bouton « ouvrir les Réglages » ici, et c'est délibéré.
+                      `Linking.openSettings()` ouvre la fiche de Mino dans les
+                      Réglages — jamais le Temps d'écran, qui est ailleurs. iOS
+                      n'expose aucun moyen public d'y emmener quelqu'un.        */}
+                  <Button label="C’est fait, réessayer" onPress={ask} loading={busy} />
+                </>
+              )}
+
+              {/**
+                * Le message du système, en petit et en dernier — mais plus
+                * jamais brut.
+                *
+                * Il servait au support. Il a servi à autre chose : une trace
+                * Java de six lignes s'est affichée en plein milieu de l'écran
+                * d'un parent, sur une tablette où le module natif appelait une
+                * méthode qui n'existe pas avant Android 10. Ce qu'on montre
+                * désormais, c'est une phrase ; la trace part dans la console,
+                * où elle sert à qui sait la lire.
+                */}
               <Text variant="caption" color={colors.textSubtle}>
-                {echec}
+                {lisible(echec)}
               </Text>
             </Card>
           ) : null}

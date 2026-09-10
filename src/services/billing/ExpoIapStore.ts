@@ -42,6 +42,26 @@ import { NativeStore, StoreProduct, StorePurchase } from './native';
  */
 export { PRODUITS };
 
+/**
+ * L'étiquette posée sur l'offre d'essai dans la Play Console.
+ *
+ * La même chaîne que celle que le serveur cherche pour reconnaître un essai
+ * (`ETIQUETTE_ESSAI`, dans `supabase/functions/_shared/store.ts`) : les deux
+ * bouts lisent la même marque, ce qui évite qu'ils divergent le jour où l'un
+ * des deux est modifié sans l'autre.
+ */
+const ETIQUETTE_ESSAI = 'essai';
+
+/** Cette offre-ci porte-t-elle l'étiquette de l'essai ? */
+function estLEssai(offre: { offerTags?: string[] | null }): boolean {
+  return (offre.offerTags ?? []).some((t) => String(t).toLowerCase() === ETIQUETTE_ESSAI);
+}
+
+/** Le compte a-t-il encore droit à l'essai sur ce produit ? Voir `estLEssai`. */
+function aUnEssai(produit: ProduitBoutique): boolean {
+  return (produit.subscriptionOffers ?? []).filter(Boolean).some(estLEssai);
+}
+
 /** Le prix affiché si la boutique ne rend pas de montant numérique. */
 const PRIX_DE_REPLI: Record<Plan, number> = {
   monthly: MONTHLY_PRICE_EUR,
@@ -258,6 +278,21 @@ export class ExpoIapStore implements NativeStore {
         plan,
         priceLabel: brut.displayPrice,
         priceEur: typeof brut.price === 'number' ? brut.price : PRIX_DE_REPLI[plan],
+        /**
+         * Ce que Google appliquera vraiment — pas ce que nous annonçons.
+         *
+         * Sur Android, les offres rendues par la boutique sont celles auxquelles
+         * CE compte a droit, aujourd'hui. Si aucune ne porte l'étiquette
+         * `essai`, il n'y aura pas d'essai : la feuille de paiement prélèvera
+         * immédiatement. C'est arrivé sur un vrai téléphone, avec « 0 € pendant
+         * 30 jours » écrit juste au-dessus du bouton.
+         *
+         * `undefined` sur iOS, où l'offre d'introduction se règle dans App
+         * Store Connect et ne se lit pas ici : l'écran garde alors sa
+         * formulation habituelle plutôt que d'affirmer une absence qu'il ne
+         * constate pas.
+         */
+        essaiOffert: this.platform === 'google' ? aUnEssai(brut) : undefined,
       });
     }
 
@@ -493,11 +528,7 @@ export class ExpoIapStore implements NativeStore {
      * Le repli sur la première offre reste : une famille qui n'a plus droit à
      * l'essai — elle l'a déjà eu — ne doit pas se voir refuser l'abonnement.
      */
-    const essai = offres.find((o) =>
-      (o.offerTags ?? []).some((t) => String(t).toLowerCase() === 'essai'),
-    );
-
-    return jetonDe(essai ?? offres[0] ?? {});
+    return jetonDe(offres.find(estLEssai) ?? offres[0] ?? {});
   }
 
   /**
@@ -512,7 +543,21 @@ export class ExpoIapStore implements NativeStore {
   async restore(): Promise<StorePurchase[]> {
     const iap = await this.connexion();
     await iap.restorePurchases().catch(() => undefined);
+    return this.lire(iap);
+  }
 
+  /**
+   * Ce que la boutique tient déjà, sans resynchronisation ni mot de passe.
+   *
+   * Voir `NativeStore.achatsConnus`. La différence avec `restore()` tient en
+   * une ligne — l'absence de `restorePurchases()` — et c'est elle qui rend
+   * l'appel utilisable au lancement de l'application.
+   */
+  async achatsConnus(): Promise<StorePurchase[]> {
+    return this.lire(await this.connexion());
+  }
+
+  private async lire(iap: ModuleIap): Promise<StorePurchase[]> {
     const achats = await iap.getAvailablePurchases({ onlyIncludeActiveItemsIOS: true });
     const preuves: StorePurchase[] = [];
 

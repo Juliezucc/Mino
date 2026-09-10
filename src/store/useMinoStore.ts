@@ -112,6 +112,14 @@ interface MinoState {
   /** Réserve cet appareil à un enfant, ou le rend partagé avec `null`. */
   lockDeviceTo: (childId: ID | null) => Promise<void>;
   /**
+   * « Sur cet appareil, je veux le compteur sans le blocage. »
+   *
+   * La réponse du parent à la seule question que le système ne sait pas poser :
+   * quand l'autorisation manque, est-ce une installation inachevée ou un choix
+   * assumé ? Voir `DeviceProfile.compteurSeul`.
+   */
+  setCompteurSeul: (valeur: boolean) => Promise<void>;
+  /**
    * Dire au reste de la famille dans quel état est le bouclier ICI.
    *
    * Jamais attendu par l'appelant : c'est un rapport, pas une action.
@@ -350,8 +358,28 @@ export const useMinoStore = create<MinoState>((set, get) => {
   async function announce(payload: notify.NotificationPayload | null) {
     if (!payload) return;
 
-    // Sur CET appareil : selon les préférences d'ici, et les heures calmes.
-    if (notify.shouldDeliver(payload, get().notifications)) {
+    /**
+     * **Jamais à celui qui vient d'agir.**
+     *
+     * Cette branche est l'ancienne livraison, écrite quand rien ne partait vers
+     * les autres appareils : elle affichait la notification ici, c'est-à-dire à
+     * la seule personne déjà au courant. Depuis que le serveur pousse aux
+     * autres — et qu'il exclut explicitement l'appareil appelant —, elle ne
+     * produit plus qu'un doublon.
+     *
+     * Sur une tablette partagée, le doublon devient absurde : le parent
+     * confirme une mission depuis le profil de son enfant, et l'appareil qu'il
+     * tient en main lui annonce dans la seconde que « Raphaël a terminé une
+     * mission ». C'est exactement ce qui apprend à couper les notifications, et
+     * c'est alors la vraie demande qu'on ratera.
+     *
+     * On la garde comme filet, et seulement comme filet : quand aucun envoi
+     * distant n'est possible — pas de session, pas de dépôt distant, donc pas
+     * de jeton — elle reste le seul moyen que la famille apprenne quoi que ce
+     * soit.
+     */
+    const distantPossible = get().repository.name !== 'local';
+    if (!distantPossible && notify.shouldDeliver(payload, get().notifications)) {
       await getNotificationService()
         .schedule(payload)
         .catch(() => null);
@@ -442,7 +470,22 @@ export const useMinoStore = create<MinoState>((set, get) => {
       const report = get().repository.reportShield;
       if (!report) return;
       try {
-        const status = await getScreenTimeService().authorization();
+        const natif = await getScreenTimeService().authorization();
+        /**
+         * Le choix du parent l'emporte sur ce que dit le système, et lui seul.
+         *
+         * Sans cette ligne, un appareil dont le parent a explicitement voulu le
+         * compteur seul remontait « blocage pas encore réglé », en jaune, dans
+         * la liste des appareils — c'est-à-dire qu'on lui reprochait sa propre
+         * décision, tous les jours, sans moyen de la faire taire. Et le compteur
+         * d'appareils « à regarder » ne retombait jamais à zéro, ce qui finit
+         * par le rendre inutile pour ceux qui, eux, ont un vrai problème.
+         *
+         * Dans l'autre sens, on n'écrase rien : si le bouclier est bel et bien
+         * accordé, c'est cela qu'on rapporte, quoi qu'ait coché le parent.
+         */
+        const status =
+          natif !== 'approved' && get().device.compteurSeul ? 'compteur-seul' : natif;
         await report.call(get().repository, {
           status,
           // Le nom que le propriétaire a donné à son téléphone (« iPhone de
@@ -825,6 +868,15 @@ export const useMinoStore = create<MinoState>((set, get) => {
         ...(childId ? { lastChildId: childId } : {}),
       });
       set({ device });
+    },
+
+    async setCompteurSeul(valeur) {
+      const device = await writeDeviceProfile({ compteurSeul: valeur });
+      set({ device });
+      // Le reste de la famille doit le savoir : sans cela, le tableau des
+      // appareils continuerait d'afficher « bouclier absent » en rouge sur un
+      // appareil dont le parent a explicitement dit qu'il n'en voulait pas.
+      void get().reportShield();
     },
 
     /**

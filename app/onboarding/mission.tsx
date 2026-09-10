@@ -5,6 +5,7 @@ import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { Screen, ScreenHeader } from '@/components/ui';
 import { MissionForm, MissionFormValue } from '@/features/parent/MissionForm';
 import { useMinoStore } from '@/store/useMinoStore';
+import { useRetourBloque } from '@/hooks/useRetourBloque';
 
 /**
  * Deuxième écran : la première mission.
@@ -18,6 +19,9 @@ import { useMinoStore } from '@/store/useMinoStore';
  * sa famille qu'après lui avoir montré ce qu'il garderait.
  */
 export default function OnboardingMission() {
+  // Le bouton retour d'Android sortait de l'inscription et rendait l'accueil :
+  // vu du parent, une déconnexion au milieu de la création de sa famille.
+  useRetourBloque();
   const router = useRouter();
   const { childId } = useLocalSearchParams<{ childId?: string }>();
   const addMission = useMinoStore((s) => s.addMission);

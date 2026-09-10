@@ -787,3 +787,161 @@ describe('l’offre d’essai de Play', () => {
     expect(jetonEnvoye(journal)).toBe('ancien-nom');
   });
 });
+
+/**
+ * ---------------------------------------------------------------------------
+ * « J'ai payé sur Android, et Mino dit toujours essai gratuit. »
+ * ---------------------------------------------------------------------------
+ *
+ * Relevé sur un vrai téléphone. Le paiement a bien eu lieu — le courriel de
+ * Google Play est arrivé — mais l'écran d'abonnement affichait encore l'essai,
+ * et le parent ne pouvait donc même pas résilier : pour Mino, il n'y avait rien
+ * à résilier.
+ *
+ * La preuve remonte au serveur par `store-purchase`, dont l'échec est avalé.
+ * C'était défendable tant qu'un second chemin existait — la notification
+ * serveur à serveur — mais côté Play, ce chemin-là demande un sujet Pub/Sub
+ * déclaré dans la console. Tant qu'il ne l'est pas, il ne reste qu'un chemin,
+ * et il échoue en silence. Deux filets qui se reposent l'un sur l'autre ne font
+ * pas un filet.
+ *
+ * D'où le troisième, qui ne dépend d'aucune console : la boutique du téléphone
+ * connaît les achats de ce compte, et on peut la lire à tout moment.
+ */
+describe('l’achat payé que le serveur n’a jamais reçu', () => {
+  /** Un serveur dont l'état peut changer sous nos pieds — c'est tout le sujet. */
+  const serveurQuiIgnore = (lire: () => Subscription | null) =>
+    ({
+      name: 'faux',
+      capability: 'stripe-web',
+      getSubscription: async () => lire(),
+      startCheckout: async () => ({ kind: 'failed' as const, reason: 'jamais' }),
+      openPortal: async () => ({ url: '' }),
+      listReferrals: async () => [],
+      redeemReferralCode: async () => ({ ok: false }),
+    }) as unknown as BillingService;
+
+  const ESSAI: Subscription = { ...ABONNEMENT, status: 'trialing' };
+
+  it('repasse la preuve au serveur quand la famille est encore « en essai »', async () => {
+    const { iap, journal } = fausseBoutique({
+      historique: [{ id: 'tx-9', productId: PRODUITS.monthly, purchaseToken: 'jeton-play' }],
+    });
+
+    // L'état côté serveur avant la confirmation, et après : c'est exactement
+    // ce que le rattrapage doit changer.
+    let etat: Subscription | null = ESSAI;
+    const recues: { token: string }[] = [];
+    const service = new StoreBillingService(
+      serveurQuiIgnore(() => etat),
+      new ExpoIapStore('google', async () => iap),
+      async (input) => {
+        recues.push(input);
+        etat = ABONNEMENT;
+        return ABONNEMENT;
+      },
+      async () => JETON,
+    );
+
+    const vu = await service.getSubscription('fam-1');
+
+    expect(recues.map((r) => r.token)).toEqual(['jeton-play']);
+    expect(vu?.status).toBe('active');
+    // Et SANS resynchroniser : `restorePurchases` réclame parfois le mot de
+    // passe du compte Apple, ce qui, au lancement, surgit de nulle part.
+    expect(journal.restaurations).toBe(0);
+  });
+
+  it('ne dérange pas la boutique quand le serveur sait déjà que la famille paie', async () => {
+    const { iap } = fausseBoutique({
+      historique: [{ id: 'tx-9', productId: PRODUITS.monthly, purchaseToken: 'jeton-play' }],
+    });
+    const recues: unknown[] = [];
+    const service = new StoreBillingService(
+      serveurQuiIgnore(() => ABONNEMENT),
+      new ExpoIapStore('google', async () => iap),
+      async (input) => {
+        recues.push(input);
+        return ABONNEMENT;
+      },
+      async () => JETON,
+    );
+
+    expect((await service.getSubscription('fam-1'))?.status).toBe('active');
+    expect(recues).toEqual([]);
+  });
+
+  it('n’essaie qu’une fois par lancement', async () => {
+    const { iap } = fausseBoutique({
+      historique: [{ id: 'tx-9', productId: PRODUITS.monthly, purchaseToken: 'jeton-play' }],
+    });
+    const recues: unknown[] = [];
+    const service = new StoreBillingService(
+      serveurQuiIgnore(() => ESSAI),
+      new ExpoIapStore('google', async () => iap),
+      async (input) => {
+        recues.push(input);
+        return null; // Le serveur refuse : rien n'est retrouvé.
+      },
+      async () => JETON,
+    );
+
+    await service.getSubscription('fam-1');
+    await service.getSubscription('fam-1');
+    await service.getSubscription('fam-1');
+
+    // Sinon chaque lecture d'abonnement irait interroger la boutique, sur tous
+    // les écrans qui affichent l'état de l'accès.
+    expect(recues).toHaveLength(1);
+  });
+});
+
+/**
+ * Ce que la boutique accordera vraiment, et non ce qu'on annonce.
+ *
+ * L'écran de paiement promettait « 0 € pendant 30 jours » à partir d'une
+ * constante. Sur Android, quand la Play Console ne porte pas d'offre d'essai
+ * valide, Play facture le forfait de base immédiatement — sans erreur, sans
+ * avertissement. La promesse d'un côté, le débit de l'autre.
+ */
+describe('l’essai annoncé à l’écran', () => {
+  const service = (iap: ModuleIap, plateforme: 'apple' | 'google') =>
+    new StoreBillingService(
+      { getSubscription: async () => null } as unknown as BillingService,
+      new ExpoIapStore(plateforme, async () => iap),
+      async () => null,
+      async () => JETON,
+    );
+
+  it('dit non quand aucune offre d’essai n’est servie par Play', async () => {
+    const { iap } = fausseBoutique({
+      produits: [
+        { ...mensuel, offres: [{ offerTokenAndroid: 'base', offerTags: [] }] },
+        { ...annuel, offres: [{ offerTokenAndroid: 'base', offerTags: [] }] },
+      ],
+    });
+    expect(await service(iap, 'google').trialAvailable()).toBe(false);
+  });
+
+  it('dit oui dès qu’une offre porte l’étiquette', async () => {
+    const { iap } = fausseBoutique({
+      produits: [
+        { ...mensuel, offres: [{ offerTokenAndroid: 'essai', offerTags: ['ESSAI'] }] },
+        { ...annuel, offres: [{ offerTokenAndroid: 'base', offerTags: [] }] },
+      ],
+    });
+    expect(await service(iap, 'google').trialAvailable()).toBe(true);
+  });
+
+  it('ne se prononce pas sur iOS, où l’offre ne se lit pas ici', async () => {
+    // Affirmer une absence qu'on n'a pas constatée serait la même faute, à
+    // l'envers : l'écran garderait sa formulation habituelle par défaut.
+    const { iap } = fausseBoutique({ produits: [mensuel, annuel] });
+    expect(await service(iap, 'apple').trialAvailable()).toBeNull();
+  });
+
+  it('ne se prononce pas quand la boutique n’a rien rendu', async () => {
+    const { iap } = fausseBoutique({ produits: [] });
+    expect(await service(iap, 'google').trialAvailable()).toBeNull();
+  });
+});

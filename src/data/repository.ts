@@ -83,7 +83,13 @@ export interface MinoRepository {
    * Facultatif : le dépôt local n'a personne à qui rendre compte.
    */
   reportShield?(input: {
-    status: ScreenTimeAuthorization;
+    /**
+     * L'état du système, ou `compteur-seul` : la décision explicite d'un parent
+     * qui ne veut pas de verrou sur cet appareil-là. Ce n'est pas un état
+     * qu'iOS ou Android sait rendre — c'est une réponse, et elle prime sur
+     * l'absence d'autorisation qu'elle explique. Voir `DeviceProfile`.
+     */
+    status: ScreenTimeAuthorization | 'compteur-seul';
     label?: string;
     childId?: ID | null;
   }): Promise<void>;

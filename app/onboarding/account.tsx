@@ -7,6 +7,7 @@ import { Button, Field, Screen, ScreenHeader, Text } from '@/components/ui';
 import { getAuthService } from '@/services/auth';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
+import { useRetourBloque } from '@/hooks/useRetourBloque';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -38,6 +39,9 @@ function phraseDErreur(e: unknown): string {
  * y gagne.
  */
 export default function CreateAccount() {
+  // Le bouton retour d'Android sortait de l'inscription et rendait l'accueil :
+  // vu du parent, une déconnexion au milieu de la création de sa famille.
+  useRetourBloque();
   const router = useRouter();
   const createAccount = useMinoStore((s) => s.createAccount);
 

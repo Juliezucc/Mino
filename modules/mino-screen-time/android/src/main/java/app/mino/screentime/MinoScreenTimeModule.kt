@@ -3,6 +3,7 @@ package app.mino.screentime
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Process
 import android.os.SystemClock
 import android.provider.Settings
@@ -117,13 +118,43 @@ class MinoScreenTimeModule : Module() {
 
   private fun shielded(): Set<String> = prefs.getStringSet(PACKAGES, emptySet()) ?: emptySet()
 
+  /**
+   * L'accès aux statistiques d'usage — et la méthode qui n'existe pas partout.
+   *
+   * **Le défaut que cela répare, trouvé sur une tablette Samsung.**
+   * `unsafeCheckOpNoThrow` n'est apparue qu'avec Android 10 (API 29). Sur tout
+   * appareil plus ancien, l'appel ne rate pas à la compilation — il rate à
+   * l'exécution, avec un `NoSuchMethodError` que l'application affichait tel
+   * quel au parent :
+   *
+   *     java.lang.NoSuchMethodError: No virtual method
+   *     unsafeCheckOpNoThrow(…) in class Landroid/app/AppOpsManager
+   *
+   * Autrement dit, le bouclier était purement et simplement indisponible sur
+   * une grande part du parc Android — et les tablettes, précisément celles
+   * qu'on donne aux enfants, sont les appareils qui restent le plus longtemps
+   * sur une vieille version.
+   *
+   * `checkOpNoThrow` fait la même chose, existe depuis Android 4.4, et n'est
+   * dépréciée que depuis l'arrivée de l'autre. On garde donc les deux, chacune
+   * là où elle existe.
+   */
   private fun hasUsageAccess(): Boolean {
-    val ops = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-    val mode = ops.unsafeCheckOpNoThrow(
-      AppOpsManager.OPSTR_GET_USAGE_STATS,
-      Process.myUid(),
-      context.packageName
-    )
+    val ops = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager ?: return false
+    val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      ops.unsafeCheckOpNoThrow(
+        AppOpsManager.OPSTR_GET_USAGE_STATS,
+        Process.myUid(),
+        context.packageName
+      )
+    } else {
+      @Suppress("DEPRECATION")
+      ops.checkOpNoThrow(
+        AppOpsManager.OPSTR_GET_USAGE_STATS,
+        Process.myUid(),
+        context.packageName
+      )
+    }
     return mode == AppOpsManager.MODE_ALLOWED
   }
 

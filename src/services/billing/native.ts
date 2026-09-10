@@ -29,6 +29,24 @@ export interface StoreProduct {
   /** Déjà formaté par la boutique, dans la devise et la langue de l'appareil. */
   priceLabel: string;
   priceEur: number;
+  /**
+   * La boutique accordera-t-elle vraiment l'essai gratuit ?
+   *
+   * **Le défaut que cela répare, et il promet ce qu'on ne tient pas.** L'écran
+   * d'abonnement annonce « 0 € pendant 30 jours » à partir d'une constante,
+   * c'est-à-dire à partir de rien : le jour où l'offre d'essai n'existe pas
+   * dans la Play Console, ou n'a pas encore été validée, la feuille de paiement
+   * de Google prélève immédiatement — sans erreur, sans avertissement. C'est ce
+   * qui s'est produit sur un vrai téléphone : la promesse à l'écran, le débit
+   * du jour même, et le courriel de Google qui annonce la reconduction un mois
+   * plus tard. Un parent qui vit ça ne revient pas, et il a raison.
+   *
+   * `undefined` veut dire « on ne sait pas » — le cas d'iOS, où l'offre
+   * d'introduction se règle dans App Store Connect et ne se lit pas ici — et
+   * l'écran garde alors sa formulation habituelle. `false` est une information,
+   * pas une panne : l'écran dit le vrai prix, tout de suite.
+   */
+  essaiOffert?: boolean;
 }
 
 export interface StorePurchase {
@@ -75,6 +93,26 @@ export interface NativeStore {
    * application sans ce bouton est refusée à la revue.
    */
   restore(): Promise<StorePurchase[]>;
+
+  /**
+   * Les achats que la boutique tient déjà pour ce compte, **sans rien demander
+   * à personne**.
+   *
+   * Le pendant silencieux de `restore()`, et la distinction est tout sauf
+   * cosmétique : `restore()` commence par `restorePurchases()`, qui demande à
+   * StoreKit de resynchroniser — et StoreKit peut alors réclamer le mot de
+   * passe du compte Apple. C'est acceptable derrière un bouton que le parent a
+   * touché ; c'est inacceptable au lancement de l'application, où cela donne
+   * une demande de mot de passe surgie de nulle part.
+   *
+   * Celle-ci ne fait que lire ce qui est déjà là. Elle sert au rattrapage de
+   * `StoreBillingService` : un achat payé dont la confirmation n'a pas atteint
+   * notre serveur se retrouve ici, et repart tout seul.
+   *
+   * Facultative : une fausse boutique d'essai n'a pas à l'implémenter, et le
+   * rattrapage se contente alors de ne rien trouver.
+   */
+  achatsConnus?(): Promise<StorePurchase[]>;
 }
 
 /**

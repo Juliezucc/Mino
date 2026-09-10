@@ -574,7 +574,7 @@ export class SupabaseRepository implements MinoRepository {
    * grâce à `seenAt`.
    */
   async reportShield(input: {
-    status: ScreenTimeAuthorization;
+    status: ScreenTimeAuthorization | 'compteur-seul';
     label?: string;
     childId?: ID | null;
   }): Promise<void> {

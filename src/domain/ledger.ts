@@ -133,15 +133,28 @@ export interface Celebration {
  * `focus` sert le cas d'une mission qui se compte toute seule : l'écran s'ouvre
  * sur elle à l'instant même où elle est créée, parfois avant que la liste ne
  * l'ait reprise.
+ *
+ * **Il en accepte désormais plusieurs, et c'est un correctif.** Deux endroits
+ * décidaient de ce qu'il y avait à fêter, à deux instants différents : la
+ * coquille de l'espace enfant, qui ouvre l'écran, puis l'écran lui-même, qui
+ * refaisait le calcul à son montage. Entre les deux, un rafraîchissement venu
+ * du serveur pouvait très bien dire que tout avait déjà été fêté — et l'écran
+ * s'ouvrait sur une liste vide, c'est-à-dire sur du blanc. Celui qui ouvre
+ * nomme donc ce qu'il a vu, et l'écran fête cela, même si la liste a bougé
+ * entre-temps.
  */
-export function celebrationFor(data: FamilyData, childId: ID, focus?: ID): Celebration {
+export function celebrationFor(data: FamilyData, childId: ID, focus?: ID | ID[]): Celebration {
   const attente = uncelebratedCompletions(data, childId);
-  const nomme = focus ? data.completions.find((c) => c.id === focus) : undefined;
+  const vises = (Array.isArray(focus) ? focus : focus ? [focus] : []).filter(Boolean);
 
-  const completions =
-    nomme && nomme.childId === childId && !attente.some((c) => c.id === nomme.id)
-      ? [...attente, nomme]
-      : attente;
+  const nommes = vises
+    .map((id) => data.completions.find((c) => c.id === id))
+    .filter(
+      (c): c is MissionCompletion =>
+        !!c && c.childId === childId && !attente.some((a) => a.id === c.id),
+    );
+
+  const completions = nommes.length > 0 ? [...attente, ...nommes] : attente;
 
   return {
     completions,

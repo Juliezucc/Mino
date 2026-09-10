@@ -57,8 +57,98 @@ export class StoreBillingService implements BillingService {
     this.name = `store-${store.platform}`;
   }
 
-  getSubscription(familyId: ID): Promise<Subscription | null> {
-    return this.api.getSubscription(familyId);
+  /**
+   * -------------------------------------------------- rattraper l'achat perdu
+   *
+   * **Le défaut, tel qu'il a été vécu.** Un parent paie sur Android, reçoit le
+   * courriel de Google Play, revient dans Mino — et l'application lui annonce
+   * toujours « essai gratuit ». Il ne peut donc pas non plus résilier : pour
+   * Mino, il n'y a rien à résilier. Sur iPhone, le même parcours fonctionnait.
+   *
+   * **Pourquoi c'est arrivé, et pourquoi ça ne se voyait pas.** L'achat remonte
+   * au serveur par `store-purchase`, dont l'échec était avalé — délibérément,
+   * et c'était défendable : la notification serveur à serveur d'Apple ou de
+   * Google réémet pendant des jours, et annoncer un échec au parent lui ferait
+   * payer deux fois. Sauf que ce filet-là n'existe que s'il est tendu : côté
+   * Play, il demande un sujet Pub/Sub déclaré dans la Play Console. Tant qu'il
+   * ne l'est pas, il n'y a plus de second chemin — et le premier échoue en
+   * silence. Deux filets qui se reposent l'un sur l'autre ne font pas un filet.
+   *
+   * **Ce qu'on ajoute.** Un troisième chemin, qui ne dépend d'aucune console :
+   * la boutique du téléphone connaît les achats actifs de ce compte, et elle,
+   * on peut la lire à tout moment. Quand le serveur ne nous donne pas un
+   * abonnement payant alors que la boutique en tient un, on lui repasse la
+   * preuve. C'est exactement ce que fait « Restaurer mes achats », mais sans
+   * demander au parent de deviner qu'il doit y toucher.
+   *
+   * **Une seule fois par lancement**, et seulement quand le serveur ne connaît
+   * pas déjà un abonnement payant : c'est un rattrapage, pas une source de
+   * vérité, et interroger la boutique à chaque lecture ne ferait que ralentir
+   * les familles dont tout va bien.
+   */
+  private rattrapage: Promise<boolean> | null = null;
+
+  async getSubscription(familyId: ID): Promise<Subscription | null> {
+    const connu = await this.api.getSubscription(familyId);
+
+    // `offert` compris : une famille en accès offert n'a rien acheté à la
+    // boutique, et il n'y a donc rien à y retrouver.
+    const paye =
+      connu?.status === 'active' || connu?.status === 'canceled' || connu?.status === 'offert';
+    if (paye) return connu;
+
+    if (!this.rattrapage) this.rattrapage = this.reconcilier(familyId);
+    // Attendu, et c'est le point : rendre l'état périmé ferait afficher « essai
+    // gratuit » à un parent qui vient de payer, et il faudrait qu'il relance
+    // l'application pour voir la vérité. C'est exactement le défaut qu'on
+    // répare. La lecture de la boutique est locale au téléphone.
+    const retrouve = await this.rattrapage.catch(() => false);
+
+    return retrouve ? await this.api.getSubscription(familyId).catch(() => connu) : connu;
+  }
+
+  /**
+   * Repasser au serveur les preuves d'achat que la boutique détient.
+   *
+   * Rend `true` dès qu'une a été acceptée — c'est ce qui justifie de relire
+   * l'abonnement. Silencieux par construction : un rattrapage qui échoue laisse
+   * simplement les choses dans l'état où il les a trouvées, et le parent garde
+   * « Restaurer mes achats », qui dit, lui, ce qui s'est passé.
+   */
+  private async reconcilier(familyId: ID): Promise<boolean> {
+    /**
+     * `achatsConnus` et **surtout pas** `restore` : celui-là commence par
+     * demander à StoreKit de resynchroniser, ce qui peut faire surgir une
+     * demande de mot de passe Apple. Acceptable derrière un bouton que le
+     * parent a touché ; inacceptable au lancement de l'application.
+     */
+    const lire = this.store.achatsConnus?.bind(this.store);
+    if (!lire) return false;
+    const achats = await lire().catch(() => []);
+    let repris = false;
+    for (const achat of achats) {
+      const abonnement = await this.confirm({
+        familyId,
+        platform: this.store.platform,
+        token: achat.token,
+        productId: achat.productId,
+      }).catch(() => null);
+      if (abonnement) repris = true;
+    }
+    return repris;
+  }
+
+  /**
+   * Voir `BillingService.trialAvailable`. On répond `null` — « on ne sait
+   * pas » — dès qu'un seul produit ne se prononce pas : sur iOS, la boutique ne
+   * dit rien de l'offre d'introduction, et affirmer une absence qu'on n'a pas
+   * constatée serait exactement la même faute, à l'envers.
+   */
+  async trialAvailable(): Promise<boolean | null> {
+    const produits = await this.store.products().catch(() => []);
+    if (produits.length === 0) return null;
+    if (produits.some((p) => p.essaiOffert === undefined)) return null;
+    return produits.some((p) => p.essaiOffert === true);
   }
 
   async startCheckout(input: { familyId: ID; plan: Plan }): Promise<CheckoutOutcome> {
@@ -99,17 +189,28 @@ export class StoreBillingService implements BillingService {
     // meilleur moyen qu'il ne revienne pas.
     if (!purchase) return { kind: 'abandoned' };
 
-    await this.confirm({
+    const abonnement = await this.confirm({
       familyId: input.familyId,
       platform: this.store.platform,
       token: purchase.token,
       productId: purchase.productId,
     }).catch(() => null);
 
+    /**
+     * Rouvrir la porte du rattrapage, et c'est indispensable ici.
+     *
+     * `getSubscription` ne tente le rattrapage qu'une fois par lancement — le
+     * paywall l'a donc déjà consommé, quelques secondes plus tôt, à un moment
+     * où il n'y avait effectivement rien à retrouver. Sans cette ligne, le
+     * parent qui vient de payer et dont la confirmation a échoué resterait
+     * devant « essai gratuit » jusqu'au prochain démarrage de l'application.
+     */
+    if (!abonnement) this.rattrapage = null;
+
     // Même si la confirmation a échoué, l'achat a bien eu lieu : la
     // notification serveur à serveur d'Apple ou de Google arrivera de toute
-    // façon, et c'est elle qui fait foi. Annoncer un échec ici ferait payer
-    // deux fois.
+    // façon quand elle est configurée, et le rattrapage ci-dessus la double.
+    // Annoncer un échec ici ferait payer deux fois.
     return { kind: 'done' };
   }
 

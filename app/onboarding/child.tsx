@@ -6,6 +6,7 @@ import { Screen, ScreenHeader, Text } from '@/components/ui';
 import { ChildForm, ChildFormValue } from '@/features/parent/ChildForm';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
+import { useRetourBloque } from '@/hooks/useRetourBloque';
 
 /**
  * Le premier écran de Mino, et le premier depuis peu.
@@ -28,6 +29,9 @@ import { colors, spacing } from '@/theme';
  * jour où on la demande.
  */
 export default function OnboardingChild() {
+  // Le bouton retour d'Android sortait de l'inscription et rendait l'accueil :
+  // vu du parent, une déconnexion au milieu de la création de sa famille.
+  useRetourBloque();
   const router = useRouter();
   const fonderFamille = useMinoStore((s) => s.fonderFamille);
   const addChild = useMinoStore((s) => s.addChild);
