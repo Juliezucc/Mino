@@ -249,3 +249,38 @@ do $$ begin
     'cccccccc-0000-0000-0000-000000000002',
     'cccccccc-0000-0000-0000-000000000003');
 end $$;
+
+-- ------------------------------------ l'ordre d'écriture, qui n'est plus libre
+
+/**
+ * **Le piège que `set_parent_pin` vient de tendre, et qu'il faut garder visible.**
+ *
+ * En exigeant une ligne dans `parents`, la fonction rend l'ORDRE des écritures
+ * significatif : poser le code avant d'écrire la famille échoue désormais, là
+ * où cela passait tant que le code appartenait au compte. C'est ce qui a fait
+ * déplacer l'appel dans `createAccount` et `startDemo`, après `persist`.
+ *
+ * Ce bloc reproduit la faute pour qu'elle reste lisible : un compte sans
+ * famille ne peut pas poser de code, quel que soit le reste.
+ */
+do $$ begin
+  delete from auth.users where id = 'cccccccc-0000-0000-0000-000000000004';
+  insert into auth.users (id, email, is_anonymous)
+    values ('cccccccc-0000-0000-0000-000000000004', 'sansfamille@mino.app', false);
+end $$;
+
+do $$ begin
+  set local role authenticated;
+  set local mino.uid = 'cccccccc-0000-0000-0000-000000000004';
+
+  perform assert(
+    not set_parent_pin('1357'),
+    'un compte sans famille ne peut pas poser de code');
+  perform assert(
+    not has_parent_pin(),
+    'et la base n''en connaît toujours aucun pour lui');
+end $$;
+
+do $$ begin
+  delete from auth.users where id = 'cccccccc-0000-0000-0000-000000000004';
+end $$;

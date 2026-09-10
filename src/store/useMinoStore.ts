@@ -541,11 +541,14 @@ export const useMinoStore = create<MinoState>((set, get) => {
 
     async startDemo() {
       const data = buildDemoFamily();
-      // The demo's PIN lives where every PIN lives — in the auth service,
-      // never in the family document.
-      await getAuthService().setParentPin(DEMO_PARENT_PIN);
       publish(data, { status: 'ready', activeChildId: null, parentUnlocked: false });
       await get().repository.persist(data, { kind: 'bootstrap' });
+      // Le code de la démo vit où vivent tous les codes — dans le service
+      // d'authentification, jamais dans le document familial. Et après
+      // l'écriture de la famille : `set_parent_pin` exige maintenant une ligne
+      // dans `parents`, faute de quoi la tablette d'un enfant se choisirait son
+      // propre code parent. Même raison que dans `createAccount`.
+      await getAuthService().setParentPin(DEMO_PARENT_PIN);
       await get().loadBilling();
     },
 
@@ -685,14 +688,6 @@ export const useMinoStore = create<MinoState>((set, get) => {
         if (!compte.ok) return compte;
       }
 
-      // Pas de code à poser quand il y en a déjà un : le redemander à quelqu'un
-      // qui vient de le choisir à l'inscription n'apporte rien, et lui laisse
-      // croire que le premier n'a pas été retenu.
-      if (pin) {
-        const pinSet = await getAuthService().setParentPin(pin);
-        if (!pinSet.ok) return pinSet;
-      }
-
       const nom = familyName?.trim() || `Famille de ${parentName}`;
       // L'adresse du compte ouvert fait foi sur celle qui a été tapée : c'est
       // elle que la base rattachera aux lignes de cette famille. Elle est
@@ -776,6 +771,32 @@ export const useMinoStore = create<MinoState>((set, get) => {
         }
         throw erreur;
       }
+      /**
+       * Le code parent APRÈS l'écriture de la famille, et pas avant.
+       *
+       * **L'ordre n'est plus cosmétique depuis que le code appartient à la
+       * famille** — voir `supabase/code-parent-famille.sql`. `set_parent_pin`
+       * refuse désormais un appelant qui n'a pas de ligne dans `parents` : sans
+       * cela, la tablette d'un enfant se choisirait son propre code parent.
+       *
+       * Cet appel se faisait juste après la création du compte, donc avant
+       * `persist`. Sur le parcours ordinaire cela passait — la famille avait
+       * été fondée deux écrans plus tôt — mais sur celui où elle se crée ici
+       * même (`buildEmptyFamily`), la ligne parent n'existait pas encore et
+       * l'inscription échouait à la dernière étape, sur un code refusé sans
+       * raison visible.
+       *
+       * Déplacé ici, la ligne est écrite dans les deux cas.
+       *
+       * Pas de code à poser quand il y en a déjà un : le redemander à quelqu'un
+       * qui vient de le choisir n'apporte rien, et lui laisse croire que le
+       * premier n'a pas été retenu.
+       */
+      if (pin) {
+        const pinSet = await getAuthService().setParentPin(pin);
+        if (!pinSet.ok) return pinSet;
+      }
+
       await get().loadBilling();
 
       /**
