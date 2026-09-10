@@ -745,14 +745,15 @@ describe('le rail Google', () => {
  * Android : « débit aujourd'hui », sans mention d'essai.
  */
 describe('l’offre d’essai de Play', () => {
-  const base = { offerTokenAndroid: 'jeton-base', offerTags: [] };
-  const essai = { offerTokenAndroid: 'jeton-essai', offerTags: ['essai'] };
+  type Offre = { offerTokenAndroid?: string; offerToken?: string; offerTags?: string[] };
+  const base: Offre = { offerTokenAndroid: 'jeton-base', offerTags: [] };
+  const essai: Offre = { offerTokenAndroid: 'jeton-essai', offerTags: ['essai'] };
 
   const jetonEnvoye = (journal: Journal) =>
     (journal.demandes[0] as { request: { google: { subscriptionOffers: { offerToken: string }[] } } })
       .request.google.subscriptionOffers[0].offerToken;
 
-  const acheter = async (offres: typeof base[]) => {
+  const acheter = async (offres: Offre[]) => {
     const { iap, journal } = fausseBoutique({
       produits: [{ ...mensuel, offres }],
       surDemande: ({ emet }) =>
@@ -782,7 +783,7 @@ describe('l’offre d’essai de Play', () => {
     // La liaison l'a appelé `offerToken` puis `offerTokenAndroid` selon les
     // versions. Se tromper de nom rend `undefined` — donc un achat au plein
     // tarif, sans la moindre erreur.
-    const journal = await acheter([{ offerToken: 'ancien-nom', offerTags: ['essai'] } as never]);
+    const journal = await acheter([{ offerToken: 'ancien-nom', offerTags: ['essai'] }]);
     expect(jetonEnvoye(journal)).toBe('ancien-nom');
   });
 });
