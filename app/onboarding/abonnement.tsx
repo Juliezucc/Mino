@@ -305,6 +305,35 @@ export default function OnboardingAbonnement() {
         </Text>
       </Pressable>
 
+      {/**
+        * ------------------------------- quand rien n'encaisse, il faut le dire ICI
+        *
+        * **Le défaut, relevé sur TestFlight.** Le parent touche « Commencer mes
+        * 30 jours », le bouton tourne, et l'écran suivant s'affiche. Pas de
+        * feuille de paiement, pas d'erreur, pas un mot : la doublure locale
+        * simule un succès, écrit dans le téléphone, et ne dit rien au serveur.
+        * De l'extérieur, l'inscription s'est parfaitement déroulée. En base, la
+        * famille n'a jamais rien payé.
+        *
+        * L'écran d'abonnement des réglages portait cet avertissement depuis
+        * toujours. **Celui de l'inscription, non** — c'est-à-dire précisément
+        * celui que tout le monde traverse, et le seul où l'argent est censé
+        * changer de mains. Une heure a été perdue à chercher un défaut de
+        * paiement là où il n'y avait qu'une variable d'environnement absente,
+        * faute de cette carte.
+        */}
+      {billing.capability === 'none' ? (
+        <Card background={colors.yellowSoft} elevation="none" style={styles.rassure}>
+          <Text variant="bodyStrong">Aucun paiement ne sera pris</Text>
+          <Text variant="caption" color={colors.textMuted}>
+            Cette version ne porte aucun prestataire de paiement : l’abonnement
+            sera simulé sur cet appareil, et rien ne sera enregistré. Si vous
+            voyez ce message sur une application installée depuis l’App Store ou
+            Google Play, écrivez-nous — ce n’est pas normal.
+          </Text>
+        </Card>
+      ) : null}
+
       <Button
         label={sansEssai ? 'S’ABONNER' : `Commencer mes ${TRIAL_DAYS} jours`}
         onPress={souscrire}
