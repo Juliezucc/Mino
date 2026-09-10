@@ -88,7 +88,34 @@ export default function OnboardingAbonnement() {
   const restorePurchases = useMinoStore((s) => s.restorePurchases);
   const loadBilling = useMinoStore((s) => s.loadBilling);
 
-  const [selected, setSelected] = useState<Plan>('yearly');
+  /**
+   * ------------------------------------------- l'écran s'ouvre sur le mensuel
+   *
+   * **Ce que l'annuel par défaut faisait.** La carte affiche bien « 6,67 € /
+   * mois » en gros et « soit 79,99 € par an » en petit — c'est honnête, et
+   * c'est la loi. Mais le nombre qu'un parent retient, c'est 79,99. Il arrive
+   * sur un écran de contrôle parental qu'il ne connaît pas, à qui il n'a pas
+   * encore fait confiance, et on lui demande quatre-vingts euros. Le premier
+   * test sur un vrai téléphone l'a dit en trois mots : « ça fait peur ».
+   *
+   * 9,99 € par mois, avec trente jours offerts, est un « oui » d'une autre
+   * nature : celui qu'on donne à quelque chose qu'on pourra arrêter le mois
+   * suivant. C'est exactement ce qu'on veut vendre — l'essai du produit, pas
+   * l'engagement d'un an.
+   *
+   * **Ce qu'on ne fait pas pour autant.** L'annuel ne disparaît pas : il est à
+   * une touche, sous la carte, avec sa remise affichée. Le parent qui sait
+   * déjà qu'il veut Mino à l'année le trouve en une seconde. On change ce qui
+   * est proposé en premier, pas ce qui est disponible.
+   *
+   * **Ce que ça coûte, et c'est assumé.** L'annuel par défaut rapporte plus de
+   * trésorerie et retient mieux — c'est ce que font la plupart des applications
+   * de cette catégorie. Au lancement, avec zéro famille, ce qui manque n'est
+   * pas l'ARPU : ce sont des familles qui se servent de Mino assez longtemps
+   * pour qu'on sache s'il tient sa promesse. Ce réglage se rediscute le jour où
+   * la rétention est mesurée.
+   */
+  const [selected, setSelected] = useState<Plan>('monthly');
   const [loading, setLoading] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
 

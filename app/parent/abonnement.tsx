@@ -56,7 +56,11 @@ export default function SubscriptionScreen() {
   const restorePurchases = useMinoStore((s) => s.restorePurchases);
   const loadBilling = useMinoStore((s) => s.loadBilling);
 
-  const [selected, setSelected] = useState<Plan>('yearly');
+  // Le mensuel présélectionné, comme à l'inscription : cet écran-ci sert à
+  // reprendre un abonnement après un essai fini ou une résiliation, c'est-à-dire
+  // à quelqu'un qui hésite encore. Lui présenter quatre-vingts euros d'abord
+  // n'aide pas. L'annuel est juste à côté, avec sa remise.
+  const [selected, setSelected] = useState<Plan>('monthly');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
