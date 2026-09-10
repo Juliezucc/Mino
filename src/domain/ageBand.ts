@@ -1,4 +1,6 @@
-import { Child } from './types';
+// `import type` : ce fichier est lu par `inscription-web` sous Deno, qui
+// résoudrait `./types` littéralement. Un import de type est effacé.
+import type { Child } from './types';
 
 /**
  * How old the child is changes what Mino should look like.

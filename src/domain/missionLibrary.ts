@@ -1,4 +1,12 @@
-import { Child, RepeatRule } from './types';
+/**
+ * `import type`, et ce n'est pas de la coquetterie : la fonction Edge qui
+ * inscrit une famille depuis le site lit ce fichier sous Deno, qui résout les
+ * chemins tels quels. Un import de valeur vers `./types` — sans extension, et
+ * lui-même tributaire de `./devices` et `./freeWindows` — ferait échouer le
+ * chargement du module entier. Un import de type est effacé à la compilation :
+ * il ne va chercher personne. Même procédé que dans `offrePromo.ts`.
+ */
+import type { Child, RepeatRule } from './types';
 
 /**
  * Ready-made missions, grouped into the routines families actually run.
@@ -283,10 +291,27 @@ export function resolveTitle(suggestion: MissionSuggestion, siblings: Child[]): 
   return suggestion.title.replace('{enfant}', name);
 }
 
+/**
+ * La même règle que `suits`, quand on n'a qu'un âge sous la main.
+ *
+ * L'inscription depuis le site ne connaît pas encore d'enfant : elle a un
+ * prénom, un âge annoncé par le parent, et rien d'autre. Elle doit pourtant
+ * filtrer exactement comme l'application le fait — sinon un enfant de six ans
+ * se retrouve avec « préparer un repas pour la famille », qui porte un
+ * avertissement de sécurité pour de bonnes raisons.
+ */
+export function convientA(
+  suggestion: MissionSuggestion,
+  age: number,
+  aUneFratrie: boolean,
+): boolean {
+  if (suggestion.sibling && !aUneFratrie) return false;
+  return age >= suggestion.ages[0] && age <= suggestion.ages[1];
+}
+
 /** Is this suggestion a fit for that child, in that family? */
 export function suits(suggestion: MissionSuggestion, child: Child, siblings: Child[]): boolean {
-  if (suggestion.sibling && siblings.length === 0) return false;
-  return child.age >= suggestion.ages[0] && child.age <= suggestion.ages[1];
+  return convientA(suggestion, child.age, siblings.length > 0);
 }
 
 /** A routine, trimmed to what fits this child. Empty routines are dropped. */
