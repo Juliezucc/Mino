@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'rea
 
 import { Mascot } from '@/components/mascot';
 import { Button, Field, Screen, ScreenHeader, SectionHeader, Text } from '@/components/ui';
-import { demandeLeCodeALInscription } from '@/domain/parentGate';
+import { codeTropFacile, demandeLeCodeALInscription } from '@/domain/parentGate';
 import { getAuthService } from '@/services/auth';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
@@ -113,7 +113,7 @@ export default function CreateAccount() {
     if (demandeLeCode) {
       if (!/^\d{4}$/.test(pin)) next.pin = 'Le code parent doit contenir 4 chiffres.';
       // A PIN identical to the last digits of the password helps nobody.
-      if (/^(\d)\1{3}$/.test(pin) || pin === '1234' || pin === '0000') {
+      if (codeTropFacile(pin)) {
         next.pin = 'Trop facile à deviner. Choisissez autre chose.';
       }
     }

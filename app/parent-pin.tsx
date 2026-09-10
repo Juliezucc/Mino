@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Screen, ScreenHeader, Text } from '@/components/ui';
-import { parentGate } from '@/domain/parentGate';
+import { codeTropFacile, parentGate } from '@/domain/parentGate';
 import { getAuthService } from '@/services/auth';
 import { useParent } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -144,6 +144,21 @@ export default function ParentPin() {
     }
 
     if (canCreatePin) {
+      /**
+       * La même règle qu'à l'inscription, et c'est ici qu'elle manquait.
+       *
+       * Cet écran posait le code sans rien vérifier : `0000` y passait, alors
+       * que l'inscription le refuse. Et c'est par ici que passent désormais
+       * tous les rattrapages — le bandeau du tableau de bord, la connexion par
+       * mot de passe, le changement d'appareil dans les réglages. La porte la
+       * plus empruntée était la seule sans serrure.
+       */
+      if (codeTropFacile(value)) {
+        setChecking(false);
+        setError('Trop facile à deviner. Choisissez autre chose.');
+        setTimeout(() => setPin(''), 220);
+        return;
+      }
       const created = await getAuthService().setParentPin(value);
       setChecking(false);
       if (!created.ok) {

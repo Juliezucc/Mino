@@ -1,7 +1,7 @@
 import * as actions from '@/domain/actions';
 import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
 import { inscriptionInachevee, isFirstRun } from '@/domain/firstRun';
-import { demandeLeCodeALInscription, parentGate } from '@/domain/parentGate';
+import { codeTropFacile, demandeLeCodeALInscription, parentGate } from '@/domain/parentGate';
 import { FamilyData } from '@/domain/types';
 import {
   balanceOf,
@@ -898,5 +898,28 @@ describe('poser le code quand le parent est présent', () => {
     expect(
       parentGate({ hasPin: true, onChildDevice: true, poseDemandeeParLeParent: true }),
     ).toBe('enter');
+  });
+});
+
+/**
+ * Les codes qu'on devine du premier coup.
+ *
+ * La règle existait à l'inscription et nulle part ailleurs. Or l'écran du
+ * code — celui qu'atteignent tous les rattrapages ajoutés depuis : le bandeau
+ * du tableau de bord, la connexion par mot de passe, le changement d'appareil
+ * dans les réglages — appelait `setParentPin` sans rien vérifier. La porte la
+ * plus empruntée était la seule sans serrure.
+ */
+describe('la devinabilité du code parent', () => {
+  it('refuse les quatre chiffres identiques et les deux suites connues', () => {
+    for (const facile of ['0000', '1111', '7777', '9999', '1234']) {
+      expect(codeTropFacile(facile)).toBe(true);
+    }
+  });
+
+  it('laisse passer un code ordinaire', () => {
+    for (const bon of ['4821', '1023', '2907', '4321']) {
+      expect(codeTropFacile(bon)).toBe(false);
+    }
   });
 });

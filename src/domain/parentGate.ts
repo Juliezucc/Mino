@@ -100,3 +100,25 @@ export function parentGate(input: {
 export function demandeLeCodeALInscription(input: { codeDejaPose: boolean }): boolean {
   return !input.codeDejaPose;
 }
+
+/**
+ * Un code à quatre chiffres qu'on devine du premier coup.
+ *
+ * **La règle vivait dans un seul écran, et l'autre porte l'ignorait.**
+ * L'inscription refusait `0000` et `1234` ; l'écran du code, lui, appelait
+ * `setParentPin` sans rien vérifier — or c'est par là que passent désormais
+ * tous les rattrapages : le bandeau du tableau de bord, la connexion par mot
+ * de passe, le changement d'appareil dans les réglages. La porte la plus
+ * empruntée était donc la seule sans serrure.
+ *
+ * Ce que ça coûte : quatre chiffres, dix mille combinaisons, cinq essais par
+ * cinq minutes. Un enfant qui tape `1234` puis la date de son anniversaire
+ * n'a pas besoin des dix mille.
+ *
+ * La liste reste courte à dessein. Refuser trop de codes, c'est renvoyer un
+ * parent à l'invention alors qu'il tient déjà son téléphone — et ce qu'il
+ * invente sous la contrainte, il l'oublie.
+ */
+export function codeTropFacile(pin: string): boolean {
+  return /^(\d)\1{3}$/.test(pin) || pin === '1234' || pin === '0000';
+}
