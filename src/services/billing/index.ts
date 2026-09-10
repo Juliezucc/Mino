@@ -76,7 +76,24 @@ async function confirmPurchase(input: {
   if (!client) return null;
 
   const { data, error } = await client.functions.invoke('store-purchase', { body: input });
-  if (error) return null;
+
+  /**
+   * Lever plutôt que rendre `null`, et c'est un correctif.
+   *
+   * L'échec repartait muet. Les deux appelants qui n'ont rien à en faire
+   * l'ignorent déjà — l'achat neuf, où la notification serveur à serveur et le
+   * rattrapage prennent le relais, et le rattrapage lui-même. Mais le
+   * troisième, « Restaurer mes achats », est un bouton que le parent a touché
+   * exprès parce que quelque chose ne va pas : il doit apprendre ce que le
+   * serveur a répondu, et pouvoir nous le recopier. « Réessayez dans un
+   * instant » ne donne rien à personne, surtout quand la vraie cause est une
+   * clé de service manquante, qui ne se réparera pas toute seule.
+   */
+  if (error) {
+    const dit = error instanceof Error ? error.message.trim() : '';
+    throw new Error(dit || 'La vérification de l’achat n’a pas abouti.');
+  }
+
   return (data as { subscription?: Subscription })?.subscription ?? null;
 }
 
