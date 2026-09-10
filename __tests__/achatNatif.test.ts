@@ -50,7 +50,14 @@ interface Journal {
  * qui tourne sans fin sur un vrai iPhone.
  */
 function fausseBoutique(options: {
-  produits?: { id: string; displayPrice: string; price?: number | null; offre?: string }[];
+  produits?: {
+    id: string;
+    displayPrice: string;
+    price?: number | null;
+    offre?: string;
+    /** Plusieurs offres, comme Play en rend quand un essai est configuré. */
+    offres?: { offerTokenAndroid?: string; offerToken?: string; offerTags?: string[] }[];
+  }[];
   historique?: {
     id: string;
     productId: string;
@@ -92,7 +99,7 @@ function fausseBoutique(options: {
           id: p.id,
           displayPrice: p.displayPrice,
           price: p.price,
-          subscriptionOffers: p.offre ? [{ offerTokenAndroid: p.offre }] : null,
+          subscriptionOffers: p.offres ?? (p.offre ? [{ offerTokenAndroid: p.offre }] : null),
         }));
     },
     async requestPurchase(args) {
@@ -723,5 +730,59 @@ describe('le rail Google', () => {
     expect(demande.request.google.subscriptionOffers).toEqual([
       { sku: PRODUITS.monthly, offerToken: 'jeton-offre' },
     ]);
+  });
+});
+
+/**
+ * Choisir la bonne offre Play, et non la première venue.
+ *
+ * Google rend toutes les offres auxquelles le compte a droit : le forfait de
+ * base, et l'essai gratuit quand il y en a un. Le code prenait
+ * `subscriptionOffers[0]` — arbitraire, écrit quand Mino n'en déclarait qu'une.
+ * Le jour où l'essai a été ajouté dans la Play Console, un parent sur deux
+ * payait immédiatement une offre annoncée gratuite, selon l'ordre où Google
+ * avait rangé sa liste. C'est ce qui s'est vu au premier achat sur un vrai
+ * Android : « débit aujourd'hui », sans mention d'essai.
+ */
+describe('l’offre d’essai de Play', () => {
+  const base = { offerTokenAndroid: 'jeton-base', offerTags: [] };
+  const essai = { offerTokenAndroid: 'jeton-essai', offerTags: ['essai'] };
+
+  const jetonEnvoye = (journal: Journal) =>
+    (journal.demandes[0] as { request: { google: { subscriptionOffers: { offerToken: string }[] } } })
+      .request.google.subscriptionOffers[0].offerToken;
+
+  const acheter = async (offres: typeof base[]) => {
+    const { iap, journal } = fausseBoutique({
+      produits: [{ ...mensuel, offres }],
+      surDemande: ({ emet }) =>
+        emet({ id: 'tx', productId: PRODUITS.monthly, purchaseToken: 'jeton' }),
+    });
+    await new ExpoIapStore('google', async () => iap).purchase({
+      productId: PRODUITS.monthly,
+      accountToken: JETON,
+    });
+    return journal;
+  };
+
+  it('prend l’essai quel que soit son rang dans la liste', async () => {
+    expect(jetonEnvoye(await acheter([base, essai]))).toBe('jeton-essai');
+    // Et dans l'autre sens : ce n'est pas le hasard de l'ordre qui décide.
+    expect(jetonEnvoye(await acheter([essai, base]))).toBe('jeton-essai');
+  });
+
+  it('se rabat sur le forfait de base quand la famille n’a plus droit à l’essai', async () => {
+    // Google ne rend que les offres auxquelles CE compte a droit : une famille
+    // qui a déjà eu son mois ne voit plus l'offre d'essai. Elle doit pouvoir
+    // s'abonner quand même.
+    expect(jetonEnvoye(await acheter([base]))).toBe('jeton-base');
+  });
+
+  it('lit le jeton sous ses deux noms', async () => {
+    // La liaison l'a appelé `offerToken` puis `offerTokenAndroid` selon les
+    // versions. Se tromper de nom rend `undefined` — donc un achat au plein
+    // tarif, sans la moindre erreur.
+    const journal = await acheter([{ offerToken: 'ancien-nom', offerTags: ['essai'] } as never]);
+    expect(jetonEnvoye(journal)).toBe('ancien-nom');
   });
 });

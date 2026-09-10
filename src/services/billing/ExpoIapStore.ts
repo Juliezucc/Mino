@@ -82,8 +82,23 @@ export interface ProduitBoutique {
   /** Déjà formaté par la boutique, dans la devise et la langue de l'appareil. */
   displayPrice: string;
   price?: number | null;
-  /** Android : les offres auxquelles ce compte a droit. */
-  subscriptionOffers?: { offerTokenAndroid?: string | null }[] | null;
+  /**
+   * Android : les offres auxquelles ce compte a droit.
+   *
+   * Le jeton est lu sous deux noms, et ce n'est pas de la prudence gratuite :
+   * la liaison l'a appelé `offerToken` puis `offerTokenAndroid` selon les
+   * versions, et une lecture qui se trompe de nom rend `undefined` — donc un
+   * achat au plein tarif, sans la moindre erreur.
+   */
+  subscriptionOffers?:
+    | {
+        offerTokenAndroid?: string | null;
+        offerToken?: string | null;
+        /** Les étiquettes posées dans la Play Console. C'est par là qu'on reconnaît l'essai. */
+        offerTags?: string[] | null;
+        offerId?: string | null;
+      }[]
+    | null;
 }
 
 export interface ErreurBoutique {
@@ -455,7 +470,34 @@ export class ExpoIapStore implements NativeStore {
       | ProduitBoutique[]
       | null;
     const produit = (bruts ?? []).find((p) => p.id === productId);
-    return produit?.subscriptionOffers?.[0]?.offerTokenAndroid ?? null;
+    const offres = (produit?.subscriptionOffers ?? []).filter(Boolean);
+
+    const jetonDe = (o: { offerTokenAndroid?: string | null; offerToken?: string | null }) =>
+      o.offerTokenAndroid ?? o.offerToken ?? null;
+
+    /**
+     * **La bonne offre, et non la première venue.**
+     *
+     * Google rend toutes les offres auxquelles CE compte a droit : le forfait
+     * de base, et l'essai gratuit quand il y en a un. Ce code prenait
+     * `subscriptionOffers[0]` — un choix arbitraire, écrit à l'époque où Mino
+     * n'en déclarait qu'une seule. Le jour où l'essai a été ajouté dans la Play
+     * Console, un parent sur deux s'est retrouvé à payer immédiatement une
+     * offre annoncée gratuite, selon l'ordre où Google avait rangé sa liste.
+     *
+     * L'étiquette `essai` est celle qu'on pose sur l'offre dans la console, et
+     * c'est déjà celle que le serveur cherche pour reconnaître un essai
+     * (`ETIQUETTE_ESSAI`, dans `_shared/store.ts`). Les deux bouts lisent donc
+     * la même marque, ce qui évite qu'ils divergent.
+     *
+     * Le repli sur la première offre reste : une famille qui n'a plus droit à
+     * l'essai — elle l'a déjà eu — ne doit pas se voir refuser l'abonnement.
+     */
+    const essai = offres.find((o) =>
+      (o.offerTags ?? []).some((t) => String(t).toLowerCase() === 'essai'),
+    );
+
+    return jetonDe(essai ?? offres[0] ?? {});
   }
 
   /**
