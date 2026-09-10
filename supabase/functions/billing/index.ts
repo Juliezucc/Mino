@@ -185,9 +185,40 @@ Deno.serve(servir(async (request) => {
           metadata: { family_id: caller.familyId },
         });
 
-        // Deux formes, jamais les deux à la fois : la page sait laquelle elle a
-        // demandée, et lire la mauvaise donnerait `undefined` sans erreur.
-        return json(integre ? { clientSecret: session.client_secret } : { url: session.url });
+        /**
+         * Deux formes, jamais les deux à la fois : la page sait laquelle elle a
+         * demandée, et lire la mauvaise donnerait `undefined` sans erreur.
+         *
+         * **La clé publiable voyage avec le `client_secret`, et c'est délibéré.**
+         * Une feuille intégrée a besoin des deux pour s'initialiser. L'autre
+         * solution — la poser en dur dans le site — a un défaut qui ne se voit
+         * qu'une fois : elle se désynchronise du mode. Le jour où l'on bascule
+         * en test pour une recette, ou en production après elle, le
+         * `client_secret` change de mode et la clé, elle, reste. Stripe rend
+         * alors une erreur d'initialisation que personne ne relie à sa cause,
+         * et il faut se souvenir qu'il existe une constante à changer dans un
+         * autre dépôt.
+         *
+         * Ici les deux sortent du même compte Stripe, donc du même mode, sans
+         * que personne ait à y penser.
+         *
+         * Ce n'est pas un secret : cette clé est faite pour être lue dans le
+         * code source de la page par n'importe quel visiteur. C'est la clé
+         * *secrète* qui ne quitte jamais Supabase, et elle n'apparaît nulle
+         * part ici.
+         *
+         * `Deno.env.get` et non `env()` : tant que la variable n'est pas posée,
+         * la page doit pouvoir le dire au parent — « le paiement n'est pas
+         * encore ouvert » — plutôt que de recevoir une panne de serveur.
+         */
+        return json(
+          integre
+            ? {
+                clientSecret: session.client_secret,
+                publishableKey: Deno.env.get('STRIPE_PUBLISHABLE_KEY') ?? null,
+              }
+            : { url: session.url },
+        );
       }
 
       /* ---------------------------------------------------------- portal */

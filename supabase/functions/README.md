@@ -43,12 +43,26 @@ Dans le Dashboard Stripe, en mode Test d'abord :
 ```bash
 supabase secrets set \
   STRIPE_SECRET_KEY=sk_test_… \
+  STRIPE_PUBLISHABLE_KEY=pk_test_… \
   STRIPE_WEBHOOK_SECRET=whsec_… \
   STRIPE_PRICE_MONTHLY=price_… \
   STRIPE_PRICE_YEARLY=price_… \
   APP_URL=https://minoapp.fr \
+  SITE_URL=https://minoapp.fr \
   APP_ORIGIN=https://minoapp.fr
 ```
+
+> **`STRIPE_PUBLISHABLE_KEY` n'est pas un secret**, malgré la commande qui la
+> pose. C'est la clé que Stripe destine au code source des pages : n'importe
+> quel visiteur peut la lire. Elle est ici pour une raison de justesse et non
+> de confidentialité — `billing/checkout` la renvoie à côté du `clientSecret`
+> en mode intégré, si bien que les deux sortent toujours du même compte et donc
+> du même mode. Posée en dur dans le site, elle se désynchronise le jour d'une
+> bascule test/production, et Stripe rend alors une erreur d'initialisation que
+> personne ne relie à sa cause.
+>
+> `SITE_URL` désigne le site vitrine, qui porte le tunnel `/creer/`. Sans elle,
+> `APP_URL` sert de repli — voir `return_url` dans `billing/index.ts`.
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY` sont injectées
 automatiquement par Supabase.
