@@ -8,14 +8,15 @@ import {
   ANNUAL_PRICE_EUR,
   MONTHLY_PRICE_EUR,
   Plan,
-  TRIAL_DAYS,
   accessOf,
   annualSavingPercent,
   canCancelInApp,
   describePlan,
   formatPrice,
   isStore,
+  peutSAbonner,
   sellerOf,
+  trialEndForCheckout,
 } from '@/domain/billing';
 import { getBillingService } from '@/services/billing';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -139,6 +140,18 @@ export default function SubscriptionScreen() {
    * carte d'état dit ce qu'il en est, et l'écran s'arrête là.
    */
   const offert = access.kind === 'offert';
+  /**
+   * Impayé : l'accès tient encore, mais le dernier prélèvement a échoué.
+   *
+   * **Aucune branche ne l'attrapait, et celle où il tombait était la pire.**
+   * `grace` n'est ni `offert`, ni `engage`, ni `gerable`, ni `resilie` : il
+   * finissait dans le sélecteur de formules, dont le seul bouton appelle
+   * `startCheckout` — donc ouvrait un abonnement NEUF par-dessus celui qui est
+   * en retard de paiement. Deux prélèvements pour quelqu'un dont le premier
+   * vient déjà d'échouer, et pas une seule porte vers sa carte, alors que la
+   * carte d'état lui demande justement de la mettre à jour.
+   */
+  const impaye = !peutSAbonner(access) && access.kind === 'grace';
   /**
    * Arrêté, et ça se voit — y compris pendant l'essai.
    *
@@ -342,6 +355,42 @@ export default function SubscriptionScreen() {
     access.kind === 'trial' ? access.plan : access.kind === 'active' ? (subscription?.plan ?? null) : null;
   const autreFormule: Plan = formuleActuelle === 'yearly' ? 'monthly' : 'yearly';
 
+  /**
+   * Ce qu'on paie, et quand — calculé, jamais recopié.
+   *
+   * Sur le rail Stripe, `trialEndForCheckout` est la fonction même dont se
+   * sert la fonction Edge pour construire la session : la date affichée est
+   * donc celle qui sera facturée, et pas une constante qui lui ressemble.
+   * Sur une boutique, c'est la boutique qui décide, et son « je ne sais pas »
+   * ne se traduit ni par une promesse de gratuité ni par une annonce de
+   * prélèvement.
+   */
+  const apres =
+    selected === 'yearly'
+      ? `${formatPrice(ANNUAL_PRICE_EUR)} par an, soit ${formatPrice(ANNUAL_PRICE_EUR / 12)} par mois`
+      : `${formatPrice(MONTHLY_PRICE_EUR)} par mois`;
+
+  const partir =
+    billing.capability === 'store'
+      ? 'Sans engagement, résiliable à tout moment dans les réglages de votre téléphone.'
+      : 'Sans engagement, résiliable à tout moment.';
+
+  const finFacturee = trialEndForCheckout({
+    trialEndsAt: subscription?.trialEndsAt ?? null,
+    hasPaidBefore: !!subscription?.customerId,
+  });
+
+  const ligneEngagement =
+    billing.capability === 'store'
+      ? essaiBoutique === true
+        ? `0 € aujourd’hui, puis ${apres}. ${partir}`
+        : essaiBoutique === false
+          ? `${apres}, prélevés aujourd’hui. ${partir}`
+          : `${apres}. Le détail du premier prélèvement s’affiche avant que vous validiez. ${partir}`
+      : finFacturee
+        ? `0 € aujourd’hui, puis ${apres} à partir du ${frenchDate(finFacturee.toISOString())}. ${partir}`
+        : `${apres}, prélevés aujourd’hui. ${partir}`;
+
   const basculer = () => {
     const versAnnuel = autreFormule === 'yearly';
     void confirmer({
@@ -433,7 +482,23 @@ export default function SubscriptionScreen() {
 
       {/* Offert : aucune action de facturation n'a de sens, et proposer une
           formule ouvrirait un abonnement payant par-dessus un accès gratuit. */}
-      {offert ? null : gerable && !resilie ? (
+      {offert ? null : impaye ? (
+        <View style={styles.actions}>
+          {/* Mot pour mot ce que la carte d'état vient de demander, et
+              `openPortal` sait déjà où envoyer chaque rail : le portail pour
+              Stripe, les réglages d'abonnement pour Apple et Google. */}
+          <Button label="Mettre ma carte à jour" icon="💳" onPress={ouvrirGestion} />
+          {canCancelInApp(subscription) ? (
+            <Button
+              label="Résilier mon abonnement"
+              variant="danger"
+              loading={loading}
+              onPress={confirmCancel}
+            />
+          ) : null}
+          {bandeauErreur}
+        </View>
+      ) : gerable && !resilie ? (
         <View style={styles.actions}>
           {/**
            * Changer de formule sans quitter Mino.
@@ -546,10 +611,31 @@ export default function SubscriptionScreen() {
           </View>
 
           <Button
-            label={access.kind === 'trial' ? 'CHOISIR CETTE FORMULE' : 'REPRENDRE L’ABONNEMENT'}
+            label={
+              access.kind === 'trial'
+                ? `Continuer avec ${selected === 'yearly' ? 'l’annuel' : 'le mensuel'}`
+                : 'Reprendre mon abonnement'
+            }
             onPress={subscribe}
             loading={loading}
           />
+
+          {/**
+           * Les trois faits qui engagent, juste sous le bouton.
+           *
+           * « CHOISIR CETTE FORMULE » en capitales ne disait ni ce qu'on
+           * prend, ni ce qu'on paie, ni quand : il fallait remonter à la carte
+           * cochée pour savoir laquelle, et rien à l'écran ne disait si le
+           * prélèvement tombait aujourd'hui. C'est la dernière ligne lue avant
+           * d'appuyer, et souvent la seule.
+           *
+           * Rien n'y est deviné : sur une boutique, `essaiBoutique` tranche,
+           * et son `null` — on ne sait pas — ne promet ni gratuité ni
+           * prélèvement.
+           */}
+          <Text variant="caption" color={colors.textSubtle} center>
+            {ligneEngagement}
+          </Text>
 
           {/* Obligatoire dès qu'on vend par une boutique : quelqu'un qui change
               de téléphone doit retrouver son abonnement sans repayer, et Apple
@@ -573,18 +659,18 @@ export default function SubscriptionScreen() {
 
       <View style={styles.footer}>
         {/**
-          * L'essai ne se mentionne qu'à qui peut encore en avoir un.
+          * Aucune durée d'essai ici, et c'est le fond du sujet.
           *
-          * Cette ligne s'affichait pour tout le monde, abonnés compris : un
-          * parent qui vient de payer 9,99 € lisait « essai de 30 jours » en bas
-          * de l'écran de son abonnement. On lui annonce, au choix, qu'il a payé
-          * pour rien ou que son paiement n'a pas pris — et c'est précisément à
-          * cet endroit-là qu'il vient vérifier.
+          * Ce pied de page est hors des branches : il s'affiche pour tout le
+          * monde. Il annonçait « essai de 30 jours » à `expired` — un essai
+          * fini, ou un abonnement résilié arrivé à échéance — c'est-à-dire
+          * exactement à ceux qui seront débités le jour même. Une durée ne se
+          * promet qu'à l'endroit où elle est calculée, et cet endroit est
+          * maintenant la ligne d'engagement, sous le bouton.
           */}
         <Text variant="caption" color={colors.textSubtle} center>
-          {access.kind === 'trial' || access.kind === 'expired'
-            ? `Un abonnement couvre toute la famille · essai de ${TRIAL_DAYS} jours · ${formatPrice(MONTHLY_PRICE_EUR)} par mois`
-            : `Un abonnement couvre toute la famille : autant d’enfants et d’appareils que vous voulez, sans supplément.`}
+          Un abonnement couvre toute la famille : autant d’enfants et d’appareils que vous
+          voulez, sans supplément.
         </Text>
         {/* Apple exige que la durée, le prix et le renouvellement soient dits
             sur l'écran d'achat lui-même — pas seulement dans les conditions.

@@ -19,6 +19,7 @@ import {
   qualifyReferral,
   sellerOf,
   startTrial,
+  peutSAbonner,
 } from '@/domain/billing';
 import * as actions from '@/domain/actions';
 import { isLocked } from '@/domain/access';
@@ -455,5 +456,37 @@ describe('accès offert', () => {
 
   it('ne verrouille aucune action du parent', () => {
     expect(isLocked(offert, 'confirm', new Date('2036-01-01T00:00:00Z'))).toBe(false);
+  });
+});
+
+/**
+ * À qui l'on peut vendre un abonnement, et à qui surtout pas.
+ *
+ * Trouvé en relisant l'écran d'abonnement : un parent en impayé n'entrait dans
+ * aucune de ses branches et tombait dans celle qui vend. Le seul bouton
+ * présent ouvrait un abonnement NEUF par-dessus celui qui était en retard de
+ * paiement — un double prélèvement à quelqu'un dont le premier venait
+ * d'échouer — et rien ne le menait à sa carte.
+ */
+describe('proposer un abonnement', () => {
+  it('jamais à un impayé : il en a déjà un, il faut sa carte, pas sa signature', () => {
+    expect(peutSAbonner({ kind: 'grace', reason: 'past_due' })).toBe(false);
+  });
+
+  it('jamais à un accès offert : ce serait vendre par-dessus la gratuité', () => {
+    expect(peutSAbonner({ kind: 'offert' })).toBe(false);
+  });
+
+  it('oui à un essai en cours et à un abonnement terminé', () => {
+    expect(peutSAbonner({ kind: 'expired' })).toBe(true);
+    expect(
+      peutSAbonner({
+        kind: 'trial',
+        daysLeft: 12,
+        firstChargeOn: null,
+        plan: null,
+        cancelAtPeriodEnd: false,
+      }),
+    ).toBe(true);
   });
 });

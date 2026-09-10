@@ -525,3 +525,23 @@ export function annualSavingPercent(): number {
 export function freeMonthsOnAnnual(): number {
   return Math.round((MONTHLY_PRICE_EUR * 12 - ANNUAL_PRICE_EUR) / MONTHLY_PRICE_EUR);
 }
+
+/**
+ * Peut-on proposer un abonnement NEUF à cette famille ?
+ *
+ * **Non pour deux états, et l'un des deux coûtait cher.** Un accès `offert`
+ * n'a rien à acheter — lui vendre une formule ouvrirait un abonnement payant
+ * par-dessus un accès gratuit. Et un impayé (`grace`) a déjà un abonnement :
+ * il est simplement en retard de paiement. Lui tendre un bouton d'achat ouvre
+ * un SECOND abonnement par-dessus le premier, c'est-à-dire un double
+ * prélèvement à quelqu'un dont le premier vient d'échouer.
+ *
+ * C'est exactement ce que faisait l'écran d'abonnement : `grace` ne remplissait
+ * aucune de ses conditions et tombait dans la branche qui vend, sous une carte
+ * d'état qui lui demandait pourtant de mettre sa carte à jour — sans lui en
+ * donner le moyen. La règle vit ici, et non dans une suite de ternaires, parce
+ * qu'une condition d'écran se réinverse sans que rien ne tombe.
+ */
+export function peutSAbonner(access: Access): boolean {
+  return access.kind !== 'offert' && access.kind !== 'grace';
+}
