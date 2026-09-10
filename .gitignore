@@ -59,3 +59,11 @@ assets/mascot/sequence/*-frames/
 # plus — deux postes n'y écrivent pas la même chose, et le fichier se retrouve
 # modifié à chaque commande sans qu'on l'ait demandé.
 /supabase/.temp/
+
+# La transcription des conversations de développement et les notes de reprise.
+# Elles servent à une session Claude Code ouverte sur ce dossier — elle les lit
+# depuis le disque — et n'ont rien à faire sur GitHub : ce sont des échanges
+# personnels, souvent longs, qui alourdiraient le dépôt sans servir au code.
+/MINO-conversation.md
+/REPRISE-MINO.md
+/docs/conversations/
