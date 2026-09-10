@@ -4,10 +4,15 @@
  * Trois situations, et une seule d'entre elles autorise à **choisir** le code.
  *
  * Le défaut que cette règle corrige : sur la tablette d'un enfant — celle qui a
- * rejoint la famille avec le code — il n'existe aucun code parent, puisque le
- * code appartient au compte du parent. L'écran en concluait « aucun code n'est
+ * rejoint la famille avec le code — l'écran concluait « aucun code n'est
  * défini » et invitait poliment l'enfant à en choisir un. Quatre chiffres, et
  * l'espace parent s'ouvrait sur son propre appareil.
+ *
+ * Depuis `supabase/code-parent-famille.sql`, le code appartient à la FAMILLE et
+ * non au compte : la tablette de l'enfant voit donc qu'il existe, et le parent
+ * peut ouvrir son espace depuis elle — ce que l'écran promettait déjà. Ce qui
+ * ne change pas, et que la base refuse désormais elle aussi : cette tablette
+ * peut VÉRIFIER le code, jamais le CHOISIR.
  *
  * Trouvé en conduisant le parcours du deuxième appareil jusqu'au bout, pas en
  * relisant l'écran : côté téléphone du parent, il se comporte parfaitement.

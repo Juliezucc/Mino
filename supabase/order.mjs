@@ -21,4 +21,5 @@ export const SQL_FILES = [
   ['compte.sql', 'quitter : suppression du compte'],
   ['notifications.sql', 'jetons de notification'],
   ['courrier.sql', 'ce que Mino a déjà écrit à chaque famille'],
+  ['code-parent-famille.sql', 'le code parent appartient à la famille, pas au compte'],
 ];
