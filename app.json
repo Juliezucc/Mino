@@ -26,6 +26,12 @@
         "com.apple.security.application-groups": [
           "group.fr.minoapp.mino"
         ]
+      },
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "fr",
+        "CFBundleLocalizations": [
+          "fr"
+        ]
       }
     },
     "android": {
