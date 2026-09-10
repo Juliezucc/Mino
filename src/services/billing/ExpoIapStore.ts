@@ -90,11 +90,56 @@ const EST_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
  */
 export interface AchatBoutique {
   id: string;
-  productId: string;
+  productId?: string | null;
+  /**
+   * Android : la même chose au pluriel.
+   *
+   * Un achat Play peut couvrir plusieurs références, et selon la version de la
+   * liaison, c'est ce champ-ci qui est rempli — `productId` restant vide. Voir
+   * `normaliser` : lire un seul des deux noms revient à ne rien lire du tout un
+   * jour sur deux.
+   */
+  productIds?: string[] | null;
   /** Le JWS sur iOS, le jeton d'achat sur Android. C'est la preuve. */
   purchaseToken?: string | null;
+  /** Le même, sous le nom que la liaison lui a donné selon les versions. */
+  purchaseTokenAndroid?: string | null;
+  /** Et son nom historique, encore rendu par certaines versions. */
+  transactionReceipt?: string | null;
   /** Android : `false` tant que l'achat n'a pas été acquitté. */
   isAcknowledgedAndroid?: boolean | null;
+  /** Le même, sans le suffixe. */
+  isAcknowledged?: boolean | null;
+}
+
+/**
+ * ------------------------------------- lire un achat sous tous ses noms
+ *
+ * **Le défaut que cela répare, et il perdait des paiements.** Ce fichier
+ * documente déjà le piège pour le jeton d'offre : « la liaison l'a appelé
+ * `offerToken` puis `offerTokenAndroid` selon les versions, et une lecture qui
+ * se trompe de nom rend `undefined` — donc un achat au plein tarif, sans la
+ * moindre erreur ». Le même piège existait sur l'objet d'achat lui-même, et il
+ * coûtait plus cher : `productId` et `purchaseToken` y étaient lus sous un
+ * seul nom chacun.
+ *
+ * Quand `productId` ne se lit pas, l'achat était pris pour celui d'un AUTRE
+ * produit — la ligne qui suit clôt alors la transaction et l'abandonne. Le
+ * parent a payé, Google a encaissé, la transaction est acquittée, et notre
+ * serveur n'en entend jamais parler : l'application continue d'afficher
+ * « essai gratuit », et il n'y a même plus rien à retrouver. Quand c'est
+ * `purchaseToken` qui manque, l'achat repart avec « la boutique n'a pas rendu
+ * de preuve ».
+ *
+ * On lit donc les trois noms de la preuve et les deux du produit. C'est laid,
+ * et c'est exactement le prix d'une dépendance qui renomme ses champs entre
+ * deux versions mineures.
+ */
+function normaliser(achat: AchatBoutique): { productId: string | null; preuve: string | null } {
+  return {
+    productId: achat.productId ?? achat.productIds?.[0] ?? null,
+    preuve: achat.purchaseToken ?? achat.purchaseTokenAndroid ?? achat.transactionReceipt ?? null,
+  };
 }
 
 export interface ProduitBoutique {
@@ -401,17 +446,29 @@ export class ExpoIapStore implements NativeStore {
        * ne dit alors jamais rien. Ce cas-là ne finissait nulle part.
        */
       const encaisser = async (achat: AchatBoutique) => {
-        // StoreKit rejoue les transactions non closes à chaque connexion.
-        // Celle-ci concerne un autre produit : on la clôt pour qu'elle
-        // cesse de revenir, et on continue d'attendre la nôtre.
-        if (achat.productId !== input.productId) {
+        const { productId, preuve: lue } = normaliser(achat);
+
+        /**
+         * StoreKit rejoue les transactions non closes à chaque connexion.
+         * Celle-ci concerne un autre produit : on la clôt pour qu'elle cesse de
+         * revenir, et on continue d'attendre la nôtre.
+         *
+         * **`productId !== null` d'abord, et c'est tout le correctif.** Un achat
+         * dont on n'arrive pas à lire la référence n'est pas l'achat de
+         * quelqu'un d'autre : c'est un achat qu'on ne sait pas lire. Le jeter
+         * ici, c'est acquitter chez Google une transaction que notre serveur ne
+         * verra jamais — le parent a payé, et il n'y a plus rien à retrouver.
+         * Dans le doute, on le garde : nous sommes au milieu d'un achat que
+         * nous venons nous-mêmes de déclencher.
+         */
+        if (productId !== null && productId !== input.productId) {
           await iap
             .finishTransaction({ purchase: achat, isConsumable: false })
             .catch(() => undefined);
           return;
         }
 
-        const preuve = achat.purchaseToken ?? '';
+        const preuve = lue ?? '';
 
         // Clore avant de rendre la main, et non après la vérification du
         // serveur. C'est le sens inverse de l'usage, et il est délibéré :
@@ -428,7 +485,9 @@ export class ExpoIapStore implements NativeStore {
           return;
         }
 
-        termine({ productId: achat.productId, token: preuve, accountToken: jeton });
+        // `input.productId` en dernier recours : c'est celui qu'on a demandé, et
+        // la boutique vient de confirmer un achat dans CE flux-là.
+        termine({ productId: productId ?? input.productId, token: preuve, accountToken: jeton });
       };
 
       abonnements.push(
@@ -482,7 +541,10 @@ export class ExpoIapStore implements NativeStore {
         .then((rendu: unknown) => {
           const achats = (Array.isArray(rendu) ? rendu : rendu ? [rendu] : []) as AchatBoutique[];
           for (const achat of achats) {
-            if (achat && typeof achat.productId === 'string') void encaisser(achat);
+            // Un objet qui porte une preuve est un achat, même si sa référence
+            // se lit sous un nom qu'on n'attendait pas. Exiger `productId`
+            // écartait en silence l'achat rendu par la liaison Android.
+            if (achat && normaliser(achat).preuve) void encaisser(achat);
           }
         })
         .catch((erreur: unknown) =>
@@ -562,13 +624,18 @@ export class ExpoIapStore implements NativeStore {
     const preuves: StorePurchase[] = [];
 
     for (const achat of achats) {
-      if (achat.isAcknowledgedAndroid === false) {
+      const { productId, preuve } = normaliser(achat);
+
+      // Sous ses deux noms, ici aussi : un achat Play jamais acquitté est
+      // remboursé au bout de trois jours, et c'est un remboursement que
+      // personne n'a demandé.
+      if (achat.isAcknowledgedAndroid === false || achat.isAcknowledged === false) {
         await iap.finishTransaction({ purchase: achat, isConsumable: false }).catch(() => undefined);
       }
-      if (achat.purchaseToken) {
+      if (preuve && productId) {
         preuves.push({
-          productId: achat.productId,
-          token: achat.purchaseToken,
+          productId,
+          token: preuve,
           // La boutique ne rend pas le jeton de compte avec l'historique. Ce
           // n'est pas gênant : le serveur retrouve la famille par le jeton
           // d'authentification de l'appelant.

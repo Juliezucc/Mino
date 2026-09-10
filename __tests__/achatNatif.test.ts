@@ -945,3 +945,113 @@ describe('l’essai annoncé à l’écran', () => {
     expect(await service(iap, 'google').trialAvailable()).toBeNull();
   });
 });
+
+/**
+ * ---------------------------------------------------------------------------
+ * L'achat qu'on ne savait pas lire — et qu'on jetait.
+ * ---------------------------------------------------------------------------
+ *
+ * Ce fichier documente déjà le piège pour le jeton d'offre : la liaison renomme
+ * ses champs entre deux versions, et une lecture qui se trompe de nom rend
+ * `undefined` sans la moindre erreur. Le même piège existait sur l'objet
+ * d'achat lui-même, et il coûtait bien plus cher.
+ *
+ * Quand `productId` ne se lisait pas, l'achat était pris pour celui d'un autre
+ * produit : la transaction était close chez Google — donc acquittée, donc
+ * facturée — et abandonnée. Le parent a payé, notre serveur n'en entend jamais
+ * parler, l'application affiche toujours « essai gratuit », et il ne reste même
+ * plus rien à retrouver. C'est exactement le symptôme relevé sur Android.
+ */
+describe('l’achat rendu sous un autre nom', () => {
+  const paye = async (achat: Record<string, unknown>) => {
+    const { iap, journal } = fausseBoutique({
+      produits: [{ ...mensuel, offre: 'jeton-base' }],
+      surDemande: ({ emet }) => emet(achat as never),
+    });
+    const preuve = await new ExpoIapStore('google', async () => iap).purchase({
+      productId: PRODUITS.monthly,
+      accountToken: JETON,
+    });
+    return { preuve, journal };
+  };
+
+  it('lit la preuve sous `purchaseTokenAndroid`', async () => {
+    const { preuve } = await paye({
+      id: 'tx',
+      productId: PRODUITS.monthly,
+      purchaseTokenAndroid: 'jeton-play',
+    });
+    expect(preuve?.token).toBe('jeton-play');
+  });
+
+  it('lit la référence sous `productIds`', async () => {
+    const { preuve } = await paye({
+      id: 'tx',
+      productIds: [PRODUITS.monthly],
+      purchaseToken: 'jeton-play',
+    });
+    expect(preuve?.productId).toBe(PRODUITS.monthly);
+  });
+
+  it('garde l’achat quand la référence ne se lit sous aucun nom', async () => {
+    // Le cas qui perdait le paiement : sans référence lisible, l'achat était
+    // pris pour celui d'un autre produit, acquitté et jeté. On est au milieu
+    // d'un achat qu'on vient soi-même de déclencher : dans le doute, on garde.
+    const { preuve } = await paye({ id: 'tx', purchaseToken: 'jeton-play' });
+    expect(preuve).toEqual({
+      productId: PRODUITS.monthly,
+      token: 'jeton-play',
+      accountToken: JETON,
+    });
+  });
+
+  it('écarte toujours l’achat d’un AUTRE produit, lui bien nommé', async () => {
+    // Le comportement d'origine reste : StoreKit rejoue les transactions non
+    // closes, et celles qui ne nous concernent pas doivent cesser de revenir.
+    const { iap, journal } = fausseBoutique({
+      produits: [{ ...mensuel, offre: 'jeton-base' }, { ...annuel, offre: 'jeton-base' }],
+      surDemande: ({ emet }) => {
+        emet({ id: 'vieux', productId: PRODUITS.yearly, purchaseToken: 'autre' });
+        emet({ id: 'tx', productId: PRODUITS.monthly, purchaseToken: 'le-bon' });
+      },
+    });
+    const preuve = await new ExpoIapStore('google', async () => iap).purchase({
+      productId: PRODUITS.monthly,
+      accountToken: JETON,
+    });
+
+    expect(preuve?.token).toBe('le-bon');
+    expect(journal.closes).toContain('vieux');
+  });
+
+  it('encaisse l’achat rendu par `requestPurchase` sans `productId`', async () => {
+    // Le second chemin : certaines liaisons rendent l'achat au lieu de
+    // l'émettre. Il était filtré sur `typeof productId === 'string'`, donc
+    // écarté exactement dans le cas où il fallait le garder.
+    const { iap } = fausseBoutique({
+      produits: [{ ...mensuel, offre: 'jeton-base' }],
+      surDemande: () => ({ id: 'tx', purchaseTokenAndroid: 'rendu-direct' }),
+    });
+    const preuve = await new ExpoIapStore('google', async () => iap).purchase({
+      productId: PRODUITS.monthly,
+      accountToken: JETON,
+    });
+    expect(preuve?.token).toBe('rendu-direct');
+  });
+
+  it('retrouve aussi ces achats-là dans l’historique', async () => {
+    const { iap } = fausseBoutique({
+      historique: [
+        {
+          id: 'tx-9',
+          productIds: [PRODUITS.monthly],
+          purchaseTokenAndroid: 'jeton-play',
+        } as never,
+      ],
+    });
+    const preuves = await new ExpoIapStore('google', async () => iap).achatsConnus();
+    expect(preuves).toEqual([
+      { productId: PRODUITS.monthly, token: 'jeton-play', accountToken: null },
+    ]);
+  });
+});
