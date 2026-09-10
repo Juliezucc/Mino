@@ -144,7 +144,9 @@ export default function ParentPin() {
             ? 'Le code se choisit sur le téléphone de ton parent, dans Réglages. Ensuite, il marchera ici.'
             : canCreatePin
               ? 'Aucun code n’est encore défini. Choisissez-en un que votre enfant ne devinera pas.'
-              : parent
+              : // Sans le `trim`, un parent qui n'a pas fini son inscription se
+                // voit saluer « Bonjour null ». Voir `who.tsx`.
+                parent?.displayName?.trim()
                 ? `Bonjour ${parent.displayName}, entre ton code à 4 chiffres.`
                 : 'Entre ton code à 4 chiffres.'}
         </Text>

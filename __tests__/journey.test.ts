@@ -1,6 +1,6 @@
 import * as actions from '@/domain/actions';
 import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
-import { isFirstRun } from '@/domain/firstRun';
+import { inscriptionInachevee, isFirstRun } from '@/domain/firstRun';
 import { parentGate } from '@/domain/parentGate';
 import { FamilyData } from '@/domain/types';
 import {
@@ -699,5 +699,61 @@ describe('ce que l’enfant voit quand l’abonnement est fini', () => {
     expect(!!credite.transaction).toBe(true);
     expect(!!enAttente.transaction).toBe(false);
     expect(enAttente.completion.minutesAwarded).toBe(0);
+  });
+});
+
+/**
+ * ---------------------------------------------------------------------------
+ * L'inscription abandonnée en chemin
+ * ---------------------------------------------------------------------------
+ *
+ * Relevé sur TestFlight, au premier essai. Un parent revient en arrière d'un
+ * geste pendant son inscription — ou son téléphone sonne — et à la réouverture
+ * il est DANS l'application : famille créée, paywall sauté, aucun mot de passe,
+ * et le sélecteur de profil qui affiche « null · protégé par un code ».
+ *
+ * La cause n'est pas un accident : la famille se fonde au premier écran, celui
+ * du prénom de l'enfant, parce qu'il faut une famille pour y attacher un
+ * enfant. Le parent, lui, ne se présente que deux écrans plus loin. Entre les
+ * deux, la famille existe et le compte n'existe pas — et `app/index.tsx`
+ * voyait une famille, donc ouvrait l'application.
+ *
+ * Le prénom du parent est le signal le plus sûr dont on dispose : la création
+ * de compte écrit le prénom, l'adresse et le mot de passe d'un seul geste. Il
+ * n'existe aucun état où l'un serait là sans les autres.
+ */
+describe('l’inscription abandonnée', () => {
+  const fonderSansParent = (): FamilyData =>
+    buildEmptyFamily(
+      { familyName: 'Ma famille', consentAt: new Date('2026-09-10T09:00:00.000Z').toISOString() },
+      new Date('2026-09-10T09:00:00.000Z'),
+    );
+
+  it('se reconnaît à un parent sans prénom', () => {
+    expect(inscriptionInachevee(fonderSansParent())).toBe(true);
+  });
+
+  it('cesse dès que le compte est créé', () => {
+    const base = fonderSansParent();
+    const avecParent: FamilyData = {
+      ...base,
+      parents: [{ ...base.parents[0], displayName: 'Julie', email: 'julie@wheb.fr' }],
+    };
+    expect(inscriptionInachevee(avecParent)).toBe(false);
+  });
+
+  it('ne se déclenche pas sur un prénom fait d’espaces', () => {
+    // Un champ rempli puis effacé laisse une chaîne vide, pas un `null`. Elle
+    // s'affiche aussi mal, et elle veut dire la même chose.
+    const base = fonderSansParent();
+    const vide: FamilyData = { ...base, parents: [{ ...base.parents[0], displayName: '   ' }] };
+    expect(inscriptionInachevee(vide)).toBe(true);
+  });
+
+  it('laisse tranquille l’appareil d’un enfant arrivé par code famille', () => {
+    // Aucune ligne parent visible : renvoyer cet appareil-là vers une
+    // inscription serait absurde — il n'en a jamais commencé.
+    const base = fonderSansParent();
+    expect(inscriptionInachevee({ ...base, parents: [] })).toBe(false);
   });
 });

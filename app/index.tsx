@@ -1,6 +1,7 @@
 import { Redirect } from 'expo-router';
 import React, { useEffect } from 'react';
 
+import { inscriptionInachevee } from '@/domain/firstRun';
 import { useMinoStore } from '@/store/useMinoStore';
 
 /**
@@ -47,6 +48,22 @@ export default function Index() {
   // créer le compte qu'il a déjà.
   if (offline) return <Redirect href="/hors-ligne" />;
   if (!data) return <Redirect href="/welcome" />;
+
+  /**
+   * Une inscription abandonnée se reprend, elle ne s'oublie pas.
+   *
+   * La famille se fonde au premier écran de l'inscription — il en faut une
+   * pour y attacher un enfant — et le parent ne se présente que deux écrans
+   * plus loin. Entre les deux, la ligne ci-dessus voyait une famille et
+   * ouvrait l'application : le paywall, l'adresse e-mail et le mot de passe
+   * étaient sautés, non par une faille mais parce que plus rien ne les
+   * réclamait. Le parent se retrouvait dans Mino sans avoir payé, sans compte
+   * récupérable, et le sélecteur de profil lui affichait « null ».
+   *
+   * On le remet donc où il s'était arrêté. Ce n'est pas un verrou : c'est la
+   * suite de son inscription, avec ce qu'il a déjà saisi encore en place.
+   */
+  if (inscriptionInachevee(data)) return <Redirect href="/onboarding/account" />;
 
   if (resume) return activeChildId === resume ? <Redirect href="/child" /> : null;
   return <Redirect href="/who" />;

@@ -143,7 +143,14 @@ export default function Who() {
         <View style={styles.parentTexts}>
           <Text variant="bodyStrong">Espace parent</Text>
           <Text variant="caption" color={colors.textMuted}>
-            {data.parents[0] ? `${data.parents[0].displayName} · protégé par un code` : 'Protégé par un code'}
+            {/* Le prénom est nul tant que l'inscription n'a pas atteint l'écran
+                de compte, et une interpolation en rend alors le mot « null » —
+                affiché tel quel à un parent, sous « Espace parent ». Ce n'est
+                pas un cas d'école : c'est ce qu'a vu la première personne à
+                revenir en arrière pendant son inscription. */}
+            {data.parents[0]?.displayName?.trim()
+              ? `${data.parents[0].displayName} · protégé par un code`
+              : 'Protégé par un code'}
           </Text>
         </View>
         <Icon name="chevron-right" color={colors.textSubtle} />
