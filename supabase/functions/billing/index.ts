@@ -95,7 +95,33 @@ Deno.serve(servir(async (request) => {
 
       /* -------------------------------------------------------- checkout */
       case 'checkout': {
-        const { plan } = (await request.json()) as { plan: 'monthly' | 'yearly' };
+        /**
+         * ------------------------------------ deux façons de payer, une seule session
+         *
+         * **Redirigé** (`integre` absent, le défaut) : Stripe héberge la page,
+         * le navigateur part sur `checkout.stripe.com`, et on rend `{ url }`.
+         * C'est ce que fait `app.minoapp.fr` depuis toujours, et rien n'y
+         * change — un chemin qui marche ne se casse pas pour en servir un neuf.
+         *
+         * **Intégré** (`integre: true`) : Stripe rend un `client_secret` que la
+         * page monte chez elle. On ne quitte jamais `minoapp.fr` : l'en-tête,
+         * le bandeau de prix, la feuille qui monte du bas sont les nôtres, et
+         * Stripe ne fournit que les champs de carte. C'est ce que demande le
+         * tunnel d'inscription du site.
+         *
+         * Pourquoi Checkout intégré et pas Payment Element : l'authentification
+         * forte 3-D Secure est obligatoire en Europe, Checkout l'enchaîne tout
+         * seul, et c'est l'étape qu'on rate le plus souvent à la main — un
+         * paiement perdu qu'on ne voit pas passer.
+         *
+         * `return_url` remplace alors `success_url`/`cancel_url` : en mode
+         * intégré, Stripe n'a plus qu'un seul endroit où renvoyer, puisque le
+         * refus se traite sans quitter la page.
+         */
+        const { plan, integre } = (await request.json()) as {
+          plan: 'monthly' | 'yearly';
+          integre?: boolean;
+        };
         const price = PRICE[plan];
         if (!price) return fail('Formule inconnue.');
 
@@ -141,12 +167,27 @@ Deno.serve(servir(async (request) => {
           tax_id_collection: { enabled: true },
           customer_update: existing?.customer_id ? { address: 'auto', name: 'auto' } : undefined,
           allow_promotion_codes: true,
-          success_url: `${env('APP_URL')}/abonnement/merci?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${env('APP_URL')}/abonnement`,
+          ...(integre
+            ? {
+                ui_mode: 'embedded' as const,
+                // Le seul retour dont la feuille intégrée a besoin : le refus
+                // et l'abandon se traitent sans quitter la page.
+                // `env()` lève sur une variable absente — ici on veut un
+                // repli, pas une panne : `SITE_URL` désigne le site vitrine
+                // (`minoapp.fr`), `APP_URL` l'application web. Tant que la
+                // première n'est pas posée, la seconde fait l'affaire.
+                return_url: `${Deno.env.get('SITE_URL') || env('APP_URL')}/creer/merci?session_id={CHECKOUT_SESSION_ID}`,
+              }
+            : {
+                success_url: `${env('APP_URL')}/abonnement/merci?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${env('APP_URL')}/abonnement`,
+              }),
           metadata: { family_id: caller.familyId },
         });
 
-        return json({ url: session.url });
+        // Deux formes, jamais les deux à la fois : la page sait laquelle elle a
+        // demandée, et lire la mauvaise donnerait `undefined` sans erreur.
+        return json(integre ? { clientSecret: session.client_secret } : { url: session.url });
       }
 
       /* ---------------------------------------------------------- portal */
