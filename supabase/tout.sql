@@ -744,7 +744,15 @@ begin
   if auth.uid() is null then
     raise exception 'Aucune session' using errcode = '42501';
   end if;
-  if p_status is not null and p_status not in ('approved', 'denied', 'not-determined', 'unavailable') then
+  -- `compteur-seul` n'est pas un état du système : c'est la réponse d'un parent
+  -- qui ne veut pas de verrou sur cet appareil-là. Sans lui dans cette liste,
+  -- la fonction levait « Statut inconnu » — et comme l'appelant avale l'erreur
+  -- (c'est un rapport, pas une action), l'appareil cessait simplement de donner
+  -- de ses nouvelles. Au bout de trois jours il passait « muet », c'est-à-dire
+  -- exactement l'alerte qu'on venait de faire taire.
+  if p_status is not null
+     and p_status not in ('approved', 'denied', 'not-determined', 'unavailable', 'compteur-seul')
+  then
     raise exception 'Statut inconnu' using errcode = '22023';
   end if;
 
