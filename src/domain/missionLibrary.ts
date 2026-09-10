@@ -260,7 +260,12 @@ export const ROUTINES: MissionRoutine[] = [
     id: 'maison-ado',
     title: 'Ma part à la maison',
     icon: '🏠',
-    tagline: 'Une vraie responsabilité, pas une corvée symbolique',
+    // Le mot que Mino ne prononce jamais — celui qui annonce à un adolescent
+    // que ce qu'on lui demande est une punition déguisée — avait survécu ici,
+    // dans une phrase qui voulait pourtant dire l'inverse. Il défait en trois
+    // syllabes ce que toute l'application essaie de construire. Un essai monte
+    // désormais la garde : voir `__tests__/missionLibrary.test.ts`.
+    tagline: 'Une vraie responsabilité, pas un geste symbolique',
     repeat: { kind: 'weekdays', days: [3, 6] },
     suggestions: [
       { id: 'repas-ado', title: 'Préparer un repas pour la famille', icon: '👨‍🍳', minutes: 30, ages: [14, 17], safety: 'Cuisson autorisée à partir de 14 ans, selon votre appréciation.' },

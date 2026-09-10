@@ -7,6 +7,7 @@ import {
   suits,
 } from '@/domain/missionLibrary';
 import { Child } from '@/domain/types';
+import { readFileSync } from 'node:fs';
 
 const child = (over: Partial<Child> = {}): Child => ({
   id: 'c1',
@@ -66,5 +67,51 @@ describe('mission library', () => {
     // "Me brosser les dents" appears in both the morning and bedtime routines.
     const titles = suggestionsFor(child(), [elliott]).map((s) => s.title);
     expect(new Set(titles).size).toBe(titles.length);
+  });
+});
+
+/**
+ * ---------------------------------------------------------------------------
+ * Les mots que Mino ne prononce jamais
+ * ---------------------------------------------------------------------------
+ *
+ * « Corvée » annonce à un enfant que ce qu'on lui demande est une punition
+ * déguisée. « Quête » range la maison au rayon des jeux de rôle, et promet une
+ * aventure là où il n'y a qu'une table à mettre. Les deux défont en trois
+ * syllabes ce que toute l'application essaie de construire : ce sont des
+ * MISSIONS, un mot qui dit qu'on compte sur vous.
+ *
+ * **Pourquoi un essai et pas seulement une règle.** Un des deux avait survécu
+ * dans `ROUTINES`, sur la routine des adolescents, à l'intérieur d'une phrase
+ * qui voulait pourtant dire l'inverse — « une vraie responsabilité, pas une
+ * corvée symbolique ». Personne ne l'avait vu pendant des mois, et il a fallu
+ * qu'une page de vente aille lire cette bibliothèque pour qu'il ressorte.
+ *
+ * Une règle qu'on se répète s'oublie ; celle-ci monte la garde toute seule. Les
+ * commentaires sont retirés avant l'examen : ce qui compte est ce que le parent
+ * et l'enfant lisent, pas ce que le code se raconte à lui-même.
+ */
+describe('le vocabulaire de la bibliothèque', () => {
+  const INTERDITS = [/corv[ée]e/i, /qu[êe]te/i];
+
+  /** Le texte sans ses commentaires : seul ce qui s'affiche est jugé. */
+  const sansCommentaires = (source: string) =>
+    source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+  it('ne dit ni corvée ni quête, nulle part', () => {
+    const lisible = sansCommentaires(
+      readFileSync('src/domain/missionLibrary.ts', 'utf8'),
+    );
+    for (const interdit of INTERDITS) {
+      expect(lisible).not.toMatch(interdit);
+    }
+  });
+
+  it('appelle bien les choses des missions', () => {
+    // Le contrepoids : interdire des mots ne suffit pas, encore faut-il que le
+    // bon soit là. Sans cette ligne, l'essai ci-dessus resterait vert sur une
+    // bibliothèque vidée de son vocabulaire.
+    const routines = ROUTINES.flatMap((r) => r.suggestions);
+    expect(routines.length).toBeGreaterThan(40);
   });
 });
