@@ -97,6 +97,26 @@ export interface DeviceProfile {
    * l'appareil s'en aperçoit tout seul.
    */
   usagePersonnel: boolean;
+
+  /**
+   * Un enfant se sert de cet appareil — déclaré par le parent, à l'inscription.
+   *
+   * **Ce que ce drapeau ferme, et il faut un signal POSITIF pour le fermer.**
+   * L'écran du code parent ne savait reconnaître qu'une tablette arrivée par le
+   * code famille, où la session est celle d'un appareil. Or la tablette du
+   * salon porte le plus souvent la session du parent lui-même — c'est là qu'il
+   * s'est inscrit, puis il la partage. Elle passait donc pour son téléphone
+   * personnel, et l'enfant qui touchait « Espace parent » se voyait offrir de
+   * **choisir** le code. Quatre chiffres, et il entrait.
+   *
+   * On ne pouvait pas le déduire de `usagePersonnel` : faux vaut aussi bien
+   * « partagé » que « la question n'a jamais été posée » — le cas de tous les
+   * appareils déjà installés, et de toute famille venue du site. Le déduire
+   * aurait verrouillé ces parents-là hors de leur propre espace, sans aucun
+   * moyen d'y remédier. D'où un drapeau à part, qui n'est vrai que si
+   * quelqu'un l'a dit.
+   */
+  declareALEnfant: boolean;
 }
 
 export const NO_DEVICE_PROFILE: DeviceProfile = {
@@ -104,6 +124,7 @@ export const NO_DEVICE_PROFILE: DeviceProfile = {
   lastChildId: null,
   compteurSeul: false,
   usagePersonnel: false,
+  declareALEnfant: false,
 };
 
 export async function readDeviceProfile(): Promise<DeviceProfile> {
@@ -116,6 +137,7 @@ export async function readDeviceProfile(): Promise<DeviceProfile> {
       lastChildId: parsed.lastChildId ?? null,
       compteurSeul: parsed.compteurSeul === true,
       usagePersonnel: parsed.usagePersonnel === true,
+      declareALEnfant: parsed.declareALEnfant === true,
     };
   } catch {
     // Un réglage d'appareil illisible ne doit jamais empêcher l'application de

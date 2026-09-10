@@ -757,3 +757,74 @@ describe('l’inscription abandonnée', () => {
     expect(inscriptionInachevee({ ...base, parents: [] })).toBe(false);
   });
 });
+
+/**
+ * ------------------------------------------ l'espace parent sur la tablette du salon
+ *
+ * **Trois trous, trouvés sur un vrai iPhone en répondant « il est partagé ».**
+ *
+ * 1. L'inscription ne demandait **jamais** de code à quatre chiffres. La
+ *    condition qui le réclame ne vaut que pour un parent déjà connecté
+ *    rejoignant une famille existante — pas pour celui qui vient de la fonder.
+ *
+ * 2. `parentUnlocked` passe à vrai à la fin de l'inscription et rien ne le
+ *    remettait à faux avant le redémarrage de l'application. Le parent choisit
+ *    le profil de son enfant, lui tend la tablette, l'enfant touche « Espace
+ *    parent » — et entre. Il peut s'accorder des minutes, confirmer ses propres
+ *    missions, retirer le blocage.
+ *
+ * 3. Même après redémarrage, l'écran du code proposait à l'enfant d'en
+ *    **choisir** un : la tablette du salon porte la session du parent, donc
+ *    elle passait pour son téléphone personnel.
+ */
+describe('l’espace parent sur un appareil qu’un enfant utilise', () => {
+  it('se referme dès qu’un profil d’enfant devient actif', async () => {
+    const store = () => useMinoStore.getState();
+    await store().startDemo();
+
+    // Ce que fait l'inscription juste avant de tendre la tablette.
+    useMinoStore.setState({ parentUnlocked: true });
+    const enfant = store().data!.children[0];
+
+    store().selectChild(enfant.id);
+
+    expect(useMinoStore.getState().parentUnlocked).toBe(false);
+  });
+
+  it('reste ouvert quand le parent revient au sélecteur', async () => {
+    // `selectChild(null)` est le retour du parent vers « Qui utilise Mino ? ».
+    // Le reverrouiller ici redemanderait le code pour rien, deux fois de suite.
+    const store = () => useMinoStore.getState();
+    await store().startDemo();
+    useMinoStore.setState({ parentUnlocked: true });
+
+    store().selectChild(null);
+
+    expect(useMinoStore.getState().parentUnlocked).toBe(true);
+  });
+
+  it('refuse à l’enfant de choisir le code sur un appareil déclaré partagé', () => {
+    expect(parentGate({ hasPin: false, onChildDevice: false, declareALEnfant: true })).toBe(
+      'ask-a-parent',
+    );
+  });
+
+  /**
+   * Et le revers, qui compte autant : personne ne doit se retrouver enfermé
+   * dehors. Le drapeau est un signal POSITIF — il n'est vrai que si le parent
+   * l'a dit. L'absence de déclaration, c'est le cas de tous les appareils déjà
+   * installés et de toute famille venue du site : ceux-là gardent « create »,
+   * sans quoi leur parent n'aurait aucun moyen de poser un code.
+   */
+  it('n’enferme pas dehors un appareil dont personne n’a rien déclaré', () => {
+    expect(parentGate({ hasPin: false, onChildDevice: false })).toBe('create');
+    expect(parentGate({ hasPin: false, onChildDevice: false, declareALEnfant: false })).toBe(
+      'create',
+    );
+  });
+
+  it('laisse toujours entrer quand le code existe, quel que soit l’appareil', () => {
+    expect(parentGate({ hasPin: true, onChildDevice: true, declareALEnfant: true })).toBe('enter');
+    expect(parentGate({ hasPin: true, onChildDevice: false, declareALEnfant: true })).toBe('enter');
+  });
+});

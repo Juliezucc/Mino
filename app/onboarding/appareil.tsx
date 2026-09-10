@@ -8,6 +8,7 @@ import {
   InstallerSurLAppareil,
   SANS_BOUCLIER,
 } from '@/features/onboarding/InstallerSurLAppareil';
+import { getAuthService } from '@/services/auth';
 import { useChildren, useFamily } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
@@ -43,6 +44,7 @@ export default function OnboardingAppareil() {
   const famille = useFamily();
   const lockDeviceTo = useMinoStore((s) => s.lockDeviceTo);
   const setUsagePersonnel = useMinoStore((s) => s.setUsagePersonnel);
+  const setDeclareALEnfant = useMinoStore((s) => s.setDeclareALEnfant);
   const [busy, setBusy] = useState(false);
 
   /**
@@ -78,7 +80,44 @@ export default function OnboardingAppareil() {
      * qu'on vient de lui dire de ne pas régler là. Voir `DeviceProfile`.
      */
     await setUsagePersonnel(!versLeBlocage && childId === null).catch(() => undefined);
+    // Le signal positif que lit l'écran du code parent : un enfant se sert de
+    // cet appareil, et le parent vient de le dire.
+    await setDeclareALEnfant(versLeBlocage).catch(() => undefined);
+
+    /**
+     * Le code parent se pose ICI, et nulle part ailleurs.
+     *
+     * **Le défaut, trouvé sur un vrai iPhone.** L'inscription ne demandait
+     * jamais de code à quatre chiffres : la condition qui le réclame ne vaut
+     * que pour un parent DÉJÀ connecté rejoignant une famille existante, pas
+     * pour celui qui vient de la fonder. Une famille neuve n'avait donc aucun
+     * code, et l'espace parent restait ouvert jusqu'au redémarrage de
+     * l'application — sur la tablette qu'on venait de déclarer partagée.
+     *
+     * **Pourquoi à cet instant précis.** C'est le seul moment où l'on sait
+     * deux choses à la fois : que l'appareil sera entre les mains d'un enfant,
+     * et que le parent est là, en train de répondre. Une seconde plus tard,
+     * l'un des deux manque — et un code qu'on demande à quelqu'un d'absent est
+     * un code que l'enfant choisit.
+     *
+     * Sur le téléphone du parent (`versLeBlocage` faux), on ne demande rien :
+     * il n'y a personne d'autre pour ouvrir cet espace, et une question de plus
+     * à la fin d'une inscription est une inscription de moins.
+     */
+    const codePose = await getAuthService()
+      .hasParentPin()
+      // Dans le doute, on suppose qu'il existe : se tromper dans ce sens fait
+      // taper un code au parent, se tromper dans l'autre en fait poser un par
+      // l'enfant.
+      .catch(() => true);
+
     setBusy(false);
+
+    if (versLeBlocage && !codePose) {
+      router.replace({ pathname: '/parent-pin', params: { ensuite: '/parent/blocage' } });
+      return;
+    }
+
     // Le blocage enchaîne directement : c'est la seule étape qui fait de Mino
     // un contrôle parental, et la seule qu'on ne peut pas faire à la place du
     // parent. Sur son propre téléphone, il n'y a rien à bloquer — on l'envoie

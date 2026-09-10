@@ -124,6 +124,7 @@ interface MinoState {
    * verrouiller. Voir `DeviceProfile.usagePersonnel`.
    */
   setUsagePersonnel: (valeur: boolean) => Promise<void>;
+  setDeclareALEnfant: (valeur: boolean) => Promise<void>;
   /**
    * Demander la permission, ET déclarer l'appareil joignable dans la foulée.
    *
@@ -874,7 +875,25 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     selectChild(childId) {
-      set({ activeChildId: childId });
+      /**
+       * Tendre l'appareil à un enfant referme l'espace parent.
+       *
+       * **Le défaut, trouvé sur un vrai iPhone.** `parentUnlocked` passe à vrai
+       * à la fin de l'inscription — le parent vient de créer sa famille, il est
+       * évidemment là — et plus rien ne le remettait à faux avant le
+       * redémarrage de l'application. Sur la tablette partagée du salon, c'est
+       * exactement le scénario : le parent finit l'installation, choisit le
+       * profil de son enfant, lui tend la tablette, et l'enfant touche « Espace
+       * parent ». Il entre. Pas de code demandé, rien.
+       *
+       * Il pouvait alors s'accorder des minutes, confirmer ses propres
+       * missions, supprimer le blocage. C'est-à-dire tout le produit.
+       *
+       * La règle qui manquait tient en une ligne : l'espace parent n'est ouvert
+       * que tant que le parent s'en sert. Dès qu'un profil d'enfant devient
+       * actif, il se referme — et se rouvrira par le code, comme il se doit.
+       */
+      set({ activeChildId: childId, ...(childId ? { parentUnlocked: false } : {}) });
       // Se souvenir, pour que l'enfant ne repasse pas par « Qui utilise Mino ? »
       // à chaque lancement. Un appareil qui oublie qui s'en sert est un appareil
       // qui demande la même chose tous les jours.
@@ -907,6 +926,19 @@ export const useMinoStore = create<MinoState>((set, get) => {
     async setUsagePersonnel(valeur) {
       set({ device: await writeDeviceProfile({ usagePersonnel: valeur }) });
       redireLeGenreDeLAppareil();
+    },
+
+    /**
+     * « Un enfant se sert de cet appareil », dit par le parent à l'inscription.
+     *
+     * Ce que l'écran du code parent lit pour refuser à un enfant de CHOISIR le
+     * code sur la tablette du salon. Il lui faut un signal positif : l'absence
+     * d'`usagePersonnel` vaut aussi bien « partagé » que « la question n'a
+     * jamais été posée », et confondre les deux verrouillerait tous les
+     * appareils déjà installés hors de leur propre espace parent.
+     */
+    async setDeclareALEnfant(valeur) {
+      set({ device: await writeDeviceProfile({ declareALEnfant: valeur }) });
     },
 
     async activerNotifications() {

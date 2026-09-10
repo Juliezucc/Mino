@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -16,16 +16,29 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
 export default function ParentPin() {
   const router = useRouter();
   /**
-   * Une seule destination : l'espace parent.
+   * L'espace parent, sauf quand l'inscription attend ailleurs.
    *
-   * L'écran acceptait un paramètre `then` et servait aussi de barrière au
-   * changement de profil sur un appareil réservé. C'est ce qui produisait deux
-   * codes d'affilée : le premier menait au sélecteur, lequel reverrouille
-   * l'espace parent en s'ouvrant, si bien que le second était redemandé
-   * aussitôt. Changer de profil ne coûte plus de code ; ce code-ci n'ouvre donc
-   * plus qu'une porte, la seule qui le mérite.
+   * L'écran acceptait autrefois un paramètre `then` et servait aussi de
+   * barrière au changement de profil sur un appareil réservé. C'est ce qui
+   * produisait deux codes d'affilée : le premier menait au sélecteur, lequel
+   * reverrouille l'espace parent en s'ouvrant, si bien que le second était
+   * redemandé aussitôt. Changer de profil ne coûte plus de code.
+   *
+   * `ensuite` revient pour un seul appelant, et le piège d'alors ne se
+   * représente pas : `/onboarding/appareil` envoie ici le parent qui vient de
+   * déclarer l'appareil partagé, pour qu'il pose son code pendant qu'il est
+   * encore là — puis l'installation reprend au blocage, qui est l'étape
+   * suivante. La destination n'est jamais le sélecteur de profil, donc rien ne
+   * se reverrouille derrière.
+   *
+   * Seuls des chemins internes sont acceptés : un paramètre d'URL décide ici
+   * d'où atterrit quelqu'un qui vient de saisir un secret.
    */
-  const destination = '/parent';
+  const { ensuite } = useLocalSearchParams<{ ensuite?: string }>();
+  const destination =
+    typeof ensuite === 'string' && ensuite.startsWith('/') && !ensuite.startsWith('//')
+      ? ensuite
+      : '/parent';
   const parent = useParent();
   const unlockParent = useMinoStore((s) => s.unlockParent);
 
@@ -66,10 +79,23 @@ export default function ParentPin() {
 
   // Tant qu'on interroge, on n'affiche ni l'un ni l'autre : `enter` est le
   // seul état qui ne promette rien de faux.
+  /**
+   * L'appareil que le parent a déclaré à son enfant, ou partagé.
+   *
+   * `deviceSession` ne reconnaît qu'une tablette arrivée par le code famille.
+   * La tablette du salon, elle, porte très souvent la session du parent
+   * lui-même — c'est là qu'il s'est inscrit — et passait donc pour son
+   * téléphone personnel : l'enfant qui touchait « Espace parent » se voyait
+   * offrir de choisir le code. Ce que le parent a déclaré à l'inscription est
+   * la seule chose qui distingue les deux.
+   */
+  const device = useMinoStore((s) => s.device);
+  const declareALEnfant = device.declareALEnfant || device.lockedChildId !== null;
+
   const gate =
     hasPin === null || deviceSession === null
       ? 'enter'
-      : parentGate({ hasPin, onChildDevice: deviceSession });
+      : parentGate({ hasPin, onChildDevice: deviceSession, declareALEnfant });
   const canCreatePin = gate === 'create';
   const blocked = gate === 'ask-a-parent';
 
