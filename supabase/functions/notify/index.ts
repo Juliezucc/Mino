@@ -56,7 +56,7 @@ Deno.serve(servir(async (request) => {
   // Tous les jetons de la famille — celle du jeton d'authentification.
   const { data: jetons } = await db
     .from('push_tokens')
-    .select('user_id, token')
+    .select('user_id, token, usage')
     .eq('family_id', qui.familyId);
 
   if (!jetons || jetons.length === 0) return json({ envoyes: 0 });
@@ -73,6 +73,17 @@ Deno.serve(servir(async (request) => {
     (appareils ?? []).map((d) => [d.user_id as string, (d.child_id as string | null) ?? null]),
   );
 
+  /**
+   * La famille possède-t-elle un vrai téléphone de parent ?
+   *
+   * Calculé une fois pour tout l'envoi, et sur les jetons de la famille
+   * entière — y compris celui de l'appareil qui agit, qui compte pour savoir
+   * ce qui existe même s'il ne recevra rien. Voir la règle ci-dessous.
+   */
+  const unTelephoneDeParent = jetons.some(
+    (j) => j.usage === 'parent' && comptesParents.has(j.user_id as string),
+  );
+
   const destinataires = jetons.filter((j) => {
     const compte = j.user_id as string;
 
@@ -81,7 +92,46 @@ Deno.serve(servir(async (request) => {
     // que tout le monde reconnaît, et qui apprend à couper les notifications.
     if (compte === qui.userId) return false;
 
-    if (audience === 'parents') return comptesParents.has(compte);
+    if (audience === 'parents') {
+      if (!comptesParents.has(compte)) return false;
+
+      /**
+       * ------------------------ « Raphaël a terminé sa mission », sur l'écran de Raphaël
+       *
+       * **Le défaut, relevé sur une vraie tablette.** Un parent valide une
+       * mission, et l'annonce s'affiche sur la tablette que l'enfant tient.
+       * Le serveur avait raison sur le compte — la famille est née sur cet
+       * appareil, c'est donc un compte parent — et tort sur la situation.
+       * L'inscription pose pourtant la question, et la réponse restait dans le
+       * téléphone. Elle remonte désormais dans `push_tokens.usage`.
+       *
+       * La règle vit ici ET dans `src/domain/notifications.ts`
+       * (`recoitLesNotificationsParent`), qui est la version éprouvée par les
+       * essais : une fonction Edge ne peut pas importer un module React
+       * Native. Les deux doivent dire la même chose — c'est ce que vérifie
+       * `__tests__/notifications.test.ts`, qui lit ce fichier-ci.
+       *
+       *   • `enfant`  — jamais. « Confirmez la mission de Raphaël » n'a rien à
+       *     faire sur le téléphone de Raphaël : au mieux c'est inutile, au pire
+       *     cela lui apprend qu'un écran de validation existe.
+       *
+       *   • `partage` — seulement si la famille n'a pas mieux. Quand un vrai
+       *     téléphone de parent existe, il reçoit déjà ; doubler sur la
+       *     tablette du salon ne prévient personne de plus et met l'annonce
+       *     sous les yeux de l'enfant. Sans téléphone de parent, en revanche,
+       *     la tablette est le seul chemin — la couper laisserait le parent
+       *     sans nouvelles, ce qui est bien pire.
+       *
+       *   • tout le reste, `null` compris — reçoit. C'est ce que portent les
+       *     installations pas encore mises à jour, et retirer des
+       *     notifications à quelqu'un sur la foi d'une information qu'on n'a
+       *     pas serait exactement la faute qu'on corrige ici.
+       */
+      const genre = (j.usage as string | null) ?? 'inconnu';
+      if (genre === 'enfant') return false;
+      if (genre === 'partage') return !unTelephoneDeParent;
+      return true;
+    }
 
     // Pour l'enfant : son appareil, et lui seul. Un appareil partagé — qui
     // n'affiche aucun enfant en particulier — reçoit aussi, sans quoi la

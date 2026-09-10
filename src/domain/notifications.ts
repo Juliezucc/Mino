@@ -222,3 +222,68 @@ export function childOf(data: FamilyData | null, childId: ID | undefined): Child
   if (!data || !childId) return undefined;
   return data.children.find((c) => c.id === childId);
 }
+
+/* ------------------------------------------- à qui est cet appareil, et qui écoute */
+
+/**
+ * Le genre d'un appareil, tel que le serveur doit le connaître.
+ *
+ * Les trois valeurs sortent mot pour mot des trois cartes de l'inscription :
+ * « il est à Raphaël », « il est partagé à la maison », « c'est mon téléphone
+ * à moi ». `inconnu` n'est pas un quatrième choix — c'est ce que porte une
+ * ligne écrite avant que cette notion n'existe, ou par une version de Mino pas
+ * encore mise à jour.
+ */
+export type UsageAppareil = 'enfant' | 'partage' | 'parent' | 'inconnu';
+
+/**
+ * Déduire le genre de l'appareil de ce que le parent a répondu.
+ *
+ * Une seule source, le profil local de l'appareil, et l'ordre compte :
+ * réserver un appareil à un enfant est le plus fort des trois. Un parent qui a
+ * d'abord dit « c'est mon téléphone » puis l'a réservé à son fils a changé
+ * d'avis, et c'est le dernier geste qui vaut.
+ */
+export function usageDeLAppareil(profil: {
+  lockedChildId: ID | null;
+  usagePersonnel: boolean;
+}): Exclude<UsageAppareil, 'inconnu'> {
+  if (profil.lockedChildId) return 'enfant';
+  if (profil.usagePersonnel) return 'parent';
+  return 'partage';
+}
+
+/**
+ * ------------------------------------------------- qui reçoit une notification de parent
+ *
+ * **Le défaut, vu sur une vraie tablette.** Un parent valide une mission, et
+ * « Raphaël a terminé sa mission » s'affiche sur la tablette que Raphaël
+ * tient. Le serveur avait raison sur le compte — la famille a été créée là,
+ * c'est donc un compte parent — et tort sur la situation.
+ *
+ * Deux règles, et la seconde est celle qui demande à être expliquée.
+ *
+ * **On n'écrit jamais à un appareil réservé à un enfant.** « Confirmez la
+ * mission de Raphaël » n'a rien à faire sur le téléphone de Raphaël : au mieux
+ * c'est inutile, au pire cela lui apprend qu'un écran de validation existe et
+ * l'invite à aller voir.
+ *
+ * **On n'écrit à la tablette partagée que si la famille n'a pas mieux.** Quand
+ * un vrai téléphone de parent existe, il reçoit déjà — doubler sur la tablette
+ * du salon ne prévient personne de plus et met l'annonce sous les yeux de
+ * l'enfant. Mais quand il n'y en a pas, la tablette est le seul chemin : la
+ * couper laisserait le parent sans nouvelles, ce qui est bien pire.
+ *
+ * `inconnu` n'est exclu de rien. C'est ce que portent les installations qui
+ * n'ont pas encore la mise à jour, et retirer des notifications à quelqu'un
+ * sur la foi d'une information qu'on n'a pas serait exactement la faute que
+ * cette fonction existe pour corriger.
+ */
+export function recoitLesNotificationsParent(
+  moi: UsageAppareil,
+  usagesDeLaFamille: UsageAppareil[],
+): boolean {
+  if (moi === 'enfant') return false;
+  if (moi === 'partage') return !usagesDeLaFamille.includes('parent');
+  return true;
+}

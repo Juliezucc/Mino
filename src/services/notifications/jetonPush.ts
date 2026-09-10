@@ -1,5 +1,6 @@
+import { NO_DEVICE_PROFILE, readDeviceProfile } from '@/data/deviceProfile';
 import { getSupabaseClient } from '@/data/supabaseRepository';
-import { NotificationPayload } from '@/domain/notifications';
+import { NotificationPayload, usageDeLAppareil } from '@/domain/notifications';
 
 import { getNotificationService } from './index';
 
@@ -18,6 +19,17 @@ import { getNotificationService } from './index';
 
 /** Le jeton n'est demandé qu'une fois par lancement : il ne change pas en route. */
 let pose: string | null = null;
+
+/**
+ * Le genre d'appareil déjà déclaré, lui, change en cours de route.
+ *
+ * Un parent qui réserve la tablette à son fils, ou qui répond « c'est mon
+ * téléphone à moi », modifie à qui le serveur doit écrire. Sans cette
+ * mémoire-ci, le garde-fou sur le jeton — qui n'a pas bougé, lui — faisait
+ * ressortir la fonction avant l'écriture, et la nouvelle réponse restait dans
+ * le téléphone pour toujours.
+ */
+let genrePose: string | null = null;
 
 /**
  * Déclarer cet appareil comme joignable.
@@ -44,16 +56,35 @@ export async function poserJetonPush(familyId: string): Promise<void> {
   if ((await service.permission().catch(() => 'denied')) !== 'granted') return;
 
   const jeton = await service.pushToken().catch(() => null);
-  if (!jeton || jeton === pose) return;
+  if (!jeton) return;
+
+  /**
+   * Ce que le parent a répondu à « à qui est cet appareil ? ».
+   *
+   * Il vivait dans le téléphone et n'en sortait jamais, si bien que le serveur
+   * envoyait « Raphaël a terminé sa mission » sur la tablette que Raphaël
+   * tient. Voir `recoitLesNotificationsParent`.
+   */
+  const genre = usageDeLAppareil(await readDeviceProfile().catch(() => NO_DEVICE_PROFILE));
+
+  // Le jeton n'a pas bougé ET la réponse non plus : il n'y a rien à réécrire.
+  if (jeton === pose && genre === genrePose) return;
 
   const { data } = await client.auth.getUser();
   if (!data.user) return;
 
-  const { error } = await client
-    .from('push_tokens')
-    .upsert({ user_id: data.user.id, family_id: familyId, token: jeton, updated_at: new Date().toISOString() });
+  const { error } = await client.from('push_tokens').upsert({
+    user_id: data.user.id,
+    family_id: familyId,
+    token: jeton,
+    usage: genre,
+    updated_at: new Date().toISOString(),
+  });
 
-  if (!error) pose = jeton;
+  if (!error) {
+    pose = jeton;
+    genrePose = genre;
+  }
 }
 
 /**
@@ -65,6 +96,7 @@ export async function poserJetonPush(familyId: string): Promise<void> {
  */
 export async function retirerJetonPush(): Promise<void> {
   pose = null;
+  genrePose = null;
   const client = getSupabaseClient();
   if (!client) return;
   const { data } = await client.auth.getUser();

@@ -292,6 +292,23 @@ export const useMinoStore = create<MinoState>((set, get) => {
   }
 
   /**
+   * Redire au serveur à qui est cet appareil.
+   *
+   * La réponse — « il est à Raphaël », « il est partagé », « c'est mon
+   * téléphone » — décide de qui reçoit les notifications de parents. Elle est
+   * posée à l'inscription, mais elle se change ensuite dans les réglages, et
+   * ce changement-là doit remonter : sinon le serveur continue d'écrire à un
+   * appareil que le parent vient justement de réserver à son enfant.
+   *
+   * `void` et jamais attendu : c'est une déclaration, pas une action. Elle ne
+   * doit ni ralentir l'écran ni le faire échouer.
+   */
+  function redireLeGenreDeLAppareil() {
+    const famille = get().data;
+    if (famille) void poserJetonPush(famille.family.id).catch(() => undefined);
+  }
+
+  /**
    * Ce que l'abonnement autorise encore.
    *
    * Posé ici et pas dans les écrans : le store est le seul chemin d'écriture,
@@ -873,10 +890,14 @@ export const useMinoStore = create<MinoState>((set, get) => {
         ...(childId ? { lastChildId: childId } : {}),
       });
       set({ device });
+      // La réponse vient de changer, et elle décide à qui le serveur écrit :
+      // il faut la lui redire. Voir `poserJetonPush`.
+      redireLeGenreDeLAppareil();
     },
 
     async setUsagePersonnel(valeur) {
       set({ device: await writeDeviceProfile({ usagePersonnel: valeur }) });
+      redireLeGenreDeLAppareil();
     },
 
     async setCompteurSeul(valeur) {

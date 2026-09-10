@@ -2922,6 +2922,43 @@ create table if not exists push_tokens (
   updated_at timestamptz not null default now()
 );
 
+/**
+ * ------------------------------------------- à qui est cet appareil, côté serveur
+ *
+ * **Le défaut que cela répare, relevé sur une vraie tablette.** Un parent
+ * valide une mission depuis l'espace parent, et la notification « Raphaël a
+ * terminé sa mission » s'affiche sur la tablette — celle que Raphaël tient.
+ * Du point de vue du serveur, c'était correct : la famille a été créée sur cet
+ * appareil, le compte est donc un compte parent, et les notifications de
+ * parents lui reviennent. Il avait raison sur le compte et tort sur la
+ * situation.
+ *
+ * L'inscription pose pourtant la question — « à qui est cet appareil ? » — et
+ * la réponse était gardée dans le téléphone, en `AsyncStorage`, sans jamais
+ * remonter. `family_devices`, lui, ne connaît que les appareils arrivés par
+ * code famille : celui sur lequel la famille est née n'y figure pas.
+ *
+ * Trois valeurs, et elles viennent mot pour mot des trois cartes de
+ * l'inscription :
+ *
+ *   • `enfant`  — « il est à Raphaël ». Aucune notification de parent, jamais.
+ *   • `partage` — « il est partagé à la maison ». La tablette du salon.
+ *   • `parent`  — « c'est mon téléphone à moi ».
+ *
+ * **Volontairement sans contrainte de liste.** Ce matin même, `report_shield`
+ * a refusé un statut légitime parce qu'il validait contre une liste fermée
+ * qu'un nouvel état venait de dépasser — et comme l'appelant avale l'erreur,
+ * l'appareil se contentait de cesser de donner de ses nouvelles. On ne
+ * refera pas la même chose ici. Une valeur inconnue est traitée comme
+ * inconnue par `notify`, qui ne l'exclut de rien : on n'agit que sur ce qu'on
+ * sait vraiment.
+ *
+ * `null` a le même sens, et il compte : c'est ce que portent toutes les lignes
+ * écrites avant cette colonne. Une application pas encore mise à jour continue
+ * donc de recevoir exactement ce qu'elle recevait.
+ */
+alter table push_tokens add column if not exists usage text;
+
 -- L'envoi lit toujours par famille, jamais par compte.
 create index if not exists idx_push_tokens_family on push_tokens (family_id);
 
