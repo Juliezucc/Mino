@@ -212,8 +212,22 @@ describe('les causes d’échec qu’on a le droit de nommer', () => {
     // « Cette adresse a déjà un compte » est la liste des clients offerte à
     // qui essaie des adresses. Elle doit rester indiscernable d'une adresse
     // libre — c'est la règle, et elle ne bouge pas.
-    expect(r.reason).toBe('Impossible de créer le compte. Vérifiez l’adresse et réessayez.');
+    //
+    // **On éprouve la propriété, plus la phrase.** La version précédente
+    // épinglait la chaîne exacte, si bien qu'améliorer le message — le rendre
+    // utile à qui a déjà un compte — faisait rougir un essai dont l'intention
+    // était pourtant respectée. Ce qui compte n'est pas ce qui est écrit, c'est
+    // que les deux cas soient impossibles à distinguer.
+    const libre = await service({ message: 'Something went wrong', code: 'unexpected_failure' })
+      .signUp({ email: 'inconnue@exemple.fr', password: 'Un-Mot-De-Passe-2026' });
+
+    expect(r.reason).toBe(libre.reason);
     expect(r.field).toBeUndefined();
+    expect(libre.field).toBeUndefined();
+
+    // Et elle ne doit jamais nommer ce qu'elle cache.
+    expect(r.reason).not.toMatch(/déjà (pris|utilis|inscrit|un compte)/i);
+    expect(r.reason).not.toMatch(/existe/i);
   });
 
   it('renvoie un lien expiré vers la connexion, comme avant', async () => {
