@@ -1,4 +1,5 @@
-import { profileToOpen } from '@/data/deviceProfile';
+import { choixEnregistre, etatsPourChoix, profileToOpen } from '@/data/deviceProfile';
+import { usageDeLAppareil } from '@/domain/notifications';
 
 const children = [{ id: 'noah' }, { id: 'elliott' }];
 
@@ -44,5 +45,54 @@ describe('le profil de l’appareil', () => {
    */
   it('rouvre sur l’enfant réservé, quel que soit le dernier profil ouvert', () => {
     expect(profileToOpen({ lockedChildId: 'noah', lastChildId: 'elliott' }, children)).toBe('noah');
+  });
+});
+
+/**
+ * « À qui est cet appareil ? », et surtout : se tromper doit se rattraper.
+ *
+ * Le reproche numéro un de la recette. La question n'était posée qu'à
+ * l'inscription, et les réglages n'écrivaient qu'un `lockedChildId` : un
+ * parent qui avait répondu « c'est mon téléphone » le restait pour toujours,
+ * y compris le jour où il donnait cette tablette à son enfant.
+ *
+ * Trois champs se déduisent de la réponse, et ils doivent s'écrire ensemble —
+ * écrits séparément, ils se contredisent.
+ */
+describe('la réponse « à qui est cet appareil »', () => {
+  it('se relit telle qu’elle a été donnée', () => {
+    for (const choix of [
+      { kind: 'enfant', childId: 'noah' } as const,
+      { kind: 'partage' } as const,
+      { kind: 'parent' } as const,
+    ]) {
+      expect(choixEnregistre(etatsPourChoix(choix))).toEqual(choix);
+    }
+  });
+
+  it('se corrige : le téléphone du parent peut devenir celui de l’enfant', () => {
+    // Le chemin qui n'existait pas. On part de « il est à moi » et on répond
+    // autrement : aucun des trois champs ne doit rester sur l'ancienne réponse.
+    const avant = etatsPourChoix({ kind: 'parent' });
+    expect(avant).toEqual({ lockedChildId: null, usagePersonnel: true, declareALEnfant: false });
+
+    const apres = etatsPourChoix({ kind: 'enfant', childId: 'noah' });
+    expect(apres).toEqual({ lockedChildId: 'noah', usagePersonnel: false, declareALEnfant: true });
+  });
+
+  it('dit à qui le serveur écrit, sans que personne ait à le recalculer', () => {
+    // `usageDeLAppareil` décide de la destination des notifications. Les deux
+    // fonctions lisent les mêmes champs : elles ne peuvent pas diverger.
+    expect(usageDeLAppareil(etatsPourChoix({ kind: 'parent' }))).toBe('parent');
+    expect(usageDeLAppareil(etatsPourChoix({ kind: 'partage' }))).toBe('partage');
+    expect(usageDeLAppareil(etatsPourChoix({ kind: 'enfant', childId: 'noah' }))).toBe('enfant');
+  });
+
+  it('laisse un enfant vérifier le code parent, jamais le choisir', () => {
+    // `declareALEnfant` est ce que lit `parentGate` : vrai dès qu'un enfant se
+    // sert de l'appareil, faux sur le seul cas où il n'y en a pas.
+    expect(etatsPourChoix({ kind: 'enfant', childId: 'noah' }).declareALEnfant).toBe(true);
+    expect(etatsPourChoix({ kind: 'partage' }).declareALEnfant).toBe(true);
+    expect(etatsPourChoix({ kind: 'parent' }).declareALEnfant).toBe(false);
   });
 });

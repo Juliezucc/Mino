@@ -5,8 +5,10 @@ import { DEMO_PARENT_PIN, buildDemoFamily, buildEmptyFamily } from '@/data/demo'
 import { LocalRepository } from '@/data/localRepository';
 import { ChangeEvent, MinoRepository } from '@/data/repository';
 import {
+  ChoixDAppareil,
   DeviceProfile,
   NO_DEVICE_PROFILE,
+  etatsPourChoix,
   profileToOpen,
   readDeviceProfile,
   writeDeviceProfile,
@@ -123,6 +125,11 @@ interface MinoState {
    * « C'est mon téléphone à moi » : aucun enfant ne joue ici, il n'y a rien à
    * verrouiller. Voir `DeviceProfile.usagePersonnel`.
    */
+  declarerUsage: (choix: ChoixDAppareil) => Promise<void>;
+  /** Voir `poseDemandeeParLeParent` dans `src/domain/parentGate.ts`. */
+  poseDuCodeAutorisee: boolean;
+  autoriserLaPoseDuCode: () => void;
+  consommerLAutorisationDeCode: () => void;
   setUsagePersonnel: (valeur: boolean) => Promise<void>;
   setDeclareALEnfant: (valeur: boolean) => Promise<void>;
   /**
@@ -941,6 +948,43 @@ export const useMinoStore = create<MinoState>((set, get) => {
       set({ device });
       // La réponse vient de changer, et elle décide à qui le serveur écrit :
       // il faut la lui redire. Voir `poserJetonPush`.
+      redireLeGenreDeLAppareil();
+    },
+
+    /**
+     * La réponse à « à qui est cet appareil ? », d'où qu'elle vienne.
+     *
+     * Les trois champs s'écrivent ensemble ou pas du tout : écrits séparément,
+     * ils se contredisent — c'est ce qui rendait la réponse incorrigible
+     * depuis les réglages, qui n'en touchaient qu'un seul. Voir
+     * `etatsPourChoix`.
+     */
+    /**
+     * Le parent est là, et il vient de le prouver par un geste.
+     *
+     * En mémoire seulement, jamais dans AsyncStorage : ce signal ne doit pas
+     * survivre à la fermeture de l'application. Voir `parentGate`.
+     */
+    poseDuCodeAutorisee: false,
+
+    autoriserLaPoseDuCode() {
+      set({ poseDuCodeAutorisee: true });
+    },
+
+    consommerLAutorisationDeCode() {
+      if (get().poseDuCodeAutorisee) set({ poseDuCodeAutorisee: false });
+    },
+
+    async declarerUsage(choix) {
+      const etats = etatsPourChoix(choix);
+      const device = await writeDeviceProfile({
+        ...etats,
+        // Réserver l'appareil, c'est aussi le rouvrir dessus : les deux
+        // réglages se contrediraient sinon au prochain lancement.
+        ...(choix.kind === 'enfant' ? { lastChildId: choix.childId } : {}),
+      });
+      set({ device });
+      // La réponse décide à qui le serveur écrit : il faut la lui redire.
       redireLeGenreDeLAppareil();
     },
 

@@ -170,3 +170,52 @@ export function profileToOpen(
   const exists = (id: ID | null) => (id && children.some((c) => c.id === id) ? id : null);
   return exists(profile.lockedChildId) ?? exists(profile.lastChildId);
 }
+
+/**
+ * À qui est cet appareil — la réponse, et non ses conséquences.
+ *
+ * **Le défaut : la réponse ne se corrigeait pas.** Elle n'était posée qu'une
+ * fois, à l'inscription, et une erreur y était définitive — c'est le reproche
+ * numéro un de la recette. Les réglages proposaient bien de réserver
+ * l'appareil à un enfant, mais ils n'écrivaient qu'un `lockedChildId` : un
+ * parent qui avait répondu « c'est mon téléphone » restait `usagePersonnel`
+ * pour toujours, et aucun écran ne savait le défaire.
+ *
+ * **Pourquoi trois champs pour une question.** Chacun sert à quelqu'un de
+ * différent : `lockedChildId` décide sur quel profil l'application rouvre,
+ * `usagePersonnel` décide à qui le serveur adresse ses notifications, et
+ * `declareALEnfant` décide si un enfant peut se choisir un code parent. Ils se
+ * déduisent tous les trois de la même réponse, mais on ne peut pas en garder
+ * deux et recalculer le troisième : `usagePersonnel` faux vaut aussi bien
+ * « partagé » que « on n'a jamais demandé ».
+ *
+ * D'où cette fonction : la réponse est écrite une fois, ici, et les deux
+ * écrans qui la posent passent par elle.
+ */
+export type ChoixDAppareil =
+  /** Le téléphone ou la tablette d'un enfant en particulier. */
+  | { kind: 'enfant'; childId: ID }
+  /** Partagé entre les enfants — la tablette du salon. */
+  | { kind: 'partage' }
+  /** Celui du parent. Rien à bloquer ici. */
+  | { kind: 'parent' };
+
+export function etatsPourChoix(
+  choix: ChoixDAppareil,
+): Pick<DeviceProfile, 'lockedChildId' | 'usagePersonnel' | 'declareALEnfant'> {
+  return {
+    lockedChildId: choix.kind === 'enfant' ? choix.childId : null,
+    usagePersonnel: choix.kind === 'parent',
+    // Vrai pour les deux réponses où un enfant se sert de l'appareil. C'est ce
+    // que lit `parentGate` pour refuser à un enfant de CHOISIR le code.
+    declareALEnfant: choix.kind !== 'parent',
+  };
+}
+
+/** La réponse telle qu'elle a été enregistrée, pour cocher la bonne case. */
+export function choixEnregistre(
+  profil: Pick<DeviceProfile, 'lockedChildId' | 'usagePersonnel'>,
+): ChoixDAppareil {
+  if (profil.lockedChildId) return { kind: 'enfant', childId: profil.lockedChildId };
+  return profil.usagePersonnel ? { kind: 'parent' } : { kind: 'partage' };
+}

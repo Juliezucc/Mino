@@ -110,9 +110,10 @@ describe('la première ouverture d’une famille venue du site', () => {
   });
 
   it('demande au parent de créer son code, il n’en a jamais posé', () => {
-    // Le tunnel ne demande pas de code à quatre chiffres. Sur son propre
-    // téléphone, le parent doit pouvoir en poser un — pas se voir refuser
-    // l'entrée de son espace.
+    // Le tunnel pose désormais le code lui-même, comme l'application. Reste
+    // le cas où il n'y en a aucun — une famille créée avant ce changement, ou
+    // un appel qui a échoué : sur son propre téléphone, le parent doit pouvoir
+    // en poser un, pas se voir refuser l'entrée de son espace.
     expect(parentGate({ hasPin: false, onChildDevice: false })).toBe('create');
   });
 

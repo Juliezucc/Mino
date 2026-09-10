@@ -92,10 +92,30 @@ export default function ParentPin() {
   const device = useMinoStore((s) => s.device);
   const declareALEnfant = device.declareALEnfant || device.lockedChildId !== null;
 
+  /**
+   * Le parent vient de demander à poser son code — et il le prouve par un
+   * geste qu'un enfant ne fait pas. Voir `poseDemandeeParLeParent`.
+   *
+   * Lu une seule fois, à l'ouverture, et consommé aussitôt : l'état local le
+   * garde le temps de cette visite, le signal ne survit pas à l'écran. Le
+   * laisser vivre rouvrirait la porte à l'enfant à qui l'on tend la tablette
+   * une minute plus tard.
+   */
+  const consommerLAutorisation = useMinoStore((s) => s.consommerLAutorisationDeCode);
+  const [poseDemandeeParLeParent] = useState(() => useMinoStore.getState().poseDuCodeAutorisee);
+  useEffect(() => {
+    if (poseDemandeeParLeParent) consommerLAutorisation();
+  }, [poseDemandeeParLeParent, consommerLAutorisation]);
+
   const gate =
     hasPin === null || deviceSession === null
       ? 'enter'
-      : parentGate({ hasPin, onChildDevice: deviceSession, declareALEnfant });
+      : parentGate({
+          hasPin,
+          onChildDevice: deviceSession,
+          declareALEnfant,
+          poseDemandeeParLeParent,
+        });
   const canCreatePin = gate === 'create';
   const blocked = gate === 'ask-a-parent';
 
@@ -163,11 +183,14 @@ export default function ParentPin() {
 
       <View style={styles.head}>
         <Text variant="title" center>
-          {blocked ? 'Demande à un parent' : canCreatePin ? 'Choisir un code parent' : 'Code parent'}
+          {blocked ? 'Réservé aux parents' : canCreatePin ? 'Choisir un code parent' : 'Code parent'}
         </Text>
         <Text variant="body" color={colors.textMuted} center>
           {blocked
-            ? 'Le code se choisit sur le téléphone de ton parent, dans Réglages. Ensuite, il marchera ici.'
+            ? // L'enfant n'a rien à apprendre des protections qui le concernent :
+              // l'ancien texte lui disait qu'un code existe, sur quel appareil
+              // il se choisit et dans quel menu — et l'invitait à le réclamer.
+              'Cette partie de Mino n’est pas pour toi. Reviens en arrière : tes missions t’attendent.'
             : canCreatePin
               ? 'Aucun code n’est encore défini. Choisissez-en un que votre enfant ne devinera pas.'
               : // Sans le `trim`, un parent qui n'a pas fini son inscription se

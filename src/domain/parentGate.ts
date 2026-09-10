@@ -47,7 +47,56 @@ export function parentGate(input: {
    * l'enfant n'y touche.
    */
   declareALEnfant?: boolean;
+  /**
+   * Le parent vient de demander LUI-MÊME à poser son code, par un geste qu'un
+   * enfant ne fait pas : répondre à « à qui est cet appareil ? », toucher le
+   * bandeau de son tableau de bord, ou se connecter avec son mot de passe.
+   *
+   * **Sans ce signal, la règle enfermait le parent dehors.** Elle ne sait dire
+   * qu'à QUI est l'appareil, jamais QUI est devant l'écran — si bien qu'un
+   * parent présent et un enfant seul recevaient la même réponse dès que
+   * l'appareil était déclaré partagé. En pleine inscription, l'application
+   * disait donc au parent, debout devant elle, d'aller demander à un parent :
+   * `declarerUsage` écrit le drapeau, et l'écran du code le relit une seconde
+   * plus tard. Pire, les familles déjà dans cet état n'avaient plus aucune
+   * issue : le tableau de bord y renvoie à chaque lancement.
+   *
+   * **À usage unique, et jamais persisté.** Il est armé au geste, consommé à
+   * l'arrivée sur l'écran, et ne survit pas au redémarrage — sans quoi il
+   * rouvrirait la porte à l'enfant à qui l'on tend la tablette une minute
+   * plus tard. `parentUnlocked` ne pouvait pas jouer ce rôle : il reste vrai
+   * après l'inscription, c'est-à-dire pendant que la tablette change de mains.
+   */
+  poseDemandeeParLeParent?: boolean;
 }): ParentGate {
   if (input.hasPin) return 'enter';
-  return input.onChildDevice || input.declareALEnfant ? 'ask-a-parent' : 'create';
+  // Un appareil arrivé par le code famille ne peut pas poser de code, et
+  // aucun signal ne lève cela : la base elle-même le refuse — `set_parent_pin`
+  // exige `auth_is_parent()`, voir `supabase/code-parent-famille.sql`.
+  if (input.onChildDevice) return 'ask-a-parent';
+  if (input.declareALEnfant && !input.poseDemandeeParLeParent) return 'ask-a-parent';
+  return 'create';
+}
+
+/**
+ * L'inscription demande-t-elle un code parent ?
+ *
+ * **Oui, toujours, et cette fonction existe pour que ça cesse d'être une
+ * condition d'écran.** La règle vivait dans `app/onboarding/account.tsx` sous
+ * la forme `Boolean(compteOuvert) && !codeDejaPose`, c'est-à-dire l'inverse de
+ * ce qu'elle devait dire : seul un parent déjà inscrit et sans famille se
+ * voyait demander un code. Une inscription ordinaire n'en posait aucun, et
+ * l'espace parent restait ouvert à l'enfant sur la tablette qu'on venait de
+ * lui confier.
+ *
+ * L'argument contraire — deux secrets à inventer sur le même écran — pesait
+ * moins que la règle, et surtout il ne valait que pour l'application : le
+ * tunnel du site pose la question, lui. Une règle qui dépend de la porte
+ * d'entrée n'est pas une règle.
+ *
+ * La seule exception qui tienne : ne pas le redemander à qui vient de le
+ * choisir. Le redemander laisserait croire que le premier n'a pas été retenu.
+ */
+export function demandeLeCodeALInscription(input: { codeDejaPose: boolean }): boolean {
+  return !input.codeDejaPose;
 }

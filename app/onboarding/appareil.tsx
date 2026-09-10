@@ -8,6 +8,7 @@ import {
   InstallerSurLAppareil,
   SANS_BOUCLIER,
 } from '@/features/onboarding/InstallerSurLAppareil';
+import { ChoixDAppareil } from '@/data/deviceProfile';
 import { getAuthService } from '@/services/auth';
 import { useChildren, useFamily } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -42,9 +43,8 @@ export default function OnboardingAppareil() {
   const router = useRouter();
   const enfants = useChildren();
   const famille = useFamily();
-  const lockDeviceTo = useMinoStore((s) => s.lockDeviceTo);
-  const setUsagePersonnel = useMinoStore((s) => s.setUsagePersonnel);
-  const setDeclareALEnfant = useMinoStore((s) => s.setDeclareALEnfant);
+  const declarerUsage = useMinoStore((s) => s.declarerUsage);
+  const autoriserLaPoseDuCode = useMinoStore((s) => s.autoriserLaPoseDuCode);
   const [busy, setBusy] = useState(false);
 
   /**
@@ -66,23 +66,13 @@ export default function OnboardingAppareil() {
     );
   }
 
-  const choisir = async (childId: string | null, versLeBlocage: boolean) => {
+  const choisir = async (choix: ChoixDAppareil) => {
+    const versLeBlocage = choix.kind !== 'parent';
     setBusy(true);
-    await lockDeviceTo(childId).catch(() => undefined);
-    /**
-     * Retenir « c'est mon téléphone à moi », qui était posé puis jeté.
-     *
-     * Les trois réponses écrivaient jusqu'ici la même chose — un
-     * `lockedChildId`, nul pour deux d'entre elles — si bien que le téléphone
-     * du parent et la tablette du salon devenaient indiscernables. Sans
-     * conséquence tant que rien ne s'y appuyait ; le bandeau du bouclier s'y
-     * appuie, et reprocherait au parent, sur son propre téléphone, un blocage
-     * qu'on vient de lui dire de ne pas régler là. Voir `DeviceProfile`.
-     */
-    await setUsagePersonnel(!versLeBlocage && childId === null).catch(() => undefined);
-    // Le signal positif que lit l'écran du code parent : un enfant se sert de
-    // cet appareil, et le parent vient de le dire.
-    await setDeclareALEnfant(versLeBlocage).catch(() => undefined);
+    // Les trois conséquences de la réponse s'écrivent ensemble : séparément,
+    // elles se contredisaient et la réponse ne se corrigeait plus. Voir
+    // `etatsPourChoix`.
+    await declarerUsage(choix).catch(() => undefined);
 
     /**
      * Le code parent se pose ICI, et nulle part ailleurs.
@@ -114,6 +104,12 @@ export default function OnboardingAppareil() {
     setBusy(false);
 
     if (versLeBlocage && !codePose) {
+      // Le parent vient de répondre à la carte juste au-dessus : c'est lui qui
+      // tient l'appareil. Or `declarerUsage` a écrit `declareALEnfant` vingt
+      // lignes plus haut, et l'écran du code relit ce drapeau tout neuf — sans
+      // ce signal, il répond « Réservé aux parents » au parent lui-même, en
+      // pleine inscription, et il ne peut plus poser de code du tout.
+      autoriserLaPoseDuCode();
       router.replace({ pathname: '/parent-pin', params: { ensuite: '/parent/blocage' } });
       return;
     }
@@ -138,7 +134,10 @@ export default function OnboardingAppareil() {
       </View>
 
       {enfants.map((enfant) => (
-        <Card key={enfant.id} onPress={busy ? undefined : () => choisir(enfant.id, true)}>
+        <Card
+          key={enfant.id}
+          onPress={busy ? undefined : () => choisir({ kind: 'enfant', childId: enfant.id })}
+        >
           <View style={styles.ligne}>
             <Avatar avatarKey={enfant.avatarKey} size={54} />
             <View style={styles.textes}>
@@ -152,11 +151,11 @@ export default function OnboardingAppareil() {
         </Card>
       ))}
 
-      <Card onPress={busy ? undefined : () => choisir(null, true)}>
+      <Card onPress={busy ? undefined : () => choisir({ kind: 'partage' })}>
         <View style={styles.ligne}>
           <Text variant="hero">🏠</Text>
           <View style={styles.textes}>
-            <Text variant="cardTitle">Il est partagé à la maison</Text>
+            <Text variant="cardTitle">Il est partagé entre les enfants</Text>
             <Text variant="caption" color={colors.textMuted}>
               La tablette du salon, par exemple. Elle rouvre sur le dernier profil utilisé, et nous
               réglons le blocage maintenant.
@@ -165,11 +164,11 @@ export default function OnboardingAppareil() {
         </View>
       </Card>
 
-      <Card onPress={busy ? undefined : () => choisir(null, false)}>
+      <Card onPress={busy ? undefined : () => choisir({ kind: 'parent' })}>
         <View style={styles.ligne}>
           <Text variant="hero">📱</Text>
           <View style={styles.textes}>
-            <Text variant="cardTitle">C’est mon téléphone à moi</Text>
+            <Text variant="cardTitle">Il est à moi, le parent</Text>
             <Text variant="caption" color={colors.textMuted}>
               Rien à bloquer ici. Le blocage se règle sur l’appareil de votre enfant, avec le code
               famille — nous vous y conduirons.

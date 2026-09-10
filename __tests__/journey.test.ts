@@ -1,7 +1,7 @@
 import * as actions from '@/domain/actions';
 import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
 import { inscriptionInachevee, isFirstRun } from '@/domain/firstRun';
-import { parentGate } from '@/domain/parentGate';
+import { demandeLeCodeALInscription, parentGate } from '@/domain/parentGate';
 import { FamilyData } from '@/domain/types';
 import {
   balanceOf,
@@ -826,5 +826,77 @@ describe('l’espace parent sur un appareil qu’un enfant utilise', () => {
   it('laisse toujours entrer quand le code existe, quel que soit l’appareil', () => {
     expect(parentGate({ hasPin: true, onChildDevice: true, declareALEnfant: true })).toBe('enter');
     expect(parentGate({ hasPin: true, onChildDevice: false, declareALEnfant: true })).toBe('enter');
+  });
+});
+
+/**
+ * Le code parent à l'inscription.
+ *
+ * La règle vivait dans une condition d'écran qui disait l'inverse de ce
+ * qu'elle devait dire : seul un parent déjà inscrit et sans famille se voyait
+ * demander un code. Une inscription ordinaire n'en posait aucun, et l'espace
+ * parent restait ouvert à l'enfant sur la tablette qu'on venait de partager.
+ *
+ * Une condition d'écran s'inverse sans que rien ne tombe — d'où ces deux
+ * essais, et la règle sortie dans le domaine.
+ */
+describe('le code parent à l’inscription', () => {
+  it('est demandé à toute inscription, sans exception de parcours', () => {
+    expect(demandeLeCodeALInscription({ codeDejaPose: false })).toBe(true);
+  });
+
+  it('n’est pas redemandé à qui vient de le choisir', () => {
+    // Le redemander laisserait croire que le premier n'a pas été retenu.
+    expect(demandeLeCodeALInscription({ codeDejaPose: true })).toBe(false);
+  });
+});
+
+/**
+ * Le code parent, quand le parent est là.
+ *
+ * Le défaut vu en recette, capture à l'appui : le parent répond « cet appareil
+ * est à Manon », l'application écrit le drapeau, puis l'envoie poser son
+ * code — et l'écran du code relit ce drapeau tout neuf pour lui répondre
+ * d'aller demander à un parent. Il ne pouvait plus en poser du tout, et les
+ * familles déjà dans cet état n'avaient aucune issue.
+ *
+ * La règle ne savait dire qu'à QUI est l'appareil, jamais QUI est devant.
+ */
+describe('poser le code quand le parent est présent', () => {
+  it('laisse le parent poser son code sur l’appareil qu’il vient de déclarer', () => {
+    expect(
+      parentGate({
+        hasPin: false,
+        onChildDevice: false,
+        declareALEnfant: true,
+        poseDemandeeParLeParent: true,
+      }),
+    ).toBe('create');
+  });
+
+  it('refuse toujours sans ce geste : l’enfant seul reçoit la même porte close', () => {
+    expect(parentGate({ hasPin: false, onChildDevice: false, declareALEnfant: true })).toBe(
+      'ask-a-parent',
+    );
+  });
+
+  it('ne lève jamais la règle sur la tablette venue du code famille', () => {
+    // Aucun signal ne vaut ici : la base elle-même refuse le code à cette
+    // session (`set_parent_pin` exige `auth_is_parent()`). Un écran qui
+    // proposerait le pavé numérique mentirait à l'enfant.
+    expect(
+      parentGate({
+        hasPin: false,
+        onChildDevice: true,
+        declareALEnfant: true,
+        poseDemandeeParLeParent: true,
+      }),
+    ).toBe('ask-a-parent');
+  });
+
+  it('demande simplement le code quand il existe déjà', () => {
+    expect(
+      parentGate({ hasPin: true, onChildDevice: true, poseDemandeeParLeParent: true }),
+    ).toBe('enter');
   });
 });

@@ -6,6 +6,7 @@ import {
   isStore,
   manageSubscriptionUrl,
 } from '@/domain/billing';
+import { estDefinitif } from '@/data/erreurFonction';
 import { ID } from '@/domain/types';
 import { OffreApple } from '@/domain/offrePromo';
 
@@ -196,12 +197,39 @@ export class StoreBillingService implements BillingService {
     // meilleur moyen qu'il ne revienne pas.
     if (!purchase) return { kind: 'abandoned' };
 
+    /**
+     * Un refus sans appel ne s'annonce pas comme une réussite.
+     *
+     * **Le défaut, trouvé en recette, et il touchait tout le monde.** Le refus
+     * du serveur repartait dans un `.catch(() => null)`, et l'écran suivant
+     * s'ouvrait comme après un achat réussi. En face, aucun abonnement : ni
+     * chez nous, ni chez Apple. Un parent croyait s'être abonné et découvrait
+     * à la fin de son essai qu'il n'avait rien — c'est un remboursement et un
+     * avis à une étoile.
+     *
+     * **Pourquoi ce n'était pas une négligence, et ce qu'on garde.** Quand la
+     * confirmation échoue sur un réseau coupé ou un 502, l'achat, lui, a bien
+     * eu lieu : la notification serveur à serveur arrivera, le rattrapage la
+     * double, et crier à l'échec ferait payer une seconde fois. Cette
+     * prudence-là reste, à la lettre.
+     *
+     * Ce qui change, c'est qu'on distingue enfin les deux. Un 4xx — « cet
+     * achat appartient à un autre compte », une preuve refusée — dira la même
+     * chose dans un mois : le parent doit l'apprendre maintenant, et savoir
+     * quoi faire.
+     */
+    let refus: Error | null = null;
     const abonnement = await this.confirm({
       familyId: input.familyId,
       platform: this.store.platform,
       token: purchase.token,
       productId: purchase.productId,
-    }).catch(() => null);
+    }).catch((erreur: unknown) => {
+      if (estDefinitif(erreur)) refus = erreur as Error;
+      return null;
+    });
+
+    if (refus) return { kind: 'failed', reason: (refus as Error).message };
 
     /**
      * Rouvrir la porte du rattrapage, et c'est indispensable ici.

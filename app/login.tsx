@@ -21,6 +21,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export default function Login() {
   const router = useRouter();
   const signIn = useMinoStore((s) => s.signIn);
+  const autoriserLaPoseDuCode = useMinoStore((s) => s.autoriserLaPoseDuCode);
 
   /**
    * L'adresse déjà saisie, quand on arrive de l'inscription.
@@ -56,7 +57,27 @@ export default function Login() {
     const result = await signIn({ email: email.trim(), password });
     setLoading(false);
 
-    if (result.ok) return router.replace('/who');
+    if (result.ok) {
+      /**
+       * La seule issue de ceux qui sont déjà enfermés dehors.
+       *
+       * Une famille sans code parent, sur un appareil déclaré partagé ou à
+       * l'enfant, se voyait renvoyée à chaque lancement vers un écran qui lui
+       * disait d'aller demander à un parent — sans aucun moyen d'en sortir.
+       * Le mot de passe du compte est justement ce qu'un enfant n'a pas, et il
+       * vient d'être tapé : on peut laisser poser le code, une fois.
+       */
+      const codePose = await getAuthService()
+        .hasParentPin()
+        // Dans le doute, on suppose qu'il existe : se tromper dans ce sens
+        // fait taper un code, se tromper dans l'autre en fait poser un.
+        .catch(() => true);
+      if (!codePose) {
+        autoriserLaPoseDuCode();
+        return router.replace({ pathname: '/parent-pin', params: { ensuite: '/parent' } });
+      }
+      return router.replace('/who');
+    }
     const dit = result.reason ?? 'Connexion impossible.';
     if (result.field === 'email') setErreurEmail(dit);
     else setError(dit);

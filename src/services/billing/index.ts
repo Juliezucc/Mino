@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { Plan, Subscription } from '@/domain/billing';
 import { OffreApple } from '@/domain/offrePromo';
 import { ID } from '@/domain/types';
+import { echecDeLaFonction } from '@/data/erreurFonction';
 import { getAccessToken, getSupabaseClient } from '@/data/supabaseRepository';
 
 import { BillingService } from './BillingService';
@@ -90,8 +91,16 @@ async function confirmPurchase(input: {
    * clé de service manquante, qui ne se réparera pas toute seule.
    */
   if (error) {
-    const dit = error instanceof Error ? error.message.trim() : '';
-    throw new Error(dit || 'La vérification de l’achat n’a pas abouti.');
+    /**
+     * Le message du serveur, pas celui de la bibliothèque.
+     *
+     * `error.message` vaut ici « Edge Function returned a non-2xx status
+     * code » — la phrase de `supabase-js`, en anglais, identique quelle que
+     * soit la cause. Elle est arrivée telle quelle sur l'écran d'un parent
+     * après « Restaurer mes achats », et la vraie raison, française, dormait
+     * dans le corps de la réponse. Voir `raisonDeLaFonction`.
+     */
+    throw await echecDeLaFonction(error, 'La vérification de l’achat n’a pas abouti.');
   }
 
   return (data as { subscription?: Subscription })?.subscription ?? null;

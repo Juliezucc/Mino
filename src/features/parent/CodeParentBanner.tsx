@@ -75,6 +75,7 @@ export function CodeParentBanner() {
    * qui prête son téléphone n'a rien à déclarer.
    */
   const personnel = useMinoStore((s) => s.device.usagePersonnel && !s.device.lastChildId);
+  const autoriserLaPoseDuCode = useMinoStore((s) => s.autoriserLaPoseDuCode);
 
   if (pose !== false || personnel) return null;
 
@@ -90,7 +91,14 @@ export function CodeParentBanner() {
       <Button
         label="Choisir mon code"
         icon="🔒"
-        onPress={() => router.push({ pathname: '/parent-pin', params: { ensuite: '/parent' } })}
+        onPress={() => {
+          // Ce bandeau ne s'affiche que dans l'espace parent, donc devant le
+          // parent. Sans ce signal, son bouton menait à « Réservé aux
+          // parents » dès que l'appareil est déclaré partagé — c'est-à-dire
+          // précisément dans le cas où le bandeau existe.
+          autoriserLaPoseDuCode();
+          router.push({ pathname: '/parent-pin', params: { ensuite: '/parent' } });
+        }}
       />
     </Card>
   );

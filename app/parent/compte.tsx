@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, Field, Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
+import { isStore } from '@/domain/billing';
 import { getAuthService } from '@/services/auth';
 import { useParent } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -36,6 +37,7 @@ export default function CompteParent() {
   const parent = useParent();
   const signOut = useMinoStore((s) => s.signOut);
   const deleteAccount = useMinoStore((s) => s.deleteAccount);
+  const subscription = useMinoStore((s) => s.subscription);
   const remote = useMinoStore((s) => s.repository.name) !== 'local';
 
   const [email, setEmail] = useState('');
@@ -110,10 +112,31 @@ export default function CompteParent() {
     if (confirmation.trim().toLowerCase() !== 'supprimer') {
       return setErreur('Écrivez « supprimer » dans le champ pour confirmer.');
     }
+    /**
+     * L'abonnement de boutique ne s'arrête pas avec le compte, et il faut le
+     * dire ICI, pas en petits caractères plus bas.
+     *
+     * **Ce que la suppression fait vraiment.** Apple et Google ne nous
+     * laissent pas résilier à la place de leur client : l'abonnement continue,
+     * et il continue de prélever. Pire, le lien se coupe des deux côtés — le
+     * jeton qui relie cet abonnement à la famille disparaît avec elle, et les
+     * notifications de la boutique arrivent ensuite sans que le serveur sache
+     * de qui elles parlent. Vu en vrai : dix-sept notifications enregistrées
+     * pour un abonnement bien vivant, sans famille pour les recevoir.
+     *
+     * Le parent, lui, ne voit qu'une chose : un prélèvement chaque mois pour
+     * une application qu'il a supprimée. La phrase existait déjà sur cet
+     * écran, en légende, sous le champ de confirmation. Elle a sa place dans
+     * la fenêtre qui demande « êtes-vous sûr ».
+     */
+    const abonnementDeBoutique = isStore(subscription?.source) && subscription?.status !== 'canceled';
+    const ouResilier = subscription?.source === 'google' ? 'le Play Store' : 'l’App Store';
+
     void confirmer({
       titre: 'Supprimer définitivement ?',
-      message:
-        'Les profils de vos enfants, leurs missions, leur historique et les minutes gagnées seront effacés. Rien de tout cela ne peut être récupéré.',
+      message: abonnementDeBoutique
+        ? `Les profils de vos enfants, leurs missions, leur historique et les minutes gagnées seront effacés. Rien de tout cela ne peut être récupéré.\n\nEt votre abonnement continuera d’être prélevé : nous ne pouvons pas le résilier à votre place. Faites-le d’abord depuis ${ouResilier}, puis revenez ici.`
+        : 'Les profils de vos enfants, leurs missions, leur historique et les minutes gagnées seront effacés. Rien de tout cela ne peut être récupéré.',
       action: 'Supprimer',
       destructif: true,
     }).then(async (oui) => {

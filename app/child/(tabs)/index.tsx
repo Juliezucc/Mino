@@ -4,13 +4,13 @@ import { StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot, MascotAnimation } from '@/components/mascot';
 import { MascotExpression } from '@/components/mascot/types';
-import { Button, Card, MinutesBadge, Screen, Text, TimeRing } from '@/components/ui';
+import { Button, Card, MinutesBadge, Screen, Text } from '@/components/ui';
 import { unitOf } from '@/domain/ageBand';
 import { heure, openWindowAt } from '@/domain/freeWindows';
 import { pendingBonus } from '@/domain/bonus';
 import { lastSeenBonus } from '@/data/seenBonus';
 import { useBalanceDetail, useChildMissions, useActiveChild, useFamily } from '@/store/selectors';
-import { colors, spacing, tabBarSpace } from '@/theme';
+import { colors, hitSize, spacing, tabBarSpace } from '@/theme';
 
 /** Child home: who I am, how much time I have, and one obvious thing to do. */
 export default function ChildHome() {
@@ -146,18 +146,21 @@ export default function ChildHome() {
         </Card>
       ) : null}
 
-      <Card style={styles.ringCard} elevation="soft">
-        <TimeRing minutes={balance.minutes} unit={unit} />
-        {balance.earnedToday > 0 ? (
-          <View style={styles.earned}>
-            <Text variant="label" color={colors.textMuted}>
-              Gagné aujourd’hui
-            </Text>
-            <MinutesBadge minutes={balance.earnedToday} tone="mint" unit={unit} />
-          </View>
-        ) : null}
-      </Card>
+      {/*
+        Les missions d'abord, le compteur ensuite.
 
+        **Le défaut, vu sur un compte neuf.** Le premier objet de l'écran était
+        un anneau géant annonçant « 0 mino disponibles » — on annonçait à
+        l'enfant son solde avant de lui dire comment le remplir, et c'était
+        même la seule chose qu'il voyait en grand à sa toute première
+        ouverture. Un bandeau « 1 mission en attente » vivait dessous, hors de
+        son regard.
+
+        Le geste passe donc devant. Le compteur descend d'un cran, sous forme
+        d'une carte qui mène à l'onglet Temps — où l'anneau vit déjà en grand,
+        avec les capsules et le détail du jour (voir `temps.tsx`). Rien n'est
+        perdu : il cesse seulement d'être un verdict.
+      */}
       <Button
         label="VOIR MES MISSIONS"
         icon="📋"
@@ -184,6 +187,25 @@ export default function ChildHome() {
           </View>
         </Card>
       ) : null}
+
+      {/* Le compteur, en second et en petit — la carte entière est la cible,
+          et elle mène là où il vit en grand. */}
+      <Card style={styles.timeCard} elevation="soft" onPress={() => router.push('/child/temps')}>
+        <View style={styles.timeRow}>
+          <Text style={styles.timeIcon}>⏱️</Text>
+          <View style={styles.timeTexts}>
+            <Text variant="cardTitle">{unit === 'minos' ? 'Mes minos' : 'Mon temps'}</Text>
+            {balance.earnedToday > 0 ? (
+              <Text variant="caption" color={colors.textMuted}>
+                {unit === 'minos'
+                  ? `+${balance.earnedToday} gagnés aujourd’hui`
+                  : `+${balance.earnedToday} min gagnées aujourd’hui`}
+              </Text>
+            ) : null}
+          </View>
+          <MinutesBadge minutes={balance.minutes} tone="mint" unit={unit} />
+        </View>
+      </Card>
     </Screen>
   );
 }
@@ -193,8 +215,13 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   headerTexts: { flex: 1, gap: spacing.xs },
   plage: { gap: spacing.xs },
-  ringCard: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.xl },
-  earned: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  // La carte entière est la cible : au moins la hauteur d'un bouton d'enfant.
+  timeCard: { minHeight: hitSize.kid, justifyContent: 'center' },
+  // `flexWrap` et `minWidth` plutôt que rien : à 200 %, la pastille passe à la
+  // ligne au lieu d'écraser le titre jusqu'à le couper.
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' },
+  timeIcon: { fontSize: 28 },
+  timeTexts: { flex: 1, minWidth: 140, gap: 2 },
   waitingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   waitingIcon: { fontSize: 28 },
   waitingTexts: { flex: 1, gap: 2 },

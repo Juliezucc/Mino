@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot';
-import { Button, Field, Screen, ScreenHeader, Text } from '@/components/ui';
+import { Button, Field, Screen, ScreenHeader, SectionHeader, Text } from '@/components/ui';
+import { demandeLeCodeALInscription } from '@/domain/parentGate';
 import { getAuthService } from '@/services/auth';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
@@ -98,8 +99,9 @@ export default function CreateAccount() {
     };
   }, []);
 
-  /** Le code parent appartient à la création de la famille, pas à celle du compte. */
-  const demandeLeCode = Boolean(compteOuvert) && !codeDejaPose;
+  // La règle est dans le domaine, et éprouvée là-bas : une condition d'écran
+  // s'inverse sans que rien ne tombe, et c'est exactement ce qui était arrivé.
+  const demandeLeCode = demandeLeCodeALInscription({ codeDejaPose });
 
   const submit = async () => {
     const next: Record<string, string> = {};
@@ -108,14 +110,6 @@ export default function CreateAccount() {
       if (!EMAIL_RE.test(email.trim())) next.email = 'Adresse e-mail invalide.';
       if (password.length < 8) next.password = 'Au moins 8 caractères.';
     }
-    /**
-     * Le code parent ne se demande qu'à la création de la FAMILLE.
-     *
-     * Il était réclamé dès l'inscription, à côté du mot de passe : deux
-     * secrets à inventer et à retenir sur le même écran, avant même d'avoir
-     * compris à quoi sert le second. Il n'a pourtant de sens qu'une fois qu'il
-     * y a une famille et des appareils à protéger.
-     */
     if (demandeLeCode) {
       if (!/^\d{4}$/.test(pin)) next.pin = 'Le code parent doit contenir 4 chiffres.';
       // A PIN identical to the last digits of the password helps nobody.
@@ -281,24 +275,46 @@ export default function CreateAccount() {
             </>
           )}
           {demandeLeCode ? (
-            <Field
-              label="Code parent (4 chiffres)"
-              placeholder="••••"
-              value={pin}
-              onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 4))}
-              keyboardType="number-pad"
-              secureTextEntry
-              maxLength={4}
-              // Surtout PAS un mot de passe : sans ce démenti, le trousseau
-              // propose d'enregistrer le code parent à la place de celui du
-              // compte — deux champs masqués sur le même écran, il choisit le
-              // dernier. Le parent se retrouve alors avec quatre chiffres
-              // remplis automatiquement dans le champ mot de passe.
-              autoComplete="off"
-              textContentType="none"
-              hint="Il protège l’espace parent : les enfants ne doivent pas le connaître."
-              error={errors.pin}
-            />
+            <>
+              {/**
+               * Un titre, parce que la confusion est structurelle et pas
+               * seulement affaire de formulation.
+               *
+               * Deux champs masqués à la suite sur le même écran se lisent
+               * comme un seul sujet — « le mot de passe, puis sa confirmation
+               * en plus court ». Une phrase plus longue sous le champ n'y
+               * change rien : on ne lit pas l'explication d'une chose qu'on
+               * croit avoir comprise. Séparer les deux blocs le dit avant
+               * qu'on ait à l'expliquer.
+               */}
+              <SectionHeader
+                title="Protéger l’espace parent"
+                subtitle="Ce n’est pas votre mot de passe."
+              />
+              <Field
+                label="Code parent (4 chiffres)"
+                placeholder="••••"
+                value={pin}
+                onChangeText={(v) => setPin(v.replace(/\D/g, '').slice(0, 4))}
+                keyboardType="number-pad"
+                secureTextEntry
+                maxLength={4}
+                // Surtout PAS un mot de passe : sans ce démenti, le trousseau
+                // propose d'enregistrer le code parent à la place de celui du
+                // compte — deux champs masqués sur le même écran, il choisit le
+                // dernier. Le parent se retrouve alors avec quatre chiffres
+                // remplis automatiquement dans le champ mot de passe.
+                autoComplete="off"
+                textContentType="none"
+                // Ne pas reparler du mot de passe ici : la distinction est
+                // déjà portée par le titre juste au-dessus, et la répéter sous
+                // le champ remet les deux secrets dans la même phrase — donc
+                // dans la même case. Ce champ ne dit que ce que fait CE
+                // code-là.
+                hint="Ce code ouvre l’espace parent : votre enfant ne doit pas le connaître."
+                error={errors.pin}
+              />
+            </>
           ) : null}
         </View>
 

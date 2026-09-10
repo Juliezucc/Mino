@@ -116,6 +116,36 @@ Deno.serve(servir(async (request) => {
         state.transactionId,
         ancienne?.id ?? 'aucune famille pour ce jeton',
       );
+
+      /**
+       * **Reprendre le jeton, sinon l'adoption ne dure qu'un instant.**
+       *
+       * Adopter écrivait l'abonnement sur la famille appelante et s'arrêtait
+       * là — le jeton, lui, restait pointé ailleurs, ou nulle part. Or c'est
+       * par lui, et par lui seul, qu'Apple et Google nous retrouvent : le
+       * renouvellement du mois suivant, la résiliation, l'échec de paiement
+       * arrivaient donc avec un jeton qui ne désignait plus personne, et
+       * `applyStoreState` les jetait sous « achat sans famille identifiable ».
+       * La famille perdait son accès au premier renouvellement, sans que rien
+       * ne l'annonce.
+       *
+       * Vu en vrai : une famille de test supprimée avait laissé son jeton
+       * gravé sur un abonnement bien vivant. Dix-sept notifications d'Apple
+       * enregistrées, `family_id` vide sur toutes.
+       *
+       * L'ancienne famille, si elle existe encore, en reçoit un neuf : la
+       * colonne est unique et ne peut pas être vide.
+       */
+      if (ancienne) {
+        await db
+          .from('families')
+          .update({ store_account_token: crypto.randomUUID() })
+          .eq('id', ancienne.id);
+      }
+      await db
+        .from('families')
+        .update({ store_account_token: state.accountToken })
+        .eq('id', caller.familyId);
     }
 
     await applyStoreState(state, { familyId: caller.familyId });

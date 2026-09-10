@@ -14,6 +14,7 @@ import {
   Text,
   TimeCapsules,
 } from '@/components/ui';
+import { choixEnregistre } from '@/data/deviceProfile';
 import { balanceDetail } from '@/domain/ledger';
 import { isFirstRun } from '@/domain/firstRun';
 import { accessOf } from '@/domain/billing';
@@ -49,6 +50,7 @@ export default function ParentHome() {
   const refuseSession = useMinoStore((s) => s.refuseSession);
   const endSession = useMinoStore((s) => s.endSession);
   const subscription = useMinoStore((s) => s.subscription);
+  const device = useMinoStore((s) => s.device);
 
   if (!data) return null;
 
@@ -61,6 +63,8 @@ export default function ParentHome() {
     .slice(0, 6);
 
   const firstStep = isFirstRun(data);
+  // « Cet appareil est à Manon », répondu par le parent — voir `ChoixDAppareil`.
+  const appareilDeLEnfant = choixEnregistre(device).kind === 'enfant';
   const access = accessOf(subscription);
 
   return (
@@ -122,8 +126,16 @@ export default function ParentHome() {
       <NotificationsBanner />
 
       {/* Avant la première minute gagnée, la seule chose utile à dire est ce
-          qui vient après. Voir `FirstStepCard`. */}
-      {firstStep ? <FirstStepCard child={children[0]} familyCode={data.family.code} /> : null}
+          qui vient après. Voir `FirstStepCard`.
+
+          **Mais pas en tête sur l'appareil de l'enfant.** Le parent qui ouvre
+          son espace depuis la tablette de Manon n'y vient pas pour qu'on lui
+          propose, en pleine largeur, de repasser à Manon : l'application y
+          rouvre d'elle-même sur elle. Il vient voir où en est sa famille. La
+          carte descend donc sous « Vue d'ensemble », qui prend sa place. */}
+      {firstStep && !appareilDeLEnfant ? (
+        <FirstStepCard enfants={children} familyCode={data.family.code} />
+      ) : null}
 
       <View style={styles.section}>
         <SectionHeader
@@ -176,6 +188,13 @@ export default function ParentHome() {
           })
         )}
       </View>
+
+      {/* La même carte, en second, quand on est sur l'appareil de l'enfant :
+          ce qu'il reste à faire garde sa place, mais après ce que le parent
+          est venu voir. */}
+      {firstStep && appareilDeLEnfant ? (
+        <FirstStepCard enfants={children} familyCode={data.family.code} appareilDeLEnfant />
+      ) : null}
 
       {runningSessions.length > 0 ? (
         <View style={styles.section}>

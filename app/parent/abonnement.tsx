@@ -64,8 +64,57 @@ export default function SubscriptionScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * L'erreur suit le bouton qui l'a produite.
+   *
+   * Elle était posée sous la carte d'état, au-dessus de tout le reste : le
+   * seul endroit de l'écran où l'argument peut tenir, et le seul que le
+   * parent regarde AVANT d'avoir rien fait — d'où un écran qui informe d'un
+   * échec là où il devrait donner envie. Ce qu'elle réparait reste vrai (une
+   * erreur en bas d'une page qui défile n'est pas affichée), mais « juste
+   * sous le bouton qu'on vient de toucher » la met encore mieux sous l'œil.
+   */
+  const bandeauErreur = error ? (
+    <Card background={colors.dangerSoft} elevation="none">
+      <Text variant="body" color={colors.dangerInk}>
+        {error}
+      </Text>
+    </Card>
+  ) : null;
+
   const billing = getBillingService();
   const access = accessOf(subscription);
+
+  /**
+   * L'essai que la BOUTIQUE accordera — pas celui que nous avons enregistré.
+   *
+   * **Ce que l'écran affirmait sans avoir demandé.** Une offre d'introduction
+   * gratuite est posée sur les deux formules chez Apple : un parent qui n'y a
+   * jamais eu droit n'est donc PAS débité en s'abonnant pendant son essai. La
+   * fenêtre de confirmation lui annonçait pourtant un prélèvement immédiat et
+   * la perte de ses jours restants — juste avant le bouton, ce qui fait
+   * d'« Attendre » le choix raisonnable. On décourageait l'abonnement à
+   * l'endroit exact où on le proposait.
+   *
+   * Le paywall de l'inscription consulte déjà la boutique de cette façon.
+   * Trois réponses, trois discours, et jamais l'inverse de ce qui va se
+   * passer : `true` — la boutique offre le premier mois ; `false` — elle
+   * n'offre rien, c'est prélevé tout de suite et il faut le dire ; `null` —
+   * on ne sait pas, et on ne promet donc rien dans un sens ni dans l'autre.
+   */
+  const [essaiBoutique, setEssaiBoutique] = useState<boolean | null>(null);
+  useEffect(() => {
+    let vivant = true;
+    billing
+      .trialAvailable?.()
+      .then((offert) => {
+        if (vivant) setEssaiBoutique(offert);
+      })
+      .catch(() => undefined);
+    return () => {
+      vivant = false;
+    };
+  }, [billing]);
 
   /**
    * L'essai engagé : payé, mais pas encore prélevé.
@@ -141,6 +190,11 @@ export default function SubscriptionScreen() {
   const previentDuneAvance = () => {
     if (billing.capability !== 'store') return Promise.resolve(true);
     if (access.kind !== 'trial' || access.daysLeft <= 0) return Promise.resolve(true);
+    // La boutique offre encore le premier mois : il n'y a aucune avance à
+    // annoncer, et l'annoncer quand même est un mensonge qui coûte un
+    // abonnement. `null` — on ne sait pas — se tait aussi : on n'avertit que
+    // de ce qu'on a vérifié.
+    if (essaiBoutique !== false) return Promise.resolve(true);
     const j = access.daysLeft;
     return confirmer({
       titre: `Il vous reste ${j} jour${j > 1 ? 's' : ''} d’essai`,
@@ -376,16 +430,6 @@ export default function SubscriptionScreen() {
         )}
       </Card>
 
-      {/* Sous l'état, au-dessus des boutons : là où regarde celui qui vient
-          d'appuyer. Une erreur affichée en bas d'une page qui défile n'est pas
-          affichée. */}
-      {error ? (
-        <Card background={colors.dangerSoft} elevation="none">
-          <Text variant="body" color={colors.dangerInk}>
-            {error}
-          </Text>
-        </Card>
-      ) : null}
 
       {/* Offert : aucune action de facturation n'a de sens, et proposer une
           formule ouvrirait un abonnement payant par-dessus un accès gratuit. */}
@@ -429,6 +473,9 @@ export default function SubscriptionScreen() {
             loading={loading}
             onPress={confirmCancel}
           />
+          {/* Sous les boutons de CETTE branche : c'est là que le parent
+              regarde après avoir touché l'un d'eux. */}
+          {bandeauErreur}
         </View>
       ) : resilie ? (
         /**
@@ -461,6 +508,7 @@ export default function SubscriptionScreen() {
             variant="secondary"
             onPress={ouvrirGestion}
           />
+          {bandeauErreur}
         </View>
       ) : (
         <>
@@ -509,6 +557,8 @@ export default function SubscriptionScreen() {
           {billing.capability === 'store' ? (
             <Button label="Restaurer mes achats" variant="ghost" onPress={restore} />
           ) : null}
+
+          {bandeauErreur}
         </>
       )}
 

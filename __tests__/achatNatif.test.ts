@@ -403,6 +403,66 @@ describe('branchée sur StoreBillingService', () => {
     ]);
   });
 
+  /**
+   * Un refus sans appel ne s'annonce pas comme une réussite.
+   *
+   * Trouvé en recette : le serveur répondait `403 « Cet achat appartient à un
+   * autre compte »` — le compte Apple portait déjà un abonnement rattaché à
+   * une autre famille — et l'application enchaînait sur l'écran suivant comme
+   * après un achat réussi. Aucun abonnement nulle part, et un parent qui ne
+   * l'apprend qu'à la fin de son essai.
+   *
+   * L'inverse doit rester vrai : sur un 502 ou un réseau coupé, l'achat a bien
+   * eu lieu chez Apple, et annoncer un échec ferait payer deux fois.
+   */
+  const echec = (message: string, status: number) =>
+    Object.assign(new Error(message), { definitif: status >= 400 && status < 500 && status !== 429 });
+
+  it('dit non quand le serveur refuse définitivement', async () => {
+    const { iap } = fausseBoutique({
+      produits: [mensuel],
+      surDemande: ({ emet }) =>
+        emet({ id: 'tx-9', productId: PRODUITS.monthly, purchaseToken: 'jws-mensuel' }),
+    });
+
+    const service = new StoreBillingService(
+      serveur,
+      new ExpoIapStore('apple', async () => iap),
+      async () => {
+        throw echec('Cet achat appartient à un autre compte.', 403);
+      },
+      async () => JETON,
+    );
+
+    expect(await service.startCheckout({ familyId: 'fam-2', plan: 'monthly' })).toEqual({
+      kind: 'failed',
+      reason: 'Cet achat appartient à un autre compte.',
+    });
+  });
+
+  it('garde la réussite quand la panne est passagère', async () => {
+    const { iap } = fausseBoutique({
+      produits: [mensuel],
+      surDemande: ({ emet }) =>
+        emet({ id: 'tx-10', productId: PRODUITS.monthly, purchaseToken: 'jws-mensuel' }),
+    });
+
+    const service = new StoreBillingService(
+      serveur,
+      new ExpoIapStore('apple', async () => iap),
+      async () => {
+        throw echec('Vérification impossible pour le moment.', 502);
+      },
+      async () => JETON,
+    );
+
+    // L'achat est chez Apple : la notification serveur à serveur et le
+    // rattrapage s'en chargeront.
+    expect(await service.startCheckout({ familyId: 'fam-3', plan: 'monthly' })).toEqual({
+      kind: 'done',
+    });
+  });
+
   it('traduit l’abandon sans écran d’erreur', async () => {
     const { iap } = fausseBoutique({
       produits: [mensuel],

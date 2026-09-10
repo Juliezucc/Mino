@@ -3,8 +3,10 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, Chip, Logo, Screen, SectionHeader, Text, confirmer } from '@/components/ui';
+import { ChoixDAppareil, choixEnregistre } from '@/data/deviceProfile';
 import { accessOf } from '@/domain/billing';
 import { QUIET_FROM_HOUR, QUIET_UNTIL_HOUR } from '@/domain/notifications';
+import { getAuthService } from '@/services/auth';
 import { getNotificationService } from '@/services/notifications';
 import { getScreenTimeService } from '@/services/screenTime';
 import { useFamily, useParent } from '@/store/selectors';
@@ -21,8 +23,30 @@ export default function ParentSettings() {
   const subscription = useMinoStore((s) => s.subscription);
   const notifications = useMinoStore((s) => s.notifications);
   const device = useMinoStore((s) => s.device);
-  const lockDeviceTo = useMinoStore((s) => s.lockDeviceTo);
+  const declarerUsage = useMinoStore((s) => s.declarerUsage);
   const setNotifications = useMinoStore((s) => s.setNotificationPreferences);
+  // La réponse enregistrée, pour cocher la bonne case plutôt que la deviner.
+  const choix = choixEnregistre(device);
+  const autoriserLaPoseDuCode = useMinoStore((s) => s.autoriserLaPoseDuCode);
+
+  /**
+   * Déclarer qu'un enfant se sert de cet appareil, puis faire poser le code.
+   *
+   * **Sans la seconde moitié, ce chip enfermait le parent dehors.** Une
+   * famille sans code — venue du tunnel du site, ou inscrite avant que le code
+   * ne soit obligatoire — se verrouillait hors de son propre espace d'une
+   * seule touche ici : le drapeau écrit ferme la pose du code, et le tableau
+   * de bord renvoie ensuite vers un écran sans issue à chaque lancement.
+   * Puisqu'il est là, on lui fait poser le sien dans la foulée.
+   */
+  const declarerPuisPoserLeCode = async (souhait: ChoixDAppareil) => {
+    await declarerUsage(souhait).catch(() => undefined);
+    if (souhait.kind === 'parent') return;
+    const pose = await getAuthService().hasParentPin().catch(() => true);
+    if (pose) return;
+    autoriserLaPoseDuCode();
+    router.push({ pathname: '/parent-pin', params: { ensuite: '/parent' } });
+  };
   const activerNotifications = useMinoStore((s) => s.activerNotifications);
   const notifier = getNotificationService();
 
@@ -177,27 +201,49 @@ export default function ParentSettings() {
         <Text variant="label" color={colors.textMuted}>
           CET APPAREIL
         </Text>
+        {/**
+          * La même question qu'à l'inscription, et les mêmes trois réponses.
+          *
+          * **Ce qui manquait, et c'était le reproche numéro un de la
+          * recette :** la réponse ne se corrigeait pas. Elle n'était posée
+          * qu'une fois, et se tromper était définitif. Cette carte existait
+          * déjà, mais elle n'offrait que deux réponses sur trois et n'écrivait
+          * qu'un `lockedChildId` : un parent qui avait répondu « c'est mon
+          * téléphone » le restait pour toujours, y compris le jour où il
+          * donnait cette tablette à son enfant.
+          *
+          * Les trois réponses passent maintenant par `declarerUsage`, comme à
+          * l'inscription — donc les trois champs s'écrivent ensemble.
+          */}
         <Text variant="body" color={colors.textMuted}>
-          {device.lockedChildId
-            ? `Réservé à ${(data?.children ?? []).find((c) => c.id === device.lockedChildId)?.firstName ?? 'un enfant'} : Mino s’ouvre directement sur son profil, et il faut votre code pour en changer.`
-            : 'Partagé : Mino rouvre sur le dernier profil utilisé, et vos enfants peuvent en changer librement.'}
+          {choix.kind === 'enfant'
+            ? `Réservé à ${(data?.children ?? []).find((c) => c.id === choix.childId)?.firstName ?? 'un enfant'} : Mino s’ouvre directement sur son profil, et il faut votre code pour en changer.`
+            : choix.kind === 'partage'
+              ? 'Partagé entre les enfants : Mino rouvre sur le dernier profil utilisé, et ils peuvent en changer librement.'
+              : 'Le vôtre : rien n’est bloqué ici, et les alertes de validation vous arrivent sur cet appareil.'}
         </Text>
         <View style={styles.chips}>
-          <Chip
-            label="Partagé"
-            icon="👨‍👩‍👧"
-            selected={!device.lockedChildId}
-            onPress={() => lockDeviceTo(null).catch(() => undefined)}
-          />
           {(data?.children ?? []).map((child) => (
             <Chip
               key={child.id}
               label={`À ${child.firstName}`}
               icon="🔒"
-              selected={device.lockedChildId === child.id}
-              onPress={() => lockDeviceTo(child.id).catch(() => undefined)}
+              selected={choix.kind === 'enfant' && choix.childId === child.id}
+              onPress={() => declarerPuisPoserLeCode({ kind: 'enfant', childId: child.id })}
             />
           ))}
+          <Chip
+            label="Partagé entre les enfants"
+            icon="👧👦"
+            selected={choix.kind === 'partage'}
+            onPress={() => declarerPuisPoserLeCode({ kind: 'partage' })}
+          />
+          <Chip
+            label="À moi"
+            icon="📱"
+            selected={choix.kind === 'parent'}
+            onPress={() => declarerUsage({ kind: 'parent' }).catch(() => undefined)}
+          />
         </View>
         <Text variant="caption" color={colors.textSubtle}>
           Sur un appareil partagé, chacun voit les profils des autres et peut lancer leur temps

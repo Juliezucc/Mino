@@ -13,14 +13,46 @@ import { colors, spacing } from '@/theme';
  * la règle et la raison. La suite tenait en une phrase : c'est à l'enfant de
  * jouer. Et la sortie existait déjà, mais au fond des réglages, sous une
  * étiquette qui parle de verrouiller.
+ *
+ * **Trois défauts relevés sur un vrai téléphone, et ils tenaient dans quatre
+ * lignes de texte.**
+ *
+ * *Le genre.* « Dès qu'**il** en aura terminé une » s'affichait sous le prénom
+ * de Manon. Mino ne connaît pas le genre des enfants — un prénom et un âge,
+ * rien de plus — et ne doit jamais le demander. Toute tournure qui suppose
+ * l'un ou l'autre est donc fausse une fois sur deux, et il n'existe aucun
+ * réglage pour la corriger. On réécrit la phrase plutôt que d'inventer un
+ * « il ou elle » : « dès qu'une mission sera terminée ».
+ *
+ * *Le nombre.* « Sur **son** appareil à lui » ne désigne plus personne dès la
+ * deuxième fiche, et la carte ne nommait de toute façon que `children[0]` —
+ * une famille de trois enfants en voyait un seul.
+ *
+ * *L'endroit.* Ce même bloc explique comment installer Mino sur l'appareil de
+ * l'enfant… y compris quand on est déjà dessus. Le parent qui a déclaré « cet
+ * appareil est à Manon » lisait donc, sur l'appareil de Manon, qu'il fallait y
+ * installer Mino.
  */
 interface Props {
-  child: Child;
+  /** Toute la fratrie : la carte parle d'elle, pas du premier profil créé. */
+  enfants: Child[];
   familyCode: string;
+  /**
+   * Cet appareil est celui d'un enfant, le parent l'a déclaré.
+   *
+   * Change deux choses : on ne propose plus d'installer Mino ici — c'est déjà
+   * fait, on est dessus — et le passage au profil de l'enfant cesse d'être
+   * l'action principale, puisque l'application y rouvre d'elle-même.
+   */
+  appareilDeLEnfant?: boolean;
 }
 
-export function FirstStepCard({ child, familyCode }: Props) {
+export function FirstStepCard({ enfants, familyCode, appareilDeLEnfant = false }: Props) {
   const router = useRouter();
+
+  const premier = enfants[0];
+  if (!premier) return null;
+  const plusieurs = enfants.length > 1;
 
   return (
     <Card style={styles.card} background={colors.surfaceMuted} elevation="none">
@@ -28,31 +60,42 @@ export function FirstStepCard({ child, familyCode }: Props) {
           pixels au-dessus, et deux Minos si proches se lisent comme un bug.
           C'est l'avatar de l'enfant qui a sa place — c'est de lui qu'on parle. */}
       <View style={styles.head}>
-        <Avatar avatarKey={child.avatarKey} size={48} />
+        <Avatar avatarKey={premier.avatarKey} size={48} />
         <View style={styles.headTexts}>
-          <Text variant="cardTitle">{`À ${child.firstName} de jouer`}</Text>
+          <Text variant="cardTitle">
+            {plusieurs ? 'À vos enfants de jouer' : `À ${premier.firstName} de jouer`}
+          </Text>
           <Text variant="caption" color={colors.textMuted}>
-            Ses missions l’attendent. Dès qu’il en aura terminé une, elle arrivera ici.
+            {plusieurs
+              ? 'Leurs missions les attendent. Dès qu’une mission sera terminée, elle arrivera ici.'
+              : 'Ses missions l’attendent. Dès qu’une mission sera terminée, elle arrivera ici.'}
           </Text>
         </View>
       </View>
 
       {/* Sur un appareil partagé — le cas le plus courant — l'enfant joue sur
-          celui-ci, et il faut pouvoir lui passer tout de suite. */}
+          celui-ci, et il faut pouvoir lui passer tout de suite. Sur le sien,
+          l'application rouvre déjà sur son profil : le bouton reste, en
+          retrait, parce qu'il sert encore à sortir de l'espace parent. */}
       <Button
-        label={`Passer à ${child.firstName}`}
+        label={plusieurs ? 'Passer à un profil enfant' : `Passer à ${premier.firstName}`}
         icon="👋"
+        variant={appareilDeLEnfant ? 'secondary' : 'primary'}
         onPress={() => router.replace('/who')}
       />
 
-      <View style={styles.code}>
-        <Text variant="caption" color={colors.textMuted} center>
-          Sur son appareil à lui : installez Mino, puis « J’ai un code famille »
-        </Text>
-        <Text variant="title" color={colors.blueInk} center>
-          {familyCode}
-        </Text>
-      </View>
+      {appareilDeLEnfant ? null : (
+        <View style={styles.code}>
+          <Text variant="caption" color={colors.textMuted} center>
+            {plusieurs
+              ? 'Sur chaque appareil confié à un enfant : installez Mino, puis « J’ai un code famille »'
+              : `Sur l’appareil de ${premier.firstName} : installez Mino, puis « J’ai un code famille »`}
+          </Text>
+          <Text variant="title" color={colors.blueInk} center>
+            {familyCode}
+          </Text>
+        </View>
+      )}
     </Card>
   );
 }
