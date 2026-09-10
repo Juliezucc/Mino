@@ -68,7 +68,7 @@ export default function ConversationsScreen() {
           title="Aucune conversation"
           message={
             getSupabaseClient()
-              ? 'Mino n’a pas encore discuté avec lui. Cela n’arrive que lorsque son temps d’écran est terminé.'
+              ? 'Mino n’a pas encore discuté avec cet enfant. Cela n’arrive que lorsque son temps d’écran est terminé.'
               : 'Les conversations sont enregistrées sur le compte en ligne. Cette version hors ligne n’en garde aucune.'
           }
         />

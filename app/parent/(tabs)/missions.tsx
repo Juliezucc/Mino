@@ -43,7 +43,7 @@ export default function ParentMissions() {
   const confirmArchive = (missionId: string, title: string) => {
     void confirmer({
       titre: 'Supprimer la mission ?',
-      message: `« ${title} » ne sera plus proposée aux enfants.`,
+      message: `« ${title} » ne sera plus proposée.`,
       action: 'Supprimer',
       destructif: true,
     }).then((oui) => {

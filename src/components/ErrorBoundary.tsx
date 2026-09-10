@@ -67,7 +67,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             Mino s’est emmêlé
           </Text>
           <Text variant="body" color={colors.textMuted} center>
-            Ce n’est pas votre faute, et rien n’est perdu : les minos de vos enfants sont en
+            Ce n’est pas votre faute, et rien n’est perdu : tout ce qui a été gagné est en
             sécurité. Le problème nous a été signalé automatiquement.
           </Text>
         </View>

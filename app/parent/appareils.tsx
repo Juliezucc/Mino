@@ -54,7 +54,7 @@ export default function DevicesScreen() {
   const confirmRemove = (id: string, name: string) => {
     void confirmer({
       titre: 'Retirer cet appareil ?',
-      message: `« ${name} » ne sera plus proposé à vos enfants.`,
+      message: `« ${name} » ne sera plus proposé pour le temps d’écran.`,
       action: 'Retirer',
       destructif: true,
     }).then((oui) => {
@@ -75,7 +75,7 @@ export default function DevicesScreen() {
         </Text>
         <Text variant="body" color={colors.textMuted}>
           Mino existe sur iPhone, iPad et Android. Sur un de ces appareils, votre enfant lance
-          lui-même son temps et le minuteur démarre tout de suite.
+          son temps sans passer par vous, et le minuteur démarre tout de suite.
         </Text>
         <Text variant="body" color={colors.textMuted}>
           Une console, une télévision ou un ordinateur n’ouvrent leur temps de jeu à aucune
@@ -89,8 +89,8 @@ export default function DevicesScreen() {
         {devices.length === 0 ? (
           <Card elevation="none" background={colors.surfaceMuted}>
             <Text variant="body" color={colors.textMuted} center>
-              Aucun appareil déclaré. Vos enfants ne peuvent utiliser leur temps que sur l’appareil
-              où Mino est installé.
+              Aucun appareil déclaré : le temps gagné ne peut être utilisé que sur l’appareil où
+              Mino est installé.
             </Text>
           </Card>
         ) : (

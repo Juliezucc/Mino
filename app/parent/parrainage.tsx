@@ -82,7 +82,7 @@ export default function ReferralScreen() {
 
   const share = () => {
     Share.share({
-      message: `On utilise Mino à la maison : les enfants gagnent leur temps d’écran en faisant leurs missions. Tu as ${TRIAL_DAYS} jours d’essai, et avec mon code ${myCode} tu me fais gagner un mois.`,
+      message: `On utilise Mino à la maison : le temps d’écran se gagne, mission après mission. Tu as ${TRIAL_DAYS} jours d’essai, et avec mon code ${myCode} tu me fais gagner un mois.`,
     }).catch(() => undefined);
   };
 

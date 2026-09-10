@@ -246,8 +246,9 @@ export default function ParentSettings() {
           />
         </View>
         <Text variant="caption" color={colors.textSubtle}>
-          Sur un appareil partagé, chacun voit les profils des autres et peut lancer leur temps
-          d’écran. Réservez-le à un enfant si c’est son téléphone à lui.
+          Sur un appareil partagé, tous les profils de la famille sont accessibles, et le temps
+          d’écran de chacun peut être lancé d’ici. Réservez l’appareil à un enfant si c’est le
+          sien.
         </Text>
       </Card>
 
@@ -256,8 +257,8 @@ export default function ParentSettings() {
           APPAREILS DE LA MAISON
         </Text>
         <Text variant="body" color={colors.textMuted}>
-          Console, télévision, ordinateur : déclarez-les pour que vos enfants puissent y échanger
-          leur temps. Le fonctionnement automatique n’existe que sur un iPhone, un iPad ou un
+          Console, télévision, ordinateur : déclarez-les pour que le temps gagné puisse s’y
+          échanger. Le fonctionnement automatique n’existe que sur un iPhone, un iPad ou un
           appareil Android où Mino est installé.
         </Text>
         <Button

@@ -88,7 +88,7 @@ export default function EditMission() {
 
     void confirmer({
       titre: 'Une demande attend déjà',
-      message: `Le nouveau temps s’appliquera aux prochaines fois. La demande en attente reste à ${mission.minutes} min, comme annoncé à l’enfant quand il a terminé.`,
+      message: `Le nouveau temps s’appliquera aux prochaines fois. La demande en attente reste à ${mission.minutes} min, comme annoncé à l’enfant au moment du « J’ai terminé ».`,
       action: 'Enregistrer',
     }).then((oui) => {
       if (oui) void submit(value);

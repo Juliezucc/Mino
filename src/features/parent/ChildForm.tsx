@@ -78,7 +78,7 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
 
       <View style={styles.block}>
         <Text variant="label" color={colors.textMuted}>
-          Une fois qu’il a gagné des minos
+          {bandForAge(age) === 'ado' ? 'Une fois les minutes gagnées' : 'Une fois les minos gagnés'}
         </Text>
         <View style={styles.row}>
           <Chip
@@ -101,7 +101,7 @@ export function ChildForm({ initial, submitLabel, onSubmit, loading }: Props) {
         <Text variant="caption" color={colors.textSubtle}>
           {requireApproval
             ? 'Même pour des minos déjà gagnés, chaque session attendra votre accord — y compris sur l’appareil où Mino est installé.'
-            : 'Il ne peut lancer que des minos déjà gagnés et confirmés par vous, jamais plus que son compteur. Sur l’appareil où Mino est installé, il démarre lui-même ; console, télévision et ordinateur passent toujours par vous.'}
+            : 'Seuls des minos déjà gagnés et confirmés par vous peuvent être lancés, jamais plus que le compteur. Sur l’appareil où Mino est installé, la session démarre sans vous ; console, télévision et ordinateur passent toujours par vous.'}
         </Text>
       </View>
 

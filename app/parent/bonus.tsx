@@ -69,7 +69,7 @@ export default function BonusScreen() {
           {`+${minutes} min pour ${names}`}
         </Text>
         <Text variant="body" color={colors.textMuted} center>
-          {`Le compteur est déjà à jour. Dites-le-lui de vive voix : « ${reason} », c’est ce qui donne au bonus sa valeur.`}
+          {`Le compteur est déjà à jour. Dites-le de vive voix : « ${reason} », c’est ce qui donne au bonus sa valeur.`}
         </Text>
         <Button label="TERMINÉ" onPress={() => router.back()} />
       </Screen>

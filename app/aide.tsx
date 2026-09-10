@@ -122,8 +122,8 @@ export default function Aide() {
               Toujours bloqué ?
             </Text>
             <Text variant="body" color={colors.textMuted}>
-              Envoyez-nous un signalement. Il part avec ce qu’il faut pour comprendre, et rien sur
-              vos enfants.
+              Envoyez-nous un signalement. Il part avec ce qu’il faut pour comprendre, et sans
+              aucune donnée d’enfant.
             </Text>
             <Button label="Signaler un problème" variant="secondary" onPress={() => router.push('/probleme')} />
           </Card>

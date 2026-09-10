@@ -120,16 +120,16 @@ export default function PlagesLibres() {
         </Text>
         {/* La première question d'un parent, répondue avant qu'il la pose. */}
         <Text variant="caption" color={colors.textSubtle}>
-          Le compteur de votre enfant ne bouge pas : une plage libre n’enlève
-          aucune minute, et n’en ajoute aucune.
+          Aucun compteur ne bouge : une plage libre n’enlève aucune minute, et
+          n’en ajoute aucune.
         </Text>
       </Card>
 
       {plages.length === 0 && !ouvertFormulaire ? (
         <Card elevation="none" background={colors.surfaceMuted} style={styles.block}>
           <Text variant="body" color={colors.textMuted}>
-            Aucune plage pour l’instant. Vos enfants gagnent tout leur temps
-            d’écran par leurs missions.
+            Aucune plage pour l’instant : tout le temps d’écran se gagne par les
+            missions.
           </Text>
         </Card>
       ) : null}

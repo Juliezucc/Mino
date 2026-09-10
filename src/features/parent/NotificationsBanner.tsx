@@ -59,8 +59,8 @@ export function NotificationsBanner() {
     <Card background={colors.blueSoft} elevation="none" style={styles.carte}>
       <Text variant="cardTitle">🔔 Être prévenu quand votre enfant a terminé</Text>
       <Text variant="body" color={colors.textMuted}>
-        Sans cela, vous découvrirez ses missions en rouvrant Mino, et lui
-        apprendra ses minutes le lendemain matin. C’est le lien entre l’effort
+        Sans cela, vous découvrirez les missions terminées en rouvrant Mino, et les
+        minutes n’arriveront que le lendemain matin. C’est le lien entre l’effort
         et la récompense qui se perd en route.
       </Text>
 

@@ -423,7 +423,7 @@ export const FAQ: FaqEntry[] = [
     id: 'parrainage',
     question: 'Comment fonctionne le parrainage ?',
     answer:
-      'Votre filleul obtient soixante jours d’essai au lieu de trente. Dès qu’il devient payant, vous recevez un mois offert — jusqu’à douze par an. Votre code se trouve dans Réglages, section Parrainage.',
+      'Vous partagez votre code. La famille qui l’utilise reçoit les 30 jours d’essai proposés à tout le monde — ni plus, ni moins. Dès qu’elle devient payante, c’est vous qui recevez un mois offert, jusqu’à douze par an. Votre code se trouve dans Réglages, section Parrainage.',
     category: 'abonnement',
     keywords: ['parrainage', 'parrain', 'filleul', 'inviter', 'code parrainage', 'offert', 'gratuit'],
     route: '/parent/parrainage',

@@ -200,7 +200,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'L’enfant choisit quand en profiter',
         body: [
-          'Dans « Mon temps », il décide combien de minos utiliser et lance une session. Seul le temps réellement écoulé est décompté : s’il arrête au bout de 10 minutes sur 20, les 10 autres lui restent.',
+          'Dans « Mon temps », l’enfant décide combien de minos utiliser et lance une session. Seul le temps réellement écoulé est décompté : une session arrêtée au bout de 10 minutes sur 20 en laisse 10 au compteur.',
         ],
         screen: 'enfantTemps',
       },
@@ -281,7 +281,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'L’enfant demande',
         body: [
-          'Dans « Mon temps », il choisit l’écran parmi ceux que vous avez déclarés, puis la durée, et appuie sur « Demander à mon parent ».',
+          'Dans « Mon temps », l’enfant choisit l’écran parmi ceux que vous avez déclarés, puis la durée, et appuie sur « Demander à mon parent ».',
           'Rien n’est décompté à ce moment-là. Une demande sans réponse ne coûte rien.',
         ],
         screen: 'enfantTemps',
@@ -307,7 +307,7 @@ export const GUIDE: GuideChapter[] = [
         title: 'Et si vous voulez confirmer même sur son téléphone',
         body: [
           'Par défaut, sur l’appareil où Mino est installé, votre enfant démarre son temps sans vous : le compteur lui appartient, et le temps gagné s’utilise librement.',
-          'Si vous préférez que chaque session passe par vous, ouvrez sa fiche dans Enfants et choisissez « Il me demande d’abord ». Toutes ses sessions attendront alors votre accord, sur tous les écrans.',
+          'Si vous préférez que chaque session passe par vous, ouvrez sa fiche dans Enfants et choisissez « En me demandant d’abord ». Toutes ses sessions attendront alors votre accord, sur tous les écrans.',
         ],
         where: 'Espace parent → Enfants → l’enfant',
       },

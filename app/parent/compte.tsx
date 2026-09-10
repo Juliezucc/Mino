@@ -92,7 +92,7 @@ export default function CompteParent() {
     void confirmer({
       titre: 'Se déconnecter ?',
       message:
-        'Rien ne sera perdu : vos enfants, leurs missions et leurs minutes restent sur votre compte. Il faudra votre mot de passe pour revenir.',
+        'Rien ne sera perdu : les profils, les missions et les minutes gagnées restent sur votre compte. Il faudra votre mot de passe pour revenir.',
       action: 'Se déconnecter',
     }).then(async (oui) => {
       if (!oui) return;
@@ -207,7 +207,7 @@ export default function CompteParent() {
         </Text>
         <Text variant="body" color={colors.textMuted}>
           Il ne protège pas seulement votre compte : il protège les profils de
-          vos enfants.
+          votre famille.
         </Text>
         <Field
           label="Nouveau mot de passe"
@@ -230,7 +230,7 @@ export default function CompteParent() {
           CODE PARENT
         </Text>
         <Text variant="body" color={colors.textMuted}>
-          Les quatre chiffres qui ouvrent l’espace parent devant votre enfant.
+          Les quatre chiffres qui ouvrent l’espace parent devant un enfant.
           Ce n’est pas votre mot de passe, et il ne doit pas lui ressembler.
           À changer sans hésiter le jour où votre enfant vous a vu le taper.
         </Text>

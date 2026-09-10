@@ -15,6 +15,7 @@ import {
   TimeCapsules,
   confirmer,
 } from '@/components/ui';
+import { unitOf } from '@/domain/ageBand';
 import { balanceDetail } from '@/domain/ledger';
 import { missionsForChild, nommerLeJour } from '@/domain/missions';
 import { MissionCard } from '@/features/child/MissionCard';
@@ -102,8 +103,8 @@ export default function ParentChildDetail() {
 
       <View style={styles.section}>
         <SectionHeader
-          title="Une fois qu’il a gagné des minos"
-          subtitle="Il ne peut jamais lancer plus que son compteur, ni du temps que vous n’avez pas confirmé"
+          title={unitOf(child) === 'minutes' ? 'Une fois les minutes gagnées' : 'Une fois les minos gagnés'}
+          subtitle="Jamais plus que le compteur, ni du temps que vous n’avez pas confirmé"
         />
         <View style={styles.row}>
           <Chip
@@ -127,7 +128,7 @@ export default function ParentChildDetail() {
       <View style={styles.section}>
         <SectionHeader
           title="Parler à Mino"
-          subtitle="Quand son temps d’écran est fini, Mino reste et discute avec lui"
+          subtitle={`Quand son temps d’écran est fini, Mino reste et discute avec ${child.firstName}`}
         />
         <View style={styles.row}>
           <Chip

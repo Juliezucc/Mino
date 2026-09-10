@@ -131,7 +131,7 @@ export default function NouveauMotDePasse() {
           </Text>
           <Text variant="body" color={colors.textMuted} center>
             Choisissez-en un que vous retiendrez. Il ne protège pas seulement
-            votre compte : il protège les profils de vos enfants.
+            votre compte : il protège les profils de votre famille.
           </Text>
         </View>
 
