@@ -19,6 +19,7 @@ import { isFirstRun } from '@/domain/firstRun';
 import { accessOf } from '@/domain/billing';
 import { AccessBanner } from '@/features/parent/AccessBanner';
 import { BouclierBanner } from '@/features/parent/BouclierBanner';
+import { NotificationsBanner } from '@/features/parent/NotificationsBanner';
 import { FirstStepCard } from '@/features/parent/FirstStepCard';
 import { RequestCard } from '@/features/parent/RequestCard';
 import { ScreenRequestCard } from '@/features/parent/ScreenRequestCard';
@@ -108,6 +109,11 @@ export default function ParentHome() {
           appareil-ci — et tant que le parent n'a pas dit qu'il n'en voulait
           pas — il faut le dire ici, là où il regarde de toute façon. */}
       <BouclierBanner />
+
+      {/* La boucle ne tient que si les deux bouts l'entendent. Sans permission,
+          l'appareil est injoignable pour toujours — et iOS ne pose la question
+          que si on la lui demande. */}
+      <NotificationsBanner />
 
       {/* Avant la première minute gagnée, la seule chose utile à dire est ce
           qui vient après. Voir `FirstStepCard`. */}

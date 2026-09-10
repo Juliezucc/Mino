@@ -125,6 +125,15 @@ interface MinoState {
    */
   setUsagePersonnel: (valeur: boolean) => Promise<void>;
   /**
+   * Demander la permission, ET déclarer l'appareil joignable dans la foulée.
+   *
+   * Les deux gestes étaient séparés, et c'est ce qui manquait : le bouton des
+   * réglages accordait la permission mais ne posait aucun jeton. L'appareil
+   * restait injoignable jusqu'au prochain lancement de Mino — donc jusqu'au
+   * lendemain, dans le meilleur des cas.
+   */
+  activerNotifications: () => Promise<boolean>;
+  /**
    * Dire au reste de la famille dans quel état est le bouclier ICI.
    *
    * Jamais attendu par l'appelant : c'est un rapport, pas une action.
@@ -898,6 +907,17 @@ export const useMinoStore = create<MinoState>((set, get) => {
     async setUsagePersonnel(valeur) {
       set({ device: await writeDeviceProfile({ usagePersonnel: valeur }) });
       redireLeGenreDeLAppareil();
+    },
+
+    async activerNotifications() {
+      const accorde = await getNotificationService()
+        .requestPermission()
+        .catch(() => false);
+      // Le jeton ne peut être demandé qu'une fois la permission accordée — et
+      // il doit l'être tout de suite. Sans cette ligne, le parent autorise les
+      // notifications et n'en reçoit aucune jusqu'au prochain lancement.
+      if (accorde) redireLeGenreDeLAppareil();
+      return accorde;
     },
 
     async setCompteurSeul(valeur) {

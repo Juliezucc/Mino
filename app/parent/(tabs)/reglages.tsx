@@ -23,6 +23,7 @@ export default function ParentSettings() {
   const device = useMinoStore((s) => s.device);
   const lockDeviceTo = useMinoStore((s) => s.lockDeviceTo);
   const setNotifications = useMinoStore((s) => s.setNotificationPreferences);
+  const activerNotifications = useMinoStore((s) => s.activerNotifications);
   const notifier = getNotificationService();
 
   const capability = getScreenTimeService().capability;
@@ -154,7 +155,10 @@ export default function ParentSettings() {
             <Button
               label="Autoriser les notifications"
               variant="secondary"
-              onPress={() => notifier.requestPermission().catch(() => undefined)}
+              // Passe par le magasin, et pas directement par le service : la
+              // permission accordée ne sert à rien tant que le jeton de
+              // l'appareil n'est pas posé, et ce bouton ne le posait pas.
+              onPress={() => activerNotifications().catch(() => undefined)}
             />
           </>
         ) : (
