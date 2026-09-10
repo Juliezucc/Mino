@@ -55,9 +55,67 @@ Deno.serve(servir(async (request) => {
       .eq('id', caller.familyId)
       .maybeSingle();
 
+    /**
+     * ------------------------------ l'achat qui porte le jeton d'une autre famille
+     *
+     * **Ce que le jeton de compte est, et ce qu'il n'est pas.** À l'achat, on
+     * transmet à la boutique un identifiant qui désigne la famille. La boutique
+     * le grave sur la transaction d'origine et le rend tel quel pour toujours —
+     * y compris aux renouvellements, des années plus tard. Il sert à retrouver
+     * la famille quand la notification serveur à serveur arrive toute seule.
+     *
+     * **Le refus sec créait une impasse dont personne ne sortait.** Un parent
+     * qui recommence sa famille — la première tentative a échoué, il a supprimé
+     * son compte, il réinstalle — garde le même compte Apple, donc le même
+     * abonnement, donc la même transaction d'origine. Mais celle-ci porte le
+     * jeton de son ANCIENNE famille. Il paie chez Apple, la boutique le lui
+     * confirme, et Mino lui répond « cet achat appartient à un autre compte ».
+     * Définitivement, sans recours, sur un abonnement qui est le sien.
+     *
+     * C'est exactement ce qu'ont dit les journaux au premier vrai test :
+     * `jeton de compte étranger fam_… 2000001233257291`.
+     *
+     * **Ce qu'on garde, et c'est l'essentiel.** Le contrôle existe pour une
+     * raison qui n'a pas changé : personne ne doit pouvoir faire valoir
+     * l'abonnement d'un tiers. On ne le lève donc que lorsqu'il n'y a
+     * personne à déposséder — quand aucune famille ne détient réellement cet
+     * achat aujourd'hui. Si une famille l'a bel et bien, le refus reste, à la
+     * lettre.
+     *
+     * La preuve, elle, n'est jamais en cause : elle vient d'être vérifiée
+     * auprès d'Apple ou de Google. Ce n'est pas elle qu'on assouplit, c'est le
+     * registre qu'on cesse de traiter comme un titre de propriété.
+     */
     if (state.accountToken && family?.store_account_token !== state.accountToken) {
-      console.error('jeton de compte étranger', caller.familyId, state.transactionId);
-      return fail('Cet achat appartient à un autre compte.', 403);
+      const { data: ancienne } = await db
+        .from('families')
+        .select('id')
+        .eq('store_account_token', state.accountToken)
+        .maybeSingle();
+
+      const { data: detenu } = ancienne
+        ? await db
+            .from('subscriptions')
+            .select('family_id')
+            .eq('family_id', ancienne.id)
+            .in('source', ['apple', 'google'])
+            .maybeSingle()
+        : { data: null };
+
+      if (detenu) {
+        console.error('jeton de compte étranger', caller.familyId, state.transactionId);
+        return fail('Cet achat appartient à un autre compte.', 403);
+      }
+
+      // Personne ne le détient : on l'adopte, et on le dit. Cette ligne est
+      // celle qu'on relira le jour où quelqu'un se demandera comment un achat
+      // a changé de famille.
+      console.warn(
+        'achat adopté',
+        caller.familyId,
+        state.transactionId,
+        ancienne?.id ?? 'aucune famille pour ce jeton',
+      );
     }
 
     await applyStoreState(state, { familyId: caller.familyId });
