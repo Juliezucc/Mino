@@ -4,6 +4,7 @@ import { StyleSheet } from 'react-native';
 
 import { Button, Card, Text } from '@/components/ui';
 import { getAuthService } from '@/services/auth';
+import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
 /**
@@ -25,9 +26,12 @@ import { colors, spacing } from '@/theme';
  * enfant — voir `app/onboarding/appareil.tsx`. Restent trois populations que
  * cela ne couvre pas :
  *
- *   — le parent qui a touché « Plus tard » sur cet écran-là ;
  *   — les familles créées avant cette correction ;
- *   — celles venues du site, qui ne traversent jamais notre inscription.
+ *   — celles venues du tunnel de `minoapp.fr`, qui ne traversent jamais notre
+ *     inscription ;
+ *   — celles inscrites depuis `app.minoapp.fr`, où la question de l'appareil
+ *     n'est même pas posée : dans un navigateur, Mino ne bloque rien, et cet
+ *     écran cède la place à « installez Mino sur l'appareil de votre enfant ».
  *
  * Toutes ont un point commun : le seul écran qui sait poser un code est celui
  * du code lui-même, et il n'est atteignable qu'en essayant d'entrer là où l'on
@@ -58,7 +62,21 @@ export function CodeParentBanner() {
 
   useEffect(relire, [relire]);
 
-  if (pose !== false) return null;
+  /**
+   * Le téléphone du parent, où il n'y a personne à tenir dehors.
+   *
+   * Même condition que le bandeau du bouclier, et pour la même raison : « c'est
+   * mon téléphone à moi » est une réponse, pas une omission. Reprocher à ce
+   * parent-là une serrure absente serait un avertissement faux, et un
+   * avertissement faux apprend à ignorer les vrais.
+   *
+   * `lastChildId` referme la porte : dès qu'un profil enfant s'ouvre ici une
+   * fois, l'appareil cesse d'être personnel et le bandeau revient. Un parent
+   * qui prête son téléphone n'a rien à déclarer.
+   */
+  const personnel = useMinoStore((s) => s.device.usagePersonnel && !s.device.lastChildId);
+
+  if (pose !== false || personnel) return null;
 
   return (
     <Card background={colors.blueSoft} elevation="none" style={styles.carte}>

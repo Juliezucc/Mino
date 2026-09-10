@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot';
-import { Avatar, Button, Card, Screen, Text } from '@/components/ui';
+import { Avatar, Card, Screen, Text } from '@/components/ui';
 import {
   InstallerSurLAppareil,
   SANS_BOUCLIER,
@@ -178,15 +178,25 @@ export default function OnboardingAppareil() {
         </View>
       </Card>
 
-      {/* Sauter est possible, et le dire l'est aussi : un parent pressé qui ne
-          trouve pas d'issue referme l'application, et on a perdu l'installation
-          au lieu de la retarder. */}
-      <Button
-        label="Plus tard"
-        variant="ghost"
-        haptic={false}
-        onPress={() => router.replace('/parent')}
-      />
+      {/**
+        * Pas de « Plus tard » ici, et c'était une erreur d'en avoir mis un.
+        *
+        * Le raisonnement d'origine — un parent pressé qui ne trouve pas d'issue
+        * referme l'application — vaut pour l'écran du blocage, qui demande de
+        * traverser les réglages du système et peut légitimement attendre. Il ne
+        * vaut pas pour celui-ci.
+        *
+        * Cette question-ci ne coûte rien : trois cartes, une touche. Et la
+        * sauter emporte deux choses qu'aucun écran ne redemandera. Mino ne
+        * saura pas s'il est sur la tablette d'un enfant — donc s'il doit
+        * rouvrir sur son profil, et à qui adresser les notifications. Surtout,
+        * le code parent se pose juste après cette réponse : personne ne l'aura
+        * demandé, et l'espace parent restera sans serrure sur un appareil dont
+        * on ignore qui s'en sert.
+        *
+        * L'issue existe toujours, elle est simplement une réponse : « c'est mon
+        * téléphone à moi » n'engage à rien et n'ouvre aucun réglage.
+        */}
     </Screen>
   );
 }
