@@ -53,7 +53,7 @@ export const TERMS: LegalDocument = {
         },
         {
           kind: 'note',
-          text: 'Le choix des applications vous appartient entièrement : Mino n’en désigne aucune de lui-même. Sur iPhone et iPad, il ignore lesquelles vous avez cochées — Apple ne lui transmet que des identifiants anonymes et leur nombre. Sur Android, où ce mécanisme n’existe pas, il lit la liste des applications installées pour vous les présenter et conserve sur l’appareil, et sur lui seul, le nom de celles que vous cochez ; cette liste n’est jamais transmise à nos serveurs, qui n’en reçoivent que le nombre.',
+          text: 'Le choix des applications vous appartient entièrement : Mino n’en désigne aucune de lui-même. Sur iPhone et iPad, il ignore lesquelles vous avez cochées — Apple ne lui transmet que des identifiants anonymes et leur nombre. Sur Android, où ce mécanisme n’existe pas, il lit la liste des applications installées pour vous les présenter et conserve sur l’appareil, et sur lui seul, le nom de celles que vous cochez. Dans les deux cas, rien de tout cela n’est transmis à nos serveurs : ni les noms, ni le nombre.',
         },
         {
           kind: 'note',

@@ -222,52 +222,41 @@ the child earns screen time. Earned time is then enforced by the system:
 apps the parent selected are shielded until the child starts a session.
 
 HOW TO REVIEW ON A SINGLE DEVICE
-1. Sign in with the demo account below. You land in the parent area.
-2. On the parent home screen, tap "Changer de profil" (Switch profile), then
-   pick the child. No second device is needed.
-3. In the child profile, open a mission from the "Missions" tab and tap
-   "J'AI TERMINÉ" (I'm done).
-4. Go back to the parent area: from the "Profil" tab, tap "Espace parent"
-   (Parent area) and enter the parent code given below.
-5. The mission is waiting for confirmation. Confirm it, and the minutes are
-   credited immediately.
+All labels below are quoted exactly as they appear in the French UI.
+
+1. Sign in with the demo account below. You land on the profile picker,
+   titled "Qui utilise Mino ?" (Who is using Mino?). This screen is the hub:
+   the children are at the top, the parent area at the bottom.
+2. Tap a child's face. You are now in the child area, no code required.
+3. Open the "Missions" tab, tap any mission in the list, then tap the large
+   button "J'AI TERMINÉ ✓" (I'm done). The mission is now awaiting the
+   parent's confirmation.
+4. Go back to the parent side: "Profil" tab -> "Espace parent" (Parent area)
+   -> enter the 4-digit parent code given below. You land on the parent home.
+5. The pending mission is on that home screen, as a card. Tap the green
+   button "C'est fait · +XX min" (Done · +XX min). The minutes are credited
+   immediately and the card disappears.
+6. To go back to a child from there, tap "Changer de profil" (Switch profile),
+   under the mascot at the top left of the parent home.
+
+ACCOUNT DELETION (App Store Review Guideline 5.1.1(v))
+From the parent area: "Réglages" tab -> "Gérer mon compte" (Manage my account)
+-> scroll to the bottom -> type "supprimer" in the confirmation field -> tap
+"Supprimer mon compte" (Delete my account). This deletes the family and
+everything attached to it, on the server. It is offered only to the account
+holder, because only an identity with an e-mail address can be recovered from
+another device; the server enforces the same rule.
 
 ABOUT THE PAYWALL
-Creating a new family ends on a subscription screen that cannot be skipped:
-30 days free, then 9.99 EUR/month or 79.99 EUR/year, auto-renewing, with an
-introductory free month configured on both products. Nothing is charged on
-the day of purchase.
-
-The demo account below is already subscribed, so it goes straight past that
-screen — please use it rather than creating a new family. If you do want to
-see the paywall itself, create a family from the welcome screen and stop
-before paying; nothing is charged until you confirm with Apple.
-
-ABOUT FAMILY CONTROLS
-Screen time is enforced with FamilyControls, ManagedSettings and
-DeviceActivity. The parent grants the authorization once, on the child's
-device, from the Blocking screen. If the authorization is declined, the app
-still works and says so plainly: only automatic enforcement is disabled.
-A DeviceActivityMonitor extension re-applies the shield at the deadline,
-which is why the app keeps its promise when it is closed.
-
-CHILDREN'S PRIVACY
-The child has no account. We store a first name, an age and an illustrated
-avatar chosen from a list — no email, no last name, no photo, no phone
-number, no location. There is no advertising, no marketing tracking, no
-person-to-person messaging, no public content and no public profile. Family
-data is isolated at the database level, not merely by application code.
-
-AI COMPANION
-The app includes an in-app character that answers the child with generated
-text. It is not messaging: the child communicates with no one. Answers are
-rule-bounded, capped by a daily budget, and the parent can disable it per
-child in Settings.
+Creating a NEW family ends on a subscription screen that cannot be skipped:
+30 days free, then 9.99 EUR/month or 79.99 EUR/year, auto-renewing. Nothing is
+charged on the day of purchase. You do not need to go through it: the demo
+account below is already subscribed, and steps 1 to 6 never reach that screen.
 
 DEMO ACCOUNT
-Email:        <à créer>
-Password:     <à créer>
-Parent code:  <4 chiffres>
+Email:        demo@minoapp.fr
+Password:     <à recopier depuis le gestionnaire de mots de passe>
+Parent code:  <les 4 chiffres de ce compte>
 ```
 
 > **Le chemin décrit ci-dessus doit être celui d'un compte REMPLI.** Ces notes
@@ -325,9 +314,31 @@ Deux mauvaises réponses à ne pas prendre en attendant :
 
 ## L'ordre, parce qu'il compte
 
-1. Le compte de démonstration, **créé et rempli** — c'est ce qui prend le plus
-   de temps et qu'on découvre en dernier.
-2. Les captures : `npm run captures`.
+1. Le compte de démonstration, **rempli** : deux enfants, des missions créées,
+   **au moins une mission en attente de confirmation qui ne se compte PAS
+   toute seule** — une mission en `autoApprove` se valide sans passer par le
+   parent, et l'étape 5 des notes n'a alors pas lieu. Des minutes déjà gagnées.
+   Un compte vide donne un écran vide, et un écran vide se refuse.
+2. Les captures : `npm run captures`. Elles n'existent pas encore, et Apple
+   refuse une version sans au moins un jeu iPhone — c'est le poste bloquant.
 3. Les textes de `aso.md`.
 4. Les questionnaires ci-dessus.
-5. Le binaire, en dernier — parce qu'il expire, et que le reste ne bouge plus.
+5. **Vérifier dans App Store Connect que l'offre d'introduction « 1 mois
+   offert » existe sur les DEUX produits, qu'elle est active, et que les deux
+   produits sont bien joints à la version.**
+
+   > L'application ne peut pas faire ce contrôle à notre place. Sur iOS,
+   > `essaiOffert` vaut `undefined` (`src/services/billing/ExpoIapStore.ts`),
+   > `trialAvailable()` répond donc `null`, et `sansEssai` reste faux
+   > (`app/onboarding/abonnement.tsx`) : l'écran promet « 0 € pendant 30 jours »
+   > dans tous les cas. C'est délibéré — on n'affirme pas une absence qu'on n'a
+   > pas constatée — mais cela reporte la vérification ici, à la main.
+   >
+   > Sans l'offre, la feuille d'Apple prélève le plein tarif sous une promesse
+   > de gratuité affichée juste au-dessus du bouton. C'est arrivé sur Google
+   > Play, et c'est le motif 3.1.2 — celui qui a déjà fait refuser la 1.0.
+   >
+   > Un produit absent de la version est silencieusement omis de l'écran : le
+   > paywall s'affiche alors sans formule, ce qui est un refus tout aussi sûr.
+
+6. Le binaire, en dernier — parce qu'il expire, et que le reste ne bouge plus.

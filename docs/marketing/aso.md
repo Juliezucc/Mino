@@ -111,8 +111,13 @@ ensuite, la preuve après, le prix à la fin.
 >
 > **Un vrai blocage, pas un simple compteur**
 > Quand le temps est écoulé, les applications que vous avez choisies se
-> referment. Le téléphone, les messages et les appels d'urgence restent
-> toujours accessibles.
+> referment. Mino, lui, reste toujours ouvert : votre enfant peut voir ses
+> missions et en gagner d'autres.
+>
+> **Des plages libres quand vous voulez**
+> Le mercredi après-midi, les vacances, le trajet du dimanche : déclarez un
+> créneau et tout s'ouvre, sans qu'une minute soit décomptée. Le blocage
+> revient tout seul à la fin.
 >
 > **Pour les grands aussi**
 > À partir de treize ans, Mino change de langage : des minutes plutôt que des
@@ -122,14 +127,39 @@ ensuite, la preuve après, le prix à la fin.
 > Console, télévision, ordinateur familial : déclarez-les, et ils entrent dans
 > le même système.
 >
+> **À deux parents, sans partager de mot de passe**
+> L'autre parent installe Mino, saisit le code famille et se choisit dans la
+> liste : il voit, crée et confirme comme vous, sans compte ni adresse e-mail à
+> donner.
+>
 > **Ce que Mino ne fait pas**
-> Aucune publicité. Aucune revente de données. Aucune géolocalisation. Aucune
-> messagerie entre personnes. Aucun profil public. Votre enfant n'a ni compte,
-> ni adresse e-mail. Nous collectons son prénom, son âge et son avatar — rien
-> d'autre.
+> Aucune publicité. Aucune revente de données. Aucune géolocalisation. Aucun
+> profil public, aucune messagerie entre personnes. Votre enfant n'a ni compte,
+> ni adresse e-mail : un prénom, un âge et un avatar illustré suffisent.
 >
 > **Essai de 30 jours**, puis 9,99 €/mois ou 79,99 €/an pour toute la famille,
 > autant d'enfants et d'appareils que vous voulez. Annulation en deux touches.
+
+> **Deux phrases ont été retirées le 11 septembre 2026, et il ne faut pas les
+> remettre.**
+>
+> « Le téléphone, les messages et les appels d'urgence restent toujours
+> accessibles » : Mino ne tient cette promesse sur aucun des deux systèmes.
+> `applyShield` (`modules/mino-screen-time/ios/MinoScreenTimeModule.swift`) pose
+> le bouclier sur exactement ce que le parent a coché, sans exception, et les
+> jetons d'Apple sont opaques — l'application ne PEUT pas reconnaître Téléphone.
+> Seul Android écarte le composeur par défaut, et c'est notre code qui le fait,
+> pas une garantie du système. Les CGV disent désormais l'inverse de cette
+> phrase : une description qui les contredit est un motif de refus, et un
+> mensonge sur le seul point dont l'inexactitude peut coûter un dommage
+> corporel.
+>
+> « Nous collectons son prénom, son âge et son avatar — rien d'autre » : faux
+> dès que le compagnon est activé. Les conversations de l'enfant sont
+> conservées trente jours (`supabase/companion.sql`), et son message est
+> transmis à un prestataire pour générer la réponse. Le questionnaire App
+> Privacy le déclare ; une description qui dit le contraire est exactement la
+> divergence qu'un examinateur recoupe en premier.
 
 > Les prix ci-dessus doivent toujours valoir `MONTHLY_PRICE_EUR` et
 > `ANNUAL_PRICE_EUR` (`src/domain/billing.ts`). Ils y ont été portés à 9,99 et
