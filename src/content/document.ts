@@ -7,6 +7,28 @@
  * file instead of being hunted down across screens.
  */
 
+/**
+ * ⚠️ CE TYPE EST UN CONTRAT PARTAGÉ, PAS UN DÉTAIL D'AFFICHAGE.
+ *
+ * Ces blocs sont lus par DEUX consommateurs : `DocumentView`, dans
+ * l'application, et le générateur du site (`~/Mino-outils/legal.py`), qui en
+ * produit `cgv.html` et `confidentialite.html`. Ajouter un genre ici est donc
+ * une rupture de compatibilité pour un programme qui ne vit pas dans ce dépôt,
+ * et qu'aucun `tsc` ni aucun essai d'ici n'atteindra.
+ *
+ * **C'est arrivé.** `form` a été ajouté le 11 septembre 2026, et j'ai écrit à
+ * la session du site qu'il n'y avait « rien à régénérer, c'est un style
+ * d'affichage ». C'était faux : son générateur a rencontré un genre inconnu et
+ * a REFUSÉ d'écrire. Sans ce refus, le site serait resté silencieusement sur la
+ * version précédente des conditions générales — un document contractuel
+ * périmé, en ligne, sans que rien ne le signale.
+ *
+ * La règle qui en sort : toucher à cette union, c'est prévenir le site. Et la
+ * leçon qui vaut plus loin que ce fichier — un générateur qui échoue
+ * bruyamment vaut mieux qu'un générateur tolérant, exactement comme
+ * `hasParentPin()` qui lève désormais au lieu de répondre « non » quand elle
+ * n'a pas pu demander.
+ */
 export type Block =
   | { kind: 'p'; text: string }
   | { kind: 'bullets'; items: string[] }
