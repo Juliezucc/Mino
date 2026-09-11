@@ -72,6 +72,60 @@ describe('écrire une famille', () => {
     expect(rang('parents')).toBeLessThan(rang('children'));
   });
 
+  /**
+   * LA COMPLÉTION AVANT LE GRAND LIVRE, et l'ordre est tout.
+   *
+   * **Le défaut, invisible tant que le réseau tient.** La ligne de registre
+   * partait avant la complétion. Une coupure entre les deux — un ascenseur, un
+   * tunnel, le passage du Wi-Fi à la 4G — créditait les minutes et laissait la
+   * mission en attente. Le parent la revoyait dans sa liste et la confirmait à
+   * nouveau : nouvelle ligne de registre, nouvel identifiant, et
+   * `uniq_reward_per_completion` la refuse. Toute l'opération échouait, et la
+   * mission devenait inconfirmable à jamais — avec des minutes déjà versées
+   * que rien n'expliquait.
+   *
+   * Dans cet ordre-ci, la moitié perdue est le crédit, et elle se rattrape.
+   */
+  it('écrit la complétion AVANT la ligne de grand livre', async () => {
+    const { arrivees, client } = clientFactice();
+    const data = famille();
+
+    await new SupabaseRepository(client).persist(data, {
+      kind: 'completion.approved',
+      upsert: {
+        completions: [
+          {
+            id: 'cmp_1',
+            familyId: 'f1',
+            assignmentId: 'asg_1',
+            childId: 'c1',
+            status: 'approved',
+            minutesRequested: 15,
+            minutesAwarded: 15,
+            completedAt: '2026-09-11T08:00:00.000Z',
+          },
+        ],
+        transactions: [
+          {
+            id: 'tx_1',
+            familyId: 'f1',
+            childId: 'c1',
+            delta: 15,
+            kind: 'mission_reward',
+            reason: 'Mission',
+            refId: 'cmp_1',
+            createdAt: '2026-09-11T08:00:00.000Z',
+          },
+        ],
+      },
+    } as never);
+
+    const rang = (t: string) => arrivees.indexOf(t);
+    expect(rang('mission_completions')).toBeGreaterThanOrEqual(0);
+    expect(rang('screen_time_transactions')).toBeGreaterThanOrEqual(0);
+    expect(rang('mission_completions')).toBeLessThan(rang('screen_time_transactions'));
+  });
+
   it('crée par insertion, jamais par fusion', async () => {
     // `upsert` produit un `INSERT ... ON CONFLICT DO UPDATE`, et PostgreSQL
     // applique alors à la ligne neuve la clause de la politique de MISE À

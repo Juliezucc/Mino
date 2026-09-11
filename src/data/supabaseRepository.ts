@@ -593,11 +593,30 @@ export class SupabaseRepository implements MinoRepository {
       // Ce qui dépend d'un enfant, d'une mission ou d'un appareil.
       [
         [TABLES.assignments, (data.assignments ?? []).map(assignmentToRow)],
-        [TABLES.transactions, (data.transactions ?? []).map(transactionToRow)],
         [TABLES.sessions, (data.sessions ?? []).map(sessionToRow)],
       ],
-      // Et ce qui dépend d'une attribution.
+      // Ce qui dépend d'une attribution.
       [[TABLES.completions, (data.completions ?? []).map(completionToRow)]],
+      /**
+       * LE GRAND LIVRE EN DERNIER, et l'ordre est tout.
+       *
+       * **Le défaut, invisible tant que le réseau tient.** La ligne de registre
+       * partait AVANT la complétion. Une coupure entre les deux — un ascenseur,
+       * un tunnel, l'instant où l'on passe du Wi-Fi à la 4G — créditait les
+       * minutes et laissait la mission en attente. Le parent la revoyait donc
+       * dans sa liste et la confirmait à nouveau : nouvelle ligne de registre,
+       * nouvel identifiant, et `uniq_reward_per_completion` la refuse. Toute
+       * l'opération échouait. La mission devenait inconfirmable à jamais, avec
+       * des minutes déjà versées que rien n'expliquait.
+       *
+       * Dans cet ordre-ci, la moitié perdue est le crédit, et elle se rattrape :
+       * réessayer écrit la ligne qui manquait, ou se heurte à l'index qui
+       * garantit qu'elle est déjà là. C'est exactement le choix que
+       * `valider-mission` fait côté serveur, et pour la même raison — il vaut
+       * mieux devoir une minute que la devoir deux fois, ou bloquer une
+       * mission.
+       */
+      [[TABLES.transactions, (data.transactions ?? []).map(transactionToRow)]],
     ];
 
     for (const vague of vagues) {

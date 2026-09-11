@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   balanceDetail,
@@ -11,9 +11,45 @@ import { ChildMission, missionsForChild, prochaineJournee } from '@/domain/missi
 import { parentDeLAppareil, titulaireDuCompte } from '@/domain/parents';
 import { Child, FamilyData, ID, Parent, ScreenTimeBalance } from '@/domain/types';
 
+import { getAuthService } from '@/services/auth';
+import type { Session } from '@/services/auth';
+
 import { useMinoStore } from './useMinoStore';
 
 const EMPTY: never[] = [];
+
+/**
+ * Qui tient cet appareil, du point de vue de la base.
+ *
+ * `parent` — un compte ou un second parent, tous deux reconnus par
+ * `auth_is_parent()`. `device` — un appareil appairé par le code famille, qui
+ * peut lire la famille et déclarer une mission faite, jamais décider.
+ *
+ * **Pourquoi un aller-retour serveur plutôt qu'un drapeau du magasin.** Parce
+ * que la réponse peut changer sous nos pieds : un téléphone qui reprend un
+ * profil de parent passe de `device` à `parent` sans que rien d'autre ne
+ * bouge. Un drapeau posé au démarrage serait faux jusqu'au redémarrage
+ * suivant, et l'écran qui s'y fie dirait des choses fausses avec aplomb.
+ *
+ * `null` tant qu'on n'a pas la réponse : les écrans n'ont pas le droit de
+ * parier, et ce qu'ils affichent en attendant doit être vrai dans les deux cas.
+ */
+export function useSession(): Session | null {
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    let vivant = true;
+    getAuthService()
+      .session()
+      .then((s) => vivant && setSession(s))
+      .catch(() => vivant && setSession({ kind: 'none', userId: null, email: null }));
+    return () => {
+      vivant = false;
+    };
+  }, []);
+
+  return session;
+}
 
 export function useFamily(): FamilyData | null {
   return useMinoStore((s) => s.data);

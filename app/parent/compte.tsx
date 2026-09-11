@@ -1,12 +1,12 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, Field, Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
 import { isStore } from '@/domain/billing';
 import { codeTropFacile } from '@/domain/parentGate';
 import { getAuthService } from '@/services/auth';
-import { useTitulaireDuCompte } from '@/store/selectors';
+import { useSession, useTitulaireDuCompte } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
 
@@ -75,36 +75,28 @@ export default function CompteParent() {
    *
    * `null` tant qu'on ne sait pas : on n'affiche rien plutôt que de parier.
    */
-  const [gereLeCompte, setGereLeCompte] = useState<boolean | null>(null);
   /**
-   * Parent au sens de la base — `auth_is_parent()`.
+   * **La question n'est pas « est-ce un parent », c'est « a-t-il un compte ».**
+   * Et les confondre a bien failli coûter la famille entière.
    *
-   * Vrai pour le titulaire ET pour le second parent ; faux pour la tablette
-   * d'un enfant, même quand le code vient d'y ouvrir l'espace parent. C'est la
-   * frontière du code à quatre chiffres : un vrai parent peut le changer,
-   * `set_parent_pin` l'exige, et un appareil appairé essuierait un refus.
+   * Le premier réflexe a été de fermer cet écran aux sessions d'APPAREIL. Puis
+   * le second parent est devenu un vrai parent, avec le `user_id` de son
+   * téléphone sur sa ligne : depuis, sa session se décrit elle-même comme
+   * `parent`, puisque `decrire()` interroge `auth_is_parent()`. Le filtre
+   * s'ouvrait donc à lui, en grand, bouton « Supprimer le compte » compris —
+   * et, sans le garde ajouté côté SQL, le serveur aurait obéi.
+   *
+   * Ce qui distingue le titulaire n'est pas d'être parent : c'est d'avoir une
+   * ADRESSE. Elle seule permet de revenir depuis un autre téléphone, et elle
+   * seule donne un sens à « changer mon adresse », « changer mon mot de
+   * passe », « me déconnecter » et « supprimer le compte ». C'est exactement ce
+   * que compte `delete_my_account()`, et les deux doivent dire la même chose.
+   *
+   * `null` tant qu'on ne sait pas : on n'affiche rien plutôt que de parier.
    */
-  const [estParent, setEstParent] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    let vivant = true;
-    getAuthService()
-      .session()
-      .then((s) => {
-        // `kind` seul ne suffit plus : un second parent est `parent` aussi.
-        if (!vivant) return;
-        setEstParent(s.kind === 'parent');
-        setGereLeCompte(s.kind === 'parent' && !!s.email);
-      })
-      .catch(() => {
-        if (!vivant) return;
-        setEstParent(false);
-        setGereLeCompte(false);
-      });
-    return () => {
-      vivant = false;
-    };
-  }, []);
+  const session = useSession();
+  const estParent = session ? session.kind === 'parent' : null;
+  const gereLeCompte = session ? session.kind === 'parent' && !!session.email : null;
 
   const changerEmail = async () => {
     setErreur(null);

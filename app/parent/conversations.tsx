@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Card, EmptyState, Screen, ScreenHeader, Text } from '@/components/ui';
 import { getSupabaseClient } from '@/data/supabaseRepository';
-import { useChild } from '@/store/selectors';
+import { useChild, useSession } from '@/store/selectors';
 import { colors, radii, spacing } from '@/theme';
 
 interface Line {
@@ -28,6 +28,7 @@ interface Line {
  * ce que le produit cherche à provoquer.
  */
 export default function ConversationsScreen() {
+  const session = useSession();
   const router = useRouter();
   const { childId } = useLocalSearchParams<{ childId: string }>();
   const child = useChild(childId);
@@ -64,12 +65,28 @@ export default function ConversationsScreen() {
           Chargement…
         </Text>
       ) : lines.length === 0 ? (
+        /**
+         * Zéro ligne n'est pas une absence de conversation.
+         *
+         * **Le défaut : l'écran prenait un refus de lecture pour un silence.**
+         * `companion_messages_read` n'ouvre qu'à un parent — pas à un appareil
+         * appairé, et c'est juste : la tablette d'un enfant ne doit pas pouvoir
+         * relire ses propres conversations pour savoir ce que ses parents en
+         * verront. Mais la requête rend alors zéro ligne, exactement comme une
+         * famille où Mino n'a jamais parlé, et l'écran affirmait « Mino n'a pas
+         * encore discuté avec cet enfant ». C'est-à-dire qu'il rassurait un
+         * parent sur la foi d'une chose qu'il n'avait pas le droit de lire.
+         */
         <EmptyState
-          title="Aucune conversation"
+          title={
+            session && session.kind !== 'parent' ? 'Pas lisible depuis cet appareil' : 'Aucune conversation'
+          }
           message={
-            getSupabaseClient()
-              ? 'Mino n’a pas encore discuté avec cet enfant. Cela n’arrive que lorsque son temps d’écran est terminé.'
-              : 'Les conversations sont enregistrées sur le compte en ligne. Cette version hors ligne n’en garde aucune.'
+            !getSupabaseClient()
+              ? 'Les conversations sont enregistrées sur le compte en ligne. Cette version hors ligne n’en garde aucune.'
+              : session && session.kind !== 'parent'
+                ? 'Les conversations ne se lisent que depuis le téléphone d’un parent. Cet appareil a rejoint la famille avec le code : il ne peut pas y accéder, même avec le code à quatre chiffres.'
+                : 'Mino n’a pas encore discuté avec cet enfant. Cela n’arrive que lorsque son temps d’écran est terminé.'
           }
         />
       ) : (
