@@ -343,26 +343,29 @@ export default function ShieldSetup() {
                 : 'Choisissez les applications que Mino doit verrouiller entre deux sessions.'}
             </Text>
             {/**
-              * L'avertissement qui doit précéder la liste, et pas la suivre.
+              * La phrase qui fait cocher vite, et elle est vérifiée.
               *
-              * **Ce qu'on ne peut PAS empêcher.** Le sélecteur est celui du
-              * système, et ce qu'il rend n'est pas une liste de noms mais des
-              * jetons chiffrés : Mino ne sait pas lequel est Mino. C'est une
-              * garantie d'Apple — celle qui l'empêche aussi de savoir que
-              * votre enfant a TikTok — et elle nous interdit autant de retirer
-              * Mino de la liste que de le décocher après coup.
+              * **La crainte est juste, la conséquence n'existe pas.** Un
+              * parent pressé coche tout — c'est le geste normal, et il hésite
+              * en arrivant sur Mino : s'il le ferme, son enfant ne pourra plus
+              * ouvrir ses missions. Cette hésitation lui coûte une minute, et
+              * parfois le réglage entier.
               *
-              * **Ce que ça coûterait.** Un parent pressé coche tout, Mino
-              * compris. L'application se verrouille elle-même : l'enfant ne
-              * peut plus ouvrir ses missions, ni déclarer qu'il a terminé, ni
-              * lancer le temps qu'il a gagné. Le produit s'éteint, et rien à
-              * l'écran ne dit pourquoi.
+              * Or iOS ne verrouille jamais l'application qui DÉTIENT
+              * l'autorisation de contrôle parental, exactement comme il
+              * protège Réglages. Éprouvé sur un vrai iPhone : Mino coché,
+              * Mino s'ouvre quand même.
               *
-              * Il ne reste donc qu'une chose honnête à faire : le dire avant.
+              * On ne peut de toute façon pas s'exclure nous-mêmes — les
+              * exceptions se déclarent par jeton d'application, et une
+              * application n'obtient jamais le sien : le `bundleIdentifier`
+              * est nul par conception, la même garantie qui nous empêche de
+              * savoir ce que l'enfant a installé. Il n'y avait donc rien à
+              * coder, et tout à dire.
               */}
-            <Text variant="caption" color={colors.dangerInk}>
-              Ne cochez pas Mino dans la liste. S’il est verrouillé, votre enfant ne peut plus
-              ouvrir ses missions ni lancer le temps qu’il a gagné.
+            <Text variant="caption" color={colors.textMuted}>
+              Cochez sans crainte, même tout : Mino reste toujours ouvert pour votre enfant, et les
+              Réglages pour vous. iOS ne les ferme jamais.
             </Text>
             <Button label="Choisir les applications" variant="secondary" onPress={pick} loading={busy} />
           </Card>
