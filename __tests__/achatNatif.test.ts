@@ -1438,3 +1438,49 @@ describe('l’erreur brute de la boutique', () => {
     setDiagnosticsService(null);
   });
 });
+
+/**
+ * La liste des formules, demandée hors de tout `catch`.
+ *
+ * C'est le tout premier appel du paiement, et le plus fragile : il parle à
+ * StoreKit ou à Play Billing, qui ne répondent pas dans un simulateur, pas
+ * sans compte de test, pas dans un avion. L'exception remontait telle quelle
+ * jusqu'à l'écran, en anglais — la seule chose que ce dépôt refuse partout
+ * ailleurs, et la seule que le parent voyait ici.
+ */
+describe('quand la boutique ne répond même pas', () => {
+  const muette = (mot: string) =>
+    new StoreBillingService(
+      {} as never,
+      {
+        products: async () => {
+          throw new Error(mot);
+        },
+        purchase: async () => null,
+        restore: async () => [],
+      } as never,
+      async () => null,
+      async () => 'jeton',
+    );
+
+  it('rend un échec au lieu de lever', async () => {
+    const issue = await muette('StoreKit unavailable').startCheckout({
+      familyId: 'fam-1',
+      plan: 'monthly',
+    });
+    expect(issue.kind).toBe('failed');
+  });
+
+  it('relaie ce que la boutique a dit, pour que le parent puisse nous le recopier', async () => {
+    const issue = await muette('StoreKit unavailable').startCheckout({
+      familyId: 'fam-1',
+      plan: 'monthly',
+    });
+    expect(issue.kind === 'failed' && issue.reason).toBe('StoreKit unavailable');
+  });
+
+  it('a une phrase française quand la boutique n’en donne aucune', async () => {
+    const issue = await muette('').startCheckout({ familyId: 'fam-1', plan: 'monthly' });
+    expect(issue.kind === 'failed' && issue.reason).toMatch(/boutique n’a pas répondu/);
+  });
+});

@@ -160,7 +160,31 @@ export class StoreBillingService implements BillingService {
   }
 
   async startCheckout(input: { familyId: ID; plan: Plan }): Promise<CheckoutOutcome> {
-    const products = await this.store.products();
+    /**
+     * La liste des formules, demandée hors de tout `catch`.
+     *
+     * **Le défaut, et il sortait du cadre par le haut.** Cet appel est le tout
+     * premier du paiement, et c'est le plus fragile : il parle à StoreKit ou à
+     * Play Billing, qui ne répondent pas dans un simulateur, pas sans compte de
+     * test, pas dans un avion. L'exception remontait alors telle quelle,
+     * jusqu'à l'écran, en anglais — la seule chose que ce dépôt refuse
+     * partout ailleurs, et la seule que le parent voyait ici.
+     *
+     * Rendu comme un échec ordinaire, donc, avec la phrase de la boutique
+     * quand elle en donne une : un parent qui nous la recopie nous donne le
+     * diagnostic, là où « indisponible » ne donne rien.
+     */
+    let products;
+    try {
+      products = await this.store.products();
+    } catch (erreur) {
+      const dit = erreur instanceof Error ? erreur.message.trim() : '';
+      return {
+        kind: 'failed',
+        reason: dit || 'La boutique n’a pas répondu. Réessayez dans un instant.',
+      };
+    }
+
     const product = products.find((p) => p.plan === input.plan);
     if (!product) return { kind: 'failed', reason: 'Cette formule n’est pas disponible ici.' };
 

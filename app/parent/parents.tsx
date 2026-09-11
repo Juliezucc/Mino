@@ -52,6 +52,16 @@ export default function ParentsScreen() {
 
   const [prenom, setPrenom] = useState('');
   const [erreur, setErreur] = useState<string | null>(null);
+  /**
+   * Le refus d'un RETRAIT ne s'affiche pas sous le champ d'un AJOUT.
+   *
+   * Les deux gestes partageaient le même état d'erreur, et `Field` accroche le
+   * message sous lui : « Ce parent ne peut pas être retiré depuis ici »
+   * apparaissait en rouge sous « Son prénom », dans le formulaire d'ajout, à
+   * un parent qui venait d'appuyer sur « Retirer » trente lignes plus haut. Il
+   * cherchait ce qu'il avait mal tapé.
+   */
+  const [erreurRetrait, setErreurRetrait] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
 
   const ajouter = async () => {
@@ -77,8 +87,11 @@ export default function ParentsScreen() {
       destructif: true,
     }).then((oui) => {
       if (!oui) return;
+      setErreurRetrait(null);
       retirerParent(id).catch((e: unknown) => {
-        setErreur(e instanceof Error && e.message ? e.message : 'Ce parent n’a pas pu être retiré.');
+        setErreurRetrait(
+          e instanceof Error && e.message ? e.message : 'Ce parent n’a pas pu être retiré.',
+        );
       });
     });
   };
@@ -104,6 +117,13 @@ export default function ParentsScreen() {
 
       <View style={styles.block}>
         <Text variant="section">Dans cette famille</Text>
+        {erreurRetrait ? (
+          <Card background={colors.pinkSoft} elevation="none">
+            <Text variant="body" color={colors.pinkInk}>
+              {erreurRetrait}
+            </Text>
+          </Card>
+        ) : null}
         {parents.map((p) => {
           const estTitulaire = p.id === titulaire?.id;
           return (

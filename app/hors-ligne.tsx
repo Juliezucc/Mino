@@ -18,10 +18,22 @@ import { colors, spacing } from '@/theme';
  *
  * Le ton compte donc autant que le bouton. Ce n'est la faute de personne, rien
  * n'est perdu, et il n'y a qu'une chose à faire : réessayer.
+ *
+ * **Et il vouvoyait un enfant de huit ans.** C'est le tout premier écran que
+ * voit celui qui ouvre Mino sans réseau — avant tout profil, avant toute
+ * question d'âge, puisque l'aiguillage d'entrée y mène avant de savoir qui
+ * tient l'appareil. Il lui parlait de « vos minutes », en le vouvoyant, alors
+ * que sous treize ans on ne dit ni « vous » ni « minutes ».
+ *
+ * L'appareil, lui, sait une chose : à qui il est. Sur le téléphone d'un
+ * parent, on le vouvoie et on lui donne la manipulation ; partout ailleurs on
+ * s'adresse à l'enfant, sans lui demander d'aller regarder le Wi-Fi — et sans
+ * nommer une unité que cet écran-ci ne sait pas choisir.
  */
 export default function HorsLigne() {
   const router = useRouter();
   const retry = useMinoStore((s) => s.retry);
+  const pourUnParent = useMinoStore((s) => s.device.usagePersonnel);
   const [essai, setEssai] = useState(false);
 
   const reessayer = async () => {
@@ -44,11 +56,14 @@ export default function HorsLigne() {
           Mino n’arrive pas à se connecter
         </Text>
         <Text variant="body" color={colors.textMuted} center>
-          Vos minutes et vos missions sont bien à l’abri sur le serveur — c’est
-          seulement le chemin pour y aller qui manque.
+          {pourUnParent
+            ? 'Vos missions et le temps gagné sont bien à l’abri sur le serveur — c’est seulement le chemin pour y aller qui manque.'
+            : 'Tes missions et le temps que tu as gagné sont bien à l’abri — c’est seulement le chemin pour y aller qui manque.'}
         </Text>
         <Text variant="body" color={colors.textMuted} center>
-          Vérifiez le Wi-Fi ou les données mobiles, puis réessayez.
+          {pourUnParent
+            ? 'Vérifiez le Wi-Fi ou les données mobiles, puis réessayez.'
+            : 'Le Wi-Fi ne répond pas. Tu peux réessayer, ou demander à un adulte de regarder.'}
         </Text>
       </View>
 

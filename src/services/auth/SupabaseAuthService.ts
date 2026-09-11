@@ -496,8 +496,28 @@ export class SupabaseAuthService implements AuthService {
     return { ok: true };
   }
 
+  /**
+   * Y a-t-il un code posé sur cette famille ?
+   *
+   * **Elle avalait l'erreur, et six écrans s'en remettaient à elle.** L'appel
+   * était écrit `const { data } = ...` : une panne de réseau, un serveur qui
+   * hoquette, et `data` valait `undefined` — donc `false`, donc « aucun code
+   * n'est défini ». Ce qui suit n'est pas un détail d'affichage : l'écran du
+   * code propose alors de le CHOISIR. Sur la tablette d'un enfant dont la
+   * famille a parfaitement un code, une seconde de réseau manquant lui
+   * ouvrait l'espace parent par la grande porte.
+   *
+   * Les six appelants avaient pourtant tous écrit le bon garde-fou —
+   * `.catch(() => true)`, « dans le doute, il y en a un ». Aucun ne pouvait
+   * s'exécuter, puisque rien n'était jamais levé. Le défaut n'était pas dans
+   * leur prudence, il était dans cette ligne-ci.
+   */
   async hasParentPin(): Promise<boolean> {
-    const { data } = await this.client.rpc('has_parent_pin');
+    const { data, error } = await this.client.rpc('has_parent_pin');
+    trace('hasParentPin', error);
+    // On lève : « je ne sais pas » et « il n'y en a pas » n'appellent pas la
+    // même réponse, et les appelants savent déjà quoi faire du premier.
+    if (error) throw new Error('Vérification impossible.');
     return data === true;
   }
 

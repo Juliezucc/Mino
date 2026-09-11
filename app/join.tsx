@@ -350,8 +350,9 @@ export default function JoinFamily() {
                   onChangeText={(v) => setCodeParent(v.replace(/[^0-9]/g, '').slice(0, 4))}
                 />
                 <Text variant="caption" color={colors.textSubtle}>
-                  C’est le code qui ouvre l’espace parent. Demandez-le au parent qui a créé la
-                  famille : il le voit dans ses réglages, et peut en changer quand il veut.
+                  C’est le code qui ouvre l’espace parent, pas le code famille. Demandez-le au
+                  parent qui a créé la famille — il ne s’affiche nulle part, même pour lui, mais
+                  il peut en choisir un nouveau à tout moment.
                 </Text>
                 <Button label="C’EST MOI" onPress={ajouterLeParent} loading={loading} />
                 {parents.length > 1 ? (

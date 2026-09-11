@@ -582,3 +582,45 @@ describe('fonder une famille avant de se présenter', () => {
     expect(appels).toContain('linkEmail');
   });
 });
+
+/**
+ * « Aucun code n'est défini » ne doit jamais vouloir dire « je n'ai pas pu
+ * demander ».
+ *
+ * **Le défaut, et six écrans s'en remettaient à cette ligne.** L'appel était
+ * écrit sans lire l'erreur : une panne de réseau rendait `undefined`, donc
+ * `false`, donc « aucun code n'est posé ». Or l'écran du code propose alors de
+ * le CHOISIR. Sur la tablette d'un enfant dont la famille a parfaitement un
+ * code, une seconde de réseau manquant lui ouvrait l'espace parent par la
+ * grande porte.
+ *
+ * Les six appelants avaient pourtant tous écrit le bon garde-fou — « dans le
+ * doute, il y en a un ». Aucun ne pouvait s'exécuter, puisque rien n'était
+ * jamais levé. C'est la prudence de l'appelant qu'on rend possible ici.
+ */
+describe('y a-t-il un code parent sur cette famille', () => {
+  const avecRpc = (reponse: { data: unknown; error: unknown }) =>
+    new SupabaseAuthService({ rpc: async () => reponse } as never);
+
+  it('répond oui quand le serveur dit oui', async () => {
+    await expect(avecRpc({ data: true, error: null }).hasParentPin()).resolves.toBe(true);
+  });
+
+  it('répond non quand le serveur dit non', async () => {
+    await expect(avecRpc({ data: false, error: null }).hasParentPin()).resolves.toBe(false);
+  });
+
+  it('LÈVE quand elle n’a pas pu demander, au lieu de répondre non', async () => {
+    await expect(
+      avecRpc({ data: null, error: { message: 'network' } }).hasParentPin(),
+    ).rejects.toThrow();
+  });
+
+  it('lève aussi sur une réponse vide accompagnée d’une erreur', async () => {
+    // Le cas exact de la panne : `data` absent ET `error` présent. Lire le
+    // premier sans le second est ce qui produisait « aucun code ».
+    await expect(
+      avecRpc({ data: undefined, error: { message: 'timeout' } }).hasParentPin(),
+    ).rejects.toThrow();
+  });
+});

@@ -41,7 +41,11 @@ export default function ParentPin() {
    * Seuls des chemins internes sont acceptés : un paramètre d'URL décide ici
    * d'où atterrit quelqu'un qui vient de saisir un secret.
    */
-  const { ensuite, ouvrir } = useLocalSearchParams<{ ensuite?: string; ouvrir?: string }>();
+  const { ensuite, ouvrir, retour } = useLocalSearchParams<{
+    ensuite?: string;
+    ouvrir?: string;
+    retour?: string;
+  }>();
   const chemin =
     typeof ensuite === 'string' && ensuite.startsWith('/') && !ensuite.startsWith('//')
       ? ensuite
@@ -54,7 +58,25 @@ export default function ParentPin() {
    * ressemble pas est jeté plutôt que renvoyé tel quel.
    */
   const aOuvrir = typeof ouvrir === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ouvrir) ? ouvrir : null;
-  const destination = aOuvrir ? { pathname: chemin, params: { ouvrir: aOuvrir } } : chemin;
+  /**
+   * D'où l'on vient, pour savoir où l'on repart.
+   *
+   * Comme `ouvrir`, il traverse cet écran sans être lu : c'est l'écran
+   * d'arrivée qui s'en sert. Même filtre — un chemin interne, jamais une
+   * adresse fabriquée ailleurs.
+   */
+  const aRevenirVers =
+    typeof retour === 'string' && retour.startsWith('/') && !retour.startsWith('//')
+      ? retour
+      : null;
+
+  const suite = {
+    ...(aOuvrir ? { ouvrir: aOuvrir } : {}),
+    ...(aRevenirVers ? { retour: aRevenirVers } : {}),
+  };
+  const destination = Object.keys(suite).length
+    ? { pathname: chemin, params: suite }
+    : chemin;
   const parent = useParentDeCetAppareil();
   const unlockParent = useMinoStore((s) => s.unlockParent);
 

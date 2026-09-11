@@ -68,7 +68,13 @@ export function BlocageAReglerBanner() {
           // geste qui autorise à poser le code s'il n'y en a pas encore. Sans
           // les quatre chiffres, ce bouton n'ouvre rien.
           autoriserLaPoseDuCode();
-          router.push({ pathname: '/parent-pin', params: { ensuite: '/parent/blocage' } });
+          // `retour` : le code sert à régler le blocage, et à rien d'autre.
+          // Sans lui, la flèche du retour déposait le parent dans l'espace
+          // parent déverrouillé, sur la tablette de son enfant.
+          router.push({
+            pathname: '/parent-pin',
+            params: { ensuite: '/parent/blocage', retour: '/child' },
+          });
         }}
       />
     </Card>

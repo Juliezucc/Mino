@@ -187,7 +187,27 @@ begin
     'mission_completions',
     'screen_time_transactions',
     'screen_time_sessions',
-    'devices'
+    'devices',
+    /**
+     * Les plages libres, et il manquait l'essentiel.
+     *
+     * Une plage se règle sur le téléphone du parent et s'applique sur la
+     * tablette de l'enfant : sans diffusion, la tablette garde celle d'hier —
+     * elle refuse des séances pour un créneau terminé, et ignore celui qui
+     * vient de s'ouvrir. Le parent voit son réglage enregistré chez lui et
+     * sans effet chez son enfant, ce qui est la pire des deux moitiés.
+     */
+    'free_windows',
+    /**
+     * Et les parents, depuis qu'ils peuvent être deux.
+     *
+     * La mère ajoute « Marc » sur son téléphone ; celui de Marc, déjà appairé,
+     * ne le voit pas dans la liste et ne peut pas s'y rattacher. Dans l'autre
+     * sens, un appareil qui reprend un profil ne se signale nulle part. Une
+     * liste qui ne se met à jour qu'au redémarrage n'est pas une liste, c'est
+     * un souvenir.
+     */
+    'parents'
   ] loop
     execute format('drop trigger if exists mino_broadcast on %I', t);
     execute format(

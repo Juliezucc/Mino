@@ -174,3 +174,78 @@ describe('le refus de la fonction remonte tel quel', () => {
       });
   });
 });
+
+/**
+ * Un refus répondu en 200, et il passait pour une réussite.
+ *
+ * Quand la mission a déjà été traitée — deux parents qui confirment en même
+ * temps, un appui répété sur un réseau lent — la fonction répond `200` avec
+ * `{ dejaTraitee: true }` et l'état RÉEL. C'est le bon code HTTP : rien n'a
+ * échoué, il n'y avait simplement plus rien à faire.
+ *
+ * Le client ne regardait que `error`. Il concluait donc « c'est fait »,
+ * appliquait l'état qu'il espérait, et l'enfant recevait « +15 minutes » pour
+ * des minutes qui n'existaient pas. Le cas le plus laid : une mission renvoyée
+ * à faire une minute plus tôt par l'autre parent, affichée confirmée.
+ */
+describe('la mission déjà traitée ailleurs', () => {
+  const clientQuiRepond = (data: unknown) => {
+    const tables: string[] = [];
+    return {
+      tables,
+      client: {
+        from: (table: string) => ({
+          insert: async () => {
+            tables.push(table);
+            return { error: null };
+          },
+          upsert: async () => {
+            tables.push(table);
+            return { error: null };
+          },
+        }),
+        functions: { invoke: async () => ({ data, error: null }) },
+      } as never,
+    };
+  };
+
+  const confirmer = (client: never, data: FamilyData, completion: MissionCompletion) =>
+    new SupabaseRepository(client).persist(data, {
+      kind: 'completion.approved',
+      upsert: { completions: [{ ...completion, status: 'approved' }] },
+      codeParent: '4821',
+    });
+
+  it('refuse de faire passer un RENVOI pour une confirmation', async () => {
+    const { client } = clientQuiRepond({ etat: 'rejected', dejaTraitee: true });
+    const { data, completion } = familleAvecDemande();
+
+    await expect(confirmer(client, data, completion)).rejects.toThrow(/renvoyée/i);
+  });
+
+  it('se tait quand l’état est DÉJÀ celui qu’on demandait', async () => {
+    // Reconfirmer une mission déjà confirmée n'est pas une erreur : c'est le
+    // même résultat, et lever ici ferait paniquer un parent qui a simplement
+    // appuyé deux fois.
+    const { client } = clientQuiRepond({ etat: 'approved', dejaTraitee: true });
+    const { data, completion } = familleAvecDemande();
+
+    await expect(confirmer(client, data, completion)).resolves.toBeUndefined();
+  });
+
+  it('se tait sur une validation ordinaire', async () => {
+    const { client } = clientQuiRepond({ etat: 'approved', minutes: 15 });
+    const { data, completion } = familleAvecDemande();
+
+    await expect(confirmer(client, data, completion)).resolves.toBeUndefined();
+  });
+
+  it('relance une DomainError, seule classe que l’écran affiche', async () => {
+    const { client } = clientQuiRepond({ etat: 'rejected', dejaTraitee: true });
+    const { data, completion } = familleAvecDemande();
+
+    await confirmer(client, data, completion).catch((e) => {
+      expect(e).toBeInstanceOf(DomainError);
+    });
+  });
+});

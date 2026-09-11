@@ -125,8 +125,17 @@ export default function ParentSettings() {
           COMPTE PARENT
         </Text>
         <Text variant="cardTitle">{parentIci?.displayName}</Text>
+        {/*
+          L'adresse n'appartient qu'au titulaire, et l'afficher sous le prénom
+          d'un autre en fait la sienne. Sur le téléphone du second parent, la
+          carte annonçait « Marc » puis l'adresse de Julie — deux vérités
+          empilées qui, ensemble, mentent. On ne la montre donc qu'à qui elle
+          est, et on dit aux autres de qui dépend le compte.
+        */}
         <Text variant="body" color={colors.textMuted}>
-          {parent?.email}
+          {parentIci?.id === parent?.id
+            ? parent?.email
+            : `Compte de la famille : ${parent?.displayName ?? 'le parent qui l’a créée'}`}
         </Text>
         <View style={styles.divider} />
         <Text variant="label" color={colors.textMuted}>

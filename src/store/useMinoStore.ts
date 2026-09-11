@@ -354,6 +354,16 @@ export const useMinoStore = create<MinoState>((set, get) => {
         return;
       }
       set({ data: fresh });
+      /**
+       * Une plage libre réglée à l'instant doit s'appliquer ICI, maintenant.
+       *
+       * Le parent pose « mercredi 14 h – 16 h » sur son téléphone ; la tablette
+       * de l'enfant reçoit la nouvelle et recharge la famille. Sans cette
+       * ligne, elle connaîtrait la plage sans jamais lever le bouclier — le
+       * réglage serait enregistré partout et sans effet nulle part, ce qui est
+       * la pire des deux moitiés.
+       */
+      void get().appliquerPlageLibre();
     });
   }
 

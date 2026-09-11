@@ -458,12 +458,9 @@ export class SupabaseRepository implements MinoRepository {
     ) {
       const id = change.upsert?.completions?.[0]?.id;
       if (!id) return;
-      const { error } = await this.client.functions.invoke('valider-mission', {
-        body: {
-          completionId: id,
-          decision: change.kind === 'completion.approved' ? 'valider' : 'refaire',
-          code: change.codeParent,
-        },
+      const decision = change.kind === 'completion.approved' ? 'valider' : 'refaire';
+      const { data, error } = await this.client.functions.invoke('valider-mission', {
+        body: { completionId: id, decision, code: change.codeParent },
       });
       /**
        * Une `DomainError`, et pas une `Error` — sans quoi le message se perd.
@@ -479,6 +476,35 @@ export class SupabaseRepository implements MinoRepository {
       if (error) {
         throw new DomainError(
           await raisonDeLaFonction(error, 'La mission n’a pas pu être confirmée.'),
+        );
+      }
+
+      /**
+       * Un refus répondu en 200, et il passait pour une réussite.
+       *
+       * **Le défaut, et il fabriquait une fausse bonne nouvelle.** Quand la
+       * mission a déjà été traitée — deux parents qui confirment en même temps,
+       * un appui répété sur un réseau lent — la fonction répond `200` avec
+       * `{ dejaTraitee: true }` et l'état RÉEL. C'est le bon code HTTP : rien
+       * n'a échoué, il n'y avait simplement plus rien à faire. Mais le client
+       * ne regardait que `error`, donc concluait « c'est fait », appliquait
+       * l'état qu'il espérait, et l'enfant recevait « +15 minutes » pour des
+       * minutes qui n'existaient pas — le cas le plus laid étant la mission
+       * renvoyée une minute plus tôt par l'autre parent, affichée confirmée.
+       *
+       * On ne lève que si l'état diffère de ce qui était demandé : reconfirmer
+       * une mission déjà confirmée n'est pas une erreur, c'est le même
+       * résultat.
+       */
+      const reponse = data as { etat?: string; dejaTraitee?: boolean } | null;
+      const attendu = decision === 'valider' ? 'approved' : 'rejected';
+      if (reponse?.dejaTraitee && reponse.etat && reponse.etat !== attendu) {
+        throw new DomainError(
+          reponse.etat === 'approved'
+            ? 'Cette mission vient d’être confirmée ailleurs.'
+            : reponse.etat === 'rejected'
+              ? 'Cette mission vient d’être renvoyée à faire ailleurs.'
+              : 'Cette mission a déjà été traitée ailleurs.',
         );
       }
       return;

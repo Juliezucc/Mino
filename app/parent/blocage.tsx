@@ -60,18 +60,43 @@ export default function ShieldSetup() {
    * redemanderait au parent, trois secondes après l'avoir choisi, le code
    * qu'il vient de poser.
    */
-  const { inscription } = useLocalSearchParams<{ inscription?: string }>();
+  const { inscription, retour } = useLocalSearchParams<{
+    inscription?: string;
+    retour?: string;
+  }>();
   const device = useMinoStore((s) => s.device);
   const lockParent = useMinoStore((s) => s.lockParent);
 
   const sortirDuBlocage = useCallback(() => {
-    if (inscription === '1' && choixEnregistre(device).kind !== 'parent') {
+    const appareilDUnParent = choixEnregistre(device).kind === 'parent';
+
+    if (inscription === '1' && !appareilDUnParent) {
       lockParent();
       router.replace('/who');
       return;
     }
+
+    /**
+     * Revenir d'où l'on vient, et refermer derrière soi.
+     *
+     * **Le défaut, trouvé en suivant le bandeau côté enfant.** L'enfant touche
+     * « Un parent est là ? », le parent tape son code et règle le blocage —
+     * puis la flèche du retour le déposait dans l'espace parent, DÉVERROUILLÉ,
+     * sur la tablette de son enfant. Il rend l'appareil sans y penser : le code
+     * a servi à une chose, et il en a ouvert une autre.
+     *
+     * `retour` dit d'où venait la demande. Sur l'appareil d'un enfant, on
+     * referme le verrou avant de repartir — le code a fait ce pour quoi il
+     * avait été donné.
+     */
+    if (retour && !appareilDUnParent) {
+      lockParent();
+      router.replace(retour as never);
+      return;
+    }
+
     router.replace('/parent');
-  }, [inscription, device, lockParent, router]);
+  }, [inscription, retour, device, lockParent, router]);
 
   useRetourBloque(() => {
     sortirDuBlocage();
