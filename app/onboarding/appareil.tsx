@@ -110,7 +110,10 @@ export default function OnboardingAppareil() {
       // ce signal, il répond « Réservé aux parents » au parent lui-même, en
       // pleine inscription, et il ne peut plus poser de code du tout.
       autoriserLaPoseDuCode();
-      router.replace({ pathname: '/parent-pin', params: { ensuite: '/parent/blocage' } });
+      router.replace({
+        pathname: '/parent-pin',
+        params: { ensuite: '/parent/blocage?inscription=1' },
+      });
       return;
     }
 
@@ -118,7 +121,18 @@ export default function OnboardingAppareil() {
     // un contrôle parental, et la seule qu'on ne peut pas faire à la place du
     // parent. Sur son propre téléphone, il n'y a rien à bloquer — on l'envoie
     // là où l'installation continue vraiment.
-    router.replace(versLeBlocage ? '/parent/blocage' : '/parent');
+    /**
+     * `inscription=1` : ce n'est pas une visite, c'est la fin de l'inscription.
+     *
+     * L'écran du blocage sert à deux moments très différents. Ici, le parent
+     * vient de déclarer l'appareil et va le tendre à son enfant : on doit le
+     * refermer derrière lui. Depuis les réglages ou le bandeau du tableau de
+     * bord, c'est le même écran mais le parent est chez lui, et lui redemander
+     * son code à chaque aller-retour serait le meilleur moyen qu'il en choisisse
+     * un trivial. Le marqueur distingue les deux — `canGoBack()` ne le pouvait
+     * pas, l'accueil traînant au fond de la pile.
+     */
+    router.replace(versLeBlocage ? '/parent/blocage?inscription=1' : '/parent');
   };
 
   return (

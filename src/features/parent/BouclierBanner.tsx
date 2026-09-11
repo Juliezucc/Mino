@@ -5,6 +5,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { Button, Card, Text } from '@/components/ui';
 import { confirmer } from '@/components/ui/confirmer';
 import { getScreenTimeService } from '@/services/screenTime';
+import { choixEnregistre } from '@/data/deviceProfile';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
@@ -62,7 +63,9 @@ export function BouclierBanner() {
    * fois, l'appareil cesse d'être personnel et le bandeau revient. Un parent
    * qui prête son téléphone n'a rien à déclarer.
    */
-  const personnel = useMinoStore((s) => s.device.usagePersonnel && !s.device.lastChildId);
+  // Ce que le parent a déclaré de cet appareil — la seule chose qui dise si le
+  // verrou se pose ici ou ailleurs. Voir `ChoixDAppareil`.
+  const choix = choixEnregistre(useMinoStore((s) => s.device));
 
   /**
    * `undefined` tant qu'on n'a pas demandé : sans cette distinction, le bandeau
@@ -89,7 +92,40 @@ export function BouclierBanner() {
    * installer Mino sur l'appareil de l'enfant.
    */
   if (etat === undefined || etat === 'approved' || etat === 'unsupported') return null;
-  if (personnel) return null;
+
+  /**
+   * Sur le téléphone du parent, ne jamais proposer de bloquer ICI.
+   *
+   * **Le défaut, trouvé sur un vrai iPhone.** Le parent avait répondu « cet
+   * appareil est à moi », et le bandeau lui proposait quand même « Activer le
+   * blocage ». Le bouton ouvre le sélecteur d'applications du système : deux
+   * touches, tout cocher, terminé — et il venait de verrouiller SES PROPRES
+   * applications sur SON téléphone. L'ancienne condition ne l'évitait que tant
+   * qu'aucun profil enfant n'avait jamais été ouvert ici, c'est-à-dire presque
+   * jamais.
+   *
+   * Ce qu'il lui faut à la place n'est pas le silence : c'est l'endroit où le
+   * blocage se règle vraiment. Il est sur l'appareil de son enfant, et il s'y
+   * rend avec son code famille.
+   */
+  if (choix.kind === 'parent') {
+    return (
+      <Card background={colors.surfaceMuted} elevation="none" style={styles.carte}>
+        <Text variant="bodyStrong">Le blocage se règle sur l’appareil de votre enfant</Text>
+        <Text variant="caption" color={colors.textMuted}>
+          Sur ce téléphone, il n’y a rien à fermer : c’est le vôtre. Installez Mino sur
+          l’appareil où votre enfant joue, rejoignez la famille avec votre code, et c’est là que
+          le verrou se pose.
+        </Text>
+        <Button
+          label="Comment faire"
+          variant="ghost"
+          haptic={false}
+          onPress={() => router.push('/parent/blocage')}
+        />
+      </Card>
+    );
+  }
 
   if (compteurSeul) {
     return (

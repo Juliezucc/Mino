@@ -19,6 +19,7 @@ import {
   qualifyReferral,
   sellerOf,
   startTrial,
+  beneficieEncore,
   peutSAbonner,
 } from '@/domain/billing';
 import * as actions from '@/domain/actions';
@@ -488,5 +489,33 @@ describe('proposer un abonnement', () => {
         cancelAtPeriodEnd: false,
       }),
     ).toBe(true);
+  });
+});
+
+/**
+ * Détenir un abonnement, c'est en bénéficier aujourd'hui.
+ *
+ * Le serveur refuse un achat dont le jeton est gravé au nom d'une autre
+ * famille — à juste titre. Mais il ne regardait que la provenance, jamais
+ * l'état : une ligne résiliée verrouillait le jeton pour toujours, et le
+ * parent qui résiliait puis reprenait retombait sur le même mur, sans issue.
+ */
+describe('les états qui donnent un accès réel', () => {
+  it('exclut un abonnement terminé : il ne prive plus personne', () => {
+    expect(beneficieEncore('canceled')).toBe(false);
+  });
+
+  it('retient l’impayé : le paiement a échoué, l’accès court encore', () => {
+    expect(beneficieEncore('past_due')).toBe(true);
+  });
+
+  it('retient l’essai et l’abonnement en cours', () => {
+    expect(beneficieEncore('trialing')).toBe(true);
+    expect(beneficieEncore('active')).toBe(true);
+  });
+
+  it('ne dit jamais oui sur une absence de statut', () => {
+    expect(beneficieEncore(null)).toBe(false);
+    expect(beneficieEncore(undefined)).toBe(false);
   });
 });

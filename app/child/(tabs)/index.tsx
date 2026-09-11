@@ -4,13 +4,15 @@ import { StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot, MascotAnimation } from '@/components/mascot';
 import { MascotExpression } from '@/components/mascot/types';
-import { Button, Card, MinutesBadge, Screen, Text } from '@/components/ui';
+import { Button, Card, MinutesBadge, Screen, Text, TimeRing } from '@/components/ui';
+import { BlocageAReglerBanner } from '@/features/child/BlocageAReglerBanner';
+import { MissionCard } from '@/features/child/MissionCard';
 import { unitOf } from '@/domain/ageBand';
 import { heure, openWindowAt } from '@/domain/freeWindows';
 import { pendingBonus } from '@/domain/bonus';
 import { lastSeenBonus } from '@/data/seenBonus';
 import { useBalanceDetail, useChildMissions, useActiveChild, useFamily } from '@/store/selectors';
-import { colors, hitSize, spacing, tabBarSpace } from '@/theme';
+import { colors, spacing, tabBarSpace } from '@/theme';
 
 /** Child home: who I am, how much time I have, and one obvious thing to do. */
 export default function ChildHome() {
@@ -146,6 +148,36 @@ export default function ChildHome() {
         </Card>
       ) : null}
 
+      {/* Le verrou n'est pas posé sur cet appareil : l'enfant le constate déjà —
+          son temps ne démarre pas — et la porte du réglage passe par le code
+          parent. Voir `BlocageAReglerBanner`. */}
+      <BlocageAReglerBanner />
+
+      {/**
+        Les missions à faire, ici même.
+        *
+        * Le bouton seul demandait un écran de plus pour savoir ce qu'il y
+        * avait à faire — un écran de plus est, à cinq ans, un écran de trop.
+        * Les cartes sont donc sur l'accueil, touchables, et mènent là où l'on
+        * dit « J'ai terminé ». Le bouton reste dessous : il ouvre la liste
+        * complète, celle qui porte aussi les missions en attente et le jour
+        * où la routine reprend.
+        */}
+      {todo.length > 0 ? (
+        <View style={styles.missions}>
+          {todo.slice(0, 3).map((item) => (
+            <MissionCard
+              key={item.mission.id}
+              item={item}
+              unit={unit}
+              onPress={() =>
+                router.push({ pathname: '/child/mission/[id]', params: { id: item.mission.id } })
+              }
+            />
+          ))}
+        </View>
+      ) : null}
+
       {/*
         Les missions d'abord, le compteur ensuite.
 
@@ -188,23 +220,19 @@ export default function ChildHome() {
         </Card>
       ) : null}
 
-      {/* Le compteur, en second et en petit — la carte entière est la cible,
-          et elle mène là où il vit en grand. */}
-      <Card style={styles.timeCard} elevation="soft" onPress={() => router.push('/child/temps')}>
-        <View style={styles.timeRow}>
-          <Text style={styles.timeIcon}>⏱️</Text>
-          <View style={styles.timeTexts}>
-            <Text variant="cardTitle">{unit === 'minos' ? 'Mes minos' : 'Mon temps'}</Text>
-            {balance.earnedToday > 0 ? (
-              <Text variant="caption" color={colors.textMuted}>
-                {unit === 'minos'
-                  ? `+${balance.earnedToday} gagnés aujourd’hui`
-                  : `+${balance.earnedToday} min gagnées aujourd’hui`}
-              </Text>
-            ) : null}
+      {/* Le compteur, en second : l'anneau reste, il ne commande simplement
+          plus l'écran. Un compte neuf n'ouvre donc plus sur « 0 mino » en
+          cinquante-six points, au-dessus de tout ce qu'il pourrait faire. */}
+      <Card style={styles.ringCard} elevation="soft" onPress={() => router.push('/child/temps')}>
+        <TimeRing minutes={balance.minutes} unit={unit} />
+        {balance.earnedToday > 0 ? (
+          <View style={styles.earned}>
+            <Text variant="label" color={colors.textMuted}>
+              Gagné aujourd’hui
+            </Text>
+            <MinutesBadge minutes={balance.earnedToday} tone="mint" unit={unit} />
           </View>
-          <MinutesBadge minutes={balance.minutes} tone="mint" unit={unit} />
-        </View>
+        ) : null}
       </Card>
     </Screen>
   );
@@ -215,13 +243,9 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   headerTexts: { flex: 1, gap: spacing.xs },
   plage: { gap: spacing.xs },
-  // La carte entière est la cible : au moins la hauteur d'un bouton d'enfant.
-  timeCard: { minHeight: hitSize.kid, justifyContent: 'center' },
-  // `flexWrap` et `minWidth` plutôt que rien : à 200 %, la pastille passe à la
-  // ligne au lieu d'écraser le titre jusqu'à le couper.
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' },
-  timeIcon: { fontSize: 28 },
-  timeTexts: { flex: 1, minWidth: 140, gap: 2 },
+  missions: { gap: spacing.md },
+  ringCard: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.lg },
+  earned: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   waitingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   waitingIcon: { fontSize: 28 },
   waitingTexts: { flex: 1, gap: 2 },

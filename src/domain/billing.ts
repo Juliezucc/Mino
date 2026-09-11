@@ -545,3 +545,29 @@ export function freeMonthsOnAnnual(): number {
 export function peutSAbonner(access: Access): boolean {
   return access.kind !== 'offert' && access.kind !== 'grace';
 }
+
+/**
+ * Les états où un abonnement donne un accès réel, aujourd'hui.
+ *
+ * **La distinction n'est pas cosmétique : elle décide d'une impasse.** Quand
+ * un compte de boutique présente un achat gravé au nom d'une autre famille,
+ * le serveur refuse — à juste titre, sinon n'importe qui réclamerait
+ * l'abonnement d'un tiers. Mais il ne regardait que la PROVENANCE de l'ancien
+ * abonnement, jamais son état : une ligne résiliée, ou un essai éteint depuis
+ * des mois, verrouillait le jeton sur son ancienne famille pour toujours.
+ *
+ * Le parent qui faisait exactement le bon geste — résilier dans les réglages
+ * de son téléphone, laisser la période s'achever, puis reprendre — retombait
+ * sur le même refus, définitivement, sans qu'aucun écran ne lui dise pourquoi.
+ * Le refus cessait d'être une protection pour devenir une impasse.
+ *
+ * `canceled` est donc absent : c'est un abonnement terminé, il ne prive plus
+ * personne. `past_due` y est : le paiement a échoué mais l'accès court encore.
+ * La même liste est tenue côté base par `has_active_subscription()`.
+ */
+export const STATUTS_AVEC_BENEFICE: SubscriptionStatus[] = ['trialing', 'active', 'past_due'];
+
+/** Cette famille bénéficie-t-elle encore de son abonnement ? */
+export function beneficieEncore(status: SubscriptionStatus | null | undefined): boolean {
+  return !!status && (STATUTS_AVEC_BENEFICE as string[]).includes(status);
+}

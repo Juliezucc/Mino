@@ -19,6 +19,7 @@ import {
   verifyAppleTransaction,
   verifyGooglePurchase,
 } from '../_shared/store.ts';
+import { STATUTS_AVEC_BENEFICE } from '../../../src/domain/billing.ts';
 
 Deno.serve(servir(async (request) => {
 
@@ -93,18 +94,56 @@ Deno.serve(servir(async (request) => {
         .eq('store_account_token', state.accountToken)
         .maybeSingle();
 
+      /**
+       * **Détenir, c'est en bénéficier aujourd'hui — pas l'avoir détenu un
+       * jour.** Le filtre ne regardait que `source`, jamais `status`. Une
+       * ligne résiliée, ou un essai éteint depuis des mois, verrouillait donc
+       * le jeton sur son ancienne famille POUR TOUJOURS.
+       *
+       * Ce que ça coûtait : le parent qui fait exactement le bon geste —
+       * résilier dans les réglages de son téléphone, laisser la période
+       * s'achever, puis reprendre — retombait sur le même refus, sans aucune
+       * issue, et sans que rien ne lui dise pourquoi. Le refus cessait d'être
+       * une protection pour devenir une impasse.
+       *
+       * Les trois états retenus sont ceux qui donnent un accès réel, les mêmes
+       * que `has_active_subscription()` : on ne dépossède jamais une famille
+       * qui bénéficie de l'abonnement. Mais on cesse d'en protéger une qui n'en
+       * bénéficie plus.
+       */
       const { data: detenu } = ancienne
         ? await db
             .from('subscriptions')
             .select('family_id')
             .eq('family_id', ancienne.id)
             .in('source', ['apple', 'google'])
+            .in('status', STATUTS_AVEC_BENEFICE)
             .maybeSingle()
         : { data: null };
 
       if (detenu) {
         console.error('jeton de compte étranger', caller.familyId, state.transactionId);
-        return fail('Cet achat appartient à un autre compte.', 403);
+        /**
+         * **« Un autre compte » était faux pour celui qui le lisait.**
+         *
+         * Le parent comprend « un autre compte Apple » — et il n'en a qu'un.
+         * Il cherche donc un second identifiant qui n'existe pas, conclut
+         * qu'il s'est trompé, ou que Mino l'accuse de fraude. C'est le
+         * message, pas le refus, qui fabrique le billet de support.
+         *
+         * L'autre compte est un compte MINO, et la phrase nomme désormais les
+         * deux sorties — se reconnecter, ou résilier. Elle ne nomme en
+         * revanche jamais la famille détentrice ni son adresse : répondre
+         * différemment selon qu'une adresse est prise ou libre livrerait la
+         * liste des clients, une adresse à la fois.
+         *
+         * Deux phrases, et pas trois : au-delà de 300 caractères, le message
+         * est écarté avant d'atteindre l'écran (voir `raisonDeLaFonction`).
+         */
+        return fail(
+          'Cet abonnement est déjà rattaché à un compte Mino. Connectez-vous avec ce compte pour le retrouver, ou résiliez-le dans les réglages de votre téléphone : vous pourrez alors reprendre ici.',
+          403,
+        );
       }
 
       // Personne ne le détient : on l'adopte, et on le dit. Cette ligne est

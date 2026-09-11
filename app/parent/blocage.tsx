@@ -1,10 +1,11 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot';
 import { Button, Card, Screen, ScreenHeader, Text } from '@/components/ui';
+import { choixEnregistre } from '@/data/deviceProfile';
 import { PairedDevice } from '@/data/repository';
 import { LIEN_TELECHARGEMENT } from '@/features/onboarding/InstallerSurLAppareil';
 import { aRegler, etatDe, phraseDe } from '@/domain/shieldReport';
@@ -34,8 +35,46 @@ export default function ShieldSetup() {
    * qui vient de la créer. La flèche du bandeau savait déjà l'éviter ; le
    * bouton matériel, lui, ne demandait rien à personne.
    */
-  useRetourBloque(() => {
+  /**
+   * Où l'on atterrit en quittant cet écran — et ce n'est pas toujours le même
+   * endroit.
+   *
+   * **Le défaut, trouvé sur un vrai iPhone.** Le parent répond « cet appareil
+   * est à Manon », arrive ici, ne veut pas régler le bouclier tout de suite —
+   * c'est son droit — et touche la flèche. Il atterrissait dans l'espace
+   * parent, DÉVERROUILLÉ, sur la tablette qu'il vient de déclarer à son
+   * enfant. Il n'avait plus qu'à la lui tendre. C'est la réouverture du défaut
+   * que `a574943` avait fermé, par une autre porte : les trois sorties de cet
+   * écran — la flèche, le bouton du bas, et le retour matériel d'Android —
+   * menaient toutes à `/parent`.
+   *
+   * **La condition porte sur l'ENTRÉE, pas sur l'appareil.** Se fonder sur le
+   * seul profil verrouillerait aussi le parent qui ouvre Réglages → « Blocage
+   * des applications » sur la tablette du salon : il retaperait son code à
+   * chaque aller-retour, et finirait par en choisir un trivial. Le marqueur
+   * `inscription=1` n'est posé que par `onboarding/appareil.tsx`.
+   *
+   * `/who` plutôt que `/parent` verrouillé : le sélecteur referme le verrou de
+   * lui-même au montage, et c'est l'écran qu'on tend à l'enfant. Renvoyer vers
+   * `/parent` ferait rebondir la garde du layout vers l'écran du code, et
+   * redemanderait au parent, trois secondes après l'avoir choisi, le code
+   * qu'il vient de poser.
+   */
+  const { inscription } = useLocalSearchParams<{ inscription?: string }>();
+  const device = useMinoStore((s) => s.device);
+  const lockParent = useMinoStore((s) => s.lockParent);
+
+  const sortirDuBlocage = useCallback(() => {
+    if (inscription === '1' && choixEnregistre(device).kind !== 'parent') {
+      lockParent();
+      router.replace('/who');
+      return;
+    }
     router.replace('/parent');
+  }, [inscription, device, lockParent, router]);
+
+  useRetourBloque(() => {
+    sortirDuBlocage();
     return true;
   });
 
@@ -184,7 +223,7 @@ export default function ShieldSetup() {
         * condition. Cet écran a une seule sortie possible — l'espace parent —
         * qu'on y arrive par la fin de l'inscription ou depuis les réglages.
         */}
-      <ScreenHeader onBack={() => router.replace('/parent')} title="Blocage des applications" />
+      <ScreenHeader onBack={sortirDuBlocage} title="Blocage des applications" />
 
       <View style={styles.hero}>
         <Mascot expression={status === 'approved' ? 'proud' : 'motivated'} size={110} />
@@ -302,6 +341,28 @@ export default function ShieldSetup() {
               {count > 0
                 ? 'Elles s’ouvrent uniquement pendant une session, et se reverrouillent toutes seules à la fin — même si Mino est fermé.'
                 : 'Choisissez les applications que Mino doit verrouiller entre deux sessions.'}
+            </Text>
+            {/**
+              * L'avertissement qui doit précéder la liste, et pas la suivre.
+              *
+              * **Ce qu'on ne peut PAS empêcher.** Le sélecteur est celui du
+              * système, et ce qu'il rend n'est pas une liste de noms mais des
+              * jetons chiffrés : Mino ne sait pas lequel est Mino. C'est une
+              * garantie d'Apple — celle qui l'empêche aussi de savoir que
+              * votre enfant a TikTok — et elle nous interdit autant de retirer
+              * Mino de la liste que de le décocher après coup.
+              *
+              * **Ce que ça coûterait.** Un parent pressé coche tout, Mino
+              * compris. L'application se verrouille elle-même : l'enfant ne
+              * peut plus ouvrir ses missions, ni déclarer qu'il a terminé, ni
+              * lancer le temps qu'il a gagné. Le produit s'éteint, et rien à
+              * l'écran ne dit pourquoi.
+              *
+              * Il ne reste donc qu'une chose honnête à faire : le dire avant.
+              */}
+            <Text variant="caption" color={colors.dangerInk}>
+              Ne cochez pas Mino dans la liste. S’il est verrouillé, votre enfant ne peut plus
+              ouvrir ses missions ni lancer le temps qu’il a gagné.
             </Text>
             <Button label="Choisir les applications" variant="secondary" onPress={pick} loading={busy} />
           </Card>
@@ -546,9 +607,13 @@ export default function ShieldSetup() {
         * un ailleurs.
         */}
       <Button
-        label="Terminer, aller à mon espace"
+        label={
+          inscription === '1' && choixEnregistre(device).kind !== 'parent'
+            ? 'Terminer'
+            : 'Terminer, aller à mon espace'
+        }
         variant={status === 'approved' ? 'secondary' : 'primary'}
-        onPress={() => router.replace('/parent')}
+        onPress={sortirDuBlocage}
       />
 
       {/* ----------------------------------- les autres appareils de la famille

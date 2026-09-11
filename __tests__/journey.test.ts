@@ -1,7 +1,12 @@
 import * as actions from '@/domain/actions';
 import { buildDemoFamily, buildEmptyFamily } from '@/data/demo';
 import { inscriptionInachevee, isFirstRun } from '@/domain/firstRun';
-import { codeTropFacile, demandeLeCodeALInscription, parentGate } from '@/domain/parentGate';
+import {
+  codeTropFacile,
+  demandeLeCodeALInscription,
+  parentGate,
+  refermerEnArrierePlan,
+} from '@/domain/parentGate';
 import { FamilyData } from '@/domain/types';
 import {
   balanceOf,
@@ -921,5 +926,27 @@ describe('la devinabilité du code parent', () => {
     for (const bon of ['4821', '1023', '2907', '4321']) {
       expect(codeTropFacile(bon)).toBe(false);
     }
+  });
+});
+
+/**
+ * Refermer l'espace parent quand la tablette est posée.
+ *
+ * Trouvé en cartographiant tous les chemins : aucun écouteur d'état
+ * d'application n'existait, donc un espace parent ouvert le restait des
+ * heures, écran éteint. Les deux seuls gestes qui le refermaient — passer par
+ * le sélecteur de profils, toucher « Verrouiller » au fond des réglages —
+ * sont exactement ceux que personne ne fait avant de tendre une tablette.
+ */
+describe('le verrou et la mise en arrière-plan', () => {
+  it('referme sur l’appareil d’un enfant et sur la tablette partagée', () => {
+    expect(refermerEnArrierePlan('enfant')).toBe(true);
+    expect(refermerEnArrierePlan('partage')).toBe(true);
+  });
+
+  it('ne referme jamais sur le téléphone du parent', () => {
+    // Quatre chiffres retapés vingt fois par jour deviennent « 1234 », ou se
+    // tapent devant l'enfant. Le remède serait pire que le mal.
+    expect(refermerEnArrierePlan('parent')).toBe(false);
   });
 });

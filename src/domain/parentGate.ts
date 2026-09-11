@@ -122,3 +122,27 @@ export function demandeLeCodeALInscription(input: { codeDejaPose: boolean }): bo
 export function codeTropFacile(pin: string): boolean {
   return /^(\d)\1{3}$/.test(pin) || pin === '1234' || pin === '0000';
 }
+
+/**
+ * Faut-il refermer l'espace parent quand l'application passe en arrière-plan ?
+ *
+ * **Rien ne le refermait, jamais.** Aucun écouteur d'état d'application dans
+ * tout le dépôt : un espace parent ouvert le restait des heures, écran éteint,
+ * tablette posée sur la table. Le seul verrou était un booléen en mémoire,
+ * remis à faux par deux gestes délibérés — passer par le sélecteur de profils,
+ * ou toucher « Verrouiller » au fond des réglages. Personne ne fait ni l'un ni
+ * l'autre avant de tendre une tablette à un enfant.
+ *
+ * **Mais pas partout.** Sur le téléphone du parent, refermer à chaque
+ * bascule ferait retaper quatre chiffres vingt fois par jour — et quatre
+ * chiffres qu'on retape vingt fois par jour finissent par être `1234`, ou par
+ * être tapés devant l'enfant. Le remède serait pire que le mal.
+ *
+ * La ligne est donc la même que partout ailleurs : ce que le parent a déclaré
+ * de cet appareil. Sur le sien, on ne referme pas. Sur celui d'un enfant ou
+ * sur la tablette partagée, la mise en arrière-plan est exactement l'instant
+ * où elle change de mains.
+ */
+export function refermerEnArrierePlan(usage: 'enfant' | 'partage' | 'parent'): boolean {
+  return usage !== 'parent';
+}

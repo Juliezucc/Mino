@@ -42,10 +42,30 @@ export default function ParentSettings() {
   const declarerPuisPoserLeCode = async (souhait: ChoixDAppareil) => {
     await declarerUsage(souhait).catch(() => undefined);
     if (souhait.kind === 'parent') return;
+
     const pose = await getAuthService().hasParentPin().catch(() => true);
-    if (pose) return;
-    autoriserLaPoseDuCode();
-    router.push({ pathname: '/parent-pin', params: { ensuite: '/parent' } });
+    if (!pose) {
+      autoriserLaPoseDuCode();
+      router.push({ pathname: '/parent-pin', params: { ensuite: '/who' } });
+      return;
+    }
+
+    /**
+     * Déclarer l'appareil à un enfant, c'est le lui tendre — y compris depuis
+     * les réglages.
+     *
+     * **Ce chemin laissait la porte grande ouverte.** Quand un code existait
+     * déjà, la fonction rendait la main sans rien faire : le parent restait
+     * dans son espace, déverrouillé, sur un appareil qu'il venait de déclarer
+     * à son enfant. C'est le même défaut que la flèche de l'écran du blocage,
+     * par une troisième porte.
+     *
+     * On sort donc par le sélecteur, qui referme le verrou au montage. Le
+     * parent y voit immédiatement ce qu'il a changé, et rentre chez lui avec
+     * ses quatre chiffres s'il n'avait pas fini.
+     */
+    lockParent();
+    router.replace('/who');
   };
   const activerNotifications = useMinoStore((s) => s.activerNotifications);
   const notifier = getNotificationService();

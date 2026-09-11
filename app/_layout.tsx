@@ -10,11 +10,13 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { choixEnregistre } from '@/data/deviceProfile';
+import { refermerEnArrierePlan } from '@/domain/parentGate';
 import { ErrorToast } from '@/features/ErrorToast';
 import { getDiagnosticsService } from '@/services/diagnostics';
 // Importé pour son effet, et il n'y a rien d'autre à en faire ici : le module
@@ -47,6 +49,29 @@ export default function RootLayout() {
       .flush()
       .catch(() => undefined);
   }, [bootstrap]);
+
+  /**
+   * Refermer l'espace parent quand la tablette est posée.
+   *
+   * C'est l'instant précis où elle change de mains : l'écran s'éteint, on la
+   * tend, l'enfant la reprend. Jusqu'ici elle se rouvrait exactement où le
+   * parent l'avait laissée — son tableau de bord, ses réglages, le bouton qui
+   * offre des minutes. Voir `refermerEnArrierePlan`, qui porte la règle et
+   * dit pourquoi on ne le fait pas sur le téléphone du parent.
+   *
+   * `inactive` compte autant que `background` : sur iOS, c'est l'état d'un
+   * téléphone qu'on verrouille, et l'application peut n'aller jamais plus
+   * loin.
+   */
+  useEffect(() => {
+    const abonnement = AppState.addEventListener('change', (etat) => {
+      if (etat === 'active') return;
+      const { device, parentUnlocked, lockParent } = useMinoStore.getState();
+      if (!parentUnlocked) return;
+      if (refermerEnArrierePlan(choixEnregistre(device).kind)) lockParent();
+    });
+    return () => abonnement.remove();
+  }, []);
 
   const ready = fontsLoaded && status === 'ready';
 

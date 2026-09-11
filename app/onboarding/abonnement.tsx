@@ -342,6 +342,29 @@ export default function OnboardingAbonnement() {
       />
 
       {/**
+       * L'erreur sous le bouton qui l'a produite, et en bandeau.
+       *
+       * **Elle était affichée, et pourtant invisible.** Une ligne de 13 px,
+       * posée après le bouton, après la mention d'engagement ET après la carte
+       * de réassurance — dans une page qui défile. Sur un iPhone de taille
+       * courante, elle pouvait ne pas être à l'écran du tout : le parent
+       * touchait « Commencer mes 30 jours », la feuille Apple se refermait,
+       * l'écran se recomposait à l'identique, et rien ne lui était dit.
+       *
+       * C'est exactement le défaut que l'écran d'abonnement des réglages a
+       * corrigé — « une erreur en bas d'une page qui défile n'est pas
+       * affichée » — et le correctif n'avait jamais été porté ici, sur l'écran
+       * où l'on engage de l'argent pour la première fois.
+       */}
+      {erreur ? (
+        <Card background={colors.dangerSoft} elevation="none">
+          <Text variant="body" color={colors.dangerInk}>
+            {erreur}
+          </Text>
+        </Card>
+      ) : null}
+
+      {/**
        * La mention sous le bouton, et pourquoi elle est là plutôt qu'ailleurs.
        *
        * C'est la dernière chose lue avant d'appuyer, et la seule que lit
@@ -376,11 +399,6 @@ export default function OnboardingAbonnement() {
         </Text>
       </Card>
 
-      {erreur ? (
-        <Text variant="caption" color={colors.dangerInk} center>
-          {erreur}
-        </Text>
-      ) : null}
 
       {billing.restore ? (
         <Button
