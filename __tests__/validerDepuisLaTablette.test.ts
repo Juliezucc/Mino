@@ -1,4 +1,5 @@
 import { buildDemoFamily } from '@/data/demo';
+import { DomainError } from '@/domain/actions';
 import { SupabaseRepository } from '@/data/supabaseRepository';
 import type { FamilyData, MissionCompletion } from '@/domain/types';
 
@@ -120,5 +121,56 @@ describe('valider depuis la tablette de l’enfant', () => {
 
     expect(appels).toEqual([]);
     expect(tables).toContain('mission_completions');
+  });
+});
+
+/**
+ * Le refus du serveur doit ARRIVER jusqu'au parent.
+ *
+ * Trouvé sur le téléphone du second parent : la fonction répondait, en
+ * français, et l'écran affichait « Impossible de joindre Mino. Rien n'a été
+ * enregistré » — une panne de réseau pour un refus nommé. La cause tenait à la
+ * classe de l'erreur : `commit()` n'honore que les `DomainError`, et tout le
+ * reste retombe dans le message générique. C'est le défaut corrigé un étage
+ * plus bas, refabriqué un étage plus haut.
+ */
+describe('le refus de la fonction remonte tel quel', () => {
+  it('relance une DomainError, seule classe que le magasin affiche', async () => {
+    const client = {
+      from: () => ({ insert: async () => ({ error: null }), upsert: async () => ({ error: null }) }),
+      functions: {
+        invoke: async () => ({
+          data: null,
+          error: Object.assign(new Error('Edge Function returned a non-2xx status code'), {
+            context: {
+              status: 403,
+              json: async () => ({ error: 'Code parent incorrect.' }),
+            },
+          }),
+        }),
+      },
+    } as never;
+
+    const { data, completion } = familleAvecDemande();
+
+    await expect(
+      new SupabaseRepository(client).persist(data, {
+        kind: 'completion.approved',
+        upsert: { completions: [{ ...completion, status: 'approved' }] },
+        codeParent: '4821',
+      }),
+    ).rejects.toThrow('Code parent incorrect.');
+
+    // Et la classe compte autant que le texte : une `Error` ordinaire serait
+    // remplacée par « Impossible de joindre Mino » avant d'atteindre l'écran.
+    await new SupabaseRepository(client)
+      .persist(data, {
+        kind: 'completion.approved',
+        upsert: { completions: [{ ...completion, status: 'approved' }] },
+        codeParent: '4821',
+      })
+      .catch((e) => {
+        expect(e).toBeInstanceOf(DomainError);
+      });
   });
 });

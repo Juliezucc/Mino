@@ -32,6 +32,7 @@ export default function JoinFamily() {
   const joinFamily = useMinoStore((s) => s.joinFamily);
   const selectChild = useMinoStore((s) => s.selectChild);
   const lockDeviceTo = useMinoStore((s) => s.lockDeviceTo);
+  const declarerUsage = useMinoStore((s) => s.declarerUsage);
   const children = useChildren();
   const service = getScreenTimeService();
 
@@ -77,13 +78,37 @@ export default function JoinFamily() {
    */
   const pickChild = async (childId: string) => {
     selectChild(childId);
-    await lockDeviceTo(childId).catch(() => undefined);
+    // La même écriture unique que partout ailleurs : les trois champs de
+    // l'appareil se posent ensemble ou pas du tout. Voir `etatsPourChoix`.
+    await declarerUsage({ kind: 'enfant', childId }).catch(() => undefined);
     setStep('shield');
   };
 
   const pickShared = async () => {
-    await lockDeviceTo(null).catch(() => undefined);
+    await declarerUsage({ kind: 'partage' }).catch(() => undefined);
     setStep('shield');
+  };
+
+  /**
+   * Le téléphone de l'autre parent, et il n'avait aucune réponse.
+   *
+   * **Trouvé en conduisant le parcours avec un vrai second téléphone.** Un
+   * parent installe Mino sur le téléphone de son conjoint, saisit le code
+   * famille — et l'écran lui demande « c'est l'appareil de qui ? » en ne
+   * proposant que les enfants et « partagé ». Il n'y a pas de bonne réponse :
+   * répondre un prénom d'enfant réserverait ce téléphone à l'enfant, et
+   * « partagé » enchaînerait sur le réglage du bouclier, qu'il n'y a rien à
+   * poser ici.
+   *
+   * Ce que cette réponse ouvre est exactement ce qu'il faut : le code parent
+   * appartient à la FAMILLE depuis hier, donc ce téléphone-là ouvre l'espace
+   * parent avec les quatre chiffres, et `valider-mission` lui permet de
+   * confirmer les missions. Le second parent est chez lui sans jamais avoir eu
+   * à partager un mot de passe.
+   */
+  const pickParent = async () => {
+    await declarerUsage({ kind: 'parent' }).catch(() => undefined);
+    router.replace('/parent');
   };
 
   const authorize = async () => {
@@ -181,9 +206,20 @@ export default function JoinFamily() {
 
             <Button
               label="Appareil partagé"
+              icon="👧👦"
               variant="secondary"
               onPress={() => {
                 pickShared().catch(() => undefined);
+              }}
+            />
+
+            <Button
+              label="C’est le téléphone d’un parent"
+              icon="📱"
+              variant="ghost"
+              haptic={false}
+              onPress={() => {
+                pickParent().catch(() => undefined);
               }}
             />
           </>

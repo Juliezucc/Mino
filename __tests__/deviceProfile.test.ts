@@ -1,4 +1,9 @@
-import { choixEnregistre, etatsPourChoix, profileToOpen } from '@/data/deviceProfile';
+import {
+  changementDeProfilLibre,
+  choixEnregistre,
+  etatsPourChoix,
+  profileToOpen,
+} from '@/data/deviceProfile';
 import { usageDeLAppareil } from '@/domain/notifications';
 
 const children = [{ id: 'noah' }, { id: 'elliott' }];
@@ -94,5 +99,24 @@ describe('la réponse « à qui est cet appareil »', () => {
     expect(etatsPourChoix({ kind: 'enfant', childId: 'noah' }).declareALEnfant).toBe(true);
     expect(etatsPourChoix({ kind: 'partage' }).declareALEnfant).toBe(true);
     expect(etatsPourChoix({ kind: 'parent' }).declareALEnfant).toBe(false);
+  });
+});
+
+/**
+ * Changer de profil, et à quel prix.
+ *
+ * Le code disait « d'un enfant à l'autre : jamais de code ». C'est juste sur
+ * la tablette du salon, où deux enfants se succèdent dix fois par jour — leur
+ * demander quatre chiffres à chaque fois ferait taper le code devant eux. Ce
+ * l'est beaucoup moins sur la tablette de Manon, où le profil de son frère, et
+ * surtout ses minutes, se trouvaient à une touche.
+ */
+describe('changer de profil', () => {
+  it('est libre sur un appareil partagé', () => {
+    expect(changementDeProfilLibre({ lockedChildId: null })).toBe(true);
+  });
+
+  it('passe par le code parent sur l’appareil réservé à un enfant', () => {
+    expect(changementDeProfilLibre({ lockedChildId: 'manon' })).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Icon } from '@/components/icons/Icon';
 import { Mascot } from '@/components/mascot';
 import { Avatar, Button, Card, Logo, Screen, Text, TimeCapsules } from '@/components/ui';
+import { changementDeProfilLibre } from '@/data/deviceProfile';
 import { balanceOf } from '@/domain/ledger';
 import { getAuthService } from '@/services/auth';
 import { unitOf } from '@/domain/ageBand';
@@ -19,6 +20,8 @@ export default function Who() {
   const data = useFamily();
   const selectChild = useMinoStore((s) => s.selectChild);
   const lockParent = useMinoStore((s) => s.lockParent);
+  const device = useMinoStore((s) => s.device);
+  const parentUnlocked = useMinoStore((s) => s.parentUnlocked);
 
   /**
    * Y a-t-il un parent connecté ? La réponse change ce qu'il faut lui proposer
@@ -86,6 +89,21 @@ export default function Who() {
   }
 
   const openChild = (childId: string) => {
+    /**
+     * Sur l'appareil réservé à un enfant, passer à un autre demande le code.
+     *
+     * Le sélecteur ouvrait n'importe quel profil d'une touche, y compris sur
+     * la tablette de Manon : le profil de son frère, et surtout ses minutes,
+     * étaient à portée. Sur la tablette du salon, en revanche, c'est le geste
+     * ordinaire et il doit le rester. Voir `changementDeProfilLibre`.
+     *
+     * `parentUnlocked` suffit à lever la demande : un parent qui vient de
+     * taper son code est là, et on ne le lui redemande pas deux fois.
+     */
+    if (!changementDeProfilLibre(device) && childId !== device.lockedChildId && !parentUnlocked) {
+      router.push({ pathname: '/parent-pin', params: { ensuite: '/who' } });
+      return;
+    }
     selectChild(childId);
     router.replace('/child');
   };

@@ -219,3 +219,23 @@ export function choixEnregistre(
   if (profil.lockedChildId) return { kind: 'enfant', childId: profil.lockedChildId };
   return profil.usagePersonnel ? { kind: 'parent' } : { kind: 'partage' };
 }
+
+/**
+ * Peut-on passer d'un enfant à l'autre sans le code parent ?
+ *
+ * **Deux situations, deux réponses, et la nuance vient de l'usage réel.**
+ *
+ * Sur la tablette du salon, changer de profil est le geste ordinaire : deux
+ * enfants s'y succèdent dix fois par jour, et leur demander quatre chiffres à
+ * chaque fois ferait taper le code devant eux — ou le ferait désactiver.
+ *
+ * Sur la tablette de Manon, non. Le profil de son frère, et surtout les
+ * minutes de son frère, ne doivent pas être à une touche. Le parent a déclaré
+ * cet appareil à un enfant ; passer à un autre est donc un changement de
+ * réglage, pas un changement de profil, et il passe par le code.
+ */
+export function changementDeProfilLibre(
+  profil: Pick<DeviceProfile, 'lockedChildId'>,
+): boolean {
+  return profil.lockedChildId === null;
+}

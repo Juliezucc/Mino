@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { AnimatedMascot, MascotAnimation } from '@/components/mascot';
 import { MascotExpression } from '@/components/mascot/types';
 import { Button, Card, MinutesBadge, Screen, Text, TimeRing } from '@/components/ui';
+import { changementDeProfilLibre } from '@/data/deviceProfile';
 import { BlocageAReglerBanner } from '@/features/child/BlocageAReglerBanner';
 import { MissionCard } from '@/features/child/MissionCard';
 import { unitOf } from '@/domain/ageBand';
@@ -12,6 +13,7 @@ import { heure, openWindowAt } from '@/domain/freeWindows';
 import { pendingBonus } from '@/domain/bonus';
 import { lastSeenBonus } from '@/data/seenBonus';
 import { useBalanceDetail, useChildMissions, useActiveChild, useFamily } from '@/store/selectors';
+import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing, tabBarSpace } from '@/theme';
 
 /** Child home: who I am, how much time I have, and one obvious thing to do. */
@@ -21,6 +23,7 @@ export default function ChildHome() {
   const balance = useBalanceDetail(child?.id);
   const missions = useChildMissions(child?.id);
   const data = useFamily();
+  const device = useMinoStore((s) => s.device);
   /**
    * La plage libre en cours, s'il y en a une.
    *
@@ -70,6 +73,9 @@ export default function ChildHome() {
   const unit = unitOf(child);
 
   const todo = missions.filter((m) => m.state === 'todo');
+  // Partagé : plusieurs enfants se succèdent ici, le changement de profil doit
+  // être à portée. Réservé à un enfant : il passe par le code, ailleurs.
+  const partage = changementDeProfilLibre(device);
   const waiting = missions.filter((m) => m.state === 'pending');
 
   /**
@@ -146,6 +152,26 @@ export default function ChildHome() {
               : 'Tes minutes ne sont pas décomptées pendant ce moment.'}
           </Text>
         </Card>
+      ) : null}
+
+      {/**
+        * Changer de profil, sur l'accueil, quand l'appareil est partagé.
+        *
+        * Deux enfants s'y succèdent dix fois par jour ; l'enterrer dans
+        * l'onglet « Profil » leur demandait trois touches pour un geste qui en
+        * vaut une. Il n'apparaît QUE sur un appareil partagé : sur celui de
+        * Manon, passer à un autre profil est un changement de réglage, pas un
+        * changement de profil, et il passe par le code — voir
+        * `changementDeProfilLibre`.
+        */}
+      {partage ? (
+        <Button
+          label="Changer de profil"
+          icon="👥"
+          variant="ghost"
+          haptic={false}
+          onPress={() => router.replace('/who')}
+        />
       ) : null}
 
       {/* Le verrou n'est pas posé sur cet appareil : l'enfant le constate déjà —

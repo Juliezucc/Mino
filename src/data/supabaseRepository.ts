@@ -19,9 +19,10 @@ import { ScreenTimeAuthorization } from '@/services/screenTime';
 
 import { withOpeningBalances } from '@/domain/ledger';
 
+import { DomainError } from '@/domain/actions';
 import { Device } from '@/domain/devices';
 
-import { echecDeLaFonction } from './erreurFonction';
+import { raisonDeLaFonction } from './erreurFonction';
 import { ChangeEvent, MinoRepository, PairedDevice } from './repository';
 
 /**
@@ -449,9 +450,22 @@ export class SupabaseRepository implements MinoRepository {
           code: change.codeParent,
         },
       });
-      // Le message du serveur, en français, plutôt que celui de la
-      // bibliothèque — sans quoi le parent relit « non-2xx status code ».
-      if (error) throw await echecDeLaFonction(error, 'La mission n’a pas pu être confirmée.');
+      /**
+       * Une `DomainError`, et pas une `Error` — sans quoi le message se perd.
+       *
+       * **Le défaut, retrouvé sur l'appareil du second parent.** Je relayais
+       * bien la phrase française du serveur, mais dans une `Error` ordinaire.
+       * Or `commit()` n'honore que les `DomainError` : tout le reste retombe
+       * dans « Impossible de joindre Mino. Rien n'a été enregistré ». Le
+       * parent lisait donc une panne de réseau à la place de la vraie cause —
+       * c'est-à-dire exactement le défaut qu'on venait de corriger un étage
+       * plus bas, refabriqué un étage plus haut.
+       */
+      if (error) {
+        throw new DomainError(
+          await raisonDeLaFonction(error, 'La mission n’a pas pu être confirmée.'),
+        );
+      }
       return;
     }
 

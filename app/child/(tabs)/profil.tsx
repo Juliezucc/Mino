@@ -133,6 +133,9 @@ export default function ChildProfile() {
        *     profil, pas un accès aux réglages.
        *   • **vers l'espace parent** : le code, une fois, et on y arrive.
        */}
+      {/* Sur l'appareil réservé à un enfant, le sélecteur demandera le code
+          pour ouvrir un AUTRE profil — c'est lui qui pose la question, pas ce
+          bouton : on ne ferme pas la porte à celui qui revient chez lui. */}
       <Button
         label="Changer de profil"
         icon="👥"
