@@ -82,3 +82,11 @@ assets/mascot/sequence/*-frames/
 /REPRISE-MINO.md
 /REPRISEMINO.md
 /docs/conversations/
+
+# Les binaires produits par une compilation locale. 81 Mo l'unite, et ils se
+# refabriquent d'une commande : un depot n'est pas un entrepot. Celui du
+# 11 septembre 2026 y est entre par un `git add -A` distrait, et GitHub l'a
+# signale avant moi.
+/build-*.aab
+/build-*.apk
+/build-*.ipa
