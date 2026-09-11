@@ -283,7 +283,7 @@ export const TERMS: LegalDocument = {
           text: 'Vous n’êtes pas tenu d’utiliser le formulaire ci-dessous : une déclaration dénuée d’ambiguïté suffit. Il est reproduit parce que la loi nous impose de vous le mettre à disposition.',
         },
         {
-          kind: 'note',
+          kind: 'form',
           text: [
             'MODÈLE DE FORMULAIRE DE RÉTRACTATION',
             '(Veuillez compléter et renvoyer le présent formulaire uniquement si vous souhaitez vous rétracter du contrat.)',

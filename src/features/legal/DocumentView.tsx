@@ -43,6 +43,19 @@ function BlockView({ block }: { block: Block }) {
         </Card>
       );
 
+    case 'form':
+      return (
+        <Card background={colors.surfaceMuted} elevation="none">
+          {/* `selectable` : ce texte existe pour être recopié dans un e-mail.
+              Un formulaire réglementaire qu'on ne peut pas sélectionner oblige
+              à le retaper, ce qui est exactement l'obstacle que la loi veut
+              retirer en imposant qu'il soit mis à disposition. */}
+          <Text variant="body" selectable>
+            {block.text}
+          </Text>
+        </Card>
+      );
+
     case 'rows':
       return (
         <View style={styles.rows}>

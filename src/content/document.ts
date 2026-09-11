@@ -13,7 +13,24 @@ export type Block =
   /** A highlighted callout, for the things a reader must not miss. */
   | { kind: 'note'; text: string }
   /** A definition row: term on the left, meaning on the right. */
-  | { kind: 'rows'; rows: { label: string; value: string }[] };
+  | { kind: 'rows'; rows: { label: string; value: string }[] }
+  /**
+   * Un texte à recopier, dont la mise en page fait partie du texte.
+   *
+   * **Pourquoi il lui faut un genre à lui.** Le formulaire type de
+   * rétractation est repris mot pour mot d'une annexe réglementaire : ses
+   * retours à la ligne, ses astérisques et l'ordre de ses champs en font
+   * partie. Rangé dans un `note`, il héritait du style des avertissements —
+   * carte colorée, texte gras — c'est-à-dire d'une emphase. Un formulaire
+   * n'est pas une emphase : c'est un document que le lecteur doit pouvoir
+   * lire ligne à ligne, et copier.
+   *
+   * La session du site a trouvé le même défaut de son côté, en pire : le
+   * générateur rendait le formulaire dans un `<p>` unique, où HTML écrase les
+   * retours à la ligne en espaces. Ici ils tiennent — `Text` de React Native
+   * les honore — mais le style, lui, mentait sur la nature du bloc.
+   */
+  | { kind: 'form'; text: string };
 
 export interface DocumentSection {
   title: string;
