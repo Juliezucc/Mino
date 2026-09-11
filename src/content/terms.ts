@@ -278,10 +278,54 @@ export const TERMS: LegalDocument = {
           kind: 'p',
           text: `Pour exercer ce droit, il suffit de nous écrire à ${OPERATOR.email}. Si votre abonnement a été souscrit depuis l’application, la demande de remboursement doit être adressée à Apple ou à Google, vendeur de cet abonnement, selon la procédure prévue par sa plateforme ; nous vous aidons volontiers à la formuler, mais nous n’avons pas la faculté de procéder nous-mêmes au remboursement.`,
         },
+        {
+          kind: 'p',
+          text: 'Vous n’êtes pas tenu d’utiliser le formulaire ci-dessous : une déclaration dénuée d’ambiguïté suffit. Il est reproduit parce que la loi nous impose de vous le mettre à disposition.',
+        },
+        {
+          kind: 'note',
+          text: [
+            'MODÈLE DE FORMULAIRE DE RÉTRACTATION',
+            '(Veuillez compléter et renvoyer le présent formulaire uniquement si vous souhaitez vous rétracter du contrat.)',
+            '',
+            `À l’attention de ${OPERATOR.legalName}, ${OPERATOR.address} — ${OPERATOR.email} :`,
+            '',
+            'Je/nous (*) vous notifie/notifions (*) par la présente ma/notre (*) rétractation du contrat portant sur la vente du bien (*)/pour la prestation de services (*) ci-dessous :',
+            '',
+            'Commandé le (*)/reçu le (*) :',
+            'Nom du (des) consommateur(s) :',
+            'Adresse du (des) consommateur(s) :',
+            'Signature du (des) consommateur(s) (uniquement en cas de notification du présent formulaire sur papier) :',
+            'Date :',
+            '',
+            '(*) Rayez la mention inutile.',
+          ].join('\n'),
+        },
       ],
     },
     {
-      title: '11. Disponibilité et responsabilité',
+      title: '11. Garantie légale de conformité',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Mino est un service numérique fourni de manière continue. À ce titre, et conformément aux articles L. 224-25-1 et suivants du Code de la consommation, nous répondons des défauts de conformité qui apparaissent pendant toute la durée de la fourniture prévue au contrat — et non pendant un délai fixe.',
+        },
+        {
+          kind: 'p',
+          text: 'Le service est conforme s’il correspond à sa description, s’il présente les qualités qu’un usage de ce type permet d’attendre, et s’il continue de les présenter, mises à jour comprises, pendant toute la durée de votre abonnement.',
+        },
+        {
+          kind: 'p',
+          text: 'En cas de défaut de conformité, vous pouvez exiger sa mise en conformité sans frais. Si nous ne pouvons pas y procéder, si nous n’y procédons pas dans un délai raisonnable, ou si le défaut réapparaît, vous pouvez obtenir une réduction du prix ou la résolution du contrat, remboursement à la clé pour la période non conforme. La résolution est de droit lorsque le défaut est grave.',
+        },
+        {
+          kind: 'note',
+          text: 'Cette garantie s’ajoute à la garantie légale contre les vices cachés du Code civil, et ne se substitue à aucune d’elles. Elle s’exerce sans frais pour vous : écrivez-nous, et nous n’exigerons ni forme particulière, ni preuve d’achat autre que votre compte. Lorsqu’une période d’indisponibilité suit votre demande, la durée de la garantie est suspendue jusqu’au rétablissement du service.',
+        },
+      ],
+    },
+    {
+      title: '12. Disponibilité et responsabilité',
       blocks: [
         {
           kind: 'p',
@@ -298,7 +342,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '12. Propriété intellectuelle',
+      title: '13. Propriété intellectuelle',
       blocks: [
         {
           kind: 'p',
@@ -307,7 +351,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '13. Données personnelles',
+      title: '14. Données personnelles',
       blocks: [
         {
           kind: 'p',
@@ -316,7 +360,7 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '14. Réclamations et médiation',
+      title: '15. Réclamations et médiation',
       blocks: [
         {
           kind: 'p',
@@ -337,7 +381,24 @@ export const TERMS: LegalDocument = {
       ],
     },
     {
-      title: '15. Droit applicable',
+      title: '16. Modification des présentes conditions',
+      blocks: [
+        {
+          kind: 'p',
+          text: 'Nous pouvons faire évoluer ces conditions, pour tenir compte d’un changement du service, d’une évolution de la loi, ou d’une clarification.',
+        },
+        {
+          kind: 'p',
+          text: 'Toute modification vous est annoncée par e-mail et dans l’application au moins un mois avant son entrée en vigueur, avec la mention de ce qui change. Elle ne s’applique qu’aux périodes d’abonnement postérieures à cette entrée en vigueur : la période déjà payée reste régie par les conditions en vigueur lorsque vous l’avez souscrite.',
+        },
+        {
+          kind: 'note',
+          text: 'Si une modification ne vous convient pas, vous pouvez résilier sans frais avant qu’elle ne prenne effet, et vous conservez l’accès jusqu’au terme de la période déjà payée. Nous ne modifions jamais le prix, la durée ni la consistance du service en cours de période sans votre accord. Chaque version porte sa date, et la version en vigueur est toujours celle affichée dans l’application.',
+        },
+      ],
+    },
+    {
+      title: '17. Droit applicable',
       blocks: [
         {
           kind: 'p',
