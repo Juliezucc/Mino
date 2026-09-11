@@ -9,9 +9,12 @@ import { ID } from '@/domain/types';
  * Apple's FamilyControls on iOS, and through the usage-access and overlay
  * permissions on Android — so it lives behind this interface and nowhere else.
  *
- * Until the native modules ship, `LocalTimerScreenTimeService` runs an honest
- * in-app countdown and says so. Three strings in the app read `capability` and
- * reword themselves; nothing else knows how the time is enforced.
+ * Les modules natifs sont là — `modules/mino-screen-time` porte du Swift et du
+ * Kotlin, et `DeviceManagedScreenTimeService` est le chemin normal sur un vrai
+ * build. `LocalTimerScreenTimeService` reste le repli honnête là où il n'y a
+ * rien à verrouiller : le web, Expo Go, un build sans le module. Trois chaînes
+ * de l'application lisent `capability` et se reformulent ; rien d'autre ne sait
+ * comment le temps est tenu.
  *
  * See `docs/blocage-ecrans.md` for the plan and `docs/apple-family-controls.md`
  * for the authorisation Apple has to grant first.

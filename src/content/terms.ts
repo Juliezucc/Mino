@@ -19,7 +19,7 @@ export const TERMS: LegalDocument = {
   // Un contrat qui change de contenu change de date. L'article 7 vient de
   // retirer un avantage au filleul : le laisser au 21 août ferait passer une
   // modification pour un texte inchangé.
-  updatedAt: '9 septembre 2026',
+  updatedAt: '11 septembre 2026',
   intro: [
     {
       kind: 'p',
@@ -45,7 +45,11 @@ export const TERMS: LegalDocument = {
         },
         {
           kind: 'note',
-          text: 'Dans sa version actuelle, Mino calcule et décompte le temps accordé, mais n’empêche pas lui-même l’ouverture des autres applications de l’appareil : cette restriction relève du contrôle parental du système d’exploitation, qu’il vous appartient de configurer (Temps d’écran sur iOS, Family Link sur Android). Le guide intégré détaille la marche à suivre.',
+          text: 'Mino verrouille lui-même les applications que vous désignez sur l’appareil de votre enfant, et lève ce verrou le temps qu’il a gagné. Cette fonction dépend d’une autorisation que le système d’exploitation vous demande d’accorder sur cet appareil, et que vous pouvez retirer à tout moment depuis ses réglages : sans elle, ou sur un appareil qui ne la propose pas, Mino compte et décompte le temps sans rien verrouiller, et l’application vous l’indique. La restriction relève alors du contrôle parental du système (Temps d’écran sur iOS, Family Link ou Bien-être numérique sur Android), que le guide intégré détaille.',
+        },
+        {
+          kind: 'note',
+          text: 'Le choix des applications concernées vous appartient entièrement : Mino n’en désigne aucune de lui-même et n’a pas connaissance de celles que vous cochez, le système ne lui transmettant qu’un décompte. Il ne verrouille jamais sa propre application, afin que votre enfant puisse toujours consulter ses missions. Les appels d’urgence ne sont jamais bloqués.',
         },
         {
           kind: 'p',

@@ -389,8 +389,9 @@ export default function ShieldSetup() {
               * coder, et tout à dire.
               */}
             <Text variant="caption" color={colors.textMuted}>
-              Cochez sans crainte, même tout : Mino reste toujours ouvert pour votre enfant, et les
-              Réglages pour vous. iOS ne les ferme jamais.
+              Mino reste toujours ouvert pour votre enfant : le système protège l’application qui
+              détient l’autorisation. Laissez en revanche le téléphone et les messages hors de la
+              liste — il doit pouvoir vous joindre.
             </Text>
             <Button label="Choisir les applications" variant="secondary" onPress={pick} loading={busy} />
           </Card>

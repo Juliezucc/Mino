@@ -14,7 +14,7 @@ import { LegalDocument, OPERATOR } from './document';
 export const PRIVACY: LegalDocument = {
   title: 'Politique de confidentialité',
   subtitle: 'Ce que Mino sait de votre famille, et ce qu’il n’en fait pas',
-  updatedAt: '21 août 2026',
+  updatedAt: '11 septembre 2026',
   intro: [
     {
       kind: 'p',
@@ -44,7 +44,7 @@ export const PRIVACY: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: 'Elles se répartissent en cinq catégories, et la liste ci-dessous est exhaustive.',
+          text: 'Elles se répartissent en six catégories, et la liste ci-dessous est exhaustive.',
         },
         {
           kind: 'rows',
@@ -59,7 +59,11 @@ export const PRIVACY: LegalDocument = {
             },
             {
               label: 'Utilisation',
-              value: 'Les missions créées, les missions déclarées et en attente de confirmation, les minutes gagnées et utilisées, les sessions de temps d’écran. Ces données existent parce qu’elles sont l’application elle-même.',
+              value: 'Les missions créées, les missions déclarées et en attente de confirmation, les minutes gagnées et utilisées, les sessions de temps d’écran, et les plages horaires pendant lesquelles vous ouvrez l’écran sans rien décompter. Ces données existent parce qu’elles sont l’application elle-même.',
+            },
+            {
+              label: 'Appareils de la famille',
+              value: 'Pour chaque appareil rattaché : le prénom de l’enfant auquel il est réservé s’il y en a un, le nom que son propriétaire a donné à son téléphone, l’état du verrouillage et la date du dernier contact, ainsi qu’un jeton de notification. Le NOMBRE d’applications que vous avez choisi de verrouiller, et lui seul : le système d’exploitation ne nous transmet jamais lesquelles, et nous ne pouvons donc pas savoir ce que votre enfant a installé ni ce qu’il utilise.',
             },
             {
               label: 'Abonnement',
@@ -172,7 +176,7 @@ export const PRIVACY: LegalDocument = {
         },
         {
           kind: 'p',
-          text: 'Certains messages sont repérés automatiquement, avant même d’être transmis, lorsqu’ils évoquent une situation grave pour l’enfant. Mino cesse alors la conversation et oriente l’enfant vers un adulte de confiance et vers le 119, numéro national gratuit et confidentiel. Ces messages sont signalés dans les conversations que le parent peut consulter. Ce repérage est automatique : il n’est ni exhaustif, ni surveillé par une personne, et ne se substitue en aucun cas à la vigilance de l’adulte responsable.',
+          text: 'Certains messages sont repérés automatiquement lorsqu’ils évoquent une situation grave pour l’enfant. Le repérage a lieu sur l’appareil lui-même, avant tout envoi : ces messages-là ne sont transmis à aucun modèle, et leur texte n’est enregistré nulle part. Mino répond alors une phrase écrite à l’avance, identique pour tous, qui oriente l’enfant vers un adulte de confiance et vers le 119, numéro national gratuit et confidentiel. Le parent est informé qu’un tel échange a eu lieu, avec sa date et la réponse de Mino, mais sans les mots de l’enfant : c’est la condition pour qu’un enfant ose parler, y compris lorsque ce qu’il a à dire concerne son entourage. Ce repérage est automatique : il n’est ni exhaustif, ni surveillé par une personne, et ne se substitue en aucun cas à la vigilance de l’adulte responsable.',
         },
       ],
     },

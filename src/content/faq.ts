@@ -225,7 +225,7 @@ export const FAQ: FaqEntry[] = [
     id: 'appels-messages',
     question: 'Est-ce que les appels et les messages sont bloqués aussi ?',
     answer:
-      'Non, sauf si vous les ajoutez vous-même à la liste. Le téléphone, les messages et les appels d’urgence restent accessibles : un enfant doit pouvoir joindre un adulte, minos ou pas.',
+      'Non, sauf si vous les ajoutez vous-même à la liste — et il ne faut pas. Les appels d’urgence passent toujours, quoi qu’il arrive : ni iOS ni Android ne les laissent bloquer par une application. Pour les appels ordinaires, Android écarte de lui-même le composeur que vous utilisez ; sur iPhone, Mino ne peut pas le reconnaître, parce que le système ne lui donne que des jetons anonymes — c’est donc à vous de ne pas cocher Téléphone ni Messages. Un enfant doit pouvoir joindre un adulte, minos ou pas.',
     category: 'temps-ecran',
     keywords: ['appels', 'telephoner', 'sms', 'messages', 'urgence', 'joindre'],
   },
@@ -359,7 +359,7 @@ export const FAQ: FaqEntry[] = [
     id: 'code-parent-oublie',
     question: 'J’ai oublié mon code parent',
     answer:
-      'Le code parent est lié à votre compte, pas à l’appareil. Déconnectez-vous et reconnectez-vous avec votre e-mail et votre mot de passe : vous pourrez en choisir un nouveau. Après cinq essais ratés, l’accès se bloque cinq minutes.',
+      'Le code appartient à la FAMILLE : il est le même sur tous vos appareils, et sur celui de l’autre parent. Pour en choisir un nouveau, il faut être connecté avec l’adresse et le mot de passe du compte : depuis ce téléphone-là, Réglages → Gérer mon compte → Code parent. Un second parent ne peut pas le remplacer sans cela — il n’a pas d’adresse à lui, c’est tout l’intérêt. Après cinq essais ratés, l’accès se bloque cinq minutes, pour la famille entière : un enfant ne contourne pas le blocage en prenant la tablette d’à côté.',
     category: 'compte',
     keywords: ['code parent oublie', 'pin oublie', 'code incorrect', 'bloque', 'quatre chiffres'],
   },

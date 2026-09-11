@@ -229,11 +229,12 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Choisir les applications',
         body: [
-          'Le système ouvre sa propre liste et vous cochez ce qui doit être verrouillé. Cochez sans crainte, même tout : Mino reste toujours ouvert, ainsi que les réglages, les appels et les messages — le système protège l’application qui détient l’autorisation, et il ne se laisse pas enfermer dehors.',
+          'Le système ouvre sa propre liste et vous cochez ce qui doit être verrouillé. Mino, lui, reste toujours ouvert : le système protège l’application qui détient l’autorisation, et il ne se laisse pas enfermer dehors. Votre enfant pourra donc toujours voir ses missions et lancer son temps.',
+          'Le reste est verrouillé si vous le cochez, et seulement si vous le cochez. Laissez le téléphone et les messages en dehors de la liste : votre enfant doit pouvoir vous joindre à tout moment. Sur Android, Mino épargne de lui-même le composeur d’appels ; sur iPhone, il ne peut pas le reconnaître — le système ne nous donne que des jetons anonymes — et c’est donc à vous de ne pas le cocher.',
           'Le système ne nous dira jamais lesquelles vous avez cochées, seulement combien. Mino ne peut donc pas savoir ce que votre enfant utilise.',
         ],
         where: 'Espace parent → Réglages → Blocage des applications',
-        tip: 'C’est un choix que nous assumons : moins de données, et une fonctionnalité qui ne sait rien de la vie de votre enfant.',
+        tip: 'Les appels d’urgence, eux, passent toujours : ni iOS ni Android ne les laissent bloquer par une application.',
       },
       {
         title: 'Ouvrir l’écran sans rien faire dépenser',
