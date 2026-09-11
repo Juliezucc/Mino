@@ -16,6 +16,17 @@ expo-env.d.ts
 *.p8
 *.p12
 *.key
+
+# Clés de compte de service Google — Play Developer API, FCM.
+#
+# Ce sont des clés PRIVÉES, et elles arrivent dans ~/Downloads sous un nom qui
+# ne dit rien : `mino-508014-263e58a51ca1.json`. Le réflexe est de la déposer à
+# la racine pour qu'un outil la trouve, et rien n'aurait empêché de la pousser.
+#
+# `google-services.json`, lui, reste suivi : il part dans l'application
+# publiée, ce n'est pas un secret.
+mino-508014-*.json
+*service-account*.json
 *.mobileprovision
 
 # Metro
