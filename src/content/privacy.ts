@@ -63,7 +63,7 @@ export const PRIVACY: LegalDocument = {
             },
             {
               label: 'Appareils de la famille',
-              value: 'Pour chaque appareil rattaché : le prénom de l’enfant auquel il est réservé s’il y en a un, le nom que son propriétaire a donné à son téléphone, l’état de l’encadrement et la date du dernier contact, ainsi qu’un jeton de notification. S’y ajoute le NOMBRE d’applications que vous avez choisi d’encadrer — jamais lesquelles : nos serveurs n’en reçoivent que le décompte. Sur iPhone et iPad, l’application elle-même l’ignore, Apple ne lui remettant que des identifiants anonymes. Sur Android, ce mécanisme n’existe pas : pour vous présenter la liste, Mino lit les applications installées sur l’appareil, et il conserve le nom de celles que vous cochez dans la mémoire privée de l’application, sur cet appareil et nulle part ailleurs. Nous n’y avons pas accès.',
+              value: 'Pour chaque appareil rattaché : le prénom de l’enfant auquel il est réservé s’il y en a un, le nom que son propriétaire a donné à son téléphone, l’état du blocage et la date du dernier contact, ainsi qu’un jeton de notification. S’y ajoute le NOMBRE d’applications que vous avez choisi de bloquer — jamais lesquelles : nos serveurs n’en reçoivent que le décompte. Sur iPhone et iPad, l’application elle-même l’ignore, Apple ne lui remettant que des identifiants anonymes. Sur Android, ce mécanisme n’existe pas : pour vous présenter la liste, Mino lit les applications installées sur l’appareil, et il conserve le nom de celles que vous cochez dans la mémoire privée de l’application, sur cet appareil et nulle part ailleurs. Nous n’y avons pas accès.',
             },
             {
               label: 'Abonnement',

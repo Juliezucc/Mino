@@ -225,7 +225,7 @@ export const FAQ: FaqEntry[] = [
     id: 'appels-messages',
     question: 'Est-ce que les appels et les messages sont bloqués aussi ?',
     answer:
-      'Non, sauf si vous les ajoutez vous-même à la liste — et il ne faut pas. Les appels d’urgence passent toujours, quoi qu’il arrive : ni iOS ni Android ne les laissent bloquer par une application. Pour les appels ordinaires, Android écarte de lui-même le composeur que vous utilisez ; sur iPhone, Mino ne peut pas le reconnaître, parce que le système ne lui donne que des jetons anonymes — c’est donc à vous de ne pas cocher Téléphone ni Messages. Un enfant doit pouvoir joindre un adulte, minos ou pas.',
+      'Non, sauf si vous les ajoutez vous-même à la liste — et il ne faut pas. Pour les appels ordinaires, Android écarte de lui-même le composeur que vous utilisez ; sur iPhone, Mino ne peut pas le reconnaître, parce que le système ne lui donne que des jetons anonymes. C’est donc à vous de ne cocher ni Téléphone, ni Messages, ni une catégorie qui les contiendrait : un enfant doit pouvoir joindre un adulte, minos ou pas. Les dispositifs d’appel d’urgence propres au téléphone — l’appel depuis l’écran verrouillé, le SOS — ne passent pas par Mino et ne sont pas bloqués par lui ; mais ils appartiennent au système, pas à nous, et nous ne pouvons pas nous en porter garants.',
     category: 'temps-ecran',
     keywords: ['appels', 'telephoner', 'sms', 'messages', 'urgence', 'joindre'],
   },
