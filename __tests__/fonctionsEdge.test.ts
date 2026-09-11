@@ -151,3 +151,38 @@ describe('inscription-web', () => {
     }
   });
 });
+
+/**
+ * Le montant crédité vient de la MISSION, jamais de la demande.
+ *
+ * **Le défaut était à une ligne du reste, et la fonction se croyait à
+ * l'abri.** Son propre commentaire affirme « chaque valeur de cette ligne est
+ * fabriquée ICI » — et le crédit se lisait sur `completion.minutes_requested`,
+ * une colonne écrite par l'appareil de l'enfant au moment de déclarer la
+ * mission faite. `mission_completions_insert` contraint scrupuleusement
+ * `minutes_awarded` et laisse `minutes_requested` libre : elle n'avait jamais
+ * servi à créditer quoi que ce soit.
+ *
+ * Un client modifié n'avait donc qu'à déclarer une mission à 999 minutes et
+ * attendre que son parent appuie sur « Valider ». La clé de service contourne
+ * la RLS, et `uniq_reward_per_completion` ne vérifie que l'unicité.
+ */
+describe('valider-mission ne crédite que le barème du parent', () => {
+  const source = readFileSync('supabase/functions/valider-mission/index.ts', 'utf8');
+
+  it('lit les minutes sur la mission', () => {
+    expect(source).toContain("select('title, minutes')");
+    expect(source).toContain('const minutes = typeof mission?.minutes');
+  });
+
+  it('n’écrit JAMAIS `minutes_requested` dans le registre ni dans la complétion', () => {
+    // La colonne reste lue — elle sert à comparer et à journaliser — mais elle
+    // ne doit atteindre ni `delta` ni `minutes_awarded`.
+    expect(source).not.toContain('delta: completion.minutes_requested');
+    expect(source).not.toContain('minutes_awarded: completion.minutes_requested');
+  });
+
+  it('refuse plutôt que de créditer quand la mission a disparu', () => {
+    expect(source).toContain('if (minutes === null)');
+  });
+});

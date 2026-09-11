@@ -371,6 +371,33 @@ export const useMinoStore = create<MinoState>((set, get) => {
   function publish(data: FamilyData | null, rest: Partial<MinoState> = {}) {
     set({ data, ...rest } as Partial<MinoState>);
     watch(data);
+    oublierUnParentDisparu(data);
+  }
+
+  /**
+   * Le profil de parent de CET appareil a été retiré ailleurs.
+   *
+   * **Ce qui se passe alors, et il n'y avait rien pour le voir.** Retirer un
+   * parent supprime sa ligne, donc son `user_id` : `auth_is_parent()` répond
+   * non, et ce téléphone perd ses droits d'écriture à la seconde même — c'est
+   * précisément ce qu'on attend d'une révocation. Mais l'appareil, lui,
+   * gardait `parentId` pointant sur une ligne qui n'existe plus. Il continuait
+   * donc à se croire chez lui, `parentDeLAppareil` se repliait sur le
+   * titulaire, et l'espace parent saluait le père du prénom de sa femme avant
+   * de refuser chacun de ses gestes sans jamais dire pourquoi.
+   *
+   * On efface la référence : l'appareil redevient ce qu'il est — un appareil
+   * appairé, sans profil — et tous les écrans qui interrogent la session
+   * disent alors la vérité.
+   */
+  function oublierUnParentDisparu(data: FamilyData | null) {
+    const parentId = get().device.parentId;
+    if (!parentId || !data) return;
+    if (data.parents.some((p) => p.id === parentId)) return;
+
+    writeDeviceProfile({ parentId: null })
+      .then((device) => set({ device }))
+      .catch(() => undefined);
   }
 
   /**

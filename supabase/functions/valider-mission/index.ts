@@ -161,12 +161,50 @@ Deno.serve(
      * la première laisse une demande approuvée sans minutes, et le simple fait
      * de réappuyer les écrit — l'étape suivante est idempotente par l'index.
      */
+    const { data: mission } = await db
+      .from('missions')
+      .select('title, minutes')
+      .eq('id', completion.mission_id)
+      .maybeSingle();
+
+    /**
+     * LE MONTANT VIENT DE LA MISSION, pas de la demande.
+     *
+     * **Le défaut, et il était à une ligne du reste.** Le crédit se lisait sur
+     * `completion.minutes_requested` — une colonne écrite par l'appareil de
+     * l'enfant au moment de déclarer la mission faite, et qu'AUCUNE politique
+     * ne contraint. `mission_completions_insert` vérifie scrupuleusement
+     * `minutes_awarded` (zéro sur une demande, exactement `m.minutes` sur une
+     * mission qui se compte elle-même), et laisse `minutes_requested` libre :
+     * elle n'avait jamais servi à créditer quoi que ce soit.
+     *
+     * Un client modifié n'avait donc qu'à déclarer une mission à 999 minutes et
+     * attendre que son parent appuie sur « Valider » — la clé de service
+     * contourne la RLS, et `uniq_reward_per_completion` ne vérifie que
+     * l'unicité, jamais le montant.
+     *
+     * `missions.minutes` est écrit par un parent seul (`missions_write` exige
+     * `auth_is_parent()`), et c'est ce qui en fait la seule source recevable.
+     * Sans mission — archivée, supprimée entre-temps — on refuse AVANT
+     * d'écrire quoi que ce soit, plutôt que de créditer un nombre venu du
+     * client. Rien n'a bougé, le parent peut réessayer, et personne ne reçoit
+     * de minutes inventées.
+     */
+    const minutes = typeof mission?.minutes === 'number' ? mission.minutes : null;
+    if (minutes === null) {
+      console.error('mission introuvable pour le crédit', completionId, completion.mission_id);
+      return fail(
+        'Le barème de cette mission est introuvable. Elle a peut-être été supprimée.',
+        409,
+      );
+    }
+
     if (completion.status === 'pending') {
       const { error } = await db
         .from('mission_completions')
         .update({
           status: 'approved',
-          minutes_awarded: completion.minutes_requested,
+          minutes_awarded: minutes,
           reviewed_at: quand,
           reviewed_by: reviewedBy,
         })
@@ -187,12 +225,6 @@ Deno.serve(
       return json({ etat: completion.status, dejaTraitee: true });
     }
 
-    const { data: mission } = await db
-      .from('missions')
-      .select('title')
-      .eq('id', completion.mission_id)
-      .maybeSingle();
-
     /**
      * Chaque valeur de cette ligne est fabriquée ICI.
      *
@@ -211,7 +243,7 @@ Deno.serve(
       id: `tx_${crypto.randomUUID()}`,
       family_id: qui.familyId,
       child_id: completion.child_id,
-      delta: completion.minutes_requested,
+      delta: minutes,
       kind: 'mission_reward',
       reason: (mission?.title as string | undefined) ?? 'Mission accomplie',
       ref_id: completion.id,
@@ -231,6 +263,6 @@ Deno.serve(
       );
     }
 
-    return json({ etat: 'approved', minutes: completion.minutes_requested });
+    return json({ etat: 'approved', minutes });
   }),
 );
