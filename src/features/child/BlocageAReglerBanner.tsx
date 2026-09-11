@@ -57,7 +57,7 @@ export function BlocageAReglerBanner() {
       <Text variant="cardTitle">⏳ Ton temps ne peut pas encore démarrer</Text>
       <Text variant="body" color={colors.textMuted}>
         Il manque un réglage sur cet appareil. Tes missions marchent déjà : tu peux les faire et
-        gagner tes minutes, elles t’attendront.
+        gagner du temps, il t’attendra.
       </Text>
       <Button
         label="Un parent est là ?"

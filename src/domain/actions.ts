@@ -543,7 +543,17 @@ export function startSession(
   const ouverte = openWindowAt(data.freeWindows ?? [], params.childId, now);
   if (ouverte && params.deviceId === undefined) {
     throw new DomainError(
-      `C'est ouvert jusqu'à ${heure(ouverte.endMinute)} — tu n'as pas besoin de tes minos.`,
+      /**
+       * Ni « minos » ni « minutes », et ce n'est pas une hésitation.
+       *
+       * Le domaine ne connaît pas l'âge de l'enfant à cet endroit, et le
+       * registre en dépend : « tes minos » à un adolescent de quatorze ans est
+       * exactement le ton qui lui fait fermer l'application. Mais cette
+       * phrase-là ne compte rien — elle annonce qu'il n'y a RIEN à dépenser.
+       * Une phrase qui ne compte pas n'a pas besoin d'unité, et celle-ci se lit
+       * juste dans les deux registres.
+       */
+      `C'est ouvert jusqu'à ${heure(ouverte.endMinute)} — tu n'as rien à dépenser.`,
     );
   }
 

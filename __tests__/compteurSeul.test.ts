@@ -72,14 +72,29 @@ describe('dépenser des minutes sans bouclier', () => {
     expect(natif.calls).toEqual([]);
   });
 
-  it('n’accuse pas l’enfant, et lui dit que ses minutes l’attendent', async () => {
+  it('n’accuse pas l’enfant, et lui dit que rien n’est perdu', async () => {
     const service = new DeviceManagedScreenTimeService(natifSansDroit());
     // Le message s'affiche sur l'écran d'un enfant de cinq ans : ce n'est pas
     // lui qui a laissé l'installation en plan, et il doit repartir en sachant
     // qu'il n'a rien perdu.
     await expect(
       service.grant({ sessionId: 'ses_1', childId: 'c1', minutes: 20 }),
-    ).rejects.toThrow(/pas perdue/i);
+    ).rejects.toThrow(/rien n’est perdu/i);
+  });
+
+  it('ne nomme NI minos NI minutes : ce service ignore l’âge de l’enfant', async () => {
+    // « tes minos » à un adolescent de quatorze ans est le ton exact qui lui
+    // fait fermer l'application, et « tes minutes » à un enfant de huit ans
+    // nomme une chose qu'il n'a jamais vue. Ce service n'a pas de quoi
+    // trancher — et cette phrase-là ne compte rien, donc n'a besoin d'aucune
+    // unité.
+    const service = new DeviceManagedScreenTimeService(natifSansDroit());
+    const message = await service
+      .grant({ sessionId: 'ses_1', childId: 'c1', minutes: 20 })
+      .then(() => '', (e: Error) => e.message);
+
+    expect(message).not.toMatch(/minos/i);
+    expect(message).not.toMatch(/minutes/i);
   });
 
   it('accepte la séance quand le parent a choisi le compteur seul', async () => {

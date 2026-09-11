@@ -110,9 +110,34 @@ export const FAQ: FaqEntry[] = [
     id: 'deux-parents',
     question: 'Nous sommes deux parents, sur deux téléphones',
     answer:
-      'Chacun installe Mino et se connecte au même compte. Les confirmations, les missions et l’historique sont partagés en direct : ce que l’un confirme, l’autre le voit aussitôt.',
+      'L’autre parent installe Mino, saisit le code famille, puis choisit « C’est le téléphone d’un parent » et se sélectionne dans la liste. Il lui faut le code à quatre chiffres — pas votre mot de passe, que vous n’avez donc pas à partager. Il voit, crée et confirme exactement comme vous ; seuls l’adresse du compte, l’abonnement et la suppression de la famille restent à celui qui l’a créée. Pour l’ajouter à la liste depuis chez vous : Réglages → Les parents.',
     category: 'installation',
-    keywords: ['deux parents', 'conjoint', 'partage', 'garde alternee', 'papa maman'],
+    keywords: ['deux parents', 'conjoint', 'partage', 'garde alternee', 'papa maman', 'second parent', 'mari', 'femme', 'ajouter un parent'],
+    route: '/parent/parents',
+  },
+  {
+    id: 'parent-change-telephone',
+    question: 'L’autre parent a changé de téléphone',
+    answer:
+      'Sur le nouveau téléphone : code famille, « C’est le téléphone d’un parent », il se choisit dans la liste et donne le code à quatre chiffres. Son ancien appareil cesse aussitôt d’ouvrir l’espace parent — c’est le même geste qui reprend le profil et qui révoque l’ancien, précisément pour le cas du téléphone perdu ou volé.',
+    category: 'installation',
+    keywords: ['change de telephone', 'nouveau telephone', 'telephone perdu', 'telephone casse', 'vole', 'remplacer', 'second parent'],
+  },
+  {
+    id: 'enfant-change-appareil',
+    question: 'Mon enfant a changé de téléphone ou cassé sa tablette',
+    answer:
+      'Rien n’est perdu : ses minutes, ses missions et son historique appartiennent à son profil, pas à l’appareil. Sur le nouvel appareil, il saisit le code famille et se choisit — tout est là. Pensez à refaire le réglage du blocage, qui est propre à chaque appareil.',
+    category: 'installation',
+    keywords: ['change de telephone', 'casse', 'nouvelle tablette', 'perdu', 'minutes perdues', 'recuperer'],
+  },
+  {
+    id: 'titulaire-change-telephone',
+    question: 'Je change de téléphone — que dois-je faire ?',
+    answer:
+      'Installez Mino et connectez-vous avec votre adresse et votre mot de passe. Votre famille, vos enfants, leur historique et votre abonnement suivent : tout vit sur le compte, pas sur l’appareil. Si vous avez oublié le mot de passe, le lien de réinitialisation part par e-mail.',
+    category: 'compte',
+    keywords: ['changer de telephone', 'nouveau telephone', 'reinstaller', 'abonnement perdu', 'retrouver ma famille'],
   },
   {
     id: 'enfant-sans-telephone',
@@ -168,6 +193,24 @@ export const FAQ: FaqEntry[] = [
     category: 'temps-ecran',
     keywords: ['choisir applications', 'quelles applis', 'liste', 'selection', 'youtube', 'tiktok', 'jeux'],
     guide: 'blocage-applications',
+  },
+  {
+    id: 'plages-libres',
+    question: 'Comment ouvrir l’écran sans faire dépenser de minutes ? (plages libres)',
+    answer:
+      'Une plage libre est un moment que vous déclarez ouvert : le mercredi de 14 h à 16 h, les vacances, le trajet du dimanche. Pendant ce créneau, les applications se débloquent toutes seules et votre enfant ne dépense rien — il n’a rien à lancer, et Mino refuse de lui prendre des minutes pour un écran déjà ouvert. À la fin de la plage, le blocage revient, même si l’application a été fermée entre-temps. Réglages → Plages libres.',
+    category: 'temps-ecran',
+    keywords: ['plage libre', 'plages', 'mercredi', 'vacances', 'creneau', 'ouvrir sans depenser', 'temps gratuit', 'horaire'],
+    route: '/parent/plages',
+  },
+  {
+    id: 'plage-libre-rien-ne-souvre',
+    question: 'C’est une plage libre et les applications restent bloquées',
+    answer:
+      'La plage s’applique à l’ouverture de Mino sur l’appareil de l’enfant : s’il ne l’a pas rouvert depuis le début du créneau, le blocage n’a pas encore été levé. Qu’il ouvre Mino une fois, et c’est réglé. Vérifiez aussi que la plage concerne bien cet enfant-là et ce jour-là, et que le blocage est autorisé sur son appareil — sans autorisation, il n’y a rien à lever.',
+    category: 'problemes',
+    keywords: ['plage libre ne marche pas', 'toujours bloque', 'mercredi bloque', 'ne se debloque pas'],
+    route: '/parent/plages',
   },
   {
     id: 'appels-messages',
@@ -323,7 +366,7 @@ export const FAQ: FaqEntry[] = [
     id: 'enfant-connait-code-parent',
     question: 'Mon enfant a vu mon code parent',
     answer:
-      'Changez-le depuis Réglages, « Gérer mon compte », section Code parent. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis son appareil, même en cherchant.',
+      'Changez-le depuis Réglages, « Gérer mon compte », section Code parent. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis son appareil, même en cherchant. Une précision qui compte : si votre enfant a pu déclarer un appareil comme « téléphone d’un parent », changer le code ne suffit pas à le lui retirer — allez dans Réglages → Les parents et retirez le profil concerné.',
     category: 'compte',
     keywords: ['code decouvert', 'changer code', 'espionne', 'securite code'],
   },
@@ -492,7 +535,7 @@ export const FAQ: FaqEntry[] = [
     id: 'appareil-partage-profils',
     question: 'Mon enfant peut changer de profil et prendre celui de son frère',
     answer:
-      'Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> » : Mino s’ouvrira toujours sur son profil, sans passer par le sélecteur. Changer de profil reste possible et ne demande pas votre code — c’est votre espace parent qui est protégé, pas le choix du profil. Une minute prise sur le compte d’un frère apparaît de toute façon dans son historique, à la seconde près.',
+      'Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> ». Mino s’ouvre alors toujours sur son profil — et passer à celui d’un frère demande votre code à quatre chiffres. Sur un appareil déclaré « partagé », en revanche, les enfants passent librement de l’un à l’autre : c’est le geste ordinaire d’une tablette de salon, et le demander dix fois par jour ferait taper le code devant eux. Une minute prise sur le compte d’un frère apparaît de toute façon dans son historique, à la seconde près.',
     category: 'compte',
     keywords: ['changer de profil', 'profil', 'frere', 'soeur', 'tablette partagee', 'verrouiller', 'prendre les minos'],
     route: '/parent/(tabs)/reglages',

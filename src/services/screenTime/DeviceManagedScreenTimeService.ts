@@ -110,7 +110,9 @@ export class DeviceManagedScreenTimeService implements ScreenTimeService {
       const { compteurSeul } = await readDeviceProfile().catch(() => NO_DEVICE_PROFILE);
       if (!compteurSeul) {
         throw new Error(
-          'Le blocage n’est pas encore réglé sur cet appareil. Demande à un parent d’ouvrir Mino : tes minutes t’attendent, elles ne sont pas perdues.',
+          // Pas d'unité : ce service ne connaît pas l'âge de l'enfant, et la
+          // phrase n'a rien à compter. Voir la même raison dans `actions.ts`.
+          'Le blocage n’est pas encore réglé sur cet appareil. Demande à un parent d’ouvrir Mino : ce que tu as gagné t’attend, rien n’est perdu.',
         );
       }
       // Compteur seul : la séance existe, le temps se décompte, et il n'y a

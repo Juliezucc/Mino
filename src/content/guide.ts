@@ -219,37 +219,39 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Qui fait quoi',
         body: [
-          'Mino, installé sur l’iPhone, l’iPad ou l’appareil Android de votre enfant, tient le compte du temps gagné et le décompte pendant chaque session.',
-          'Empêcher une application de s’ouvrir est en revanche un pouvoir que seuls iOS et Android accordent, et seulement à qui ils en donnent l’autorisation. Dans cette version, c’est donc le contrôle parental du système qui applique la limite que Mino a calculée.',
-          'La bonne façon de le voir aujourd’hui : Mino décide combien de temps est accordé et pourquoi, le système fait respecter ce total.',
+          'Mino, installé sur l’iPhone, l’iPad ou l’appareil Android de votre enfant, tient le compte du temps gagné — et pose lui-même le verrou sur les applications que vous choisissez.',
+          'Le verrou se lève exactement le temps que votre enfant a gagné, puis revient tout seul. Il n’y a aucune limite quotidienne à estimer à l’avance, et aucun écart entre le temps mérité et le temps réellement disponible.',
+          'Cela demande une autorisation du système, à accorder une seule fois sur l’appareil de l’enfant. C’est la seule étape que personne ne peut faire à votre place.',
         ],
-        tip: 'Sans ce réglage, rien n’empêche votre enfant d’ouvrir YouTube sans passer par Mino. C’est cinq minutes, une seule fois, et tout tient ensuite.',
+        where: 'Espace parent → Réglages → Blocage des applications',
+        tip: 'Sans cette autorisation, Mino compte le temps mais n’empêche rien : votre enfant peut ouvrir YouTube sans passer par lui.',
       },
       {
-        title: 'Sur iPhone et iPad',
+        title: 'Choisir les applications',
         body: [
-          'Réglages → Temps d’écran → Limites d’app. Ajoutez une limite quotidienne sur les applications concernées, à la hauteur de ce que votre enfant peut raisonnablement gagner dans la journée.',
-          'Activez ensuite « Utiliser un code pour le Temps d’écran », avec un code différent de celui qui déverrouille l’appareil — sinon votre enfant lèvera la limite sans vous.',
+          'Le système ouvre sa propre liste et vous cochez ce qui doit être verrouillé. Cochez sans crainte, même tout : Mino reste toujours ouvert, ainsi que les réglages, les appels et les messages — le système protège l’application qui détient l’autorisation, et il ne se laisse pas enfermer dehors.',
+          'Le système ne nous dira jamais lesquelles vous avez cochées, seulement combien. Mino ne peut donc pas savoir ce que votre enfant utilise.',
+        ],
+        where: 'Espace parent → Réglages → Blocage des applications',
+        tip: 'C’est un choix que nous assumons : moins de données, et une fonctionnalité qui ne sait rien de la vie de votre enfant.',
+      },
+      {
+        title: 'Ouvrir l’écran sans rien faire dépenser',
+        body: [
+          'Le mercredi après-midi, les vacances, le trajet du dimanche : déclarez une plage libre et les applications se débloquent toutes seules pendant ce créneau, sans que votre enfant dépense une minute.',
+          'Il n’a rien à lancer, et Mino refuse de lui prendre du temps pour un écran déjà ouvert. À la fin de la plage, le verrou revient — même si l’application a été fermée entre-temps.',
+        ],
+        where: 'Espace parent → Réglages → Plages libres',
+        tip: 'La plage s’applique quand votre enfant ouvre Mino. S’il ne l’a pas rouvert depuis le début du créneau, une seule ouverture suffit.',
+      },
+      {
+        title: 'Si votre appareil ne le permet pas',
+        body: [
+          'Sur le web, ou sur une version sans le module de blocage, Mino compte le temps sans rien verrouiller — et il le dit plutôt que de le laisser croire.',
+          'Dans ce cas, posez la limite dans le contrôle parental du système : sur iPhone, Réglages → Temps d’écran → Limites d’app, avec un code différent de celui qui déverrouille l’appareil. Sur Android, Family Link, ou Bien-être numérique directement sur l’appareil.',
           'Excluez Mino de la limite, pour qu’il puisse toujours ouvrir ses missions.',
         ],
         outside: true,
-      },
-      {
-        title: 'Sur Android',
-        body: [
-          'Application Family Link → votre enfant → Contrôles → Limites de temps par application.',
-          'Family Link demande un compte Google pour l’enfant. Si vous préférez ne pas en créer, les mêmes limites existent directement sur l’appareil, dans Bien-être numérique et contrôle parental.',
-        ],
-        outside: true,
-      },
-      {
-        title: 'Ce vers quoi nous allons',
-        body: [
-          'Le réglage manuel ci-dessus est une étape, pas la destination. Mino est développé pour prendre la main lui-même : les applications que vous choisissez restent verrouillées, et le verrou se lève exactement le temps que votre enfant a gagné — plus de limite quotidienne à estimer à l’avance, plus d’écart entre le temps mérité et le temps réellement disponible.',
-          'Cela demande une autorisation d’Apple et de Google, que nous demandons expressément pour cet usage. Quand elle sera accordée, un écran « Blocage des applications » vous proposera d’autoriser Mino et de choisir les applications concernées. Rien de ce que vous avez réglé ci-dessus ne sera perdu : ce sera simplement devenu inutile.',
-        ],
-        where: 'Espace parent → Réglages → Blocage des applications',
-        tip: 'Le système ne nous dira jamais quelles applications vous avez choisies — seulement combien. Mino ne peut donc pas savoir ce que votre enfant utilise, et c’est un choix que nous assumons.',
       },
     ],
   },
@@ -352,6 +354,49 @@ export const GUIDE: GuideChapter[] = [
           'Vous avez confirmé trop vite ? Ajustez le compteur depuis la fiche de l’enfant. L’opération apparaît dans son historique : rien n’est effacé, tout se lit.',
         ],
         where: 'Espace parent → Enfants → l’enfant',
+      },
+    ],
+  },
+
+  {
+    id: 'parents',
+    title: 'L’autre parent',
+    icon: '👨‍👩‍👧',
+    summary: 'Le mettre sur son propre téléphone, sans partager de mot de passe.',
+    duration: '3 minutes',
+    steps: [
+      {
+        title: 'Ajoutez-le depuis chez vous',
+        body: [
+          'Réglages → Les parents → son prénom. C’est tout ce qu’il faut : il n’a ni adresse à donner, ni mot de passe à retenir.',
+          'Vous pouvez aussi sauter cette étape : sur son téléphone, il pourra s’ajouter lui-même.',
+        ],
+        where: 'Espace parent → Réglages → Les parents',
+        screen: 'parentReglages',
+      },
+      {
+        title: 'Sur son téléphone',
+        body: [
+          'Il installe Mino, saisit le code famille, puis choisit « C’est le téléphone d’un parent » et se sélectionne dans la liste.',
+          'Il lui faut ensuite le code à quatre chiffres — celui qui ouvre l’espace parent. C’est la seule preuve qu’un adulte est là : sans elle, n’importe quel enfant de la maison pourrait déclarer sa tablette « téléphone d’un parent », puisque le code famille, lui, il le connaît.',
+        ],
+        screen: 'rejoindre',
+        tip: 'Le code à quatre chiffres n’est pas le code famille. Ne les confondez pas : le premier ouvre l’espace parent, le second sert seulement à rattacher un appareil.',
+      },
+      {
+        title: 'Ce qu’il peut faire, et ce qui reste à vous',
+        body: [
+          'Il voit les mêmes enfants, crée des missions, pose des plages libres, offre des minutes et confirme, exactement comme vous.',
+          'L’adresse du compte, le mot de passe, l’abonnement et la suppression de la famille restent à celui qui l’a créée. Ce n’est pas une question de confiance : ces gestes-là demandent de pouvoir revenir depuis n’importe quel téléphone, et son profil à lui vit dans l’application installée sur le sien.',
+        ],
+      },
+      {
+        title: 'S’il change de téléphone',
+        body: [
+          'Même chemin sur le nouvel appareil : code famille, « C’est le téléphone d’un parent », son prénom, le code à quatre chiffres.',
+          'L’ancien appareil cesse aussitôt d’ouvrir l’espace parent. C’est voulu — c’est ce qu’on attend d’un téléphone perdu ou revendu.',
+        ],
+        tip: 'Pour retirer un parent : Réglages → Les parents → Retirer. C’est aussi la façon de révoquer un appareil ; changer le code à quatre chiffres ne suffit pas.',
       },
     ],
   },
