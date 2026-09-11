@@ -4,8 +4,9 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, Field, Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
 import { isStore } from '@/domain/billing';
+import { codeTropFacile } from '@/domain/parentGate';
 import { getAuthService } from '@/services/auth';
-import { useParent } from '@/store/selectors';
+import { useTitulaireDuCompte } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
 
@@ -34,7 +35,9 @@ import { colors, radii, spacing } from '@/theme';
  */
 export default function CompteParent() {
   const router = useRouter();
-  const parent = useParent();
+  // Le TITULAIRE, et non « le premier de la liste » : cet écran ne parle que
+  // de son adresse, de son mot de passe et de son abonnement.
+  const parent = useTitulaireDuCompte();
   const signOut = useMinoStore((s) => s.signOut);
   const deleteAccount = useMinoStore((s) => s.deleteAccount);
   const subscription = useMinoStore((s) => s.subscription);
@@ -51,34 +54,52 @@ export default function CompteParent() {
   /**
    * Cet écran n'est pas pour tout le monde, et il l'était.
    *
-   * **Le défaut, et il précède les deux parents.** Depuis que le code à quatre
-   * chiffres appartient à la famille, il ouvre l'espace parent sur la tablette
-   * d'un enfant comme sur le téléphone du second parent — c'est tout l'intérêt.
-   * Mais ces appareils portent une session d'APPAREIL, pas un compte : ni
-   * l'adresse, ni le mot de passe, ni le code, ni la suppression ne leur
-   * appartiennent. Le serveur refuse les quatre, et c'est lui qui tient la
-   * règle — `delete_my_account` lève « seul un parent peut supprimer un
-   * compte », `set_parent_pin` rend `false` sans `auth_is_parent()`.
+   * **La question n'est pas « est-ce un parent », c'est « a-t-il un compte ».**
+   * Et les confondre a bien failli coûter la famille entière.
    *
-   * Restait l'écran : il offrait les quatre gestes, en grand, à un enfant de
-   * dix ans qui a vu son parent taper le code. Il les tentait, lisait un refus
-   * en rouge, et n'apprenait qu'une chose — que « Supprimer le compte » se
-   * trouve ici. Un bouton qui ne peut pas marcher n'est pas protégé par le
-   * fait qu'il échoue.
+   * Depuis que le code à quatre chiffres appartient à la famille, l'espace
+   * parent s'ouvre sur la tablette d'un enfant comme sur le téléphone du
+   * second parent — c'est tout l'intérêt. Le premier réflexe a été de fermer
+   * cet écran aux sessions d'APPAREIL. Puis le second parent est devenu un
+   * vrai parent, avec le `user_id` de son téléphone sur sa ligne : depuis, sa
+   * session se décrit elle-même comme `parent`, puisque `decrire()` interroge
+   * `auth_is_parent()`. Le filtre s'ouvrait donc à lui, en grand, bouton
+   * « Supprimer le compte » compris — et, sans le garde ajouté côté SQL, le
+   * serveur aurait obéi.
+   *
+   * Ce qui distingue le titulaire n'est pas d'être parent : c'est d'avoir une
+   * ADRESSE. Elle seule permet de revenir depuis un autre téléphone, et elle
+   * seule donne un sens à « changer mon adresse », « changer mon mot de
+   * passe », « me déconnecter » et « supprimer le compte ». C'est exactement ce
+   * que compte `delete_my_account()`, et les deux doivent dire la même chose.
    *
    * `null` tant qu'on ne sait pas : on n'affiche rien plutôt que de parier.
    */
-  const [sessionDAppareil, setSessionDAppareil] = useState<boolean | null>(null);
+  const [gereLeCompte, setGereLeCompte] = useState<boolean | null>(null);
+  /**
+   * Parent au sens de la base — `auth_is_parent()`.
+   *
+   * Vrai pour le titulaire ET pour le second parent ; faux pour la tablette
+   * d'un enfant, même quand le code vient d'y ouvrir l'espace parent. C'est la
+   * frontière du code à quatre chiffres : un vrai parent peut le changer,
+   * `set_parent_pin` l'exige, et un appareil appairé essuierait un refus.
+   */
+  const [estParent, setEstParent] = useState<boolean | null>(null);
 
   useEffect(() => {
     let vivant = true;
     getAuthService()
       .session()
       .then((s) => {
-        if (vivant) setSessionDAppareil(s.kind === 'device');
+        // `kind` seul ne suffit plus : un second parent est `parent` aussi.
+        if (!vivant) return;
+        setEstParent(s.kind === 'parent');
+        setGereLeCompte(s.kind === 'parent' && !!s.email);
       })
       .catch(() => {
-        if (vivant) setSessionDAppareil(false);
+        if (!vivant) return;
+        setEstParent(false);
+        setGereLeCompte(false);
       });
     return () => {
       vivant = false;
@@ -117,6 +138,18 @@ export default function CompteParent() {
     setErreur(null);
     setMessage(null);
     if (!/^\d{4}$/.test(code)) return setErreur('Le code doit contenir 4 chiffres.');
+    /**
+     * La troisième porte, et la seule qui laissait passer 0000.
+     *
+     * `codeTropFacile` gardait l'inscription et l'écran de pose du code ; pas
+     * celui-ci. Un parent qui vient changer son code — c'est-à-dire, presque
+     * toujours, celui dont l'enfant a vu le précédent — pouvait le remplacer
+     * par 1234. La règle vit dans le domaine pour cette raison exacte : une
+     * condition d'écran s'oublie sur le quatrième écran.
+     */
+    if (codeTropFacile(code)) {
+      return setErreur('Trop facile à deviner. Choisissez autre chose.');
+    }
     setOccupe(true);
     const r = await getAuthService().setParentPin(code);
     setOccupe(false);
@@ -196,14 +229,14 @@ export default function CompteParent() {
             appairé, l'afficher sous « Mon compte » désignerait quelqu'un
             d'autre que celui qui lit. La carte ci-dessous le dit en toutes
             lettres, c'est assez. */}
-        {sessionDAppareil === false ? (
+        {gereLeCompte === true ? (
           <Text variant="body" color={colors.textMuted}>
             {parent?.email}
           </Text>
         ) : null}
       </View>
 
-      {sessionDAppareil === null ? null : sessionDAppareil ? (
+      {gereLeCompte === null ? null : gereLeCompte ? null : (
         <Card background={colors.blueSoft} elevation="none" style={styles.block}>
           <Text variant="bodyStrong" color={colors.blueInk}>
             Le compte se gère depuis le téléphone qui a créé la famille.
@@ -214,11 +247,11 @@ export default function CompteParent() {
               : 'L’adresse, le mot de passe, le code à quatre chiffres et la suppression de la famille appartiennent au compte qui a créé la famille. Cet appareil-ci l’a rejointe avec le code : il voit tout et règle le quotidien, mais il ne touche pas au compte.'}
           </Text>
           <Text variant="caption" color={colors.textSubtle}>
-            Ce n’est pas qu’une question d’écran : le serveur refuse ces quatre gestes à un
-            appareil appairé, quel que soit le bouton sur lequel on appuie.
+            Ce n’est pas qu’une question d’écran : le serveur refuse ces gestes à qui n’a pas
+            l’adresse du compte, quel que soit le bouton sur lequel on appuie.
           </Text>
         </Card>
-      ) : null}
+      )}
 
       {message ? (
         <Card style={styles.bonne}>
@@ -236,7 +269,41 @@ export default function CompteParent() {
         </Card>
       ) : null}
 
-      {sessionDAppareil !== false ? null : (
+      {/* Le code, lui, appartient à tout vrai parent : le second peut le
+          changer, `set_parent_pin` l’accepte, et c’est la seule chose du
+          compte qui ne demande pas d’adresse. La tablette d’un enfant, elle,
+          n’est pas parent — même le code ouvert, le serveur refuserait. */}
+      {estParent === true ? (
+      <Card style={styles.block}>
+        <Text variant="label" color={colors.textMuted}>
+          CODE PARENT
+        </Text>
+        <Text variant="body" color={colors.textMuted}>
+          Les quatre chiffres qui ouvrent l’espace parent devant un enfant.
+          Ce n’est pas votre mot de passe, et il ne doit pas lui ressembler.
+          À changer sans hésiter le jour où votre enfant vous a vu le taper.
+        </Text>
+        {/* Pas de vérification de l'ancien code ici : on ne peut atteindre cet
+            écran qu'en l'ayant déjà donné. Le redemander serait une cérémonie,
+            pas une sécurité. */}
+        <Field
+          label="Nouveau code à 4 chiffres"
+          value={code}
+          onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 4))}
+          keyboardType="number-pad"
+          secureTextEntry
+        />
+        <Button
+          label="Changer le code parent"
+          icon="🔢"
+          variant="secondary"
+          loading={occupe}
+          onPress={changerCode}
+        />
+      </Card>
+      ) : null}
+
+      {gereLeCompte !== true ? null : (
         <>
         <Card style={styles.block}>
           <Text variant="label" color={colors.textMuted}>
@@ -284,34 +351,6 @@ export default function CompteParent() {
             variant="secondary"
             loading={occupe}
             onPress={changerMotDePasse}
-          />
-        </Card>
-
-        <Card style={styles.block}>
-          <Text variant="label" color={colors.textMuted}>
-            CODE PARENT
-          </Text>
-          <Text variant="body" color={colors.textMuted}>
-            Les quatre chiffres qui ouvrent l’espace parent devant un enfant.
-            Ce n’est pas votre mot de passe, et il ne doit pas lui ressembler.
-            À changer sans hésiter le jour où votre enfant vous a vu le taper.
-          </Text>
-          {/* Pas de vérification de l'ancien code ici : on ne peut atteindre cet
-              écran qu'en l'ayant déjà donné. Le redemander serait une cérémonie,
-              pas une sécurité. */}
-          <Field
-            label="Nouveau code à 4 chiffres"
-            value={code}
-            onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 4))}
-            keyboardType="number-pad"
-            secureTextEntry
-          />
-          <Button
-            label="Changer le code parent"
-            icon="🔢"
-            variant="secondary"
-            loading={occupe}
-            onPress={changerCode}
           />
         </Card>
 

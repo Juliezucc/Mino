@@ -1595,6 +1595,23 @@ create table if not exists support_reports (
   created_at  timestamptz not null default now()
 );
 
+/**
+ * L'adresse à laquelle répondre — et il n'y en avait aucune.
+ *
+ * **Le défaut, et c'est celui qui rendait tout le reste inutile.** Un parent
+ * bloqué écrivait, recevait une référence, et attendait. Rien ne pouvait lui
+ * revenir : la table ne garde que `user_id`, et `buildReport` EFFACE les
+ * adresses du message — la ligne `EMAIL` de `src/domain/diagnostics.ts` est là
+ * pour protéger la vie privée, et elle protégeait aussi le parent de toute
+ * réponse. Depuis la tablette d'un enfant, l'identité est anonyme : il n'y
+ * avait même pas de jointure possible.
+ *
+ * Séparée du message, donc, et jamais nettoyée : c'est le seul champ de cette
+ * table que le parent donne POUR qu'on s'en serve. Facultatif — on répond si
+ * on peut, on ne refuse pas un signalement anonyme.
+ */
+alter table support_reports add column if not exists reply_to text;
+
 create index if not exists idx_reports_fingerprint on support_reports (fingerprint, created_at desc);
 create index if not exists idx_reports_status on support_reports (status, created_at desc);
 create index if not exists idx_reports_user on support_reports (user_id, created_at desc);
@@ -1628,7 +1645,12 @@ create policy support_reports_select on support_reports
  * ligne « 100 fois », ce qui dit lequel corriger en premier. Réservé au rôle de
  * service — c'est un tableau de bord interne, pas une donnée de famille.
  */
-create or replace view support_queue as
+-- Supprimée puis recréée, et non « or replace » : PostgreSQL refuse de
+-- remplacer une vue dont la liste de colonnes change ailleurs qu'à la fin, et
+-- `repondre_a` s'insère avant `statut`. Une vue interne se reconstruit sans
+-- rien perdre.
+drop view if exists support_queue;
+create view support_queue as
 select
   fingerprint,
   kind,
@@ -1641,6 +1663,9 @@ select
   mode() within group (order by route)       as ecran_frequent,
   -- Trois exemples suffisent à comprendre ; le reste est du volume.
   (array_agg(message order by created_at desc) filter (where message <> ''))[1:3] as exemples,
+  -- À qui répondre. Sans cette colonne, le tableau de bord du matin disait
+  -- quoi corriger sans jamais dire à qui l'annoncer.
+  (array_agg(reply_to order by created_at desc) filter (where reply_to is not null))[1:3] as repondre_a,
   min(status)                             as statut
 from support_reports
 group by fingerprint, kind
@@ -3319,8 +3344,10 @@ grant execute on function has_parent_pin() to authenticated;
  * Deux parents dans une famille — et un seul compte.
  *
  * Le second parent rejoint avec le CODE FAMILLE, comme le reste de la maison.
- * Sa ligne `parents` n'a ni `user_id` ni `email` : c'est un profil, pas un
- * compte. Le schéma le prévoyait déjà — « un parent qui n'a pas encore donné
+ * Sa ligne `parents` porte le `user_id` de SON appareil — c'est ce qui en fait
+ * un parent aux yeux de `auth_is_parent()`, donc quelqu'un qui peut créer une
+ * mission et pas seulement les regarder — mais elle n'a pas d'`email` : c'est
+ * un parent, pas un compte. Le schéma le prévoyait déjà — « un parent qui n'a pas encore donné
  * son adresse n'en a pas, `null` le dit » — mais une seule fonction comptait
  * les parents sans faire la différence, et cette différence coûte la famille
  * entière.
@@ -3344,18 +3371,25 @@ grant execute on function has_parent_pin() to authenticated;
  * autre parent reste, la famille ne lui appartient pas moins qu'avant » — mais
  * elle a été écrite quand toute ligne `parents` portait un compte.
  *
- * Avec un second parent en profil, le compte à deux devenait faux dans les
- * deux sens à la fois : le titulaire du compte partait, sa ligne était
- * supprimée, et la famille restait — avec ses enfants, son historique et son
- * abonnement — rattachée à un profil que personne ne peut ouvrir. Plus aucune
- * session ne pouvait la lire, et plus aucune ne pouvait l'effacer. C'est-à-dire
- * exactement l'état que le commentaire d'origine décrivait comme celui à ne
- * jamais produire, et un refus de suppression au sens du RGPD comme de la
- * règle 5.1.1(v) d'Apple.
+ * Avec un second parent, le compte à deux devenait faux : le titulaire du
+ * compte partait, sa ligne était supprimée, et la famille restait — avec ses
+ * enfants, son historique et son abonnement — rattachée à quelqu'un qui ne
+ * peut pas se reconnecter. Plus aucune session ne pouvait la rouvrir depuis un
+ * autre téléphone, et plus aucune ne pouvait l'effacer. C'est-à-dire exactement
+ * l'état que le commentaire d'origine décrivait comme celui à ne jamais
+ * produire, et un refus de suppression au sens du RGPD comme de la règle
+ * 5.1.1(v) d'Apple.
  *
- * On compte donc ce qui pouvait rouvrir la porte : les parents qui ont un
- * compte. Un profil ne survit pas à la famille — il pend à `families.id` par
- * une clé étrangère `on delete cascade`, et part avec elle.
+ * **On compte les ADRESSES, et pas les `user_id`.** La nuance est tout le
+ * correctif, et elle a failli m'échapper deux fois. Le second parent PORTE un
+ * `user_id` — celui de son téléphone, c'est ce qui lui donne ses droits — mais
+ * cette identité-là est anonyme : elle vit dans l'application installée sur cet
+ * appareil, et rien ne permet de la retrouver ailleurs. Un téléphone reformaté,
+ * et la famille serait perdue pour tout le monde. Ce qui permet de revenir,
+ * c'est une adresse et un mot de passe. C'est donc cela qu'on compte.
+ *
+ * Un parent sans adresse ne survit pas à la famille : sa ligne pend à
+ * `families.id` par une clé étrangère `on delete cascade`, et part avec elle.
  */
 create or replace function delete_my_account()
 returns integer
@@ -3372,16 +3406,35 @@ begin
     raise exception 'Aucune session' using errcode = '42501';
   end if;
 
-  if not exists (select 1 from parents where user_id = moi) then
-    raise exception 'Seul un parent peut supprimer un compte' using errcode = '42501';
+  /**
+   * Un parent AVEC UNE ADRESSE, et la nuance est devenue vitale.
+   *
+   * La clause d'origine — « une ligne `parents` à mon nom » — suffisait tant
+   * qu'être parent voulait dire avoir un compte. Depuis qu'un second parent
+   * rejoint par le code famille et porte le `user_id` de son téléphone,
+   * `auth_is_parent()` répond oui pour lui : il franchissait ce garde, la
+   * boucle trouvait sa famille, le compte des adresses donnait 1, et la
+   * FAMILLE ENTIÈRE partait — enfants, historique, abonnement — effacée par
+   * quelqu'un qui n'en est pas le titulaire. Un enfant qui aurait vu le code à
+   * quatre chiffres pouvait faire la même chose.
+   *
+   * Supprimer un compte demande d'en avoir un. Un second parent qui veut s'en
+   * aller se retire depuis « Les parents », ce qui ne touche à rien d'autre.
+   */
+  if not exists (
+    select 1 from parents where user_id = moi and email is not null
+  ) then
+    raise exception 'Seul le titulaire du compte peut le supprimer' using errcode = '42501';
   end if;
 
   for fam in select family_id from parents where user_id = moi loop
-    -- `user_id is not null` : la clause entière tient dans ces quatre mots.
-    -- Un profil sans compte ne peut pas hériter d'une famille, puisque
-    -- personne ne peut s'y connecter pour la reprendre.
+    -- `email is not null` : la clause entière tient dans ces trois mots.
+    -- Un parent sans adresse ne peut pas hériter d'une famille, puisque
+    -- personne ne peut s'y reconnecter depuis un autre appareil pour la
+    -- reprendre. Compter les `user_id` aurait laissé la famille à une
+    -- identité anonyme, c'est-à-dire à personne.
     if (
-      select count(*) from parents where family_id = fam and user_id is not null
+      select count(*) from parents where family_id = fam and email is not null
     ) <= 1 then
       delete from families where id = fam;
       effacees := effacees + 1;
@@ -3397,7 +3450,7 @@ end;
 $$;
 
 comment on function delete_my_account() is
-  'Efface le compte appelant et, s''il en était le dernier parent AVEC UN COMPTE, sa famille entière. Les profils de parent sans compte partent avec la famille : ils ne peuvent pas en hériter.';
+  'Efface le compte appelant et, s''il en était le dernier parent AVEC UNE ADRESSE, sa famille entière. Un second parent sans adresse ne peut pas hériter d''une famille : son identité est celle de son téléphone, et rien ne permet de la retrouver ailleurs.';
 
 revoke all on function delete_my_account() from public, anon;
 grant execute on function delete_my_account() to authenticated;

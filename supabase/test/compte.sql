@@ -136,34 +136,44 @@ do $$ begin
     'son identité avec lui');
 end $$;
 
--- ------------------------------- un second parent SANS COMPTE n'hérite de rien
+-- ---------------------------- un second parent SANS ADRESSE n'hérite de rien
 
 /**
- * Le profil de parent ne garde pas la famille en vie.
+ * Le second parent ne garde pas la famille en vie.
  *
- * Depuis qu'une famille peut porter un second parent en profil — une ligne
- * `parents` sans `user_id` ni `email`, qui rejoint par le code famille — le
- * compte à deux de `delete_my_account()` devenait faux : le titulaire du
- * compte partait, sa ligne était retirée, et la famille restait rattachée à un
- * profil que PERSONNE ne peut ouvrir. Ni lisible, ni supprimable : exactement
- * l'état que tout ce fichier existe pour interdire.
+ * Une famille peut porter un second parent qui a rejoint par le code famille.
+ * Sa ligne porte bien un `user_id` — celui de son téléphone, c'est ce qui lui
+ * donne ses droits d'écriture — mais aucune adresse : cette identité-là est
+ * anonyme, elle vit dans l'application installée sur cet appareil, et rien ne
+ * permet de la retrouver ailleurs.
  *
- * L'essai tombe si l'on remet `count(*)` à la place de la clause qui compte
- * les comptes — vérifié en le cassant.
+ * Le compte à deux de `delete_my_account()` devenait donc faux : le titulaire
+ * partait, sa ligne était retirée, et la famille restait rattachée à quelqu'un
+ * qui ne peut pas se reconnecter. Ni rouvrable depuis un autre téléphone, ni
+ * supprimable : exactement l'état que tout ce fichier existe pour interdire.
+ *
+ * C'est pourquoi on compte les ADRESSES et non les `user_id`. L'essai tombe
+ * sur l'une comme sur l'autre des deux erreurs — `count(*)`, ou
+ * `user_id is not null` — et les deux ont été écrites avant d'être corrigées.
  */
 do $$ begin
   delete from families where id = 'fam-prof';
-  delete from auth.users where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  delete from auth.users where id in (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb');
 
-  insert into auth.users (id, email) values
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'titulaire@mino.app');
+  insert into auth.users (id, email, is_anonymous) values
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'titulaire@mino.app', false),
+    -- Le téléphone du second parent : une session anonyme, exactement comme
+    -- celle d'une tablette d'enfant. C'est tout le sujet.
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', null, true);
   insert into families (id, name, code, referral_code) values
     ('fam-prof', 'Zucher', 'QUITTE3', 'PARRAINS');
   insert into parents (id, family_id, user_id, display_name, email) values
     ('par-titu', 'fam-prof', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Julie', 'titulaire@mino.app'),
-    -- Le second parent : un prénom, et rien d'autre. C'est tout ce que
-    -- `ajouter-parent` écrit.
-    ('par-prof', 'fam-prof', null, 'Marc', null);
+    -- Le second parent : un prénom, l'identité de son téléphone, et AUCUNE
+    -- adresse. C'est exactement ce que `ajouter-parent` écrit.
+    ('par-prof', 'fam-prof', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Marc', null);
   insert into children (id, family_id, first_name, age, avatar_key) values
     ('enf-prof', 'fam-prof', 'Noah', 10, 'chat');
 end $$;
@@ -177,7 +187,7 @@ begin
   v_effacees := delete_my_account();
   perform assert(
     v_effacees = 1,
-    'UN PROFIL SANS COMPTE NE RETIENT PAS LA FAMILLE : elle part avec le titulaire');
+    'UN PARENT SANS ADRESSE NE RETIENT PAS LA FAMILLE : elle part avec le titulaire');
 end $$;
 
 do $$ begin
@@ -186,7 +196,7 @@ do $$ begin
     'la famille a bien disparu');
   perform assert(
     not exists (select 1 from parents where id = 'par-prof'),
-    'et le profil du second parent avec elle, par cascade');
+    'et le second parent avec elle, par cascade');
   perform assert(
     not exists (select 1 from children where id = 'enf-prof'),
     'l''enfant aussi');

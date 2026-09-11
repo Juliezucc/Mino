@@ -13,16 +13,39 @@
 // prouve qu'un parent est là, maintenant. C'est exactement la mécanique de
 // `valider-mission`, et il n'y a aucune raison d'en inventer une autre.
 //
-// **Un profil, pas un compte.** La ligne créée n'a ni `user_id` ni `email` :
-// le second parent rejoint avec le code famille, comme tout le monde, et n'a
-// pas de mot de passe de plus à retenir. Le schéma le prévoit déjà — « un
-// parent qui n'a pas encore donné son adresse n'en a pas, `null` le dit ».
+// **Un parent, pas un compte.** La ligne créée n'a pas d'`email` : le second
+// parent rejoint avec le code famille, comme tout le monde, et n'a pas de mot
+// de passe de plus à retenir. Le schéma le prévoit déjà — « un parent qui n'a
+// pas encore donné son adresse n'en a pas, `null` le dit ».
+//
+// Elle porte en revanche le `user_id` de SON appareil, et c'est ce qui en fait
+// un parent pour la base : `auth_is_parent()` ne lit que cette colonne, et
+// sans elle son téléphone ne peut ni créer une mission, ni poser une plage
+// libre, ni offrir une minute — `missions_write`, `free_windows_write` et
+// `screen_time_transactions_insert` l'exigent toutes les trois. Un « profil »
+// sans `user_id` était un parent de façade : il voyait tout et ne pouvait
+// rien.
+//
+// **Ce que cela déplace, et il faut le dire.** Le code à quatre chiffres
+// n'ouvre plus seulement une session : il inscrit durablement un appareil.
+// Changer le code ne révoque donc plus ce téléphone — c'est « Les parents »
+// qui le fait, d'un geste, et c'est plus net qu'un code changé en espérant.
+//
+// **Rattacher, et révoquer du même geste.** Un parent qui change de téléphone
+// reprend son profil avec le code : le `user_id` est ÉCRASÉ, et l'ancien
+// appareil cesse d'être parent à la seconde même. C'est exactement ce qu'on
+// veut d'un téléphone perdu — le remplacer le désarme.
 //
 // **Et le retirer.** Même porte, même preuve : `{ retirer: "par_..." }`. Seule
-// une ligne SANS compte peut partir — le titulaire du compte se supprime depuis
-// son propre écran, avec tout ce que cela emporte. Sans ce chemin, un prénom
-// mal tapé serait définitif, puisque les doublons sont refusés et que
+// une ligne SANS ADRESSE peut partir — le titulaire du compte se supprime
+// depuis son propre écran, avec tout ce que cela emporte. Sans ce chemin, un
+// prénom mal tapé serait définitif, puisque les doublons sont refusés et que
 // `parents_update` n'autorise que sa propre ligne.
+//
+// Le critère est l'ADRESSE et non le `user_id`, et la nuance est tout le
+// correctif : depuis que le second parent porte le `user_id` de son appareil,
+// filtrer là-dessus ne trouverait plus personne à retirer. Ce qui distingue un
+// titulaire, c'est de pouvoir se reconnecter ailleurs — donc une adresse.
 //
 // Déploiement :  supabase functions deploy ajouter-parent
 
@@ -60,7 +83,7 @@ Deno.serve(
     const qui = await appelant(request);
     if (!qui) return fail('Non authentifié.', 401);
 
-    let corps: { prenom?: unknown; code?: unknown; retirer?: unknown };
+    let corps: { prenom?: unknown; code?: unknown; retirer?: unknown; rattacher?: unknown };
     try {
       corps = await request.json();
     } catch {
@@ -68,8 +91,9 @@ Deno.serve(
     }
 
     const retirer = typeof corps.retirer === 'string' ? corps.retirer : '';
+    const rattacher = typeof corps.rattacher === 'string' ? corps.rattacher : '';
     const prenom = typeof corps.prenom === 'string' ? corps.prenom.trim().slice(0, 30) : '';
-    if (!retirer && !prenom) return fail('Indiquez le prénom du parent.', 400);
+    if (!retirer && !rattacher && !prenom) return fail('Indiquez le prénom du parent.', 400);
 
     /**
      * Le titulaire du compte n'a rien à prouver : il EST parent, la base le
@@ -82,9 +106,77 @@ Deno.serve(
 
     const db = admin();
 
+    /**
+     * Reprendre un profil de parent sur CET appareil-ci.
+     *
+     * **Le cas qui l'exige : un téléphone cassé, perdu, ou simplement
+     * remplacé.** Les droits d'un second parent tiennent au `user_id` de son
+     * appareil ; un téléphone neuf en porte un autre. Sans ce chemin, changer
+     * de téléphone le réduirait à un spectateur, et rien à l'écran ne dirait
+     * pourquoi.
+     *
+     * **Et il révoque en rattachant.** Le `user_id` est écrasé : l'ancien
+     * appareil cesse d'être parent à la seconde même. C'est exactement ce
+     * qu'on attend d'un téléphone perdu — le remplacer le désarme, sans
+     * démarche séparée que personne ne penserait à faire.
+     *
+     * Le même geste sert à l'appairage ordinaire : « c'est le téléphone de
+     * Marc » à l'installation, c'est ceci.
+     */
+    if (rattacher) {
+      const { data: vise } = await db
+        .from('parents')
+        .select('id, display_name, email')
+        .eq('id', rattacher)
+        .eq('family_id', qui.familyId)
+        .maybeSingle();
+
+      if (!vise) return fail('Ce parent n’existe pas dans cette famille.', 404);
+      if (vise.email) {
+        // Le titulaire du compte se reconnecte avec son adresse et son mot de
+        // passe : lui « reprendre » son profil avec quatre chiffres serait une
+        // prise de compte, pas un changement de téléphone.
+        return fail(
+          'Ce parent a un compte : connectez-vous avec son adresse et son mot de passe.',
+          409,
+        );
+      }
+
+      /**
+       * Un appareil ne peut être qu'UN parent à la fois.
+       *
+       * `appelant()` et `auth_is_parent()` cherchent la ligne d'un `user_id`
+       * avec `maybeSingle()` : deux lignes portant le même appareil feraient
+       * lever la requête, et le téléphone perdrait tout accès en renvoyant une
+       * erreur que personne ne saurait lire. On détache donc avant d'attacher.
+       */
+      await db
+        .from('parents')
+        .update({ user_id: null })
+        .eq('family_id', qui.familyId)
+        .eq('user_id', qui.userId)
+        .neq('id', rattacher);
+
+      const { data: repris, error: erreurRattachement } = await db
+        .from('parents')
+        .update({ user_id: qui.userId })
+        .eq('id', rattacher)
+        .eq('family_id', qui.familyId)
+        .is('email', null)
+        .select('id, display_name')
+        .maybeSingle();
+
+      if (erreurRattachement || !repris) {
+        console.error('rattachement impossible', qui.familyId, erreurRattachement?.message);
+        return fail('Ce profil n’a pas pu être repris. Réessayez dans un instant.', 500);
+      }
+
+      return json({ parent: repris });
+    }
+
     if (retirer) {
       /**
-       * `family_id` ET `user_id is null`, les deux dans la même clause.
+       * `family_id` ET `email is null`, les deux dans la même clause.
        *
        * Le premier borne le geste à sa propre famille — la clé de service
        * ignore la RLS, et un identifiant est ce qu'il y a de plus facile à
@@ -92,13 +184,16 @@ Deno.serve(
        * famille, l'abonnement et la seule adresse qui permette de se
        * reconnecter. On ne la retire pas d'un écran de réglages ; il y a un
        * parcours entier pour cela, avec un mot à écrire.
+       *
+       * L'ADRESSE et non le `user_id` : le second parent porte désormais celui
+       * de son appareil, et filtrer là-dessus ne trouverait plus personne.
        */
       const { data: parti, error: erreurRetrait } = await db
         .from('parents')
         .delete()
         .eq('id', retirer)
         .eq('family_id', qui.familyId)
-        .is('user_id', null)
+        .is('email', null)
         .select('id')
         .maybeSingle();
 
@@ -139,10 +234,23 @@ Deno.serve(
         id: `par_${crypto.randomUUID()}`,
         family_id: qui.familyId,
         display_name: prenom,
-        // Ni compte, ni adresse : ce parent rejoint par le code famille. Le
-        // schéma dit la même chose — l'absence d'adresse s'écrit `null`, pas
-        // par une chaîne vide qui mentirait sur son contenu.
-        user_id: null,
+        /**
+         * L'appareil qui a prouvé le code devient ce parent.
+         *
+         * C'est la ligne qui fait la différence entre un parent et un
+         * spectateur : `auth_is_parent()` ne lit que `user_id`, et sans elle
+         * ce téléphone ne pourrait ni créer une mission, ni poser une plage
+         * libre, ni offrir une minute.
+         *
+         * `null` quand c'est le titulaire qui ajoute un profil depuis SON
+         * téléphone : le parent ajouté n'a pas encore d'appareil, et écrire
+         * celui de la titulaire ferait d'elle deux parents à la fois — ce que
+         * le `maybeSingle()` de `appelant()` ne pardonnerait pas.
+         */
+        user_id: qui.role === 'device' ? qui.userId : null,
+        // Pas d'adresse : ce parent rejoint par le code famille. C'est cette
+        // colonne, et non `user_id`, qui distingue le titulaire d'un second
+        // parent — voir `delete_my_account`.
         email: null,
       })
       .select('id, display_name')

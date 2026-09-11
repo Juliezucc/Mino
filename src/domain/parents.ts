@@ -20,27 +20,42 @@ export function parentDeLAppareil(parents: Parent[], parentId: ID | null): Paren
 }
 
 /**
- * Le titulaire du compte : celui dont l'adresse ouvre la session.
+ * Le titulaire du compte : celui dont l'ADRESSE permet de revenir.
  *
- * C'est `parents[0]`, et la raison n'est pas l'ordre d'affichage : la ligne du
- * titulaire est écrite à la création de la famille, et les profils ajoutés
- * ensuite arrivent après. Le nommer ici évite que chaque écran redécouvre la
- * règle — et qu'un jour l'un d'eux confonde « le premier de la liste » avec
- * « celui qui tient le téléphone ».
+ * **Ce n'était pas ça, et c'était fragile.** La règle écrite partout était
+ * « c'est `parents[0]` », au motif que sa ligne est créée en premier. Mais elle
+ * arrive d'un `select` sans `order by` : PostgreSQL ne promet alors aucun
+ * ordre, et il peut changer d'un chargement à l'autre — après une mise à jour
+ * de ligne, un `VACUUM`, un plan différent. Le jour où il s'inverse, l'écran du
+ * compte propose l'adresse de l'un et le mot de passe de l'autre.
+ *
+ * Le vrai critère n'a jamais été l'ordre : c'est l'adresse. Elle est ce qui
+ * permet de se reconnecter depuis un autre téléphone, donc ce qui distingue le
+ * compte d'un parent dont l'identité vit dans l'application installée sur SON
+ * appareil. `delete_my_account()` compte exactement la même chose, et les deux
+ * doivent dire la même chose ou la famille se perd.
+ *
+ * Le repli sur le premier reste, pour l'instant de l'inscription où l'adresse
+ * n'est pas encore posée : la famille n'a alors qu'un parent, et c'est lui.
  */
 export function titulaireDuCompte(parents: Parent[]): Parent | null {
-  return parents[0] ?? null;
+  return parents.find((p) => !!p.email?.trim()) ?? parents[0] ?? null;
 }
 
 /**
- * Un profil, ou le compte.
+ * Un second parent, ou le titulaire du compte.
  *
- * La différence tient au `email` — le serveur écrit `null` sur les deux
- * colonnes d'un profil, et `delete_my_account()` compte les `user_id` non nuls
- * pour décider si une famille survit à son titulaire. `user_id` n'existe pas
- * dans ce document : c'est une colonne que le client ne lit jamais, et c'est
- * volontaire. L'absence d'adresse est le même fait, vu d'ici.
+ * La différence tient à l'ADRESSE, et à rien d'autre. Les deux sont de vrais
+ * parents aux yeux de la base — le second porte le `user_id` de son appareil,
+ * c'est ce qui lui permet de créer une mission et pas seulement de la
+ * regarder. Ce qui les sépare, c'est de pouvoir revenir : une adresse et un
+ * mot de passe ouvrent la famille depuis n'importe quel téléphone, l'identité
+ * d'un appareil ne survit pas à sa perte.
+ *
+ * C'est la raison pour laquelle un second parent ne peut ni changer l'adresse,
+ * ni résilier l'abonnement, ni supprimer la famille — et `delete_my_account()`
+ * compte la même chose, ou la famille se perdrait.
  */
-export function estProfilSansCompte(parent: Parent, parents: Parent[]): boolean {
+export function estSecondParent(parent: Parent, parents: Parent[]): boolean {
   return parent.id !== titulaireDuCompte(parents)?.id;
 }

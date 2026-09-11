@@ -73,5 +73,23 @@ export interface ScreenTimeService {
   grant(params: { sessionId: ID; childId: ID; minutes: number }): Promise<ScreenTimeGrant>;
   /** Closes the allowance early or at expiry. Returns the minutes actually used. */
   revoke(sessionId: ID): Promise<{ consumedMinutes: number }>;
+  /**
+   * Ouvrir l'écran pour une plage libre, sans rien débiter.
+   *
+   * **Le défaut que cette méthode répare, et il annulait la fonctionnalité.**
+   * Une plage libre — « le mercredi de 14 h à 16 h » — était refusée côté
+   * séance avec une phrase parfaitement juste : « c'est ouvert, tu n'as pas
+   * besoin de tes minos ». Sauf que RIEN n'ouvrait quoi que ce soit. Le
+   * bouclier ne se levait qu'au démarrage d'une séance, et il n'existait que
+   * deux appels à `unshield` dans tout le dépôt, tous deux dans `grant`.
+   * L'enfant se retrouvait donc, le mercredi après-midi, sans séance possible
+   * ET sans ses applications : la plage libre fermait les deux portes au lieu
+   * d'en ouvrir une.
+   *
+   * `jusqua` est une échéance absolue, remise au module natif : le bouclier
+   * doit revenir à la fin de la plage même si l'enfant a forcé la fermeture de
+   * Mino — le cas précis qu'aucun minuteur JavaScript ne couvre.
+   */
+  ouvrirPlageLibre(jusqua: Date): Promise<void>;
   status(childId: ID): Promise<ScreenTimeStatus>;
 }

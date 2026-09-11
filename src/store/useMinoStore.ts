@@ -16,6 +16,7 @@ import {
 } from '@/data/deviceProfile';
 import {
   ajouterParent as ajouterParentDistant,
+  rattacherParent as rattacherParentDistant,
   retirerParent as retirerParentDistant,
 } from '@/data/parents';
 import { createSupabaseRepository } from '@/data/supabaseRepository';
@@ -24,6 +25,7 @@ import { GatedAction, LOCKED_MESSAGE, isLocked } from '@/domain/access';
 import { envoyerCourrier } from '@/services/courrier';
 import { Plan, Referral, Subscription } from '@/domain/billing';
 import { DeviceKind } from '@/domain/devices';
+import { minutesRestantes, openWindowAt } from '@/domain/freeWindows';
 import { AvatarKey, FamilyData, ID, ISODate, RepeatRule } from '@/domain/types';
 import * as notify from '@/domain/notifications';
 import { AuthResult, getAuthService } from '@/services/auth';
@@ -148,6 +150,12 @@ interface MinoState {
   /** Retirer un profil de parent — jamais le titulaire du compte. */
   retirerParent: (id: ID) => Promise<void>;
   /**
+   * « Ce téléphone-ci est celui de Marc » — à l'appairage, ou après une casse.
+   *
+   * Révoque l'appareil précédent du même coup. Voir `src/data/parents.ts`.
+   */
+  rattacherParent: (id: ID, code: string) => Promise<void>;
+  /**
    * Le code à quatre chiffres, gardé le temps que l'espace parent reste ouvert
    * — et uniquement sur la tablette d'un enfant.
    *
@@ -185,6 +193,15 @@ interface MinoState {
    * Jamais attendu par l'appelant : c'est un rapport, pas une action.
    */
   reportShield: () => Promise<void>;
+  /**
+   * Ouvrir l'écran si une plage libre court en ce moment.
+   *
+   * Appelé au lancement et à chaque retour au premier plan : une plage
+   * commence à une heure, pas à un geste, et personne ne relance Mino pour
+   * qu'elle s'applique. Silencieux et jamais attendu — c'est un réglage, pas
+   * une action.
+   */
+  appliquerPlageLibre: () => Promise<void>;
 
   selectChild: (childId: ID | null) => void;
   unlockParent: (pin: string) => Promise<AuthResult>;
@@ -555,6 +572,9 @@ export const useMinoStore = create<MinoState>((set, get) => {
       if (data) void poserJetonPush(data.family.id).catch(() => undefined);
       if (data) await get().loadBilling();
       if (data) void get().reportShield();
+      // Une plage libre en cours doit ouvrir l'écran MAINTENANT, sans attendre
+      // que l'enfant tente une séance qu'on lui refusera.
+      if (data) void get().appliquerPlageLibre();
     },
 
     /**
@@ -995,6 +1015,9 @@ export const useMinoStore = create<MinoState>((set, get) => {
           .then((device) => set({ device }))
           .catch(() => undefined);
       }
+      // Un enfant qui ouvre son profil pendant une plage libre doit trouver
+      // son écran ouvert, pas un refus poli.
+      if (childId) void get().appliquerPlageLibre();
     },
 
     resumeChildId() {
@@ -1075,6 +1098,11 @@ export const useMinoStore = create<MinoState>((set, get) => {
         });
       }
       return cree.id;
+    },
+
+    async rattacherParent(id, code) {
+      await rattacherParentDistant({ id, code });
+      await get().declarerUsage({ kind: 'parent', parentId: id });
     },
 
     async retirerParent(id) {
@@ -1475,6 +1503,40 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     /* ------------------------------------------------------------ billing */
+
+    async appliquerPlageLibre() {
+      const etat = get();
+      const data = etat.data;
+      if (!data) return;
+
+      /**
+       * De quel enfant parle-t-on sur CET appareil ?
+       *
+       * Le profil ouvert d'abord, l'enfant à qui l'appareil est réservé
+       * ensuite. Sur la tablette du salon sans personne dessus, `null` : une
+       * plage qui vise toute la famille s'applique quand même, et
+       * `openWindowAt` sait le dire.
+       */
+      const childId = etat.activeChildId ?? etat.device.lockedChildId ?? null;
+
+      // Sur le téléphone d'un parent, il n'y a rien à ouvrir : aucun bouclier
+      // n'y a jamais été posé.
+      if (etat.device.usagePersonnel) return;
+
+      const maintenant = new Date();
+      const ouverte = openWindowAt(data.freeWindows ?? [], childId, maintenant);
+      if (!ouverte) return;
+
+      // L'échéance se calcule en minutes restantes plutôt qu'en reconstruisant
+      // une heure : le fuseau et le passage à l'heure d'été ne s'invitent pas
+      // dans une soustraction de minutes.
+      const reste = minutesRestantes(ouverte, maintenant);
+      if (reste <= 0) return;
+
+      await getScreenTimeService()
+        .ouvrirPlageLibre(new Date(maintenant.getTime() + reste * 60_000))
+        .catch(() => undefined);
+    },
 
     async loadBilling() {
       const familyId = get().data?.family.id;

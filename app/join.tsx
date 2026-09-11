@@ -41,6 +41,7 @@ export default function JoinFamily() {
   const declarerUsage = useMinoStore((s) => s.declarerUsage);
   const ajouterParent = useMinoStore((s) => s.ajouterParent);
   const unlockParent = useMinoStore((s) => s.unlockParent);
+  const rattacherParent = useMinoStore((s) => s.rattacherParent);
   const children = useChildren();
   const parents = useParents();
   const service = getScreenTimeService();
@@ -127,10 +128,39 @@ export default function JoinFamily() {
     setStep('parent');
   };
 
-  /** « C'est le téléphone de Marc » : l'appareil retient lequel. */
-  const choisirParent = async (parentId: string) => {
-    await declarerUsage({ kind: 'parent', parentId }).catch(() => undefined);
-    router.replace('/parent');
+  /**
+   * « C'est le téléphone de Marc » — et il faut le prouver.
+   *
+   * **Le trou que ceci referme, et je l'avais ouvert moi-même.** Choisir un
+   * parent existant ne demandait rien : le code FAMILLE suffisait. Or c'est
+   * précisément celui que les enfants connaissent — il leur sert à s'appairer,
+   * il est affiché dans les réglages, et il est écrit sur un bout de papier
+   * dans la moitié des maisons. N'importe lequel d'entre eux pouvait donc
+   * déclarer sa tablette « téléphone d'un parent », et cet appareil-là ne
+   * re-verrouille plus jamais l'espace parent en arrière-plan.
+   *
+   * Et depuis que reprendre un profil donne de vrais droits d'écriture, la
+   * preuve n'est plus seulement prudente : elle est la seule chose qui sépare
+   * un enfant curieux d'un parent.
+   */
+  const reprendreLeProfil = async (parentId: string) => {
+    if (!/^\d{4}$/.test(codeParent)) {
+      return setError('Entrez le code parent à 4 chiffres pour continuer.');
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      await rattacherParent(parentId, codeParent);
+      // Il vient de le prouver : le redemander une seconde plus tard serait une
+      // cérémonie, pas une sécurité. Et c'est ce chemin qui garde les quatre
+      // chiffres en mémoire, dont `valider-mission` a besoin.
+      await unlockParent(codeParent).catch(() => undefined);
+      router.replace('/parent');
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : 'Ce profil n’a pas pu être repris.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   /**
@@ -265,14 +295,25 @@ export default function JoinFamily() {
 
             {!ajoutOuvert ? (
               <>
+                {/* Le code d'abord, les prénoms ensuite : l'ordre dit que la
+                    preuve n'est pas une formalité de fin de parcours. */}
+                <Field
+                  label="Code parent de la famille"
+                  placeholder="4 chiffres"
+                  keyboardType="number-pad"
+                  value={codeParent}
+                  onChangeText={(v) => setCodeParent(v.replace(/[^0-9]/g, '').slice(0, 4))}
+                  hint="Demandez-le au parent qui a créé la famille. Ce n’est pas le code famille."
+                />
                 {parents.map((p) => (
                   <Button
                     key={p.id}
-                    label={p.displayName ?? 'Parent'}
+                    label={`C’est le téléphone de ${p.displayName ?? 'ce parent'}`}
                     icon="👤"
                     variant="secondary"
+                    loading={loading}
                     onPress={() => {
-                      choisirParent(p.id).catch(() => undefined);
+                      reprendreLeProfil(p.id).catch(() => undefined);
                     }}
                   />
                 ))}
@@ -286,6 +327,10 @@ export default function JoinFamily() {
                     setAjoutOuvert(true);
                   }}
                 />
+                <Text variant="caption" color={colors.textSubtle}>
+                  Si ce parent avait déjà un téléphone, celui-ci le remplace : l’ancien n’ouvrira
+                  plus l’espace parent.
+                </Text>
               </>
             ) : (
               <>

@@ -53,6 +53,17 @@ export class LocalTimerScreenTimeService implements ScreenTimeService {
     return grant;
   }
 
+  /**
+   * Rien à lever : ce service ne bloque rien, il compte.
+   *
+   * Ce n'est pas un oubli poli — c'est la même honnêteté que partout ailleurs
+   * ici. Une plage libre sur un appareil sans bouclier n'a rien à ouvrir,
+   * puisque rien n'était fermé.
+   */
+  async ouvrirPlageLibre(_jusqua: Date): Promise<void> {
+    return;
+  }
+
   async revoke(sessionId: ID): Promise<{ consumedMinutes: number }> {
     const grant = this.grants.get(sessionId);
     if (!grant) return { consumedMinutes: 0 };

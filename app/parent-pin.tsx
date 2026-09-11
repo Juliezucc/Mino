@@ -28,17 +28,33 @@ export default function ParentPin() {
    * représente pas : `/onboarding/appareil` envoie ici le parent qui vient de
    * déclarer l'appareil partagé, pour qu'il pose son code pendant qu'il est
    * encore là — puis l'installation reprend au blocage, qui est l'étape
-   * suivante. La destination n'est jamais le sélecteur de profil, donc rien ne
-   * se reverrouille derrière.
+   * suivante.
+   *
+   * **Le sélecteur de profil est l'exception, et elle a coûté la
+   * fonctionnalité.** Le commentaire d'origine affirmait que la destination
+   * n'était jamais le sélecteur, « donc rien ne se reverrouille derrière ».
+   * C'est devenu faux le jour où `who.tsx` a demandé le code pour ouvrir le
+   * profil d'un autre enfant : le sélecteur RE-MONTE et referme l'espace
+   * parent en s'ouvrant. D'où `ouvrir`, qui traverse cet écran sans être lu —
+   * le sélecteur le lira, lui, et terminera le geste.
    *
    * Seuls des chemins internes sont acceptés : un paramètre d'URL décide ici
    * d'où atterrit quelqu'un qui vient de saisir un secret.
    */
-  const { ensuite } = useLocalSearchParams<{ ensuite?: string }>();
-  const destination =
+  const { ensuite, ouvrir } = useLocalSearchParams<{ ensuite?: string; ouvrir?: string }>();
+  const chemin =
     typeof ensuite === 'string' && ensuite.startsWith('/') && !ensuite.startsWith('//')
       ? ensuite
       : '/parent';
+  /**
+   * Un identifiant d'enfant, et rien d'autre.
+   *
+   * Il repart dans une URL : le filtrer n'est pas une politesse. Les
+   * identifiants du dépôt sont de la forme `enf_<uuid>` — tout ce qui n'y
+   * ressemble pas est jeté plutôt que renvoyé tel quel.
+   */
+  const aOuvrir = typeof ouvrir === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(ouvrir) ? ouvrir : null;
+  const destination = aOuvrir ? { pathname: chemin, params: { ouvrir: aOuvrir } } : chemin;
   const parent = useParentDeCetAppareil();
   const unlockParent = useMinoStore((s) => s.unlockParent);
 
@@ -211,7 +227,7 @@ export default function ParentPin() {
               : // Sans le `trim`, un parent qui n'a pas fini son inscription se
                 // voit saluer « Bonjour null ». Voir `who.tsx`.
                 parent?.displayName?.trim()
-                ? `Bonjour ${parent.displayName}, entre ton code à 4 chiffres.`
+                ? `Bonjour ${parent.displayName}, entrez votre code à 4 chiffres.`
                 : 'Entre ton code à 4 chiffres.'}
         </Text>
       </View>

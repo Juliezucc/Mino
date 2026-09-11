@@ -30,6 +30,22 @@ export default function SignalerUnProbleme() {
   const data = useMinoStore((s) => s.data);
   const repository = useMinoStore((s) => s.repository);
 
+  const titulaire = useMinoStore((s) => s.data?.parents?.[0] ?? null);
+
+  /**
+   * L'adresse à laquelle répondre — et il n'y en avait aucune.
+   *
+   * **Le défaut, et il annulait tout cet écran.** Le parent écrivait, recevait
+   * une référence, et attendait une réponse qui ne pouvait pas venir : la
+   * table ne garde que l'identifiant de session, et `buildReport` efface les
+   * adresses du texte. Depuis la tablette d'un enfant, l'identité est anonyme
+   * — il n'y avait même pas de jointure possible. « Chaque signalement est
+   * lu » était vrai ; « on vous répond » ne l'a jamais été.
+   *
+   * Pré-remplie quand on la connaît, modifiable toujours : c'est le parent qui
+   * décide où il veut être joint, et pas nous à sa place.
+   */
+  const [replyTo, setReplyTo] = useState(titulaire?.email ?? '');
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
@@ -62,6 +78,7 @@ export default function SignalerUnProbleme() {
       // une phrase française n'a pas de solution fiable, mais l'application
       // connaît exactement ceux qu'elle a enregistrés.
       firstNames: data?.children.map((c) => c.firstName) ?? [],
+      replyTo,
     });
 
     const result = await getDiagnosticsService()
@@ -94,6 +111,14 @@ export default function SignalerUnProbleme() {
           <Text variant="caption" color={colors.textSubtle}>
             Gardez-la si vous nous réécrivez : elle nous mène droit au problème.
           </Text>
+          {/* Dire ce qui va se passer, et le dire sans promettre : un parent
+              qui n'a pas laissé d'adresse doit savoir qu'il n'aura pas de
+              réponse, plutôt que de l'attendre. */}
+          <Text variant="caption" color={colors.textSubtle}>
+            {replyTo.trim()
+              ? `Nous vous répondrons à ${replyTo.trim()}.`
+              : 'Vous n’avez pas laissé d’adresse : nous ne pourrons pas vous répondre, mais votre signalement est bien arrivé.'}
+          </Text>
         </Card>
 
         <Button label="Revenir" onPress={() => router.back()} />
@@ -124,6 +149,19 @@ export default function SignalerUnProbleme() {
         style={styles.textarea}
         accessibilityLabel="Décrire le problème"
         hint="Dix caractères au minimum. Les prénoms de vos enfants sont retirés automatiquement."
+      />
+
+      <Field
+        label="Votre adresse e-mail, pour qu’on vous réponde"
+        placeholder="vous@exemple.fr"
+        value={replyTo}
+        onChangeText={setReplyTo}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="email-address"
+        autoComplete="email"
+        accessibilityLabel="Adresse e-mail pour la réponse"
+        hint="Facultative. Sans elle, votre signalement est bien reçu — mais nous n’avons aucun moyen de vous répondre."
       />
 
       {suggestions.length > 0 ? (

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot';
 import { Button, Card, Chip, Field, Screen, ScreenHeader, Text } from '@/components/ui';
@@ -126,6 +126,31 @@ export default function Aide() {
               aucune donnée d’enfant.
             </Text>
             <Button label="Signaler un problème" variant="secondary" onPress={() => router.push('/probleme')} />
+            {/*
+              L'adresse, écrite en toutes lettres.
+
+              **Ce qui manquait, et ce n'est pas un détail de politesse.** Le
+              formulaire part avec le contexte technique, et c'est ce qui le
+              rend utile — mais il ne laisse au parent aucune trace de ce qu'il
+              a envoyé, aucun fil auquel répondre, et rien à montrer s'il veut
+              nous écrire depuis son ordinateur. Une aide qui n'offre qu'un
+              formulaire demande de faire confiance à un vide.
+
+              Elle sert aussi à l'examen des boutiques, qui cherche un moyen de
+              contact humain, et au parent qui veut exercer ses droits RGPD
+              sans passer par un écran de l'application.
+            */}
+            <Pressable
+              onPress={() => {
+                Linking.openURL('mailto:contact@minoapp.fr').catch(() => undefined);
+              }}
+              accessibilityRole="link"
+              accessibilityLabel="Écrire à contact@minoapp.fr"
+            >
+              <Text variant="caption" color={colors.textMuted}>
+                Ou écrivez-nous : <Text variant="caption" color={colors.blueInk}>contact@minoapp.fr</Text>
+              </Text>
+            </Pressable>
           </Card>
         </>
       )}

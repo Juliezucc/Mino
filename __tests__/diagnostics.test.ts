@@ -103,3 +103,47 @@ describe('la référence donnée au parent', () => {
     expect(referenceOf(report)).toMatch(/^MINO-[0-9A-F]{4}-\d{4}$/);
   });
 });
+
+/**
+ * L'adresse à laquelle répondre, et le fait qu'elle survive au nettoyage.
+ *
+ * **Le défaut, trouvé par Julie en lisant l'écran.** Un parent bloqué écrivait,
+ * recevait une référence, et attendait une réponse qui ne pouvait pas venir :
+ * la table ne gardait que l'identifiant de session, et `redact` efface les
+ * adresses du message — la règle protège l'adresse d'un tiers citée en
+ * passant, et elle protégeait aussi le parent de toute réponse. Depuis la
+ * tablette d'un enfant, l'identité est anonyme : il n'y avait même pas de
+ * jointure possible.
+ */
+describe('à qui répondre', () => {
+  const contexte = { appVersion: '1.0.5', platform: 'ios' as const };
+
+  it('garde l’adresse donnée EXPRÈS, là où elle efface celles du texte', () => {
+    const rapport = buildReport({
+      kind: 'manual',
+      message: 'Écrivez-moi à voisin@exemple.fr, ça ne marche pas',
+      context: contexte,
+      replyTo: 'julie@exemple.fr',
+    });
+
+    // Le message reste nettoyé : personne n'a demandé qu'on garde l'adresse
+    // d'un tiers citée en passant.
+    expect(rapport.message).not.toContain('voisin@exemple.fr');
+    // Mais celle que le parent a donnée pour être joint, oui.
+    expect(rapport.replyTo).toBe('julie@exemple.fr');
+  });
+
+  it('n’invente pas une adresse quand le parent n’en donne pas', () => {
+    const rapport = buildReport({ kind: 'manual', message: 'ça bloque', context: contexte });
+    expect(rapport.replyTo).toBeUndefined();
+  });
+
+  it('refuse ce qui n’a pas la forme d’une adresse', () => {
+    // La colonne sert à écrire à quelqu'un : y ranger une phrase ferait croire
+    // à une adresse au moment de répondre.
+    for (const faux of ['pas une adresse', 'julie@', '@exemple.fr', 'julie@exemple']) {
+      expect(buildReport({ kind: 'manual', message: 'x', context: contexte, replyTo: faux }).replyTo)
+        .toBeUndefined();
+    }
+  });
+});

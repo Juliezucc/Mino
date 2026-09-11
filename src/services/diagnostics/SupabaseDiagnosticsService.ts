@@ -23,7 +23,11 @@ export class SupabaseDiagnosticsService implements DiagnosticsService {
 
   async send(report: BugReport): Promise<DiagnosticsResult> {
     const reference = referenceOf(report);
-    const { error } = await this.client.from('support_reports').insert(this.toRow(report));
+    const { data, error } = await this.client
+      .from('support_reports')
+      .insert(this.toRow(report))
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       await this.queue.keep(report);
@@ -32,7 +36,33 @@ export class SupabaseDiagnosticsService implements DiagnosticsService {
       return { ok: true, reference };
     }
 
+    await this.prevenir(data?.id);
     return { ok: true, reference };
+  }
+
+  /**
+   * Nous faire suivre le signalement par e-mail.
+   *
+   * **Sans cela, un signalement n'atteint personne.** La ligne partait dans
+   * `support_reports`, sous une vue nommée « ce qu'il faut regarder le
+   * matin » — et rien ne prévenait quiconque. Un parent bloqué à 21 h écrivait,
+   * lisait « chaque signalement est lu », et attendait que quelqu'un pense à
+   * ouvrir un tableau de bord. Les jours où personne n'y pense, la promesse est
+   * fausse.
+   *
+   * On n'envoie que l'IDENTIFIANT : le serveur relit la ligne et compose
+   * l'e-mail lui-même. Faire voyager le texte ici ferait de cette route un
+   * relais d'envoi ouvert à toute session authentifiée.
+   *
+   * Jamais attendu, jamais fatal : la ligne est écrite, elle ne se perd pas.
+   * Un acheminement qui manque est notre problème, pas celui du parent qui
+   * vient de nous écrire.
+   */
+  private async prevenir(id: unknown): Promise<void> {
+    if (typeof id !== 'number') return;
+    await this.client.functions
+      .invoke('courrier/signalement', { body: { id } })
+      .catch(() => undefined);
   }
 
   /** Rejoue ce qui attendait. Appelé au démarrage. */
@@ -60,6 +90,8 @@ export class SupabaseDiagnosticsService implements DiagnosticsService {
       repository: report.context.repository ?? null,
       // Des compteurs, jamais des contenus.
       counts: report.context.counts ?? null,
+      // Le seul champ que le parent donne POUR qu'on s'en serve.
+      reply_to: report.replyTo?.trim() || null,
       created_at: report.createdAt,
     };
   }

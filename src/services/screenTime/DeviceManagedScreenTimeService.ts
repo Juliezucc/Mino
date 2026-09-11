@@ -60,6 +60,24 @@ export class DeviceManagedScreenTimeService implements ScreenTimeService {
     return this.native.selectionCount();
   }
 
+  /**
+   * Lever le bouclier jusqu'à la fin de la plage, et rien de plus.
+   *
+   * Aucune écriture au grand livre, aucune séance : c'est du temps que le
+   * parent a déjà donné. La seule chose à faire est de rendre l'écran
+   * ouvert — et de confier l'échéance au natif, qui refermera tout seul.
+   *
+   * Silencieux quand l'autorisation manque : il n'y a alors aucun bouclier à
+   * lever, et lever un verrou qui n'existe pas n'a jamais ouvert une porte.
+   */
+  async ouvrirPlageLibre(jusqua: Date): Promise<void> {
+    const etat = await this.native.authorizationStatus().catch(() => 'denied' as const);
+    if (etat !== 'approved') return;
+    const selection = await this.native.selectionCount().catch(() => ({ count: 0 }));
+    if (selection.count === 0) return;
+    await this.native.unshield(jusqua.getTime());
+  }
+
   async grant(params: { sessionId: ID; childId: ID; minutes: number }): Promise<ScreenTimeGrant> {
     /**
      * **Refuser de lever un verrou qui n'existe pas.**

@@ -65,7 +65,18 @@ export default function RootLayout() {
    */
   useEffect(() => {
     const abonnement = AppState.addEventListener('change', (etat) => {
-      if (etat === 'active') return;
+      if (etat === 'active') {
+        /**
+         * Une plage libre commence à une heure, pas à un geste.
+         *
+         * Personne ne relance Mino pour qu'un mercredi 14 h s'applique :
+         * l'enfant rouvre son téléphone, c'est tout. C'est donc ici que le
+         * bouclier doit se lever — sans quoi la plage ne s'applique qu'au
+         * prochain démarrage à froid, c'est-à-dire presque jamais.
+         */
+        void useMinoStore.getState().appliquerPlageLibre();
+        return;
+      }
       const { device, parentUnlocked, lockParent } = useMinoStore.getState();
       if (!parentUnlocked) return;
       if (refermerEnArrierePlan(choixEnregistre(device).kind)) lockParent();

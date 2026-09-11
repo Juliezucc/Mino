@@ -32,6 +32,23 @@ create table if not exists support_reports (
   created_at  timestamptz not null default now()
 );
 
+/**
+ * L'adresse à laquelle répondre — et il n'y en avait aucune.
+ *
+ * **Le défaut, et c'est celui qui rendait tout le reste inutile.** Un parent
+ * bloqué écrivait, recevait une référence, et attendait. Rien ne pouvait lui
+ * revenir : la table ne garde que `user_id`, et `buildReport` EFFACE les
+ * adresses du message — la ligne `EMAIL` de `src/domain/diagnostics.ts` est là
+ * pour protéger la vie privée, et elle protégeait aussi le parent de toute
+ * réponse. Depuis la tablette d'un enfant, l'identité est anonyme : il n'y
+ * avait même pas de jointure possible.
+ *
+ * Séparée du message, donc, et jamais nettoyée : c'est le seul champ de cette
+ * table que le parent donne POUR qu'on s'en serve. Facultatif — on répond si
+ * on peut, on ne refuse pas un signalement anonyme.
+ */
+alter table support_reports add column if not exists reply_to text;
+
 create index if not exists idx_reports_fingerprint on support_reports (fingerprint, created_at desc);
 create index if not exists idx_reports_status on support_reports (status, created_at desc);
 create index if not exists idx_reports_user on support_reports (user_id, created_at desc);
@@ -65,7 +82,12 @@ create policy support_reports_select on support_reports
  * ligne « 100 fois », ce qui dit lequel corriger en premier. Réservé au rôle de
  * service — c'est un tableau de bord interne, pas une donnée de famille.
  */
-create or replace view support_queue as
+-- Supprimée puis recréée, et non « or replace » : PostgreSQL refuse de
+-- remplacer une vue dont la liste de colonnes change ailleurs qu'à la fin, et
+-- `repondre_a` s'insère avant `statut`. Une vue interne se reconstruit sans
+-- rien perdre.
+drop view if exists support_queue;
+create view support_queue as
 select
   fingerprint,
   kind,
@@ -78,6 +100,9 @@ select
   mode() within group (order by route)       as ecran_frequent,
   -- Trois exemples suffisent à comprendre ; le reste est du volume.
   (array_agg(message order by created_at desc) filter (where message <> ''))[1:3] as exemples,
+  -- À qui répondre. Sans cette colonne, le tableau de bord du matin disait
+  -- quoi corriger sans jamais dire à qui l'annoncer.
+  (array_agg(reply_to order by created_at desc) filter (where reply_to is not null))[1:3] as repondre_a,
   min(status)                             as statut
 from support_reports
 group by fingerprint, kind

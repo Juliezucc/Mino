@@ -1,7 +1,7 @@
 import { ajouterParent, retirerParent } from '@/data/parents';
 import { ChoixDAppareil, choixComplete, etatsPourChoix } from '@/data/deviceProfile';
 import { DomainError } from '@/domain/actions';
-import { estProfilSansCompte, parentDeLAppareil, titulaireDuCompte } from '@/domain/parents';
+import { estSecondParent, parentDeLAppareil, titulaireDuCompte } from '@/domain/parents';
 import { Parent } from '@/domain/types';
 
 /**
@@ -58,9 +58,26 @@ describe('à quel parent appartient cet appareil', () => {
     expect(titulaireDuCompte([])).toBeNull();
   });
 
-  it('distingue le profil du compte', () => {
-    expect(estProfilSansCompte(marc, [julie, marc])).toBe(true);
-    expect(estProfilSansCompte(julie, [julie, marc])).toBe(false);
+  it('distingue le second parent du titulaire — par l’ADRESSE, pas par l’ordre', () => {
+    expect(estSecondParent(marc, [julie, marc])).toBe(true);
+    expect(estSecondParent(julie, [julie, marc])).toBe(false);
+  });
+
+  it('retrouve le titulaire même quand la base rend les lignes à l’envers', () => {
+    // `select` sans `order by` ne promet aucun ordre, et il change : après une
+    // mise à jour de ligne, un VACUUM, un plan différent. Tant que la règle
+    // était « c'est parents[0] », ce jour-là l'écran du compte proposait
+    // l'adresse de l'un et le mot de passe de l'autre.
+    expect(titulaireDuCompte([marc, julie])?.displayName).toBe('Julie');
+    expect(estSecondParent(marc, [marc, julie])).toBe(true);
+  });
+
+  it('se replie sur le premier tant qu’aucune adresse n’est posée', () => {
+    // L'instant de l'inscription : la famille n'a qu'un parent, et son adresse
+    // n'est pas encore écrite. Rendre `null` ferait disparaître le compte de
+    // son propre écran.
+    const sansAdresse = parent({ email: null });
+    expect(titulaireDuCompte([sansAdresse])?.id).toBe(sansAdresse.id);
   });
 });
 

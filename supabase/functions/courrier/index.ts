@@ -23,7 +23,7 @@
 
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
 
-import { admin, env, fail, familyOfCaller, json, servir, stripe } from '../_shared/mino.ts';
+import { admin, appelant, env, fail, familyOfCaller, json, servir, stripe } from '../_shared/mino.ts';
 import { familleDuJeton, jetonLien } from '../_shared/lien.ts';
 import { trialEndForCheckout } from '../../../src/domain/billing.ts';
 
@@ -539,6 +539,14 @@ async function envoyer(
   sujet: string,
   texte: string,
   html: string,
+  /**
+   * À qui répond le bouton « Répondre ».
+   *
+   * Pour un signalement, c'est l'adresse du parent : sans elle, répondre à
+   * notre propre boîte n'atteindrait personne, et il faudrait recopier une
+   * adresse à la main en espérant ne pas se tromper.
+   */
+  repondreA?: string,
 ): Promise<void> {
   const client = new SMTPClient({
     connection: {
@@ -557,7 +565,7 @@ async function envoyer(
       // Répondre doit arriver quelque part où quelqu'un lit : le message le
       // promet, et une promesse d'écoute qui tombe dans le vide coûte plus
       // cher que pas de promesse du tout.
-      replyTo: Deno.env.get('MAIL_REPLY_TO') ?? env('MAIL_FROM'),
+      replyTo: repondreA ?? Deno.env.get('MAIL_REPLY_TO') ?? env('MAIL_FROM'),
       to: destinataire,
       subject: sujet,
       // Les deux versions, toujours : `content` pour les messageries qui
@@ -1077,8 +1085,111 @@ async function motif(request: Request): Promise<Response> {
   );
 }
 
+
+/**
+ * Nous faire suivre un signalement, par e-mail.
+ *
+ * **Le défaut que cette route répare.** Les signalements arrivaient dans
+ * `support_reports`, avec une vue nommée « ce qu'il faut regarder le matin ».
+ * Rien ne prévenait personne : un parent bloqué à 21 h écrivait, recevait une
+ * référence, et son message attendait dans une table que quelqu'un devait
+ * penser à ouvrir. Un tableau de bord qu'il faut penser à consulter n'existe
+ * pas les jours où on ne le consulte pas.
+ *
+ * **Le corps de l'e-mail vient de la BASE, jamais de la requête.** L'appelant
+ * n'envoie qu'un identifiant ; la ligne est relue avec la clé de service. Sans
+ * cette précaution, cette route serait un relais d'envoi ouvert à toute session
+ * authentifiée — n'importe quel texte, vers notre boîte, à volonté.
+ *
+ * **Et on ne relaie que SES propres signalements** : `user_id = appelant`.
+ * L'identifiant est un entier de séquence, donc trivial à deviner ; sans cette
+ * clause, un appareil pourrait se faire relayer le signalement d'une autre
+ * famille et en lire le contenu dans le rebond.
+ *
+ * Ouverte aux sessions d'appareil : c'est souvent la tablette de l'enfant qui
+ * plante, et lui refuser la parole reviendrait à ne jamais entendre parler des
+ * bugs du côté enfant — la même raison qui ouvre déjà `support_reports_insert`.
+ */
+async function signalement(request: Request): Promise<Response> {
+  const qui = await appelant(request);
+  if (!qui) return fail('Non authentifié.', 401);
+
+  let corps: { id?: unknown };
+  try {
+    corps = await request.json();
+  } catch {
+    return fail('Requête illisible.', 400);
+  }
+
+  const id = Number(corps.id);
+  if (!Number.isInteger(id) || id <= 0) return fail('Signalement inconnu.', 400);
+
+  const { data: ligne } = await admin()
+    .from('support_reports')
+    .select('id, kind, message, stack, reply_to, app_version, platform, os_version, route, repository, counts, fingerprint, created_at')
+    .eq('id', id)
+    .eq('user_id', qui.userId)
+    .maybeSingle();
+
+  if (!ligne) return fail('Signalement inconnu.', 404);
+
+  const champs: [string, unknown][] = [
+    ['Référence', ligne.fingerprint],
+    ['Type', ligne.kind === 'crash' ? 'plantage' : 'écrit par un parent'],
+    ['Répondre à', ligne.reply_to ?? '— aucune adresse laissée —'],
+    ['Rôle', qui.role === 'device' ? 'appareil appairé' : 'compte parent'],
+    ['Famille', qui.familyId],
+    ['Version', ligne.app_version],
+    ['Plateforme', `${ligne.platform}${ligne.os_version ? ' ' + ligne.os_version : ''}`],
+    ['Écran', ligne.route ?? '—'],
+    ['Stockage', ligne.repository ?? '—'],
+    ['Compteurs', ligne.counts ? JSON.stringify(ligne.counts) : '—'],
+    ['Reçu le', ligne.created_at],
+  ];
+
+  const echapper = (v: unknown) =>
+    String(v ?? '—').replace(/[&<>]/g, (c) => (c === '&' ? '&amp;' : c === '<' ? '&lt;' : '&gt;'));
+
+  const texte = [
+    ...champs.map(([k, v]) => `${k} : ${v ?? '—'}`),
+    '',
+    '--- message ---',
+    ligne.message || '(vide)',
+    ...(ligne.stack ? ['', '--- pile ---', ligne.stack] : []),
+  ].join('\n');
+
+  const html = [
+    '<table style="border-collapse:collapse;font:14px system-ui">',
+    ...champs.map(
+      ([k, v]) =>
+        `<tr><td style="padding:2px 12px 2px 0;color:#667"><b>${echapper(k)}</b></td><td style="padding:2px 0">${echapper(v)}</td></tr>`,
+    ),
+    '</table>',
+    `<p style="font:14px system-ui;white-space:pre-wrap;border-left:3px solid #4EB6FF;padding-left:12px">${echapper(ligne.message || '(vide)')}</p>`,
+    ...(ligne.stack
+      ? [`<pre style="font:12px ui-monospace;background:#f4f6fb;padding:12px;overflow:auto">${echapper(ligne.stack)}</pre>`]
+      : []),
+  ].join('');
+
+  const boite = Deno.env.get('SUPPORT_MAIL') ?? 'contact@minoapp.fr';
+  const objet = `[Mino] ${ligne.kind === 'crash' ? 'Plantage' : 'Signalement'} — ${String(ligne.message || '').slice(0, 60) || ligne.fingerprint}`;
+
+  try {
+    await envoyer(boite, objet, texte, html, typeof ligne.reply_to === 'string' ? ligne.reply_to : undefined);
+  } catch (error) {
+    // Jamais une erreur pour le parent : sa ligne est écrite, elle ne se perd
+    // pas. C'est notre acheminement qui a manqué, et c'est à nous de le voir.
+    console.error('signalement non relayé', id, error);
+    return json({ relaye: false });
+  }
+
+  console.log('signalement relayé', id, ligne.fingerprint);
+  return json({ relaye: true });
+}
+
 Deno.serve(servir(async (request) => {
   const route = new URL(request.url).pathname.replace(/^\/courrier\/?/, '');
+  if (route === 'signalement') return await signalement(request);
   if (route === 'lot') return await lot(request);
   if (route === 'reprendre') return await reprendre(request);
   if (route === 'stop') return await stop(request);

@@ -1,16 +1,16 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Icon } from '@/components/icons/Icon';
 import { Mascot } from '@/components/mascot';
 import { Avatar, Button, Card, Logo, Screen, Text, TimeCapsules } from '@/components/ui';
-import { changementDeProfilLibre } from '@/data/deviceProfile';
+import { ouvertureDeProfil } from '@/data/deviceProfile';
 import { balanceOf } from '@/domain/ledger';
 import { getAuthService } from '@/services/auth';
 import { unitOf } from '@/domain/ageBand';
 import { formatTime } from '@/domain/minos';
-import { useFamily } from '@/store/selectors';
+import { useFamily, useParentDeCetAppareil } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, shadows, spacing } from '@/theme';
 
@@ -22,6 +22,7 @@ export default function Who() {
   const lockParent = useMinoStore((s) => s.lockParent);
   const device = useMinoStore((s) => s.device);
   const parentUnlocked = useMinoStore((s) => s.parentUnlocked);
+  const parentIci = useParentDeCetAppareil();
 
   /**
    * Y a-t-il un parent connecté ? La réponse change ce qu'il faut lui proposer
@@ -29,11 +30,34 @@ export default function Who() {
    */
   const [connecte, setConnecte] = React.useState<boolean | null>(null);
 
+  /**
+   * Le profil demandé AVANT le code, et rouvert après.
+   *
+   * **Le défaut, et il annulait la fonctionnalité entière.** Sur le téléphone
+   * réservé à Manon, ouvrir le profil de Noah exige le code — c'est voulu. Le
+   * chemin passait par `/parent-pin` puis revenait ici, et `router.replace`
+   * ne réutilise pas l'écran déjà empilé : il en monte un NEUF, dont l'effet
+   * de montage ci-dessous appelle `lockParent()`. Le déverrouillage obtenu une
+   * seconde plus tôt était donc effacé à l'instant même où l'on revenait, et
+   * retoucher Noah redemandait le code. Indéfiniment, sans qu'aucun texte
+   * n'explique le refus.
+   *
+   * L'intention voyage donc avec le retour. On referme quand même l'espace
+   * parent — le code servait à changer de profil, pas à rester — puis on
+   * termine le geste qui l'avait demandé.
+   */
+  const { ouvrir } = useLocalSearchParams<{ ouvrir?: string }>();
+
   React.useEffect(() => {
     // Leaving a profile always re-locks the parent area.
     lockParent();
+    if (typeof ouvrir === 'string' && ouvrir) {
+      selectChild(ouvrir);
+      router.replace('/child');
+      return;
+    }
     selectChild(null);
-  }, [lockParent, selectChild]);
+  }, [lockParent, selectChild, ouvrir, router]);
 
   React.useEffect(() => {
     let vivant = true;
@@ -100,8 +124,11 @@ export default function Who() {
      * `parentUnlocked` suffit à lever la demande : un parent qui vient de
      * taper son code est là, et on ne le lui redemande pas deux fois.
      */
-    if (!changementDeProfilLibre(device) && childId !== device.lockedChildId && !parentUnlocked) {
-      router.push({ pathname: '/parent-pin', params: { ensuite: '/who' } });
+    const geste = ouvertureDeProfil(device, childId, parentUnlocked);
+    if (geste.kind === 'demander-le-code') {
+      // `ouvrir` est ce qui manquait : sans lui, le sélecteur remonté ne sait
+      // plus quel profil on venait de demander, et redemande le code.
+      router.push({ pathname: '/parent-pin', params: { ensuite: '/who', ouvrir: geste.ouvrir } });
       return;
     }
     selectChild(childId);
@@ -166,8 +193,12 @@ export default function Who() {
                 affiché tel quel à un parent, sous « Espace parent ». Ce n'est
                 pas un cas d'école : c'est ce qu'a vu la première personne à
                 revenir en arrière pendant son inscription. */}
-            {data.parents[0]?.displayName?.trim()
-              ? `${data.parents[0].displayName} · protégé par un code`
+            {/* Le parent de CET appareil, et non le premier de la liste : sur
+                le téléphone du second parent, « Julie · protégé par un code »
+                sous « Espace parent » désigne quelqu'un d'autre que celui qui
+                lit. Voir `parentDeLAppareil`. */}
+            {parentIci?.displayName?.trim()
+              ? `${parentIci.displayName} · protégé par un code`
               : 'Protégé par un code'}
           </Text>
         </View>

@@ -67,12 +67,54 @@ export async function ajouterParent(
 }
 
 /**
+ * Reprendre un profil de parent sur CET appareil-ci.
+ *
+ * **Deux usages, un seul geste.** L'appairage ordinaire — « c'est le téléphone
+ * de Marc », à l'installation — et le téléphone de remplacement, quand
+ * l'ancien est cassé, perdu ou revendu. Dans les deux cas la question est la
+ * même : quel appareil porte ce parent, maintenant ?
+ *
+ * **Et il révoque en rattachant.** Les droits d'un second parent tiennent au
+ * `user_id` de son appareil ; le serveur l'écrase. L'ancien téléphone cesse
+ * d'être parent à la seconde même, sans démarche séparée que personne ne
+ * penserait à faire.
+ *
+ * Le code est exigé : sans lui, le code FAMILLE — celui que les enfants
+ * connaissent, puisqu'il leur sert à s'appairer — suffirait à se déclarer
+ * parent et à tout ouvrir.
+ */
+export async function rattacherParent(
+  input: { id: string; code: string },
+  clientDonne?: ClientDeFonctions,
+): Promise<{ id: string; prenom: string }> {
+  const client = clientDonne ?? (getSupabaseClient() as ClientDeFonctions | null);
+  if (!client) throw new DomainError('Mino n’est pas connecté à son serveur.');
+
+  const { data, error } = await client.functions.invoke('ajouter-parent', {
+    body: { rattacher: input.id, code: input.code },
+  });
+
+  if (error) {
+    throw new DomainError(await raisonDeLaFonction(error, 'Ce profil n’a pas pu être repris.'));
+  }
+
+  const parent = (data as { parent?: { id?: string; display_name?: string } } | null)?.parent;
+  if (!parent?.id) throw new DomainError('Ce profil n’a pas pu être repris.');
+
+  return { id: parent.id, prenom: parent.display_name ?? '' };
+}
+
+/**
  * Retirer un parent qui n'a pas de compte.
  *
  * Un prénom mal tapé serait autrement définitif : les doublons sont refusés à
  * l'ajout, et `parents_update` n'autorise chacun que sur sa propre ligne. Le
  * serveur refuse de retirer le titulaire du compte — celui-là se supprime
  * depuis son propre écran, avec tout ce que cela emporte.
+ *
+ * C'est aussi la seule façon de révoquer un appareil devenu parent : le code
+ * à quatre chiffres ne le fait plus, puisqu'il inscrit durablement. Un geste
+ * visible vaut mieux qu'un code changé en espérant.
  */
 export async function retirerParent(
   input: { id: string; code?: string },

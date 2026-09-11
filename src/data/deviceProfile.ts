@@ -273,6 +273,28 @@ export function choixEnregistre(
  * cet appareil à un enfant ; passer à un autre est donc un changement de
  * réglage, pas un changement de profil, et il passe par le code.
  */
+/**
+ * Ouvrir le profil d'un enfant : tout de suite, ou après le code.
+ *
+ * **Pourquoi une fonction pour deux lignes.** Parce que la réponse n'est pas
+ * seulement « oui » ou « non » : quand il faut le code, le profil demandé doit
+ * VOYAGER avec la demande. Sans cela, l'écran du code revient au sélecteur,
+ * qui remonte à neuf, referme l'espace parent, et redemande le code au geste
+ * suivant — une boucle sans issue, où le bon code ne mène jamais nulle part.
+ * Le défaut a vécu une journée entière et rendait la fonctionnalité
+ * entièrement inutilisable ; il ne se voyait dans aucun écran relu, seulement
+ * en faisant le geste.
+ */
+export function ouvertureDeProfil(
+  profil: Pick<DeviceProfile, 'lockedChildId'>,
+  childId: ID,
+  parentUnlocked: boolean,
+): { kind: 'ouvrir' } | { kind: 'demander-le-code'; ouvrir: ID } {
+  const libre = changementDeProfilLibre(profil) || childId === profil.lockedChildId;
+  if (libre || parentUnlocked) return { kind: 'ouvrir' };
+  return { kind: 'demander-le-code', ouvrir: childId };
+}
+
 export function changementDeProfilLibre(
   profil: Pick<DeviceProfile, 'lockedChildId'>,
 ): boolean {

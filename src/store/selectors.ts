@@ -8,7 +8,7 @@ import {
   uncelebratedCompletions,
 } from '@/domain/ledger';
 import { ChildMission, missionsForChild, prochaineJournee } from '@/domain/missions';
-import { parentDeLAppareil } from '@/domain/parents';
+import { parentDeLAppareil, titulaireDuCompte } from '@/domain/parents';
 import { Child, FamilyData, ID, Parent, ScreenTimeBalance } from '@/domain/types';
 
 import { useMinoStore } from './useMinoStore';
@@ -21,19 +21,6 @@ export function useFamily(): FamilyData | null {
 
 export function useChildren(): Child[] {
   return useMinoStore((s) => s.data?.children ?? EMPTY);
-}
-
-/**
- * Le TITULAIRE du compte : celui dont l'adresse ouvre la session.
- *
- * À ne pas confondre avec « le parent qui tient ce téléphone ». Les deux se
- * confondaient tant qu'une famille n'avait qu'un parent ; depuis qu'elle peut
- * en porter un second, c'est cette fonction-ci qu'il faut pour tout ce qui
- * touche au compte — l'adresse, le mot de passe, la suppression — et
- * `useParentDeCetAppareil` pour tout ce qui s'adresse à quelqu'un.
- */
-export function useParent() {
-  return useMinoStore((s) => s.data?.parents[0] ?? null);
 }
 
 /**
@@ -52,6 +39,17 @@ export function useParentDeCetAppareil(): Parent | null {
   const parents = useMinoStore((s) => s.data?.parents ?? EMPTY);
   const parentId = useMinoStore((s) => s.device.parentId);
   return useMemo(() => parentDeLAppareil(parents, parentId), [parents, parentId]);
+}
+
+/**
+ * Le titulaire du compte : celui dont l'adresse permet de revenir.
+ *
+ * `useParent` rendait `parents[0]`, c'est-à-dire l'ordre d'un `select` qui
+ * n'en promettait aucun. Voir `titulaireDuCompte`.
+ */
+export function useTitulaireDuCompte(): Parent | null {
+  const parents = useParents();
+  return useMemo(() => titulaireDuCompte(parents), [parents]);
 }
 
 /** Les parents de la famille, dans l'ordre où ils sont arrivés. */

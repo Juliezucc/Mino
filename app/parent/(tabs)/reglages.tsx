@@ -9,13 +9,13 @@ import { QUIET_FROM_HOUR, QUIET_UNTIL_HOUR } from '@/domain/notifications';
 import { getAuthService } from '@/services/auth';
 import { getNotificationService } from '@/services/notifications';
 import { getScreenTimeService } from '@/services/screenTime';
-import { useFamily, useParent, useParentDeCetAppareil } from '@/store/selectors';
+import { useFamily, useParentDeCetAppareil, useTitulaireDuCompte } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing, tabBarSpace } from '@/theme';
 
 export default function ParentSettings() {
   const router = useRouter();
-  const parent = useParent();
+  const parent = useTitulaireDuCompte();
   // Le prénom salue celui qui tient le téléphone ; l'adresse, elle, est celle
   // du compte et d'aucun autre — les confondre ferait afficher au second
   // parent une adresse qui n'est pas la sienne.
@@ -344,7 +344,15 @@ export default function ParentSettings() {
       </Card>
 
       <View style={styles.links}>
-        <Button label="Guide de démarrage" icon="💡" variant="secondary" onPress={() => router.push('/aide')} />
+        {/* « Guide de démarrage » ne se lit pas comme « aide » : un parent
+            bloqué à 21 h cherche de l'aide, pas un guide — et cet écran porte
+            les deux, plus la recherche et l'adresse pour nous écrire. */}
+        <Button
+          label="Aide et questions fréquentes"
+          icon="💡"
+          variant="secondary"
+          onPress={() => router.push('/aide')}
+        />
         <Button
           label="Politique de confidentialité"
           variant="ghost"

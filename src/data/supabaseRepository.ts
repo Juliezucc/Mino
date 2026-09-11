@@ -316,8 +316,23 @@ export class SupabaseRepository implements MinoRepository {
     if (!families || families.length === 0) return null;
 
     const family = rowToFamily(families[0]);
+    /**
+     * `created_at` croissant, et ce n'est pas de la décoration.
+     *
+     * Un `select` sans `order by` ne promet AUCUN ordre : PostgreSQL rend les
+     * lignes dans l'ordre où le plan les trouve, et cet ordre change — après
+     * une mise à jour de ligne, un `VACUUM`, un index choisi différemment. Tout
+     * le code lisait pourtant `parents[0]` comme « le titulaire du compte », et
+     * les écrans affichaient les enfants dans « l'ordre où ils sont arrivés ».
+     * Le jour où l'ordre s'inverse, la liste se réarrange toute seule sous les
+     * yeux d'un parent qui n'a rien touché.
+     *
+     * Le titulaire, lui, ne se déduit plus de l'ordre — voir
+     * `titulaireDuCompte`, qui regarde l'adresse. Mais l'affichage, si, et il
+     * doit être stable.
+     */
     const fetch = async (table: string) => {
-      const res = await this.client.from(table).select('*');
+      const res = await this.client.from(table).select('*').order('created_at', { ascending: true });
       if (res.error) throw res.error;
       return res.data ?? [];
     };

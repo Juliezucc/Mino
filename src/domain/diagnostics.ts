@@ -38,6 +38,19 @@ export interface BugReport {
   /** La pile d'appels, nettoyée elle aussi. */
   stack?: string;
   context: ReportContext;
+  /**
+   * L'adresse à laquelle répondre, telle que le parent l'a donnée.
+   *
+   * **À part du message, et jamais nettoyée.** Le message, lui, passe au
+   * filtre : `EMAIL` plus bas efface toute adresse qu'il contiendrait, et
+   * c'est juste — personne n'a demandé qu'on garde l'adresse d'un tiers citée
+   * en passant. Mais cette règle-là effaçait aussi la seule chose qui
+   * permettait de répondre au parent, et son signalement partait sans retour
+   * possible. Ce champ existe pour qu'il puisse la donner EXPRÈS.
+   *
+   * Facultatif : un parent qui n'en veut pas est signalé quand même.
+   */
+  replyTo?: string;
   /** Regroupe les occurrences d'un même problème. */
   fingerprint: string;
   createdAt: string;
@@ -128,6 +141,8 @@ export interface ReportInput {
   context: ReportContext;
   /** Les prénoms à retirer du texte. */
   firstNames?: string[];
+  /** L'adresse donnée expressément pour recevoir une réponse. */
+  replyTo?: string;
   now?: Date;
 }
 
@@ -140,6 +155,21 @@ export function buildReport(input: ReportInput): BugReport {
     message,
     stack,
     context: input.context,
+    /**
+     * Elle ne passe PAS par `redact`, et c'est voulu.
+     *
+     * `redact` efface les adresses du message — la règle est bonne, elle
+     * protège l'adresse d'un tiers citée en passant. Appliquée ici, elle
+     * effacerait la seule chose que le parent a donnée pour qu'on lui réponde,
+     * et on retomberait exactement dans le défaut qu'on répare.
+     *
+     * On la borne quand même : ce qui n'a pas la forme d'une adresse n'en est
+     * pas une, et rien ne sert de garder une phrase entière dans cette colonne.
+     */
+    replyTo:
+      input.replyTo && /^[^@\s]{1,64}@[^@\s.]{1,63}(\.[^@\s.]{1,63})+$/.test(input.replyTo.trim())
+        ? input.replyTo.trim()
+        : undefined,
     // Un plantage se regroupe par sa pile ; un signalement écrit se regroupe par
     // l'écran d'où il part, car deux parents ne décrivent jamais un problème
     // avec les mêmes mots.

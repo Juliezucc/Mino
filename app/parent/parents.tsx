@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, Field, Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
-import { useParent, useParents } from '@/store/selectors';
+import { useParents, useTitulaireDuCompte } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
@@ -17,15 +17,25 @@ import { colors, spacing } from '@/theme';
  * sa femme — quand il ne réservait pas le téléphone à un enfant faute de
  * meilleure réponse.
  *
- * **Un profil, pas un compte, et c'est tout le choix de conception.** Le second
- * parent rejoint avec le code famille comme le reste de la maison : pas
- * d'adresse à donner, pas de mot de passe de plus, et le même code à quatre
- * chiffres — puisqu'il appartient à la famille et non au compte. Ce qu'il
- * peut faire est donc exactement ce que le code parent ouvre : voir,
- * confirmer, créer, régler. Ce qu'il ne peut pas faire tient à ce qu'un profil
- * n'est pas un compte : ni changer l'adresse, ni résilier l'abonnement, ni
- * supprimer la famille. Ces trois-là restent au titulaire, et le serveur le
- * tient — ce n'est pas une politesse d'interface.
+ * **Un vrai parent, et pas un spectateur.** La première version n'écrivait
+ * qu'un prénom : la ligne n'avait pas de `user_id`, donc `auth_is_parent()`
+ * répondait non, donc son téléphone ne pouvait NI créer une mission, NI poser
+ * une plage libre, NI offrir une minute — `missions_write`,
+ * `free_windows_write` et `screen_time_transactions_insert` l'exigent toutes
+ * les trois. L'écran promettait « il règle le quotidien » à quelqu'un qui ne
+ * pouvait que regarder. Sa ligne porte désormais le `user_id` de SON appareil,
+ * et il est parent pour la base comme pour l'interface.
+ *
+ * **Ce qu'il ne peut pas faire tient à l'adresse, pas à la confiance.**
+ * Changer l'adresse du compte, résilier l'abonnement, supprimer la famille :
+ * ces trois-là demandent de pouvoir revenir depuis n'importe quel téléphone,
+ * et l'identité d'un appareil ne survit pas à sa perte. Le serveur le tient —
+ * ce n'est pas une politesse d'interface.
+ *
+ * **Ce que cela déplace, et il faut le dire.** Le code à quatre chiffres
+ * n'ouvre plus seulement une session : il inscrit durablement un appareil.
+ * Changer le code ne révoque donc plus un téléphone — c'est cet écran-ci qui
+ * le fait, d'un geste, et c'est plus net qu'un code changé en espérant.
  *
  * **Retirer, aussi.** Un prénom mal tapé serait autrement définitif : les
  * doublons sont refusés à l'ajout, et la base n'autorise chacun qu'à modifier
@@ -36,7 +46,7 @@ import { colors, spacing } from '@/theme';
 export default function ParentsScreen() {
   const router = useRouter();
   const parents = useParents();
-  const titulaire = useParent();
+  const titulaire = useTitulaireDuCompte();
   const ajouterParent = useMinoStore((s) => s.ajouterParent);
   const retirerParent = useMinoStore((s) => s.retirerParent);
 
@@ -62,7 +72,7 @@ export default function ParentsScreen() {
   const retirer = (id: string, nom: string) => {
     void confirmer({
       titre: `Retirer ${nom} ?`,
-      message: `Son profil disparaîtra de la famille. Les missions, l’historique et les minutes gagnées ne bougent pas — ${nom} n’avait pas de compte à lui. Son téléphone redemandera à qui il appartient.`,
+      message: `Son téléphone cessera aussitôt d’ouvrir l’espace parent et de créer des missions. Les missions, l’historique et les minutes gagnées ne bougent pas — ${nom} n’avait pas de compte à lui, seulement un profil dans votre famille.`,
       action: 'Retirer',
       destructif: true,
     }).then((oui) => {
@@ -82,9 +92,13 @@ export default function ParentsScreen() {
           Un seul compte, autant de parents qu’il en faut.
         </Text>
         <Text variant="body" color={colors.textMuted}>
-          L’autre parent installe Mino, saisit le code famille et se choisit dans la liste. Il n’a
-          ni adresse à donner ni mot de passe à retenir : c’est le même code à quatre chiffres qui
-          ouvre l’espace parent, sur son téléphone comme sur le vôtre.
+          L’autre parent installe Mino, saisit le code famille, se choisit dans la liste et donne
+          le code à quatre chiffres. Il n’a ni adresse à donner ni mot de passe à retenir — et il
+          voit, crée et confirme exactement comme vous.
+        </Text>
+        <Text variant="caption" color={colors.textSubtle}>
+          S’il change de téléphone, il reprend son profil de la même façon : le nouvel appareil
+          remplace l’ancien, qui n’ouvre plus rien.
         </Text>
       </Card>
 
@@ -99,7 +113,7 @@ export default function ParentsScreen() {
                 <Text variant="caption" color={colors.textMuted}>
                   {estTitulaire
                     ? `${p.email ?? 'Compte de la famille'} · gère l’abonnement`
-                    : 'Rejoint par le code famille'}
+                    : 'Parent · rejoint par le code famille'}
                 </Text>
               </View>
               {estTitulaire ? null : (
@@ -143,8 +157,13 @@ export default function ParentsScreen() {
         </Text>
         <Text variant="body" color={colors.textMuted}>
           L’adresse du compte, le mot de passe, l’abonnement et la suppression de la famille ne se
-          touchent que depuis le compte qui l’a créée. Un profil de parent ne le peut pas, et le
-          serveur le refuse — ce n’est pas seulement caché ici.
+          touchent que depuis le compte qui l’a créée. Ces trois-là demandent de pouvoir revenir
+          depuis n’importe quel téléphone, et le serveur les refuse à un autre — ce n’est pas
+          seulement caché ici.
+        </Text>
+        <Text variant="caption" color={colors.textSubtle}>
+          Retirer un parent est aussi la façon de révoquer son téléphone : le code à quatre
+          chiffres, lui, ne suffit plus à le faire.
         </Text>
       </Card>
     </Screen>
