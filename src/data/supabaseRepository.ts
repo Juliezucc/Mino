@@ -21,6 +21,7 @@ import { withOpeningBalances } from '@/domain/ledger';
 
 import { Device } from '@/domain/devices';
 
+import { echecDeLaFonction } from './erreurFonction';
 import { ChangeEvent, MinoRepository, PairedDevice } from './repository';
 
 /**
@@ -418,6 +419,42 @@ export class SupabaseRepository implements MinoRepository {
      * enregistré » sur le même écran. Les minutes étaient pourtant bien là :
      * seule la fête ne se marquait pas.
      */
+    /**
+     * Un parent qui confirme depuis la tablette de son enfant.
+     *
+     * **Ce chemin existe parce que la base refuse l'autre.** Sur une session
+     * d'appareil, `mission_completions_update` et
+     * `screen_time_transactions_insert` exigent `auth_is_parent()` : l'écriture
+     * ordinaire est rejetée, et le magasin annulait tout en affichant une
+     * panne de réseau pour un refus de droits.
+     *
+     * La fonction `valider-mission` fait le travail avec la clé de service,
+     * après avoir vérifié le code à quatre chiffres — et elle écrit la
+     * complétion AVANT sa ligne de registre, l'ordre inverse de celui d'ici,
+     * ce qui rend chaque moitié rattrapable.
+     *
+     * `codeParent` n'est posé que dans ce cas : sur le téléphone d'un parent,
+     * il est absent et rien ne change.
+     */
+    if (
+      change.codeParent &&
+      (change.kind === 'completion.approved' || change.kind === 'completion.rejected')
+    ) {
+      const id = change.upsert?.completions?.[0]?.id;
+      if (!id) return;
+      const { error } = await this.client.functions.invoke('valider-mission', {
+        body: {
+          completionId: id,
+          decision: change.kind === 'completion.approved' ? 'valider' : 'refaire',
+          code: change.codeParent,
+        },
+      });
+      // Le message du serveur, en français, plutôt que celui de la
+      // bibliothèque — sans quoi le parent relit « non-2xx status code ».
+      if (error) throw await echecDeLaFonction(error, 'La mission n’a pas pu être confirmée.');
+      return;
+    }
+
     if (change.kind === 'completion.celebrated') {
       const id = change.upsert?.completions?.[0]?.id;
       if (!id) return;

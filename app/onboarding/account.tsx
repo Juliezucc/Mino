@@ -269,7 +269,7 @@ export default function CreateAccount() {
                 // venait pas de la protection : elle venait de l'invention.
                 autoComplete="new-password"
                 textContentType="newPassword"
-                hint="C’est le seul mot de passe de Mino. Il ne se tape que sur votre téléphone."
+                hint="Il ne se tape que sur votre téléphone, et c’est lui qui vous rendra votre famille si vous en changez."
                 error={errors.password}
               />
             </>

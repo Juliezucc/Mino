@@ -126,6 +126,23 @@ interface MinoState {
    * verrouiller. Voir `DeviceProfile.usagePersonnel`.
    */
   declarerUsage: (choix: ChoixDAppareil) => Promise<void>;
+  /**
+   * Le code à quatre chiffres, gardé le temps que l'espace parent reste ouvert
+   * — et uniquement sur la tablette d'un enfant.
+   *
+   * **Pourquoi le garder, et pourquoi ce n'est pas ce qu'on croit.** Sur une
+   * session d'appareil, la base refuse toute écriture de parent. Le serveur
+   * doit donc revérifier la présence d'un adulte à CHAQUE geste, et le code
+   * est cette preuve. Le retaper à chaque mission confirmée rendrait la
+   * fonctionnalité inutilisable.
+   *
+   * En mémoire vive seulement, jamais dans AsyncStorage : relancer
+   * l'application — le geste que l'enfant a — le fait disparaître, exactement
+   * comme `parentUnlocked`. Sur le téléphone d'un parent, il n'est même pas
+   * posé : ce chemin n'en a pas besoin.
+   */
+  codeParentEnMemoire: string | null;
+
   /** Voir `poseDemandeeParLeParent` dans `src/domain/parentGate.ts`. */
   poseDuCodeAutorisee: boolean;
   autoriserLaPoseDuCode: () => void;
@@ -339,10 +356,28 @@ export const useMinoStore = create<MinoState>((set, get) => {
     }
   }
 
+  /**
+   * La base a-t-elle refusé le geste, ou le réseau a-t-il manqué ?
+   *
+   * PostgREST rend `42501` — privilège insuffisant — quand une politique
+   * refuse l'écriture. C'est le cas de l'espace parent ouvert sur la tablette
+   * d'un enfant : les politiques y demandent un vrai parent. Confondre ce
+   * refus avec une panne de réseau envoie le parent réessayer indéfiniment
+   * quelque chose qui ne marchera jamais.
+   */
+  function refusDeDroits(error: unknown): boolean {
+    const e = error as { code?: unknown; message?: unknown } | null;
+    if (e?.code === '42501') return true;
+    return typeof e?.message === 'string' && /row-level security/i.test(e.message);
+  }
+
   /** Runs a pure domain transition, persists it, publishes it. */
   async function commit<T>(
     kind: ChangeEvent['kind'],
     run: (data: FamilyData) => { data: FamilyData; result?: T; upsert?: Partial<FamilyData>; deleteChildId?: ID },
+    // Le code à quatre chiffres, quand un parent agit depuis la tablette de
+    // son enfant. Voir `ChangeEvent.codeParent`.
+    options?: { codeParent?: string },
   ): Promise<T | undefined> {
     const current = get().data;
     if (!current) throw new actions.DomainError('Aucune famille chargée.');
@@ -356,6 +391,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
         kind,
         upsert: outcome.upsert,
         deleteChildId: outcome.deleteChildId,
+        codeParent: options?.codeParent,
       });
     } catch (error) {
       // Le serveur n'a pas pris l'écriture : on remet exactement l'état
@@ -368,7 +404,15 @@ export const useMinoStore = create<MinoState>((set, get) => {
         lastError:
           error instanceof actions.DomainError
             ? error.message
-            : 'Impossible de joindre Mino. Rien n’a été enregistré — réessayez dans un instant.',
+            : refusDeDroits(error)
+              ? // Un refus de droits ne se répare pas en réessayant, et le
+                // message de réseau y envoyait pourtant : le parent appuyait
+                // dix fois sur un mur permanent. Le cas connu est l'espace
+                // parent ouvert sur la tablette de l'enfant, où la base
+                // n'accepte de ce geste-là que la confirmation d'une mission,
+                // passée par `valider-mission`.
+                'Cette action demande le téléphone d’un parent. Depuis cet appareil, vous pouvez confirmer une mission, pas la modifier.'
+              : 'Impossible de joindre Mino. Rien n’a été enregistré — réessayez dans un instant.',
       });
       throw error;
     } finally {
@@ -1031,14 +1075,36 @@ export const useMinoStore = create<MinoState>((set, get) => {
      * service, which rate-limits it. Four digits is ten thousand guesses, and a
      * comparison done here would be a comparison a child's device could skip.
      */
+    codeParentEnMemoire: null,
+
     async unlockParent(pin) {
       const result = await getAuthService().verifyParentPin(pin);
-      if (result.ok) set({ parentUnlocked: true, activeChildId: null });
+      if (!result.ok) return result;
+
+      /**
+       * On ne retient le code que là où il sert.
+       *
+       * Sur le téléphone d'un parent, l'écriture passe déjà : garder quatre
+       * chiffres n'y apporterait rien et serait une mauvaise habitude. Sur la
+       * tablette de son enfant, c'est la seule preuve que le serveur accepte,
+       * et il la redemande à chaque geste.
+       */
+      const session = await getAuthService()
+        .session()
+        .catch(() => ({ kind: 'none' as const }));
+
+      set({
+        parentUnlocked: true,
+        activeChildId: null,
+        codeParentEnMemoire: session.kind === 'device' ? pin : null,
+      });
       return result;
     },
 
     lockParent() {
-      set({ parentUnlocked: false });
+      // Le code part avec le verrou : c'est le moment exact où la tablette
+      // peut changer de mains.
+      set({ parentUnlocked: false, codeParentEnMemoire: null });
     },
 
     async addChild(input) {
@@ -1157,13 +1223,17 @@ export const useMinoStore = create<MinoState>((set, get) => {
     async approveCompletion(completionId) {
       requireAccess('confirm');
       const parentId = get().data?.parents[0]?.id ?? 'unknown';
-      await commit('completion.approved', (data) => {
-        const out = actions.approveCompletion(data, { completionId, parentId });
-        return {
-          data: out.data,
-          upsert: { completions: [out.completion], transactions: [out.transaction] },
-        };
-      });
+      await commit(
+        'completion.approved',
+        (data) => {
+          const out = actions.approveCompletion(data, { completionId, parentId });
+          return {
+            data: out.data,
+            upsert: { completions: [out.completion], transactions: [out.transaction] },
+          };
+        },
+        { codeParent: get().codeParentEnMemoire ?? undefined },
+      );
 
       const data = get().data;
       const completion = data?.completions.find((c) => c.id === completionId);
@@ -1175,10 +1245,14 @@ export const useMinoStore = create<MinoState>((set, get) => {
 
     async rejectCompletion(completionId) {
       const parentId = get().data?.parents[0]?.id ?? 'unknown';
-      await commit('completion.rejected', (data) => {
-        const out = actions.rejectCompletion(data, { completionId, parentId });
-        return { data: out.data, upsert: { completions: [out.completion] } };
-      });
+      await commit(
+        'completion.rejected',
+        (data) => {
+          const out = actions.rejectCompletion(data, { completionId, parentId });
+          return { data: out.data, upsert: { completions: [out.completion] } };
+        },
+        { codeParent: get().codeParentEnMemoire ?? undefined },
+      );
 
       const data = get().data;
       const completion = data?.completions.find((c) => c.id === completionId);

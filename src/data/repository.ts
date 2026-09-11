@@ -37,6 +37,23 @@ export interface ChangeEvent {
    * sa liste doit pouvoir faire le second.
    */
   deleteFreeWindowId?: ID;
+  /**
+   * Le code à quatre chiffres, quand un parent agit depuis la tablette de son
+   * enfant — et uniquement dans ce cas.
+   *
+   * **Ce n'est pas un secret qui traîne, c'est une preuve de présence.** Sur
+   * une session d'appareil, la base refuse toute écriture de parent : les
+   * politiques demandent `auth_is_parent()`, qui ne lit que la table
+   * `parents`. Le parent debout à côté de son enfant ne pouvait donc rien
+   * confirmer, et lisait « Impossible de joindre Mino » pour un mur permanent.
+   *
+   * Le code accompagne donc le geste, est vérifié par le serveur à chaque
+   * appel, et n'est jamais écrit nulle part : il vit en mémoire tant que
+   * l'espace parent est ouvert, et disparaît au verrouillage comme au
+   * redémarrage. Sur le téléphone d'un parent, il est absent — ce chemin ne
+   * change pas.
+   */
+  codeParent?: string;
 }
 
 /**
