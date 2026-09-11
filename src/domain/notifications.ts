@@ -287,3 +287,22 @@ export function recoitLesNotificationsParent(
   if (moi === 'partage') return !usagesDeLaFamille.includes('parent');
   return true;
 }
+
+/**
+ * Et le sens inverse : « Bravo Raphaël, +15 minos ! » ne va pas au père.
+ *
+ * **Le défaut, apparu avec le second parent.** Son téléphone est inscrit dans
+ * `family_devices` comme tout appareil appairé, avec `child_id` nul — la
+ * signature d'une tablette partagée. La règle « un appareil partagé reçoit
+ * aussi, sans quoi la tablette du salon ne dirait jamais rien » l'attrapait
+ * donc, et le père recevait les annonces écrites pour son fils : tutoyées,
+ * comptées en minos, félicitant quelqu'un d'autre.
+ *
+ * Ce qui les sépare n'est pas le compte — sur la tablette du salon, c'est
+ * souvent le compte du parent qui est ouvert, et cette tablette-là DOIT
+ * recevoir. C'est la réponse à « à qui est cet appareil ? » : `parent` veut
+ * dire qu'aucun enfant ne joue ici, donc qu'il n'y a personne à féliciter.
+ */
+export function recoitLesNotificationsEnfant(moi: UsageAppareil): boolean {
+  return moi !== 'parent';
+}

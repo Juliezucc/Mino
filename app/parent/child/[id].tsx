@@ -47,10 +47,23 @@ export default function ParentChildDetail() {
     );
   };
 
+  /**
+   * Dire ce que la suppression efface VRAIMENT.
+   *
+   * **Le défaut, et c'est le genre qui se paie en confiance.** La fenêtre
+   * annonçait « effacées de cet appareil ». Le geste supprime la ligne
+   * `children` sur le serveur, et le schéma cascade : missions attribuées,
+   * complétions, grand livre, séances. Tout, pour toute la famille, sur tous
+   * les appareils, définitivement. Un parent qui croyait nettoyer une vieille
+   * tablette effaçait deux ans d'historique — et le découvrait après.
+   *
+   * La règle est la même que pour la suppression du compte : on NOMME ce qui
+   * part, au lieu de dire « les données ».
+   */
   const confirmDelete = () => {
     void confirmer({
-      titre: 'Supprimer le profil ?',
-      message: `Toutes les données de ${child.firstName} seront effacées de cet appareil.`,
+      titre: `Supprimer le profil de ${child.firstName} ?`,
+      message: `Ses missions, son historique et les minutes qu’il a gagnées seront effacés pour toute la famille, sur tous les appareils. Rien ne peut être récupéré ensuite.`,
       action: 'Supprimer',
       destructif: true,
     }).then(async (oui) => {

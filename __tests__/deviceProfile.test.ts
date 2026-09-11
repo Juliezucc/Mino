@@ -17,26 +17,37 @@ const children = [{ id: 'noah' }, { id: 'elliott' }];
  */
 describe('le profil de l’appareil', () => {
   it('rouvre sur le dernier profil, pour ne pas se reconnecter chaque jour', () => {
-    expect(profileToOpen({ lockedChildId: null, lastChildId: 'elliott' }, children)).toBe('elliott');
+    expect(profileToOpen({ lockedChildId: null, lastChildId: 'elliott', usagePersonnel: false }, children)).toBe('elliott');
   });
 
   it('ouvre toujours sur l’enfant auquel l’appareil est réservé', () => {
     // Même si quelqu'un est passé par un autre profil entre-temps.
-    expect(profileToOpen({ lockedChildId: 'noah', lastChildId: 'elliott' }, children)).toBe('noah');
+    expect(profileToOpen({ lockedChildId: 'noah', lastChildId: 'elliott', usagePersonnel: false }, children)).toBe('noah');
   });
 
   it('retombe sur le sélecteur quand l’enfant n’existe plus', () => {
     // Enfant supprimé, ou appareil rattaché à une autre famille : ouvrir sur un
     // profil disparu donnerait un écran vide sans rien expliquer.
-    expect(profileToOpen({ lockedChildId: 'parti', lastChildId: null }, children)).toBeNull();
-    expect(profileToOpen({ lockedChildId: null, lastChildId: 'parti' }, children)).toBeNull();
-    expect(profileToOpen({ lockedChildId: null, lastChildId: null }, children)).toBeNull();
+    expect(profileToOpen({ lockedChildId: 'parti', lastChildId: null, usagePersonnel: false }, children)).toBeNull();
+    expect(profileToOpen({ lockedChildId: null, lastChildId: 'parti', usagePersonnel: false }, children)).toBeNull();
+    expect(profileToOpen({ lockedChildId: null, lastChildId: null, usagePersonnel: false }, children)).toBeNull();
+  });
+
+  it('n’ouvre AUCUN profil sur le téléphone d’un parent', () => {
+    // `lastChildId` se pose dès qu'un profil s'ouvre — y compris quand le
+    // parent ouvre celui de son fils une fois, pour lui montrer quelque chose.
+    // Son propre téléphone rouvrait ensuite dessus à chaque lancement, et
+    // aucun réglage ne le défaisait : la rubrique « Cet appareil » écrit
+    // `lockedChildId`, jamais `lastChildId`.
+    expect(
+      profileToOpen({ lockedChildId: null, lastChildId: 'elliott', usagePersonnel: true }, children),
+    ).toBeNull();
   });
 
   it('préfère le sélecteur au mauvais profil', () => {
     // Un verrou pointant dans le vide ne doit pas se rabattre en douce sur le
     // dernier profil utilisé : le parent a demandé un appareil réservé.
-    expect(profileToOpen({ lockedChildId: 'parti', lastChildId: 'elliott' }, children)).toBe('elliott');
+    expect(profileToOpen({ lockedChildId: 'parti', lastChildId: 'elliott', usagePersonnel: false }, children)).toBe('elliott');
   });
 
   /**
@@ -49,7 +60,7 @@ describe('le profil de l’appareil', () => {
    * profil ne se paie plus d'un code ; l'espace parent, si.
    */
   it('rouvre sur l’enfant réservé, quel que soit le dernier profil ouvert', () => {
-    expect(profileToOpen({ lockedChildId: 'noah', lastChildId: 'elliott' }, children)).toBe('noah');
+    expect(profileToOpen({ lockedChildId: 'noah', lastChildId: 'elliott', usagePersonnel: false }, children)).toBe('noah');
   });
 });
 

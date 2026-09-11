@@ -92,3 +92,48 @@ describe('l’état du bouclier vu du parent', () => {
     }
   });
 });
+
+/**
+ * Le téléphone d'un parent n'a rien à régler.
+ *
+ * **Le défaut, trouvé en suivant le parcours du second parent.** Son téléphone
+ * s'appaire comme n'importe quel appareil et remontait donc son état de
+ * bouclier : « pas encore réglé », puisqu'aucune autorisation n'y a jamais été
+ * demandée — et il n'y en a aucune à demander, personne ne joue dessus. Le
+ * tableau de bord de l'autre parent affichait un avertissement jaune
+ * permanent, avec une consigne qui reviendrait à mettre le téléphone d'un
+ * adulte derrière le bouclier.
+ *
+ * Un avertissement qui ne peut pas s'éteindre apprend à ignorer les autres, y
+ * compris celui de la tablette où le blocage manque vraiment.
+ */
+describe('le téléphone d’un parent', () => {
+  const vu = (status: string) => ({
+    id: 'dev-1',
+    label: 'iPhone de Marc',
+    childId: null,
+    status,
+    seenAt: '2026-09-11T08:00:00.000Z',
+    joinedAt: '2026-09-10T08:00:00.000Z',
+  });
+  const MAINTENANT = new Date('2026-09-11T09:00:00.000Z');
+
+  it('n’est pas un appareil à régler', () => {
+    expect(etatDe(vu('telephone-parent'), MAINTENANT)).toBe('telephone-parent');
+    expect(phraseDe('telephone-parent').grave).toBe(false);
+  });
+
+  it('le dit dans ses mots, et pas dans ceux du compteur seul', () => {
+    // « Vous avez choisi de ne pas verrouiller » serait faux : personne n'a
+    // rien choisi, il n'y a simplement rien à verrouiller.
+    expect(phraseDe('telephone-parent').detail).not.toMatch(/choisi/i);
+    expect(phraseDe('telephone-parent').titre).not.toMatch(/compteur/i);
+  });
+
+  it('reste soumis au silence, comme tous les autres', () => {
+    // Trois jours sans un mot restent trois jours sans un mot : l'état connu
+    // ne survit pas à l'absence de nouvelles.
+    const vieux = { ...vu('telephone-parent'), seenAt: '2026-09-01T08:00:00.000Z' };
+    expect(etatDe(vieux, MAINTENANT)).toBe('muet');
+  });
+});

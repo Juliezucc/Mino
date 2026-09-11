@@ -608,8 +608,34 @@ export const useMinoStore = create<MinoState>((set, get) => {
          * Dans l'autre sens, on n'écrase rien : si le bouclier est bel et bien
          * accordé, c'est cela qu'on rapporte, quoi qu'ait coché le parent.
          */
+        /**
+         * Le téléphone d'un parent n'a rien à régler, et le dire coûtait cher.
+         *
+         * **Le défaut, trouvé en suivant le parcours du second parent.** Son
+         * téléphone s'appaire comme n'importe quel appareil, et il remontait
+         * donc son état de bouclier : « pas encore réglé », puisqu'aucune
+         * autorisation n'y a jamais été demandée — et il n'y en a aucune à
+         * demander, personne ne joue sur le téléphone de son père. Le tableau
+         * de bord de l'autre parent affichait un avertissement jaune
+         * permanent, avec une consigne qui reviendrait à mettre le téléphone
+         * d'un adulte derrière le bouclier.
+         *
+         * Et ce n'est pas qu'inesthétique : un avertissement qui ne peut pas
+         * s'éteindre apprend à ignorer les autres, y compris celui de la
+         * tablette où le blocage manque vraiment.
+         *
+         * `compteur-seul` plutôt qu'un silence : l'appareil doit continuer à se
+         * signaler vivant — `seenAt` est ce qui distingue « éteint depuis trois
+         * jours » de « jamais installé ».
+         */
         const status =
-          natif !== 'approved' && get().device.compteurSeul ? 'compteur-seul' : natif;
+          natif === 'approved'
+            ? natif
+            : get().device.usagePersonnel
+              ? 'telephone-parent'
+              : get().device.compteurSeul
+                ? 'compteur-seul'
+                : natif;
         await report.call(get().repository, {
           status,
           // Le nom que le propriétaire a donné à son téléphone (« iPhone de
@@ -1542,13 +1568,35 @@ export const useMinoStore = create<MinoState>((set, get) => {
       const familyId = get().data?.family.id;
       if (!familyId) return;
       const billing = getBillingService();
-      // Billing must never block the app: a payment provider being down is not
-      // a reason for a child to lose their missions.
+      /**
+       * Une lecture ratée n'est pas un abonnement terminé.
+       *
+       * **Le défaut, et il tombait au pire moment.** Les deux appels étaient
+       * rattrapés par `.catch(() => null)`, puis écrits tels quels : une seule
+       * réponse manquée — un ascenseur, un Wi-Fi d'hôtel, une coupure d'une
+       * seconde — effaçait l'abonnement connu. L'écran annonçait alors
+       * « Abonnement terminé » et proposait de racheter, à une famille qui
+       * paie. Et le moment le plus probable pour que cette lecture manque est
+       * précisément le premier lancement sur un téléphone neuf, c'est-à-dire
+       * quand le parent a le plus besoin de voir que tout l'a suivi.
+       *
+       * Billing ne doit jamais bloquer l'application — un fournisseur de
+       * paiement en panne n'est pas une raison pour qu'un enfant perde ses
+       * missions — mais « ne pas bloquer » n'a jamais voulu dire « affirmer le
+       * contraire ». On garde ce qu'on savait, et on se tait.
+       *
+       * `ECHEC` et non `null` : un abonnement réellement absent est une
+       * réponse, et elle doit s'écrire. Les confondre était toute l'erreur.
+       */
+      const ECHEC = Symbol('lecture impossible');
       const [subscription, referrals] = await Promise.all([
-        billing.getSubscription(familyId).catch(() => null),
-        billing.listReferrals(familyId).catch(() => []),
+        billing.getSubscription(familyId).catch(() => ECHEC),
+        billing.listReferrals(familyId).catch(() => ECHEC),
       ]);
-      set({ subscription, referrals });
+      set({
+        ...(subscription === ECHEC ? {} : { subscription: subscription as Subscription | null }),
+        ...(referrals === ECHEC ? {} : { referrals: referrals as Referral[] }),
+      });
     },
 
     async choosePlan(plan) {

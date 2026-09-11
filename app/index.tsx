@@ -30,6 +30,8 @@ export default function Index() {
   const resumeChildId = useMinoStore((s) => s.resumeChildId);
   const selectChild = useMinoStore((s) => s.selectChild);
 
+  const usagePersonnel = useMinoStore((s) => s.device.usagePersonnel);
+
   const resume = status === 'ready' && data ? resumeChildId() : null;
 
   // Dans un effet, pas pendant le rendu : sélectionner un profil écrit dans le
@@ -66,5 +68,20 @@ export default function Index() {
   if (inscriptionInachevee(data)) return <Redirect href="/onboarding/account" />;
 
   if (resume) return activeChildId === resume ? <Redirect href="/child" /> : null;
+
+  /**
+   * Sur le téléphone d'un parent, on ouvre l'espace parent.
+   *
+   * **Le défaut, à chaque lancement.** Faute de profil d'enfant à rouvrir — et
+   * il n'y en a aucun ici, c'est la définition de cet appareil — le parent
+   * atterrissait sur « Qui utilise Mino ? », un sélecteur qui n'a rien à lui
+   * proposer d'utile, avec l'espace parent en petit tout en bas. Tous les
+   * jours, sur son propre téléphone.
+   *
+   * `/parent` et non `/parent/(tabs)` : la porte du code est derrière, et elle
+   * s'ouvre ou se ferme selon ce que le parent a déjà donné.
+   */
+  if (usagePersonnel) return <Redirect href="/parent" />;
+
   return <Redirect href="/who" />;
 }

@@ -174,14 +174,27 @@ export async function writeDeviceProfile(patch: Partial<DeviceProfile>): Promise
  * `children` sert à une chose : un enfant supprimé, ou un appareil rattaché à
  * une autre famille, ne doit pas laisser l'application ouvrir sur un profil qui
  * n'existe plus — elle retomberait sur un écran vide sans rien expliquer.
+ *
+ * **Et aucun, sur le téléphone d'un parent.** Le défaut était discret et sans
+ * issue : `lastChildId` se pose dès qu'un profil s'ouvre, y compris quand le
+ * parent ouvre celui de son fils une fois, pour lui montrer quelque chose. Son
+ * propre téléphone rouvrait ensuite sur ce profil-là, à chaque lancement, et
+ * aucun réglage ne le défaisait — la rubrique « Cet appareil » écrit
+ * `lockedChildId`, jamais `lastChildId`. Un parent se retrouvait dans l'espace
+ * de son enfant tous les matins, sans comprendre pourquoi ni comment en
+ * sortir.
+ *
+ * La réponse « c'est mon téléphone » dit exactement qu'aucun enfant ne s'en
+ * sert : il n'y a donc rien à rouvrir.
  */
 export function profileToOpen(
   // `Pick` et non `DeviceProfile` : cette fonction ne décide que du profil à
   // rouvrir. Lui demander le réglage du bouclier n'aurait aucun sens, et
   // l'exiger obligerait chaque appelant à le fournir pour rien.
-  profile: Pick<DeviceProfile, 'lockedChildId' | 'lastChildId'>,
+  profile: Pick<DeviceProfile, 'lockedChildId' | 'lastChildId' | 'usagePersonnel'>,
   children: { id: ID }[],
 ): ID | null {
+  if (profile.usagePersonnel) return null;
   const exists = (id: ID | null) => (id && children.some((c) => c.id === id) ? id : null);
   return exists(profile.lockedChildId) ?? exists(profile.lastChildId);
 }

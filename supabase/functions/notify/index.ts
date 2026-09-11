@@ -133,6 +133,27 @@ Deno.serve(servir(async (request) => {
       return true;
     }
 
+    /**
+     * ------------------------- « Bravo Raphaël, +15 minos ! », sur le téléphone du père
+     *
+     * **Le défaut, apparu avec le second parent.** Son téléphone est inscrit
+     * dans `family_devices` comme tout appareil appairé, avec `child_id` nul —
+     * exactement la signature d'une tablette partagée. Il passait donc la règle
+     * ci-dessous et recevait les annonces écrites pour l'enfant : tutoyées,
+     * comptées en minos, félicitant quelqu'un d'autre.
+     *
+     * Ce qui les sépare n'est pas le compte : sur la tablette du salon, c'est
+     * souvent le compte d'un parent qui est ouvert, et cette tablette-là DOIT
+     * recevoir. C'est la réponse à « à qui est cet appareil ? ».
+     *
+     * Jumeau de `recoitLesNotificationsEnfant` dans
+     * `src/domain/notifications.ts`, qui est la version éprouvée par les
+     * essais — une fonction Edge ne peut pas importer un module React Native.
+     * `__tests__/notifications.test.ts` lit ce fichier-ci et refuse qu'ils
+     * divergent.
+     */
+    if (((j.usage as string | null) ?? 'inconnu') === 'parent') return false;
+
     // Pour l'enfant : son appareil, et lui seul. Un appareil partagé — qui
     // n'affiche aucun enfant en particulier — reçoit aussi, sans quoi la
     // tablette du salon ne dirait jamais rien.

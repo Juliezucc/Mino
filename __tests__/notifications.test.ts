@@ -10,7 +10,7 @@ import {
   sessionRequested,
   shouldDeliver,
   usageDeLAppareil,
-} from '@/domain/notifications';
+  recoitLesNotificationsEnfant,} from '@/domain/notifications';
 import { Child, Device, Mission } from '@/domain/types';
 import { readFileSync } from 'node:fs';
 
@@ -207,7 +207,47 @@ describe('le serveur applique la même règle', () => {
     expect(edge).toContain("if (genre === 'partage') return !unTelephoneDeParent;");
   });
 
+  it('n’envoie JAMAIS les annonces de l’enfant au téléphone d’un parent', () => {
+    // Le jumeau de `recoitLesNotificationsEnfant`. Sans cette ligne dans la
+    // fonction, le père reçoit « Bravo Raphaël, +15 minos ! » — et l'essai du
+    // domaine, lui, reste vert : c'est exactement l'écart que ce bloc existe
+    // pour refuser. Vérifié en retirant la ligne.
+    expect(edge).toContain("((j.usage as string | null) ?? 'inconnu') === 'parent') return false;");
+  });
+
   it('laisse recevoir ce dont il ignore le genre', () => {
     expect(edge).toContain("?? 'inconnu'");
+  });
+});
+
+/**
+ * « Bravo Raphaël, +15 minos ! » ne va pas au téléphone de son père.
+ *
+ * **Le défaut, apparu en donnant un vrai profil au second parent.** Son
+ * téléphone s'inscrit dans `family_devices` comme tout appareil appairé, avec
+ * `child_id` nul — exactement la signature d'une tablette partagée. La règle
+ * « un appareil partagé reçoit aussi » l'attrapait donc, et le père recevait
+ * les annonces écrites pour son fils : tutoyées, comptées en minos, félicitant
+ * quelqu'un d'autre.
+ */
+describe('les annonces de l’enfant', () => {
+  it('n’arrivent jamais sur le téléphone d’un parent', () => {
+    expect(recoitLesNotificationsEnfant('parent')).toBe(false);
+  });
+
+  it('arrivent sur la tablette partagée — sinon le salon ne dirait jamais rien', () => {
+    // Et c'est pour cela que la règle ne peut pas regarder le COMPTE : sur la
+    // tablette du salon, c'est souvent celui d'un parent qui est ouvert.
+    expect(recoitLesNotificationsEnfant('partage')).toBe(true);
+  });
+
+  it('arrivent sur l’appareil de l’enfant', () => {
+    expect(recoitLesNotificationsEnfant('enfant')).toBe(true);
+  });
+
+  it('arrivent sur une installation qui n’a pas encore répondu', () => {
+    // `inconnu` n'est exclu de rien : retirer des notifications sur la foi
+    // d'une information qu'on n'a pas serait la faute qu'on corrige.
+    expect(recoitLesNotificationsEnfant('inconnu')).toBe(true);
   });
 });

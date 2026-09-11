@@ -101,12 +101,23 @@ export interface MinoRepository {
    */
   reportShield?(input: {
     /**
-     * L'état du système, ou `compteur-seul` : la décision explicite d'un parent
-     * qui ne veut pas de verrou sur cet appareil-là. Ce n'est pas un état
-     * qu'iOS ou Android sait rendre — c'est une réponse, et elle prime sur
-     * l'absence d'autorisation qu'elle explique. Voir `DeviceProfile`.
+     * L'état du système, ou l'une des deux réponses qu'il ne sait pas donner.
+     *
+     * `compteur-seul` : la décision explicite d'un parent qui ne veut pas de
+     * verrou sur cet appareil-là.
+     *
+     * `telephone-parent` : aucun enfant ne joue ici, il n'y a donc rien à
+     * verrouiller. Sans cet état, le téléphone du second parent remontait
+     * « blocage pas encore réglé » à perpétuité, avec une consigne qui
+     * reviendrait à mettre le téléphone d'un adulte derrière le bouclier — et
+     * un avertissement qui ne peut pas s'éteindre apprend à ignorer les
+     * autres.
+     *
+     * Ni l'un ni l'autre n'est un état qu'iOS ou Android sait rendre : ce sont
+     * des réponses, et elles priment sur l'absence d'autorisation qu'elles
+     * expliquent. Voir `DeviceProfile`.
      */
-    status: ScreenTimeAuthorization | 'compteur-seul';
+    status: ScreenTimeAuthorization | 'compteur-seul' | 'telephone-parent';
     label?: string;
     childId?: ID | null;
   }): Promise<void>;

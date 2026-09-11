@@ -21,7 +21,15 @@ import { ISODate } from './types';
  */
 export const PERIME_HEURES = 72;
 
-export type EtatBouclier = 'actif' | 'compteur-seul' | 'coupe' | 'a-regler' | 'muet' | 'inconnu';
+export type EtatBouclier =
+  | 'actif'
+  | 'compteur-seul'
+  /** Le téléphone d'un parent : il n'y a rien à verrouiller dessus. */
+  | 'telephone-parent'
+  | 'coupe'
+  | 'a-regler'
+  | 'muet'
+  | 'inconnu';
 
 export interface AppareilRapporte {
   id: string;
@@ -55,6 +63,21 @@ export function etatDe(appareil: AppareilRapporte, maintenant: Date = new Date()
     // reviendrait à lui reprocher sa propre décision.
     case 'compteur-seul':
       return 'compteur-seul';
+    /**
+     * Le téléphone d'un parent, et il ne s'agit pas d'un choix.
+     *
+     * **Le défaut, trouvé en suivant le second parent.** Son téléphone
+     * s'appaire comme n'importe quel appareil, et il remontait « pas encore
+     * réglé » : l'autorisation n'y a jamais été demandée, et il n'y en a
+     * aucune à demander. Le tableau de bord affichait donc un avertissement
+     * jaune permanent, avec une consigne qui reviendrait à mettre le téléphone
+     * d'un adulte derrière le bouclier.
+     *
+     * Distinct de `compteur-seul` parce que la phrase l'est : « vous avez
+     * choisi de ne pas verrouiller » serait faux, personne n'a rien choisi.
+     */
+    case 'telephone-parent':
+      return 'telephone-parent';
     case 'denied':
       return 'coupe';
     case 'not-determined':
@@ -83,6 +106,13 @@ export function phraseDe(etat: EtatBouclier): { titre: string; detail: string; g
       return {
         titre: 'Blocage actif',
         detail: 'Les applications encadrées s’ouvrent avec le temps gagné, et pas autrement.',
+        grave: false,
+      };
+    case 'telephone-parent':
+      return {
+        titre: 'Téléphone d’un parent',
+        detail:
+          'Rien à verrouiller ici : aucun enfant ne joue sur cet appareil. Il sert à voir les demandes, confirmer les missions et régler la famille.',
         grave: false,
       };
     case 'compteur-seul':
