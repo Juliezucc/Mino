@@ -9,13 +9,17 @@ import { QUIET_FROM_HOUR, QUIET_UNTIL_HOUR } from '@/domain/notifications';
 import { getAuthService } from '@/services/auth';
 import { getNotificationService } from '@/services/notifications';
 import { getScreenTimeService } from '@/services/screenTime';
-import { useFamily, useParent } from '@/store/selectors';
+import { useFamily, useParent, useParentDeCetAppareil } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing, tabBarSpace } from '@/theme';
 
 export default function ParentSettings() {
   const router = useRouter();
   const parent = useParent();
+  // Le prénom salue celui qui tient le téléphone ; l'adresse, elle, est celle
+  // du compte et d'aucun autre — les confondre ferait afficher au second
+  // parent une adresse qui n'est pas la sienne.
+  const parentIci = useParentDeCetAppareil();
   const data = useFamily();
   const repositoryName = useMinoStore((s) => s.repository.name);
   const lockParent = useMinoStore((s) => s.lockParent);
@@ -120,7 +124,7 @@ export default function ParentSettings() {
         <Text variant="label" color={colors.textMuted}>
           COMPTE PARENT
         </Text>
-        <Text variant="cardTitle">{parent?.displayName}</Text>
+        <Text variant="cardTitle">{parentIci?.displayName}</Text>
         <Text variant="body" color={colors.textMuted}>
           {parent?.email}
         </Text>
@@ -142,6 +146,14 @@ export default function ParentSettings() {
           icon="👤"
           variant="secondary"
           onPress={() => router.push('/parent/compte')}
+        />
+        {/* Le second parent se règle ici, et nulle part ailleurs : c'est un
+            geste d'adulte, et l'espace parent est déjà fermé par le code. */}
+        <Button
+          label="Les parents"
+          icon="👨‍👩‍👧"
+          variant="secondary"
+          onPress={() => router.push('/parent/parents')}
         />
       </Card>
 

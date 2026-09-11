@@ -22,4 +22,5 @@ export const SQL_FILES = [
   ['notifications.sql', 'jetons de notification'],
   ['courrier.sql', 'ce que Mino a déjà écrit à chaque famille'],
   ['code-parent-famille.sql', 'le code parent appartient à la famille, pas au compte'],
+  ['deux-parents.sql', 'un second parent en profil, sans second compte'],
 ];

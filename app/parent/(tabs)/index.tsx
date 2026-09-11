@@ -29,7 +29,7 @@ import { HistoryList } from '@/features/history/HistoryList';
 import {
   useChildren,
   useFamily,
-  useParent,
+  useParentDeCetAppareil,
   usePendingRequests,
   useRunningSessions,
   useScreenRequests,
@@ -40,7 +40,7 @@ import { colors, spacing, tabBarSpace } from '@/theme';
 /** Parent dashboard: my children, and above all the requests waiting for me. */
 export default function ParentHome() {
   const router = useRouter();
-  const parent = useParent();
+  const parent = useParentDeCetAppareil();
   const children = useChildren();
   const data = useFamily();
   const requests = usePendingRequests();

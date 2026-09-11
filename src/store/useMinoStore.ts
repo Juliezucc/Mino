@@ -8,11 +8,16 @@ import {
   ChoixDAppareil,
   DeviceProfile,
   NO_DEVICE_PROFILE,
+  choixComplete,
   etatsPourChoix,
   profileToOpen,
   readDeviceProfile,
   writeDeviceProfile,
 } from '@/data/deviceProfile';
+import {
+  ajouterParent as ajouterParentDistant,
+  retirerParent as retirerParentDistant,
+} from '@/data/parents';
 import { createSupabaseRepository } from '@/data/supabaseRepository';
 import * as actions from '@/domain/actions';
 import { GatedAction, LOCKED_MESSAGE, isLocked } from '@/domain/access';
@@ -126,6 +131,22 @@ interface MinoState {
    * verrouiller. Voir `DeviceProfile.usagePersonnel`.
    */
   declarerUsage: (choix: ChoixDAppareil) => Promise<void>;
+  /**
+   * Ajouter un second parent — un profil, pas un compte.
+   *
+   * Il rejoint avec le code famille comme le reste de la maison, et sans mot
+   * de passe de plus. Voir `src/data/parents.ts` pour la raison qui oblige à
+   * passer par le serveur.
+   *
+   * `code` n'est à donner que là où le magasin ne l'a pas déjà : sur un
+   * appareil qui vient de rejoindre la famille, l'espace parent n'a encore
+   * jamais été ouvert, et il n'y a donc rien en mémoire. Rend l'identifiant du
+   * parent créé — l'appelant en a besoin pour dire « ce téléphone est le
+   * sien ».
+   */
+  ajouterParent: (input: { prenom: string; code?: string }) => Promise<ID>;
+  /** Retirer un profil de parent — jamais le titulaire du compte. */
+  retirerParent: (id: ID) => Promise<void>;
   /**
    * Le code à quatre chiffres, gardé le temps que l'espace parent reste ouvert
    * — et uniquement sur la tablette d'un enfant.
@@ -1019,13 +1040,76 @@ export const useMinoStore = create<MinoState>((set, get) => {
       if (get().poseDuCodeAutorisee) set({ poseDuCodeAutorisee: false });
     },
 
+    async ajouterParent({ prenom, code }) {
+      // Le code n'accompagne le geste que depuis un appareil : le titulaire du
+      // compte est déjà parent aux yeux de la base.
+      const cree = await ajouterParentDistant({
+        prenom,
+        code: code ?? get().codeParentEnMemoire ?? undefined,
+      });
+      /**
+       * On pose la ligne ici plutôt que de tout relire.
+       *
+       * `retry()` repasse par `status: 'loading'`, ce qui escamote l'écran en
+       * cours — et cet ajout se fait justement au milieu de l'appairage d'un
+       * téléphone, à l'étape qui demande « à qui est cet appareil ». Le
+       * serveur a déjà écrit la ligne et vient de nous la rendre : il n'y a
+       * rien à deviner.
+       */
+      const famille = get().data;
+      if (famille) {
+        publish({
+          ...famille,
+          parents: [
+            ...famille.parents,
+            {
+              id: cree.id,
+              familyId: famille.family.id,
+              displayName: cree.prenom,
+              // Ni compte, ni adresse : c'est ce qui distingue un profil d'un
+              // titulaire, et `delete_my_account` en dépend.
+              email: null,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        });
+      }
+      return cree.id;
+    },
+
+    async retirerParent(id) {
+      await retirerParentDistant({ id, code: get().codeParentEnMemoire ?? undefined });
+      // Si c'était le parent de CET appareil, la ligne n'existe plus : on
+      // efface la référence plutôt que de laisser pointer vers un vide.
+      if (get().device.parentId === id) {
+        await get().declarerUsage({ kind: 'parent', parentId: null });
+      }
+      const famille = get().data;
+      if (famille) {
+        publish({ ...famille, parents: famille.parents.filter((p) => p.id !== id) });
+      }
+    },
+
     async declarerUsage(choix) {
-      const etats = etatsPourChoix(choix);
+      /**
+       * Redire « c'est mon téléphone » n'efface pas DE QUI il est.
+       *
+       * Le chip « À moi » des réglages, et celui de l'inscription, envoient
+       * `{ kind: 'parent' }` sans plus de précision — ils n'ont pas à connaître
+       * le second parent. Sans cette ligne, le père qui rouvre ses réglages et
+       * confirme ce qui était déjà coché perdait son prénom et se faisait
+       * saluer de celui de sa femme, sans avoir rien changé.
+       *
+       * `undefined` veut dire « ne touche pas », `null` veut dire « oublie » —
+       * et c'est `retirerParent` qui s'en sert pour le second.
+       */
+      const complet = choixComplete(choix, get().device.parentId);
+      const etats = etatsPourChoix(complet);
       const device = await writeDeviceProfile({
         ...etats,
         // Réserver l'appareil, c'est aussi le rouvrir dessus : les deux
         // réglages se contrediraient sinon au prochain lancement.
-        ...(choix.kind === 'enfant' ? { lastChildId: choix.childId } : {}),
+        ...(complet.kind === 'enfant' ? { lastChildId: complet.childId } : {}),
       });
       set({ device });
       // La réponse décide à qui le serveur écrit : il faut la lui redire.

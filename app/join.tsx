@@ -5,11 +5,17 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'rea
 import { Mascot } from '@/components/mascot';
 import { Avatar, Button, Card, Field, Screen, ScreenHeader, Text } from '@/components/ui';
 import { ScreenTimeAuthorization, getScreenTimeService } from '@/services/screenTime';
-import { useChildren } from '@/store/selectors';
+import { useChildren, useParents } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
 
-type Step = 'code' | 'profile' | 'shield';
+/**
+ * `parent` est une sous-étape de `profile`, pas une quatrième marche : les
+ * points d'avancement en comptent trois, et en afficher un de plus à qui
+ * répond « c'est mon téléphone » ferait croire à un parcours plus long qu'il
+ * ne l'est — il s'arrête justement là.
+ */
+type Step = 'code' | 'profile' | 'parent' | 'shield';
 
 /**
  * Setting up Mino on the child's device.
@@ -33,7 +39,10 @@ export default function JoinFamily() {
   const selectChild = useMinoStore((s) => s.selectChild);
   const lockDeviceTo = useMinoStore((s) => s.lockDeviceTo);
   const declarerUsage = useMinoStore((s) => s.declarerUsage);
+  const ajouterParent = useMinoStore((s) => s.ajouterParent);
+  const unlockParent = useMinoStore((s) => s.unlockParent);
   const children = useChildren();
+  const parents = useParents();
   const service = getScreenTimeService();
 
   const [step, setStep] = useState<Step>('code');
@@ -41,6 +50,9 @@ export default function JoinFamily() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [shield, setShield] = useState<ScreenTimeAuthorization | null>(null);
+  const [prenomParent, setPrenomParent] = useState('');
+  const [codeParent, setCodeParent] = useState('');
+  const [ajoutOuvert, setAjoutOuvert] = useState(false);
 
   const join = async () => {
     setLoading(true);
@@ -106,9 +118,58 @@ export default function JoinFamily() {
    * confirmer les missions. Le second parent est chez lui sans jamais avoir eu
    * à partager un mot de passe.
    */
-  const pickParent = async () => {
-    await declarerUsage({ kind: 'parent' }).catch(() => undefined);
+  const pickParent = () => {
+    setError(null);
+    // Une famille qui n'a qu'un parent n'a rien à demander : la question
+    // « lequel ? » avec une seule réponse est une étape pour rien. On ouvre
+    // directement le champ du prénom — c'est le cas du conjoint qui arrive.
+    setAjoutOuvert(parents.length <= 1);
+    setStep('parent');
+  };
+
+  /** « C'est le téléphone de Marc » : l'appareil retient lequel. */
+  const choisirParent = async (parentId: string) => {
+    await declarerUsage({ kind: 'parent', parentId }).catch(() => undefined);
     router.replace('/parent');
+  };
+
+  /**
+   * Ajouter le parent qui manque, depuis son propre téléphone.
+   *
+   * **Pourquoi le code à quatre chiffres est demandé ici.** Cet appareil vient
+   * de rejoindre la famille avec le code famille — celui que l'enfant connaît,
+   * puisqu'il lui sert à s'appairer. Sans autre preuve, n'importe quel enfant
+   * de la maison se déclarerait parent et ouvrirait tout. Le code parent est
+   * la seule chose qui dise qu'un adulte est là, maintenant ; le serveur le
+   * revérifie et compte les essais ratés sur la famille entière.
+   */
+  const ajouterLeParent = async () => {
+    const prenom = prenomParent.trim();
+    if (!prenom) return setError('Indiquez un prénom.');
+    if (!/^\d{4}$/.test(codeParent)) {
+      return setError('Le code parent fait 4 chiffres. Demandez-le au parent qui a créé la famille.');
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const id = await ajouterParent({ prenom, code: codeParent });
+      await declarerUsage({ kind: 'parent', parentId: id }).catch(() => undefined);
+      /**
+       * Il vient de taper le code : le redemander une seconde plus tard serait
+       * une cérémonie, pas une sécurité.
+       *
+       * Et ce n'est pas qu'une politesse. `unlockParent` est le seul chemin qui
+       * garde les quatre chiffres en mémoire vive, et c'est cette mémoire-là
+       * que `valider-mission` exige à chaque geste depuis un appareil appairé.
+       * Sans elle, la première mission qu'il confirme redemanderait le code.
+       */
+      await unlockParent(codeParent).catch(() => undefined);
+      router.replace('/parent');
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : 'Ce parent n’a pas pu être ajouté.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const authorize = async () => {
@@ -130,11 +191,25 @@ export default function JoinFamily() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Screen contentStyle={styles.content}>
-        <ScreenHeader onBack={step === 'code' ? () => router.back() : undefined} />
+        <ScreenHeader
+          onBack={
+            step === 'code'
+              ? () => router.back()
+              : step === 'parent'
+                ? () => {
+                    setError(null);
+                    setStep('profile');
+                  }
+                : undefined
+          }
+        />
 
         <View style={styles.progress}>
           {(['code', 'profile', 'shield'] as Step[]).map((s) => (
-            <View key={s} style={[styles.dot, step === s && styles.dotOn]} />
+            <View
+              key={s}
+              style={[styles.dot, (step === 'parent' ? 'profile' : step) === s && styles.dotOn]}
+            />
           ))}
         </View>
 
@@ -173,6 +248,90 @@ export default function JoinFamily() {
                 Tu n’as ni compte, ni mot de passe, ni adresse e-mail à donner. Ce code suffit.
               </Text>
             </Card>
+          </>
+        ) : step === 'parent' ? (
+          <>
+            <View style={styles.hero}>
+              <Mascot expression="happy" size={120} />
+              <Text variant="hero" center>
+                Quel parent êtes-vous ?
+              </Text>
+              <Text variant="body" color={colors.textMuted} center>
+                Ce téléphone portera votre prénom. Vous verrez les mêmes enfants, les mêmes
+                missions et les mêmes demandes que l’autre parent — avec le même code à quatre
+                chiffres, puisqu’il appartient à la famille.
+              </Text>
+            </View>
+
+            {!ajoutOuvert ? (
+              <>
+                {parents.map((p) => (
+                  <Button
+                    key={p.id}
+                    label={p.displayName ?? 'Parent'}
+                    icon="👤"
+                    variant="secondary"
+                    onPress={() => {
+                      choisirParent(p.id).catch(() => undefined);
+                    }}
+                  />
+                ))}
+                <Button
+                  label="Ajouter un parent"
+                  icon="➕"
+                  variant="ghost"
+                  haptic={false}
+                  onPress={() => {
+                    setError(null);
+                    setAjoutOuvert(true);
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <Field
+                  label="Votre prénom"
+                  placeholder="Marc"
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  value={prenomParent}
+                  onChangeText={(v) => setPrenomParent(v.slice(0, 30))}
+                />
+                <Field
+                  label="Code parent de la famille"
+                  placeholder="4 chiffres"
+                  keyboardType="number-pad"
+                  value={codeParent}
+                  onChangeText={(v) => setCodeParent(v.replace(/[^0-9]/g, '').slice(0, 4))}
+                />
+                <Text variant="caption" color={colors.textSubtle}>
+                  C’est le code qui ouvre l’espace parent. Demandez-le au parent qui a créé la
+                  famille : il le voit dans ses réglages, et peut en changer quand il veut.
+                </Text>
+                <Button label="C’EST MOI" onPress={ajouterLeParent} loading={loading} />
+                {parents.length > 1 ? (
+                  <Button
+                    label="Choisir un parent déjà inscrit"
+                    variant="ghost"
+                    haptic={false}
+                    onPress={() => {
+                      setError(null);
+                      setAjoutOuvert(false);
+                    }}
+                  />
+                ) : null}
+              </>
+            )}
+
+            {/* Un seul endroit pour le refus, quel que soit le champ en cause :
+                « ce prénom est déjà pris » et « le code est faux » viennent du
+                même serveur et se lisent au même endroit. Accroché sous le
+                champ du code, le premier aurait désigné le mauvais coupable. */}
+            {error ? (
+              <Card background={colors.yellowSoft} elevation="none">
+                <Text variant="body">{error}</Text>
+              </Card>
+            ) : null}
           </>
         ) : step === 'profile' ? (
           <>
@@ -218,9 +377,7 @@ export default function JoinFamily() {
               icon="📱"
               variant="ghost"
               haptic={false}
-              onPress={() => {
-                pickParent().catch(() => undefined);
-              }}
+              onPress={pickParent}
             />
           </>
         ) : (

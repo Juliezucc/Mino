@@ -75,6 +75,10 @@ assets/mascot/sequence/*-frames/
 # Elles servent à une session Claude Code ouverte sur ce dossier — elle les lit
 # depuis le disque — et n'ont rien à faire sur GitHub : ce sont des échanges
 # personnels, souvent longs, qui alourdiraient le dépôt sans servir au code.
+# Les deux orthographes, parce que les deux existent sur le disque : la règle
+# ne sert à rien si elle rate le fichier de 2,9 Mo qu'un `git add -A` emporte.
 /MINO-conversation.md
+/MINOconversation.md
 /REPRISE-MINO.md
+/REPRISEMINO.md
 /docs/conversations/

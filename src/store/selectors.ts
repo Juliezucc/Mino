@@ -8,7 +8,8 @@ import {
   uncelebratedCompletions,
 } from '@/domain/ledger';
 import { ChildMission, missionsForChild, prochaineJournee } from '@/domain/missions';
-import { Child, FamilyData, ID, ScreenTimeBalance } from '@/domain/types';
+import { parentDeLAppareil } from '@/domain/parents';
+import { Child, FamilyData, ID, Parent, ScreenTimeBalance } from '@/domain/types';
 
 import { useMinoStore } from './useMinoStore';
 
@@ -22,8 +23,40 @@ export function useChildren(): Child[] {
   return useMinoStore((s) => s.data?.children ?? EMPTY);
 }
 
+/**
+ * Le TITULAIRE du compte : celui dont l'adresse ouvre la session.
+ *
+ * À ne pas confondre avec « le parent qui tient ce téléphone ». Les deux se
+ * confondaient tant qu'une famille n'avait qu'un parent ; depuis qu'elle peut
+ * en porter un second, c'est cette fonction-ci qu'il faut pour tout ce qui
+ * touche au compte — l'adresse, le mot de passe, la suppression — et
+ * `useParentDeCetAppareil` pour tout ce qui s'adresse à quelqu'un.
+ */
 export function useParent() {
   return useMinoStore((s) => s.data?.parents[0] ?? null);
+}
+
+/**
+ * Le parent à qui appartient CET appareil.
+ *
+ * « Bonjour Julie » sur le téléphone du père était le premier symptôme, et le
+ * plus bête : la famille n'avait qu'un parent à saluer. Le second rejoint avec
+ * le code famille et dit qui il est au moment de l'appairage — voir
+ * `ChoixDAppareil` — et c'est ce prénom-là que ses écrans doivent porter.
+ *
+ * Le repli sur le premier parent n'est pas un pis-aller : sur le téléphone du
+ * titulaire, `parentId` n'a jamais été posé, et il ne le sera pas
+ * rétroactivement.
+ */
+export function useParentDeCetAppareil(): Parent | null {
+  const parents = useMinoStore((s) => s.data?.parents ?? EMPTY);
+  const parentId = useMinoStore((s) => s.device.parentId);
+  return useMemo(() => parentDeLAppareil(parents, parentId), [parents, parentId]);
+}
+
+/** Les parents de la famille, dans l'ordre où ils sont arrivés. */
+export function useParents(): Parent[] {
+  return useMinoStore((s) => s.data?.parents ?? EMPTY);
 }
 
 export function useChild(childId: ID | null | undefined): Child | null {

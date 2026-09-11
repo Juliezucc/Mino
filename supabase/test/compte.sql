@@ -136,6 +136,62 @@ do $$ begin
     'son identité avec lui');
 end $$;
 
+-- ------------------------------- un second parent SANS COMPTE n'hérite de rien
+
+/**
+ * Le profil de parent ne garde pas la famille en vie.
+ *
+ * Depuis qu'une famille peut porter un second parent en profil — une ligne
+ * `parents` sans `user_id` ni `email`, qui rejoint par le code famille — le
+ * compte à deux de `delete_my_account()` devenait faux : le titulaire du
+ * compte partait, sa ligne était retirée, et la famille restait rattachée à un
+ * profil que PERSONNE ne peut ouvrir. Ni lisible, ni supprimable : exactement
+ * l'état que tout ce fichier existe pour interdire.
+ *
+ * L'essai tombe si l'on remet `count(*)` à la place de la clause qui compte
+ * les comptes — vérifié en le cassant.
+ */
+do $$ begin
+  delete from families where id = 'fam-prof';
+  delete from auth.users where id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+  insert into auth.users (id, email) values
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'titulaire@mino.app');
+  insert into families (id, name, code, referral_code) values
+    ('fam-prof', 'Zucher', 'QUITTE3', 'PARRAINS');
+  insert into parents (id, family_id, user_id, display_name, email) values
+    ('par-titu', 'fam-prof', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Julie', 'titulaire@mino.app'),
+    -- Le second parent : un prénom, et rien d'autre. C'est tout ce que
+    -- `ajouter-parent` écrit.
+    ('par-prof', 'fam-prof', null, 'Marc', null);
+  insert into children (id, family_id, first_name, age, avatar_key) values
+    ('enf-prof', 'fam-prof', 'Noah', 10, 'chat');
+end $$;
+
+do $$
+declare v_effacees int;
+begin
+  set local role authenticated;
+  set local mino.uid = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+
+  v_effacees := delete_my_account();
+  perform assert(
+    v_effacees = 1,
+    'UN PROFIL SANS COMPTE NE RETIENT PAS LA FAMILLE : elle part avec le titulaire');
+end $$;
+
+do $$ begin
+  perform assert(
+    not exists (select 1 from families where id = 'fam-prof'),
+    'la famille a bien disparu');
+  perform assert(
+    not exists (select 1 from parents where id = 'par-prof'),
+    'et le profil du second parent avec elle, par cascade');
+  perform assert(
+    not exists (select 1 from children where id = 'enf-prof'),
+    'l''enfant aussi');
+end $$;
+
 -- --------------------------------------------------- ce qu'un enfant ne peut pas
 
 /**

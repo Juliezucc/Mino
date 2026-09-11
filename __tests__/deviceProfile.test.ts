@@ -66,23 +66,45 @@ describe('le profil de l’appareil', () => {
  */
 describe('la réponse « à qui est cet appareil »', () => {
   it('se relit telle qu’elle a été donnée', () => {
-    for (const choix of [
-      { kind: 'enfant', childId: 'noah' } as const,
-      { kind: 'partage' } as const,
-      { kind: 'parent' } as const,
-    ]) {
-      expect(choixEnregistre(etatsPourChoix(choix))).toEqual(choix);
-    }
+    expect(choixEnregistre(etatsPourChoix({ kind: 'enfant', childId: 'noah' }))).toEqual({
+      kind: 'enfant',
+      childId: 'noah',
+    });
+    expect(choixEnregistre(etatsPourChoix({ kind: 'partage' }))).toEqual({ kind: 'partage' });
+    expect(choixEnregistre(etatsPourChoix({ kind: 'parent' }))).toEqual({
+      kind: 'parent',
+      parentId: null,
+    });
+  });
+
+  it('retient DE QUEL parent est ce téléphone', () => {
+    // Sans cela, le téléphone du père salue la mère — « Bonjour Sylvain » sur
+    // le téléphone de Vincent, vu à l'usage.
+    const etats = etatsPourChoix({ kind: 'parent', parentId: 'par-vincent' });
+    expect(etats.parentId).toBe('par-vincent');
+    expect(choixEnregistre(etats)).toEqual({ kind: 'parent', parentId: 'par-vincent' });
   });
 
   it('se corrige : le téléphone du parent peut devenir celui de l’enfant', () => {
     // Le chemin qui n'existait pas. On part de « il est à moi » et on répond
     // autrement : aucun des trois champs ne doit rester sur l'ancienne réponse.
     const avant = etatsPourChoix({ kind: 'parent' });
-    expect(avant).toEqual({ lockedChildId: null, usagePersonnel: true, declareALEnfant: false });
+    expect(avant).toEqual({
+      lockedChildId: null,
+      usagePersonnel: true,
+      declareALEnfant: false,
+      parentId: null,
+    });
 
     const apres = etatsPourChoix({ kind: 'enfant', childId: 'noah' });
-    expect(apres).toEqual({ lockedChildId: 'noah', usagePersonnel: false, declareALEnfant: true });
+    expect(apres).toEqual({
+      lockedChildId: 'noah',
+      usagePersonnel: false,
+      declareALEnfant: true,
+      // Effacé : un téléphone qu'on donne à son enfant ne doit pas continuer
+      // de porter le nom du parent.
+      parentId: null,
+    });
   });
 
   it('dit à qui le serveur écrit, sans que personne ait à le recalculer', () => {

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, Field, Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
@@ -47,6 +47,43 @@ export default function CompteParent() {
   const [message, setMessage] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
+
+  /**
+   * Cet écran n'est pas pour tout le monde, et il l'était.
+   *
+   * **Le défaut, et il précède les deux parents.** Depuis que le code à quatre
+   * chiffres appartient à la famille, il ouvre l'espace parent sur la tablette
+   * d'un enfant comme sur le téléphone du second parent — c'est tout l'intérêt.
+   * Mais ces appareils portent une session d'APPAREIL, pas un compte : ni
+   * l'adresse, ni le mot de passe, ni le code, ni la suppression ne leur
+   * appartiennent. Le serveur refuse les quatre, et c'est lui qui tient la
+   * règle — `delete_my_account` lève « seul un parent peut supprimer un
+   * compte », `set_parent_pin` rend `false` sans `auth_is_parent()`.
+   *
+   * Restait l'écran : il offrait les quatre gestes, en grand, à un enfant de
+   * dix ans qui a vu son parent taper le code. Il les tentait, lisait un refus
+   * en rouge, et n'apprenait qu'une chose — que « Supprimer le compte » se
+   * trouve ici. Un bouton qui ne peut pas marcher n'est pas protégé par le
+   * fait qu'il échoue.
+   *
+   * `null` tant qu'on ne sait pas : on n'affiche rien plutôt que de parier.
+   */
+  const [sessionDAppareil, setSessionDAppareil] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let vivant = true;
+    getAuthService()
+      .session()
+      .then((s) => {
+        if (vivant) setSessionDAppareil(s.kind === 'device');
+      })
+      .catch(() => {
+        if (vivant) setSessionDAppareil(false);
+      });
+    return () => {
+      vivant = false;
+    };
+  }, []);
 
   const changerEmail = async () => {
     setErreur(null);
@@ -155,10 +192,33 @@ export default function CompteParent() {
 
       <View style={styles.head}>
         <Text variant="hero">Mon compte</Text>
-        <Text variant="body" color={colors.textMuted}>
-          {parent?.email}
-        </Text>
+        {/* L'adresse est celle du compte, et d'aucun autre : sur un appareil
+            appairé, l'afficher sous « Mon compte » désignerait quelqu'un
+            d'autre que celui qui lit. La carte ci-dessous le dit en toutes
+            lettres, c'est assez. */}
+        {sessionDAppareil === false ? (
+          <Text variant="body" color={colors.textMuted}>
+            {parent?.email}
+          </Text>
+        ) : null}
       </View>
+
+      {sessionDAppareil === null ? null : sessionDAppareil ? (
+        <Card background={colors.blueSoft} elevation="none" style={styles.block}>
+          <Text variant="bodyStrong" color={colors.blueInk}>
+            Le compte se gère depuis le téléphone qui a créé la famille.
+          </Text>
+          <Text variant="body" color={colors.textMuted}>
+            {parent?.displayName
+              ? `L’adresse, le mot de passe, le code à quatre chiffres et la suppression de la famille appartiennent au compte de ${parent.displayName}. Cet appareil-ci a rejoint la famille avec le code : il voit tout, il confirme les missions, il règle le quotidien — mais il ne touche pas au compte.`
+              : 'L’adresse, le mot de passe, le code à quatre chiffres et la suppression de la famille appartiennent au compte qui a créé la famille. Cet appareil-ci l’a rejointe avec le code : il voit tout et règle le quotidien, mais il ne touche pas au compte.'}
+          </Text>
+          <Text variant="caption" color={colors.textSubtle}>
+            Ce n’est pas qu’une question d’écran : le serveur refuse ces quatre gestes à un
+            appareil appairé, quel que soit le bouton sur lequel on appuie.
+          </Text>
+        </Card>
+      ) : null}
 
       {message ? (
         <Card style={styles.bonne}>
@@ -176,109 +236,113 @@ export default function CompteParent() {
         </Card>
       ) : null}
 
-      <Card style={styles.block}>
-        <Text variant="label" color={colors.textMuted}>
-          ADRESSE E-MAIL
-        </Text>
-        <Text variant="body" color={colors.textMuted}>
-          {remote
-            ? 'La nouvelle adresse ne devient la vôtre qu’une fois le lien de confirmation ouvert sur cette boîte. Celui qui tape l’adresse doit pouvoir y lire le courrier.'
-            : 'Sans serveur, l’adresse n’est qu’une étiquette : rien ne s’y envoie.'}
-        </Text>
-        <Field
-          label="Nouvelle adresse"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          autoComplete="email"
-        />
-        <Button
-          label="Changer l’adresse"
-          variant="secondary"
-          loading={occupe}
-          onPress={changerEmail}
-        />
-      </Card>
+      {sessionDAppareil !== false ? null : (
+        <>
+        <Card style={styles.block}>
+          <Text variant="label" color={colors.textMuted}>
+            ADRESSE E-MAIL
+          </Text>
+          <Text variant="body" color={colors.textMuted}>
+            {remote
+              ? 'La nouvelle adresse ne devient la vôtre qu’une fois le lien de confirmation ouvert sur cette boîte. Celui qui tape l’adresse doit pouvoir y lire le courrier.'
+              : 'Sans serveur, l’adresse n’est qu’une étiquette : rien ne s’y envoie.'}
+          </Text>
+          <Field
+            label="Nouvelle adresse"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            autoComplete="email"
+          />
+          <Button
+            label="Changer l’adresse"
+            variant="secondary"
+            loading={occupe}
+            onPress={changerEmail}
+          />
+        </Card>
 
-      <Card style={styles.block}>
-        <Text variant="label" color={colors.textMuted}>
-          MOT DE PASSE
-        </Text>
-        <Text variant="body" color={colors.textMuted}>
-          Il ne protège pas seulement votre compte : il protège les profils de
-          votre famille.
-        </Text>
-        <Field
-          label="Nouveau mot de passe"
-          value={motDePasse}
-          onChangeText={setMotDePasse}
-          secureTextEntry
-          autoComplete="new-password"
-          textContentType="newPassword"
-        />
-        <Button
-          label="Changer le mot de passe"
-          variant="secondary"
-          loading={occupe}
-          onPress={changerMotDePasse}
-        />
-      </Card>
+        <Card style={styles.block}>
+          <Text variant="label" color={colors.textMuted}>
+            MOT DE PASSE
+          </Text>
+          <Text variant="body" color={colors.textMuted}>
+            Il ne protège pas seulement votre compte : il protège les profils de
+            votre famille.
+          </Text>
+          <Field
+            label="Nouveau mot de passe"
+            value={motDePasse}
+            onChangeText={setMotDePasse}
+            secureTextEntry
+            autoComplete="new-password"
+            textContentType="newPassword"
+          />
+          <Button
+            label="Changer le mot de passe"
+            variant="secondary"
+            loading={occupe}
+            onPress={changerMotDePasse}
+          />
+        </Card>
 
-      <Card style={styles.block}>
-        <Text variant="label" color={colors.textMuted}>
-          CODE PARENT
-        </Text>
-        <Text variant="body" color={colors.textMuted}>
-          Les quatre chiffres qui ouvrent l’espace parent devant un enfant.
-          Ce n’est pas votre mot de passe, et il ne doit pas lui ressembler.
-          À changer sans hésiter le jour où votre enfant vous a vu le taper.
-        </Text>
-        {/* Pas de vérification de l'ancien code ici : on ne peut atteindre cet
-            écran qu'en l'ayant déjà donné. Le redemander serait une cérémonie,
-            pas une sécurité. */}
-        <Field
-          label="Nouveau code à 4 chiffres"
-          value={code}
-          onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 4))}
-          keyboardType="number-pad"
-          secureTextEntry
-        />
-        <Button
-          label="Changer le code parent"
-          icon="🔢"
-          variant="secondary"
-          loading={occupe}
-          onPress={changerCode}
-        />
-      </Card>
+        <Card style={styles.block}>
+          <Text variant="label" color={colors.textMuted}>
+            CODE PARENT
+          </Text>
+          <Text variant="body" color={colors.textMuted}>
+            Les quatre chiffres qui ouvrent l’espace parent devant un enfant.
+            Ce n’est pas votre mot de passe, et il ne doit pas lui ressembler.
+            À changer sans hésiter le jour où votre enfant vous a vu le taper.
+          </Text>
+          {/* Pas de vérification de l'ancien code ici : on ne peut atteindre cet
+              écran qu'en l'ayant déjà donné. Le redemander serait une cérémonie,
+              pas une sécurité. */}
+          <Field
+            label="Nouveau code à 4 chiffres"
+            value={code}
+            onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 4))}
+            keyboardType="number-pad"
+            secureTextEntry
+          />
+          <Button
+            label="Changer le code parent"
+            icon="🔢"
+            variant="secondary"
+            loading={occupe}
+            onPress={changerCode}
+          />
+        </Card>
 
-      <View style={styles.actions}>
-        <Button label="Se déconnecter" icon="👋" variant="secondary" onPress={seDeconnecter} />
-      </View>
+        <View style={styles.actions}>
+          <Button label="Se déconnecter" icon="👋" variant="secondary" onPress={seDeconnecter} />
+        </View>
 
-      <Card style={styles.danger}>
-        <Text variant="label" color={colors.pinkInk}>
-          SUPPRIMER LE COMPTE
-        </Text>
-        <Text variant="body" color={colors.textMuted}>
-          Les profils de vos enfants, leurs missions, leur historique et les
-          minutes gagnées seront effacés. Rien ne peut être récupéré ensuite.
-        </Text>
-        <Text variant="caption" color={colors.textSubtle}>
-          Votre abonnement, lui, ne s’annule pas ici : il se résilie depuis
-          l’App Store ou le Play Store, et il vaut mieux le faire avant.
-          Les factures déjà émises sont conservées dix ans, comme la loi
-          comptable l’exige ; elles ne contiennent aucune donnée d’enfant.
-        </Text>
-        <Field
-          label="Écrivez « supprimer » pour confirmer"
-          value={confirmation}
-          onChangeText={setConfirmation}
-          autoCapitalize="none"
-        />
-        <Button label="Supprimer mon compte" variant="danger" loading={occupe} onPress={supprimer} />
-      </Card>
+        <Card style={styles.danger}>
+          <Text variant="label" color={colors.pinkInk}>
+            SUPPRIMER LE COMPTE
+          </Text>
+          <Text variant="body" color={colors.textMuted}>
+            Les profils de vos enfants, leurs missions, leur historique et les
+            minutes gagnées seront effacés. Rien ne peut être récupéré ensuite.
+          </Text>
+          <Text variant="caption" color={colors.textSubtle}>
+            Votre abonnement, lui, ne s’annule pas ici : il se résilie depuis
+            l’App Store ou le Play Store, et il vaut mieux le faire avant.
+            Les factures déjà émises sont conservées dix ans, comme la loi
+            comptable l’exige ; elles ne contiennent aucune donnée d’enfant.
+          </Text>
+          <Field
+            label="Écrivez « supprimer » pour confirmer"
+            value={confirmation}
+            onChangeText={setConfirmation}
+            autoCapitalize="none"
+          />
+          <Button label="Supprimer mon compte" variant="danger" loading={occupe} onPress={supprimer} />
+        </Card>
+        </>
+      )}
     </Screen>
   );
 }

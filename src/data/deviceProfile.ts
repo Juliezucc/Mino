@@ -117,6 +117,19 @@ export interface DeviceProfile {
    * quelqu'un l'a dit.
    */
   declareALEnfant: boolean;
+  /**
+   * De QUEL parent est ce téléphone, quand il est celui d'un parent.
+   *
+   * Une famille peut compter deux parents, et ils rejoignent tous les deux
+   * avec le code famille — sans second mot de passe. L'appareil doit donc
+   * retenir lequel il est, sinon le téléphone du père salue la mère : c'est
+   * ce qu'on a vu à l'usage, « Bonjour Sylvain » sur le téléphone de Vincent.
+   *
+   * Local, comme le reste de ce fichier : c'est une propriété de l'appareil,
+   * pas de la famille. Deux téléphones de la même famille n'ont aucune raison
+   * de répondre la même chose.
+   */
+  parentId: ID | null;
 }
 
 export const NO_DEVICE_PROFILE: DeviceProfile = {
@@ -125,6 +138,7 @@ export const NO_DEVICE_PROFILE: DeviceProfile = {
   compteurSeul: false,
   usagePersonnel: false,
   declareALEnfant: false,
+  parentId: null,
 };
 
 export async function readDeviceProfile(): Promise<DeviceProfile> {
@@ -138,6 +152,7 @@ export async function readDeviceProfile(): Promise<DeviceProfile> {
       compteurSeul: parsed.compteurSeul === true,
       usagePersonnel: parsed.usagePersonnel === true,
       declareALEnfant: parsed.declareALEnfant === true,
+      parentId: parsed.parentId ?? null,
     };
   } catch {
     // Un réglage d'appareil illisible ne doit jamais empêcher l'application de
@@ -197,27 +212,51 @@ export type ChoixDAppareil =
   | { kind: 'enfant'; childId: ID }
   /** Partagé entre les enfants — la tablette du salon. */
   | { kind: 'partage' }
-  /** Celui du parent. Rien à bloquer ici. */
-  | { kind: 'parent' };
+  /** Celui d'un parent — et on retient lequel, quand la famille en compte deux. */
+  | { kind: 'parent'; parentId?: ID | null };
+
+/**
+ * Compléter une réponse qui ne dit pas tout.
+ *
+ * **Le défaut, et il n'était visible que sur un deuxième téléphone.** Le chip
+ * « À moi » des réglages et celui de l'inscription envoient `{ kind: 'parent' }`
+ * sans plus : ils n'ont aucune raison de connaître le second parent. Le père
+ * qui rouvrait ses réglages et reconfirmait ce qui était déjà coché perdait
+ * donc son prénom — et son espace parent le saluait de celui de sa femme, sans
+ * qu'il ait rien changé.
+ *
+ * `undefined` veut dire « ne touche pas », `null` veut dire « oublie ». La
+ * distinction n'est pas gratuite : c'est `retirerParent` qui se sert du second
+ * quand le profil désigné vient de disparaître.
+ */
+export function choixComplete(choix: ChoixDAppareil, parentIdActuel: ID | null): ChoixDAppareil {
+  if (choix.kind !== 'parent' || choix.parentId !== undefined) return choix;
+  return { kind: 'parent', parentId: parentIdActuel };
+}
 
 export function etatsPourChoix(
   choix: ChoixDAppareil,
-): Pick<DeviceProfile, 'lockedChildId' | 'usagePersonnel' | 'declareALEnfant'> {
+): Pick<DeviceProfile, 'lockedChildId' | 'usagePersonnel' | 'declareALEnfant' | 'parentId'> {
   return {
     lockedChildId: choix.kind === 'enfant' ? choix.childId : null,
     usagePersonnel: choix.kind === 'parent',
     // Vrai pour les deux réponses où un enfant se sert de l'appareil. C'est ce
     // que lit `parentGate` pour refuser à un enfant de CHOISIR le code.
     declareALEnfant: choix.kind !== 'parent',
+    // Effacé dès que l'appareil cesse d'être celui d'un parent : un téléphone
+    // qu'on donne à son enfant ne doit pas continuer de porter le nom du père.
+    parentId: choix.kind === 'parent' ? (choix.parentId ?? null) : null,
   };
 }
 
 /** La réponse telle qu'elle a été enregistrée, pour cocher la bonne case. */
 export function choixEnregistre(
-  profil: Pick<DeviceProfile, 'lockedChildId' | 'usagePersonnel'>,
+  profil: Pick<DeviceProfile, 'lockedChildId' | 'usagePersonnel'> & { parentId?: ID | null },
 ): ChoixDAppareil {
   if (profil.lockedChildId) return { kind: 'enfant', childId: profil.lockedChildId };
-  return profil.usagePersonnel ? { kind: 'parent' } : { kind: 'partage' };
+  return profil.usagePersonnel
+    ? { kind: 'parent', parentId: profil.parentId ?? null }
+    : { kind: 'partage' };
 }
 
 /**

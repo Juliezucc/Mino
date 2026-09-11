@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Screen, ScreenHeader, Text } from '@/components/ui';
 import { codeTropFacile, parentGate } from '@/domain/parentGate';
 import { getAuthService } from '@/services/auth';
-import { useParent } from '@/store/selectors';
+import { useParentDeCetAppareil } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, shadows, spacing } from '@/theme';
 
@@ -39,7 +39,7 @@ export default function ParentPin() {
     typeof ensuite === 'string' && ensuite.startsWith('/') && !ensuite.startsWith('//')
       ? ensuite
       : '/parent';
-  const parent = useParent();
+  const parent = useParentDeCetAppareil();
   const unlockParent = useMinoStore((s) => s.unlockParent);
 
   const [pin, setPin] = useState('');
