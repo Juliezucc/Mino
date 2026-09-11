@@ -485,7 +485,20 @@ export class SupabaseAuthService implements AuthService {
     const { data, error } = await this.client.rpc('set_parent_pin', { p_pin: pin });
     trace('setParentPin', error);
     if (error) {
-      return { ok: false, reason: `Impossible d’enregistrer le code : ${error.message}` };
+      /**
+       * `error.message` vient de PostgREST, donc en anglais.
+       *
+       * Interpolé tel quel, il atteignait l'écran du parent : « Impossible
+       * d'enregistrer le code : JWT expired », « ... : Failed to fetch ». Tous
+       * les messages d'erreur de ce dépôt sont en français, y compris ceux qui
+       * viennent d'ailleurs — c'est la règle, et cette ligne y échappait.
+       *
+       * Il reste au journal, où il sert à quelqu'un.
+       */
+      return {
+        ok: false,
+        reason: 'Le code n’a pas pu être enregistré. Vérifiez le réseau et réessayez.',
+      };
     }
     if (data === false) {
       return {

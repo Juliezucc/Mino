@@ -24,6 +24,7 @@ import {
 } from '@/domain/companion';
 import { CompanionTurn, getCompanionService } from '@/services/companion';
 import { SpeechStatus, getSpeechService, initSpeechService } from '@/services/speech';
+import { tailleBouton } from '@/domain/ageBand';
 import { useActiveChild, useBalance, useChildMissions } from '@/store/selectors';
 import { colors, radii, spacing } from '@/theme';
 
@@ -46,6 +47,10 @@ import { colors, radii, spacing } from '@/theme';
 export default function CompanionScreen() {
   const router = useRouter();
   const child = useActiveChild();
+  // Les boutons géants sont pour les petits : voir `tailleBouton`. Douze écrans
+  // écrivaient « kid » en dur, et un adolescent de quatorze ans les recevait
+  // tous.
+  const taille = tailleBouton(child);
   const balance = useBalance(child?.id);
   const missions = useChildMissions(child?.id);
 
@@ -272,7 +277,7 @@ export default function CompanionScreen() {
               </Text>
               <Button
                 label="APPELER LE 119"
-                size="kid"
+                size={taille}
                 onPress={() => Linking.openURL(`tel:${CHILD_HELPLINE.number}`).catch(() => undefined)}
               />
             </Card>
@@ -284,7 +289,7 @@ export default function CompanionScreen() {
             <Text variant="body" center>
               À demain ! Va vivre une aventure 🌍
             </Text>
-            <Button label="VOIR MES MISSIONS" size="kid" onPress={() => router.push('/child/missions')} />
+            <Button label="VOIR MES MISSIONS" size={taille} onPress={() => router.push('/child/missions')} />
           </Card>
         ) : (
           <View style={styles.composer}>

@@ -13,7 +13,7 @@ import {
   TimeRing,
   TimeSlider,
 } from '@/components/ui';
-import { unitOf } from '@/domain/ageBand';
+import { unitOf, tailleBouton } from '@/domain/ageBand';
 import { bornesPour, formatTime } from '@/domain/minos';
 import { activeDevices, deviceIcon, describeDevice } from '@/domain/devices';
 import { getScreenTimeService } from '@/services/screenTime';
@@ -31,6 +31,10 @@ import { colors, radii, spacing, tabBarSpace } from '@/theme';
 export default function ChildTime() {
   const router = useRouter();
   const child = useActiveChild();
+  // Les boutons géants sont pour les petits : voir `tailleBouton`. Douze écrans
+  // écrivaient « kid » en dur, et un adolescent de quatorze ans les recevait
+  // tous.
+  const taille = tailleBouton(child);
   const family = useFamily();
   const balance = useBalanceDetail(child?.id);
   const running = useRunningSession(child?.id);
@@ -137,7 +141,7 @@ export default function ChildTime() {
           </Text>
           <Button
             label="REPRENDRE"
-            size="kid"
+            size={taille}
             onPress={() =>
               router.push({ pathname: '/child/session', params: { sessionId: running.id } })
             }
@@ -158,7 +162,7 @@ export default function ChildTime() {
               : 'Mais moi je reste ! Tu veux me raconter ta journée ?'}
           </Text>
           {child.companionEnabled === false ? null : (
-            <Button label="PARLER À MINO" icon="💬" size="kid" onPress={() => router.push('/child/mino')} />
+            <Button label="PARLER À MINO" icon="💬" size={taille} onPress={() => router.push('/child/mino')} />
           )}
           <Button
             label="VOIR MES MISSIONS"
@@ -250,7 +254,7 @@ export default function ChildTime() {
           <Button
             label={supervised ? 'DEMANDER À MON PARENT' : 'COMMENCER'}
             icon={supervised ? '🙋' : '▶️'}
-            size="kid"
+            size={taille}
             variant="primary"
             disabled={!bornes}
             loading={loading}

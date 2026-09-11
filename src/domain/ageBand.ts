@@ -59,6 +59,25 @@ export interface Register {
   mascot: boolean;
 }
 
+/**
+ * La taille des boutons de l'enfant, tirée de son âge.
+ *
+ * **Le défaut : `bigButtons` n'était lu nulle part.** Il est calculé
+ * correctement depuis toujours dans `registerOf`, et douze écrans de l'espace
+ * enfant écrivaient `size="kid"` en dur à côté. Un adolescent de quatorze ans
+ * recevait donc partout les boutons géants prévus pour les cinq ans — c'est-à-
+ * dire exactement le registre dont ce fichier existe pour le protéger, et que
+ * `CLAUDE.md` nomme comme la raison numéro un qu'un adolescent ferme
+ * l'application.
+ *
+ * Une fonction plutôt qu'un champ à lire : un écran qui doit se souvenir de
+ * consulter `registerOf` finit par ne pas le faire, et c'est précisément ce qui
+ * s'est passé douze fois.
+ */
+export function tailleBouton(child: Child | null | undefined): 'kid' | 'default' {
+  return registerOf(child).bigButtons ? 'kid' : 'default';
+}
+
 export function registerOf(child: Child | null | undefined): Register {
   const band = bandOf(child);
   return {

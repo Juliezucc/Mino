@@ -19,6 +19,7 @@ import {
   trialEndForCheckout,
 } from '@/domain/billing';
 import { getBillingService } from '@/services/billing';
+import { useSession } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
 
@@ -51,6 +52,7 @@ export default function SubscriptionScreen() {
   const router = useRouter();
   const subscription = useMinoStore((s) => s.subscription);
   const choosePlan = useMinoStore((s) => s.choosePlan);
+  const session = useSession();
   const cancelSubscription = useMinoStore((s) => s.cancelSubscription);
   const changePlan = useMinoStore((s) => s.changePlan);
   const resumeSubscription = useMinoStore((s) => s.resumeSubscription);
@@ -218,6 +220,29 @@ export default function SubscriptionScreen() {
   };
 
   const subscribe = async () => {
+    /**
+     * Ne PAS ouvrir la feuille de paiement là où le serveur refusera.
+     *
+     * **Le défaut, et c'est le plus cher de tous.** `store-purchase` établit la
+     * famille par `familyOfCaller`, qui ne lit que la table `parents` : une
+     * session d'appareil rend `null`, donc 401 « Non autorisé ». Le refus
+     * arrive APRÈS la feuille de paiement, c'est-à-dire après qu'Apple ou
+     * Google a encaissé. De l'argent prélevé, un abonnement ouvert chez la
+     * boutique, et rien du tout côté Mino — la pire combinaison possible, et
+     * celle qui produit une réclamation qu'aucun de nos écrans ne sait
+     * résoudre.
+     *
+     * Un appareil appairé peut parfaitement atteindre cet écran : le code à
+     * quatre chiffres ouvre l'espace parent sur la tablette d'un enfant, c'est
+     * voulu. Ce qu'il ne peut pas, c'est acheter — et il vaut mieux le lui dire
+     * avant que la boutique ne s'ouvre.
+     */
+    if (session && session.kind !== 'parent') {
+      setError(
+        'L’abonnement se souscrit depuis le téléphone du parent qui a créé la famille. Cet appareil a rejoint la famille avec le code : la boutique encaisserait sans que Mino puisse rattacher l’achat.',
+      );
+      return;
+    }
     if (!(await previentDuneAvance())) return;
     setLoading(true);
     setError(null);

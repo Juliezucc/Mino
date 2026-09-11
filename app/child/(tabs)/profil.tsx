@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Mascot } from '@/components/mascot';
 import { AVATARS, Avatar, Button, Card, MinutesBadge, Screen, SectionHeader, Text } from '@/components/ui';
-import { unitOf } from '@/domain/ageBand';
+import { unitOf, tailleBouton } from '@/domain/ageBand';
 import { HistoryList } from '@/features/history/HistoryList';
 import { useActiveChild, useBalanceDetail, useFamily, useHistory } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
@@ -23,6 +23,10 @@ const BADGES = [
 export default function ChildProfile() {
   const router = useRouter();
   const child = useActiveChild();
+  // Les boutons géants sont pour les petits : voir `tailleBouton`. Douze écrans
+  // écrivaient « kid » en dur, et un adolescent de quatorze ans les recevait
+  // tous.
+  const taille = tailleBouton(child);
   const data = useFamily();
   const balance = useBalanceDetail(child?.id);
   const history = useHistory(child?.id);
@@ -70,7 +74,7 @@ export default function ChildProfile() {
           </View>
           <Button
             label="DISCUTER"
-            size="kid"
+            size={taille}
             full={false}
             onPress={() => router.push('/child/mino')}
           />
@@ -139,7 +143,7 @@ export default function ChildProfile() {
       <Button
         label="Changer de profil"
         icon="👥"
-        size="kid"
+        size={taille}
         variant="secondary"
         onPress={() => router.replace('/who')}
       />

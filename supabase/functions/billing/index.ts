@@ -473,7 +473,19 @@ Deno.serve(servir(async (request) => {
         return fail('Route inconnue.', 404);
     }
   } catch (error) {
+    /**
+     * Le texte d'une exception n'est pas une phrase pour un parent.
+     *
+     * Il vient de Stripe, de `fetch`, ou de n'importe quelle bibliothèque du
+     * chemin — donc en anglais, et souvent en jargon : « No such customer »,
+     * « Failed to fetch ». Tous les messages d'erreur de ce dépôt sont en
+     * français, y compris ceux qui viennent d'ailleurs, et celui-ci arrivait
+     * directement sur l'écran d'un parent qui essayait de payer.
+     *
+     * Le détail reste au journal, où il sert au diagnostic ; le parent reçoit
+     * une phrase qui lui dit quoi faire.
+     */
     console.error('billing', route, error);
-    return fail(error instanceof Error ? error.message : 'Erreur inattendue.', 500);
+    return fail('Le service de paiement n’a pas répondu. Réessayez dans un instant.', 500);
   }
 }));

@@ -6,7 +6,7 @@ import { AnimatedMascot } from '@/components/mascot';
 import { MascotExpression } from '@/components/mascot/types';
 import { Button, Card, Screen, ScreenHeader, Text } from '@/components/ui';
 import { formatDuration } from '@/domain/ledger';
-import { unitOf } from '@/domain/ageBand';
+import { unitOf, tailleBouton } from '@/domain/ageBand';
 import { ID } from '@/domain/types';
 import { formatTime } from '@/domain/minos';
 import { getScreenTimeService } from '@/services/screenTime';
@@ -28,6 +28,10 @@ export default function SessionScreen() {
   const router = useRouter();
   const { sessionId } = useLocalSearchParams<{ sessionId?: string }>();
   const child = useActiveChild();
+  // Les boutons géants sont pour les petits : voir `tailleBouton`. Douze écrans
+  // écrivaient « kid » en dur, et un adolescent de quatorze ans les recevait
+  // tous.
+  const taille = tailleBouton(child);
   const running = useRunningSession(child?.id);
   const endSession = useMinoStore((s) => s.endSession);
 
@@ -93,7 +97,7 @@ export default function SessionScreen() {
           <Text variant="title" center>
             Session terminée
           </Text>
-          <Button label="RETOUR" size="kid" variant="secondary" onPress={() => router.replace('/child/temps')} />
+          <Button label="RETOUR" size={taille} variant="secondary" onPress={() => router.replace('/child/temps')} />
         </Card>
       </Screen>
     );
@@ -111,7 +115,7 @@ export default function SessionScreen() {
       footer={
         <Button
           label="J’ARRÊTE MAINTENANT"
-          size="kid"
+          size={taille}
           variant="secondary"
           onPress={() => finish('stopped')}
           loading={closing}

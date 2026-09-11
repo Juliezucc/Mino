@@ -1,6 +1,6 @@
 import { buildDemoFamily } from '@/data/demo';
 import * as actions from '@/domain/actions';
-import { bandForAge, unitFor, unitOf } from '@/domain/ageBand';
+import { bandForAge, unitFor, unitOf, registerOf, tailleBouton } from '@/domain/ageBand';
 import { activeDevices, describeDevice } from '@/domain/devices';
 import { balanceOf } from '@/domain/ledger';
 import { Child, FamilyData } from '@/domain/types';
@@ -206,5 +206,43 @@ describe('modifier le profil d’un enfant', () => {
     const apres = actions.updateChild(deux, data.children[0].id, { age: 15 });
 
     expect(apres.children.find((c) => c.id === 'c2')?.age).toBe(7);
+  });
+});
+
+/**
+ * Les boutons géants sont pour les petits, et `bigButtons` n'était lu nulle
+ * part.
+ *
+ * Il est calculé correctement depuis toujours dans `registerOf`, et douze
+ * écrans de l'espace enfant écrivaient `size="kid"` en dur à côté. Un
+ * adolescent de quatorze ans recevait donc partout les boutons prévus pour les
+ * cinq ans — exactement le registre que `src/domain/ageBand.ts` existe pour
+ * protéger, et que `CLAUDE.md` nomme comme la raison numéro un qu'un
+ * adolescent ferme l'application.
+ */
+describe('la taille des boutons de l’enfant', () => {
+  it('est géante sous 13 ans', () => {
+    expect(tailleBouton(child({ age: 5 }))).toBe('kid');
+    expect(tailleBouton(child({ age: 12 }))).toBe('kid');
+  });
+
+  it('redevient ordinaire à partir de 13 ans', () => {
+    expect(tailleBouton(child({ age: 13 }))).toBe('default');
+    expect(tailleBouton(child({ age: 16 }))).toBe('default');
+  });
+
+  it('suit exactement `bigButtons`, et ne redéfinit pas le seuil', () => {
+    // Deux endroits qui décident du même seuil finissent par ne plus être
+    // d'accord : c'est ce qui vient d'arriver avec `size="kid"`.
+    for (const age of [4, 12, 13, 17]) {
+      const c = child({ age });
+      expect(tailleBouton(c) === 'kid').toBe(registerOf(c).bigButtons);
+    }
+  });
+
+  it('ne fait pas de suppositions sans enfant', () => {
+    // Le sélecteur de profil, ou une fraction de seconde avant que le profil
+    // n'arrive : le registre par défaut est celui du plus jeune.
+    expect(tailleBouton(null)).toBe(registerOf(null).bigButtons ? 'kid' : 'default');
   });
 });

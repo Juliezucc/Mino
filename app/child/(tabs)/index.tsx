@@ -8,7 +8,7 @@ import { Button, Card, MinutesBadge, Screen, Text, TimeRing } from '@/components
 import { changementDeProfilLibre } from '@/data/deviceProfile';
 import { BlocageAReglerBanner } from '@/features/child/BlocageAReglerBanner';
 import { MissionCard } from '@/features/child/MissionCard';
-import { unitOf } from '@/domain/ageBand';
+import { unitOf, tailleBouton } from '@/domain/ageBand';
 import { heure, openWindowAt } from '@/domain/freeWindows';
 import { pendingBonus } from '@/domain/bonus';
 import { lastSeenBonus } from '@/data/seenBonus';
@@ -20,6 +20,10 @@ import { colors, spacing, tabBarSpace } from '@/theme';
 export default function ChildHome() {
   const router = useRouter();
   const child = useActiveChild();
+  // Les boutons géants sont pour les petits : voir `tailleBouton`. Douze écrans
+  // écrivaient « kid » en dur, et un adolescent de quatorze ans les recevait
+  // tous.
+  const taille = tailleBouton(child);
   const balance = useBalanceDetail(child?.id);
   const missions = useChildMissions(child?.id);
   const data = useFamily();
@@ -222,7 +226,7 @@ export default function ChildHome() {
       <Button
         label="VOIR MES MISSIONS"
         icon="📋"
-        size="kid"
+        size={taille}
         onPress={() => router.push('/child/missions')}
       />
 

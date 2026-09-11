@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
 import { Button, Card, Screen, ScreenHeader, StatusPill, Text } from '@/components/ui';
-import { registerOf, unitOf } from '@/domain/ageBand';
+import { registerOf, unitOf, tailleBouton } from '@/domain/ageBand';
 import { formatTime, unitLabel } from '@/domain/minos';
 import { accentFor, colors, radii, spacing } from '@/theme';
 import { useActiveChild, useChildMissions } from '@/store/selectors';
@@ -19,6 +19,10 @@ export default function MissionDetail() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const child = useActiveChild();
+  // Les boutons géants sont pour les petits : voir `tailleBouton`. Douze écrans
+  // écrivaient « kid » en dur, et un adolescent de quatorze ans les recevait
+  // tous.
+  const taille = tailleBouton(child);
   const missions = useChildMissions(child?.id);
   const completeMission = useMinoStore((s) => s.completeMission);
 
@@ -66,13 +70,13 @@ export default function MissionDetail() {
           <Button
             label="RETOUR À MES MISSIONS"
             variant="secondary"
-            size="kid"
+            size={taille}
             onPress={() => router.back()}
           />
         ) : (
           <Button
             label="J’AI TERMINÉ ✓"
-            size="kid"
+            size={taille}
             variant="success"
             onPress={onFinish}
             loading={loading}
