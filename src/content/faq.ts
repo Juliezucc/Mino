@@ -195,6 +195,15 @@ export const FAQ: FaqEntry[] = [
     guide: 'blocage-applications',
   },
   {
+    id: 'message-grave-enfant',
+    question: 'Que se passe-t-il si mon enfant confie quelque chose de grave à Mino ?',
+    answer:
+      'Mino le reconnaît sur l’appareil même, sans qu’aucun modèle ne voie la phrase. Il répond un texte écrit à la main, toujours le même, qui oriente vers un adulte de confiance et donne le 119 — gratuit, confidentiel, joignable jour et nuit, et appelable d’une touche depuis son écran. Vous êtes prévenu que cela a eu lieu, à la date près, dans « Lire leurs conversations ». Mais ce que votre enfant a écrit n’est enregistré nulle part : c’est la condition pour qu’un enfant ose parler, y compris quand ce qu’il a à dire nous concerne. Si cette trace apparaît, ouvrez-lui une conversation le soir même.',
+    category: 'confidentialite',
+    keywords: ['message grave', 'inquietant', 'suicide', 'harcelement', 'violence', '119', 'alerte', 'securite enfant'],
+    route: '/parent/conversations',
+  },
+  {
     id: 'plages-libres',
     question: 'Comment ouvrir l’écran sans faire dépenser de minutes ? (plages libres)',
     answer:

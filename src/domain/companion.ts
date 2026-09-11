@@ -137,16 +137,33 @@ export interface Challenge {
   to: number;
 }
 
+/**
+ * **Aucune proposition écrite pour un petit n'atteint un adolescent.**
+ *
+ * `TEEN_FROM = 13` décide du registre partout ailleurs, et il décide ici
+ * aussi. Quatre défis et quatre devinettes enjambaient la frontière : un
+ * garçon de quatorze ans se voyait proposer « va dire un truc gentil à
+ * quelqu'un de ta maison 💛 », ou « j'ai quatre pattes et je ne marche
+ * jamais ». Ce n'est pas seulement décalé — c'est le ton qui lui fait fermer
+ * l'application, et le refermer pour de bon.
+ *
+ * La borne n'est pas mécanique pour autant : « lis un chapitre entier » ou
+ * « apprends deux vers d'un poème » se disent aussi bien à dix ans qu'à
+ * dix-sept, et les couper en deux ne servirait personne. Ce qu'on borne, c'est
+ * le REGISTRE — ce qui est écrit pour un petit s'arrête à douze ans.
+ * `__tests__/companion.test.ts` refuse qu'une proposition ouverte à un enfant
+ * de six ans en atteigne un de quatorze.
+ */
 export const CHALLENGES: Challenge[] = [
   { id: 'images', text: 'Ouvre un livre et regarde les images. Tu me raconteras ta préférée 📚', from: 4, to: 8 },
   { id: 'bruits', text: 'Assieds-toi, ferme les yeux, et trouve trois bruits différents 👂', from: 4, to: 10 },
   { id: 'chanson', text: 'Chante-moi une chanson que tu connais par cœur. Moi je chante très mal 🎵', from: 4, to: 9 },
-  { id: 'mot-gentil', text: 'Va dire un truc gentil à quelqu’un de ta maison 💛', from: 4, to: 13 },
+  { id: 'mot-gentil', text: 'Va dire un truc gentil à quelqu’un de ta maison 💛', from: 4, to: 12 },
   { id: 'histoire', text: 'Invente une histoire dans ta tête, avec un héros qui s’appelle comme toi 📖', from: 5, to: 11 },
   { id: 'memoire', text: 'Ferme les yeux et rappelle-toi dix choses de ta chambre. Dix, pas neuf 🙈', from: 5, to: 12 },
-  { id: 'devinette', text: 'Invente une devinette et viens me la poser demain. J’adore chercher 🤔', from: 6, to: 13 },
-  { id: 'raconter', text: 'Va raconter le meilleur moment de ta journée à quelqu’un de ta maison', from: 6, to: 14 },
-  { id: 'lecture', text: 'Lis une page d’un livre, n’importe lequel, et raconte-la-moi demain 📚', from: 7, to: 15 },
+  { id: 'devinette', text: 'Invente une devinette et viens me la poser demain. J’adore chercher 🤔', from: 6, to: 12 },
+  { id: 'raconter', text: 'Va raconter le meilleur moment de ta journée à quelqu’un de ta maison', from: 6, to: 12 },
+  { id: 'lecture', text: 'Lis une page d’un livre, n’importe lequel, et raconte-la-moi demain 📚', from: 7, to: 12 },
   { id: 'chapitre', text: 'Lis un chapitre entier. Un seul. Tu verras, ça passe vite 📖', from: 10, to: 17 },
   { id: 'poeme', text: 'Apprends deux vers d’un poème par cœur. Tu me les diras demain', from: 10, to: 17 },
   { id: 'conseil', text: 'Demande à quelqu’un de ta maison de te conseiller un livre. Tu verras bien 📚', from: 12, to: 17 },
@@ -201,11 +218,11 @@ export const RIDDLES: Riddle[] = [
   { id: 'ombre', question: 'Je te suis partout dans la journée, et la nuit je disparais. Qui suis-je ?', answer: 'ton ombre', from: 4, to: 12 },
   { id: 'chaise', question: 'J’ai quatre pattes et je ne marche jamais. Qui suis-je ?', answer: 'une chaise', from: 4, to: 10 },
   { id: 'peigne', question: 'J’ai des dents et je ne mange rien. Qui suis-je ?', answer: 'un peigne', from: 4, to: 11 },
-  { id: 'serviette', question: 'Plus je sèche, plus je suis mouillée. Qui suis-je ?', answer: 'une serviette', from: 5, to: 13 },
+  { id: 'serviette', question: 'Plus je sèche, plus je suis mouillée. Qui suis-je ?', answer: 'une serviette', from: 5, to: 12 },
   { id: 'eponge', question: 'Je suis pleine de trous, et je garde l’eau quand même. Qui suis-je ?', answer: 'une éponge', from: 5, to: 12 },
-  { id: 'age', question: 'Qu’est-ce qui monte et qui ne redescend jamais ?', answer: 'ton âge', from: 5, to: 14 },
-  { id: 'trou', question: 'Plus on m’enlève, plus je deviens grand. Qui suis-je ?', answer: 'un trou', from: 6, to: 14 },
-  { id: 'tableau', question: 'Je suis blanc quand je suis sale, et noir quand je suis propre. Qui suis-je ?', answer: 'un tableau', from: 6, to: 15 },
+  { id: 'age', question: 'Qu’est-ce qui monte et qui ne redescend jamais ?', answer: 'ton âge', from: 5, to: 12 },
+  { id: 'trou', question: 'Plus on m’enlève, plus je deviens grand. Qui suis-je ?', answer: 'un trou', from: 6, to: 12 },
+  { id: 'tableau', question: 'Je suis blanc quand je suis sale, et noir quand je suis propre. Qui suis-je ?', answer: 'un tableau', from: 6, to: 12 },
   { id: 'echo', question: 'Je répète tout ce que tu dis, et je n’ai jamais rien appris. Qui suis-je ?', answer: 'l’écho', from: 7, to: 17 },
   { id: 'silence', question: 'Qu’est-ce qui se casse dès qu’on le dit ?', answer: 'le silence', from: 7, to: 17 },
   { id: 'lettre-n', question: 'Je suis au début de la nuit et à la fin du matin. Qui suis-je ?', answer: 'la lettre N', from: 8, to: 17 },

@@ -93,8 +93,10 @@ export default function ConversationsScreen() {
         <>
           <Card background={colors.blueSoft} elevation="none">
             <Text variant="caption" color={colors.textMuted}>
-              Votre enfant sait que vous pouvez lire ces conversations : c’est écrit sous la sienne.
-              Elles sont conservées trente jours, puis effacées.
+              Votre enfant sait que vous pouvez lire ces conversations : c’est écrit sous la
+              sienne. Elles sont conservées trente jours, puis effacées. Ce qu’il confie à Mino
+              sur un sujet grave n’est pas enregistré : vous saurez que cela a eu lieu, sans
+              les mots.
             </Text>
           </Card>
 
@@ -121,6 +123,22 @@ export default function ConversationsScreen() {
                   </Text>
                   <Text variant="body">{line.text}</Text>
                 </View>
+                {/*
+                  Dire ce qui n'est PAS là, et pourquoi.
+                  Sans cette phrase, un parent voit la réponse de Mino sans
+                  rien devant, et en conclut soit un bogue, soit que son enfant
+                  n'a rien dit. Les deux sont faux, et l'un des deux le
+                  détournerait d'une conversation qu'il faut avoir le soir
+                  même.
+                */}
+                {line.safety === 'alert' && line.role === 'mino' ? (
+                  <Text variant="caption" color={colors.textMuted} style={styles.note}>
+                    {child?.firstName ?? 'Votre enfant'} a écrit quelque chose que Mino a jugé
+                    trop important pour lui. Ses mots ne sont pas enregistrés — c’est ce qui permet
+                    à un enfant de parler. Le 119 lui a été donné, et il est appelable depuis son
+                    écran.
+                  </Text>
+                ) : null}
               </View>
             );
           })}
@@ -131,6 +149,7 @@ export default function ConversationsScreen() {
 }
 
 const styles = StyleSheet.create({
+  note: { marginTop: spacing.xs, marginBottom: spacing.sm, paddingHorizontal: spacing.sm },
   content: { paddingTop: spacing.md, paddingBottom: spacing.xl, gap: spacing.sm },
   day: { paddingTop: spacing.lg, paddingBottom: spacing.xs },
   bubble: { padding: spacing.md, borderRadius: radii.lg, gap: 2 },

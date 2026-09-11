@@ -42,10 +42,25 @@ export class EdgeCompanionService implements CompanionService {
   async say(input: Parameters<CompanionService['say']>[0]): Promise<CompanionReply> {
     const safety = triage(input.message);
 
-    // Ce qui touche à la sécurité de l'enfant ne quitte pas l'appareil et ne
-    // passe par aucun modèle : la réponse est écrite, et elle est la même pour
-    // tout le monde.
+    /**
+     * Ce qui touche à la sécurité de l'enfant ne quitte pas l'appareil et ne
+     * passe par aucun modèle : la réponse est écrite, et elle est la même pour
+     * tout le monde.
+     *
+     * **Mais le FAIT remonte, lui.** Rien n'était écrit nulle part : « Lire
+     * leurs conversations » n'en portait aucune trace, et le parent d'un enfant
+     * harcelé ne savait jamais rien. On prévient donc le serveur qu'une alerte
+     * a eu lieu — sans un mot de ce que l'enfant a écrit. Ce que Mino a
+     * répondu est une constante du dépôt, identique pour tous ; ce que l'enfant
+     * a dit reste sur son téléphone.
+     *
+     * Jamais attendu, et sans conséquence s'il échoue : un enfant en danger
+     * reçoit sa réponse et le 119 quoi qu'il arrive, réseau ou pas.
+     */
     if (safety === 'alert') {
+      void this.invoke('companion', { childId: input.childId, alerte: true }).catch(
+        () => undefined,
+      );
       return { text: ALERT_REPLY, safety, left: await this.remaining(input.childId), closed: false };
     }
 

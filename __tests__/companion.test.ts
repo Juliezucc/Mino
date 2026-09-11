@@ -1,3 +1,4 @@
+import { EdgeCompanionService } from '@/services/companion/EdgeCompanionService';
 import { readFileSync } from 'node:fs';
 
 import {
@@ -568,5 +569,124 @@ describe('les deux copies de Mino ne doivent pas diverger', () => {
       // compare le texte, pas sa présentation.
       expect(laBas.replace(/\s+/g, ' ')).toContain(valeur.slice(0, 40));
     }
+  });
+});
+
+/**
+ * Une alerte laisse une trace, et pas les mots de l'enfant.
+ *
+ * **Les deux réponses évidentes étaient mauvaises.** Ne rien garder — ce qui
+ * était le cas — laisse le parent d'un enfant harcelé sans le moindre signal :
+ * le triage se fait sur l'appareil, la réponse ne passe par aucun modèle, et
+ * rien n'atteignait jamais « Lire leurs conversations ». Tout garder mettrait
+ * les mots de l'enfant sous les yeux de quelqu'un qui peut être en cause, ce
+ * qui est exactement la raison pour laquelle le 119 est confidentiel.
+ *
+ * On garde donc le FAIT : la réponse de Mino, écrite à la main et identique
+ * pour tous, et l'instant. Le parent sait qu'il doit ouvrir une conversation ;
+ * ce que son enfant a écrit reste à son enfant.
+ */
+describe('la trace d’une alerte', () => {
+  function service(reponses: { appels: { nom: string; corps: unknown }[] }) {
+    return new EdgeCompanionService(
+      async (nom: string, corps: unknown) => {
+        reponses.appels.push({ nom, corps });
+        return null;
+      },
+      async () => 10,
+    );
+  }
+
+  it('prévient le serveur SANS envoyer un mot de ce que l’enfant a écrit', async () => {
+    const reponses = { appels: [] as { nom: string; corps: unknown }[] };
+    const s = service(reponses);
+
+    await s.say({
+      childId: 'c1',
+      message: 'je veux mourir',
+      context: {} as never,
+      history: [],
+    });
+
+    expect(reponses.appels).toHaveLength(1);
+    expect(reponses.appels[0].nom).toBe('companion');
+    // Trois champs, et le message n'en fait pas partie.
+    expect(reponses.appels[0].corps).toEqual({ childId: 'c1', alerte: true });
+    expect(JSON.stringify(reponses.appels[0].corps)).not.toContain('mourir');
+  });
+
+  it('rend la réponse écrite à la main, avec le 119', async () => {
+    const reponses = { appels: [] as { nom: string; corps: unknown }[] };
+    const reply = await service(reponses).say({
+      childId: 'c1',
+      message: 'papa me frappe',
+      context: {} as never,
+      history: [],
+    });
+
+    expect(reply.safety).toBe('alert');
+    expect(reply.text).toBe(ALERT_REPLY);
+    expect(reply.text).toContain('119');
+  });
+
+  it('répond même quand le signalement échoue — le réseau ne conditionne rien', async () => {
+    const s = new EdgeCompanionService(async () => {
+      throw new Error('hors ligne');
+    }, async () => 10);
+
+    const reply = await s.say({
+      childId: 'c1',
+      message: 'je veux mourir',
+      context: {} as never,
+      history: [],
+    });
+
+    expect(reply.text).toBe(ALERT_REPLY);
+  });
+});
+
+/**
+ * Rien de ce qui est écrit pour un petit n'atteint un adolescent.
+ *
+ * `TEEN_FROM = 13` décide du registre partout dans l'application, et il décide
+ * ici aussi. Quatre défis et quatre devinettes enjambaient la frontière : un
+ * garçon de quatorze ans se voyait proposer « va dire un truc gentil à
+ * quelqu'un de ta maison 💛 », ou « j'ai quatre pattes et je ne marche
+ * jamais ». Ce n'est pas seulement décalé — c'est le ton qui lui fait fermer
+ * l'application, et le refermer pour de bon.
+ *
+ * La règle éprouvée ici n'est pas « aucune tranche ne franchit 13 » : « lis un
+ * chapitre entier » se dit aussi bien à dix ans qu'à dix-sept, et le couper en
+ * deux ne servirait personne. C'est : ce qui est ouvert à un enfant de six ans
+ * ne doit pas être proposé à un adolescent.
+ */
+describe('le registre des propositions de Mino', () => {
+  const PETIT = 6;
+
+  it('ne propose à un ado AUCUN défi écrit pour un enfant de six ans', () => {
+    for (const age of [13, 14, 15, 16, 17]) {
+      const ecritsPourUnPetit = challengesFor(age).filter((c) => c.from <= PETIT);
+      expect(ecritsPourUnPetit.map((c) => c.id)).toEqual([]);
+    }
+  });
+
+  it('ne propose à un ado AUCUNE devinette écrite pour un enfant de six ans', () => {
+    for (const age of [13, 14, 15, 16, 17]) {
+      const ecritesPourUnPetit = riddlesFor(age).filter((r) => r.from <= PETIT);
+      expect(ecritesPourUnPetit.map((r) => r.id)).toEqual([]);
+    }
+  });
+
+  it('laisse quand même de quoi faire à un adolescent', () => {
+    // Une borne qui vide la liste n'est pas une borne, c'est une panne :
+    // `pickChallenge` rendrait `null` et Mino n'aurait plus rien à proposer.
+    expect(challengesFor(14).length).toBeGreaterThanOrEqual(3);
+    expect(riddlesFor(14).length).toBeGreaterThanOrEqual(3);
+    expect(pickChallenge(14, 0)).not.toBeNull();
+  });
+
+  it('et de quoi faire à un enfant de six ans', () => {
+    expect(challengesFor(PETIT).length).toBeGreaterThanOrEqual(3);
+    expect(riddlesFor(PETIT).length).toBeGreaterThanOrEqual(3);
   });
 });

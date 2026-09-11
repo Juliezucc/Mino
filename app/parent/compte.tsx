@@ -228,7 +228,22 @@ export default function CompteParent() {
         ) : null}
       </View>
 
-      {gereLeCompte === null ? null : gereLeCompte ? null : (
+      {/*
+        Le temps d'un aller-retour, l'écran était entièrement vide.
+
+        Sous « Mon compte », il ne restait rien : ni carte, ni champ, ni
+        indication. Sur un réseau lent — ou coupé, auquel cas la réponse
+        n'arrive jamais — un parent regardait un titre seul et concluait que
+        l'écran est cassé. Dire « on regarde » coûte trois lignes et vaut mieux
+        que le silence, qui n'est jamais lu comme de l'attente.
+      */}
+      {gereLeCompte === null ? (
+        <Card background={colors.surfaceMuted} elevation="none" style={styles.block}>
+          <Text variant="body" color={colors.textMuted}>
+            Un instant : Mino vérifie de quel compte il s’agit.
+          </Text>
+        </Card>
+      ) : gereLeCompte ? null : (
         <Card background={colors.blueSoft} elevation="none" style={styles.block}>
           <Text variant="bodyStrong" color={colors.blueInk}>
             Le compte se gère depuis le téléphone qui a créé la famille.

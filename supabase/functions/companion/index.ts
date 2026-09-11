@@ -263,14 +263,54 @@ async function remember(input: {
 
 Deno.serve(servir(async (request) => {
 
-  let body: { childId?: string; message?: string; context?: Context; history?: { role: string; text: string }[] };
+  let body: {
+    childId?: string;
+    message?: string;
+    context?: Context;
+    history?: { role: string; text: string }[];
+    alerte?: boolean;
+  };
   try {
     body = await request.json();
   } catch {
     return fail('Requête illisible.', 400);
   }
 
-  if (!body.childId || !body.message || !body.context) return fail('Message incomplet.', 400);
+  if (!body.childId) return fail('Message incomplet.', 400);
+
+  /**
+   * ------------------------------------------- une alerte, sans les mots de l'enfant
+   *
+   * **Ce que ce chemin existe pour résoudre.** Quand un enfant écrit quelque
+   * chose de grave, le triage se fait SUR SON APPAREIL et la réponse ne passe
+   * par aucun modèle : ses mots ne quittent pas le téléphone. C'est juste, et
+   * cela reste. Mais rien n'était écrit nulle part — donc « Lire leurs
+   * conversations » n'en portait aucune trace, et le parent d'un enfant
+   * harcelé ne savait jamais rien.
+   *
+   * Les deux réponses évidentes sont mauvaises. Ne rien garder laisse un
+   * parent sans le moindre signal. Tout garder met les mots de l'enfant sous
+   * les yeux de quelqu'un qui peut être en cause — et c'est la raison pour
+   * laquelle le 119 est confidentiel.
+   *
+   * On garde donc le FAIT, et pas le contenu : la réponse de Mino, qui est
+   * écrite à la main et identique pour tous, et l'instant. Le parent sait
+   * qu'il doit ouvrir une conversation ; ce que son enfant a écrit reste à son
+   * enfant.
+   *
+   * Aucun texte ne vient du client sur ce chemin : le corps ne porte qu'un
+   * drapeau, et `ALERT_REPLY` est cette constante-ci. Sans quoi cette route
+   * deviendrait un moyen d'écrire ce qu'on veut dans la conversation d'un
+   * enfant.
+   */
+  if (body.alerte === true) {
+    const enfant = await childOfCaller(request, body.childId);
+    if (!enfant) return fail('Profil introuvable.', 404);
+    await remember({ ...enfant, role: 'mino', text: ALERT_REPLY, safety: 'alert' });
+    return json({ note: true });
+  }
+
+  if (!body.message || !body.context) return fail('Message incomplet.', 400);
 
   const child = await childOfCaller(request, body.childId);
   if (!child) return fail('Non autorisé.', 403);
