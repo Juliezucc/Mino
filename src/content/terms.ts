@@ -45,11 +45,23 @@ export const TERMS: LegalDocument = {
         },
         {
           kind: 'note',
-          text: 'Mino verrouille lui-même les applications que vous désignez sur l’appareil de votre enfant, et lève ce verrou le temps qu’il a gagné. Cette fonction dépend d’une autorisation que le système d’exploitation vous demande d’accorder sur cet appareil, et que vous pouvez retirer à tout moment depuis ses réglages : sans elle, ou sur un appareil qui ne la propose pas, Mino compte et décompte le temps sans rien verrouiller, et l’application vous l’indique. La restriction relève alors du contrôle parental du système (Temps d’écran sur iOS, Family Link ou Bien-être numérique sur Android), que le guide intégré détaille.',
+          text: 'Mino encadre lui-même les applications que vous désignez sur l’appareil de votre enfant, et lève cet encadrement pendant le temps qu’il a gagné. Les deux systèmes d’exploitation ne l’autorisent pas de la même façon : sur iPhone et iPad, Mino empêche réellement l’ouverture des applications désignées, par le mécanisme de contrôle parental d’Apple ; sur Android, il affiche un écran par-dessus l’application désignée dès qu’elle passe au premier plan, ce qui la rend inutilisable sans l’arrêter — cet écran apparaît en une seconde environ, et l’application reste ouverte en arrière-plan. Le retour de l’encadrement à la fin du temps gagné intervient à la minute près sur Android, et par tranches d’un quart d’heure sur iPhone et iPad, Apple ne permettant pas mieux sans que l’application soit lancée.',
         },
         {
           kind: 'note',
-          text: 'Le choix des applications concernées vous appartient entièrement : Mino n’en désigne aucune de lui-même et n’a pas connaissance de celles que vous cochez, le système ne lui transmettant qu’un décompte. Il ne verrouille jamais sa propre application, afin que votre enfant puisse toujours consulter ses missions. Les appels d’urgence ne sont jamais bloqués.',
+          text: 'Cet encadrement suppose une autorisation que le système d’exploitation vous demande d’accorder sur l’appareil de votre enfant, et que vous pouvez retirer à tout moment depuis ses réglages. Tant qu’elle n’est pas accordée, Mino vous le signale et vous propose de compter le temps sans rien encadrer ; si vous ne choisissez pas ce mode, votre enfant ne peut pas lancer de séance, afin que ses minutes ne soient pas dépensées pour un écran que rien n’ouvre. La restriction relève alors du contrôle parental du système (Temps d’écran sur iOS, Family Link ou Bien-être numérique sur Android), que le guide intégré détaille.',
+        },
+        {
+          kind: 'note',
+          text: 'Le choix des applications vous appartient entièrement : Mino n’en désigne aucune de lui-même. Sur iPhone et iPad, il ignore lesquelles vous avez cochées — Apple ne lui transmet que des identifiants anonymes et leur nombre. Sur Android, où ce mécanisme n’existe pas, il lit la liste des applications installées pour vous les présenter et conserve sur l’appareil, et sur lui seul, le nom de celles que vous cochez ; cette liste n’est jamais transmise à nos serveurs, qui n’en reçoivent que le nombre.',
+        },
+        {
+          kind: 'note',
+          text: 'Mino ne se désigne jamais lui-même, afin que votre enfant puisse toujours consulter ses missions : sur Android il s’exclut expressément, et sur iPhone et iPad le système protège l’application qui détient l’autorisation. Sur Android, Mino écarte de la même façon le composeur d’appels défini sur l’appareil. Sur iPhone et iPad, ne pouvant pas le reconnaître, il ne le peut pas : il vous appartient de ne cocher ni Téléphone, ni Messages, ni une catégorie qui les contiendrait. Les dispositifs d’appel d’urgence propres au système d’exploitation — appel depuis l’écran verrouillé, SOS — ne passent pas par Mino et ne sont pas encadrés par lui ; Mino ne s’y substitue pas et ne peut pas s’en porter garant.',
+        },
+        {
+          kind: 'p',
+          text: 'Vous pouvez également déclarer des plages horaires — un mercredi après-midi, des vacances — pendant lesquelles les applications encadrées s’ouvrent librement sans qu’aucune minute ne soit décomptée. L’encadrement reprend de lui-même à la fin de la plage.',
         },
         {
           kind: 'p',
@@ -84,6 +96,14 @@ export const TERMS: LegalDocument = {
         {
           kind: 'p',
           text: 'Le compte doit être ouvert par une personne majeure, titulaire de l’autorité parentale sur les enfants dont elle crée les profils, ou dûment autorisée par ce titulaire. En créant un profil enfant, vous déclarez disposer de cette qualité.',
+        },
+        {
+          kind: 'p',
+          text: 'Le contrat est conclu avec cette personne seule, désignée ici comme le titulaire. Elle peut inviter un second adulte à rejoindre la famille depuis son propre appareil, en lui communiquant le code famille puis le code à quatre chiffres : celui-ci accède alors aux mêmes profils, missions et historiques, et peut les modifier, sans souscrire de contrat ni ouvrir de compte. Le titulaire répond de cette invitation comme de ses propres actes, et peut y mettre fin à tout moment depuis Réglages, « Les parents » — l’appareil concerné perd immédiatement tout accès.',
+        },
+        {
+          kind: 'note',
+          text: 'La gestion du contrat demeure attachée au titulaire : lui seul peut modifier l’adresse et le mot de passe du compte, souscrire ou faire cesser l’abonnement, et supprimer la famille. Un second adulte ne le peut pas, et le service le lui refuse. Il vous appartient de garder confidentiels le code famille et le code à quatre chiffres, qui suffisent ensemble à rejoindre votre famille ; si vous pensez qu’ils ont été découverts, changez le code à quatre chiffres et retirez les profils que vous ne reconnaissez pas.',
         },
         {
           kind: 'note',
@@ -232,6 +252,10 @@ export const TERMS: LegalDocument = {
         {
           kind: 'p',
           text: 'Dans les deux cas, la résiliation prend effet à la fin de la période déjà payée : vous conservez l’accès jusque-là, et rien n’est prélevé ensuite.',
+        },
+        {
+          kind: 'note',
+          text: 'Supprimer votre compte ne résilie pas l’abonnement. Si vous vous êtes abonné par l’App Store ou Google Play, eux seuls peuvent y mettre fin, et le prélèvement se poursuivrait sur un compte effacé, sans que nous puissions le rattacher à quoi que ce soit. Résiliez d’abord, supprimez ensuite : l’application vous le rappelle au moment de confirmer la suppression.',
         },
         {
           kind: 'p',

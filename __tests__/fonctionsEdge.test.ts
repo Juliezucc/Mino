@@ -186,3 +186,36 @@ describe('valider-mission ne crédite que le barème du parent', () => {
     expect(source).toContain('if (minutes === null)');
   });
 });
+
+/**
+ * Les mots d'un enfant en danger ne sont écrits nulle part.
+ *
+ * **Le défaut rendait faux ce que la politique de confidentialité promet.** Le
+ * triage a lieu sur l'appareil, qui s'arrête avant d'envoyer — on croyait donc
+ * le cas impossible. Mais les deux triages ne sont pas toujours le même code :
+ * un téléphone dont la mise à jour n'est pas passée porte l'ancien, et c'est
+ * précisément le téléphone d'un enfant qui met le plus longtemps à se mettre à
+ * jour. La phrase partait alors, et `remember` la rangeait en clair dans
+ * `companion_messages` AVANT la branche d'alerte. Le parent l'y lisait.
+ */
+describe('companion n’enregistre jamais un message grave', () => {
+  const source = readFileSync('supabase/functions/companion/index.ts', 'utf8');
+
+  it('écarte le message de l’enfant dès que le triage dit « alerte »', () => {
+    expect(source).toContain("if (record && safety !== 'alert') await remember(");
+  });
+
+  it('garde la trace de la réponse de Mino, elle', () => {
+    // Sans elle, le parent ne saurait rien du tout — c'est le choix qui a été
+    // arbitré : le fait, jamais le contenu.
+    expect(source).toContain("role: 'mino', text: ALERT_REPLY, safety: 'alert'");
+  });
+
+  it('ne renvoie jamais au modèle un message jugé grave', () => {
+    // La branche d'alerte rend sa réponse avant tout appel au modèle.
+    const avantModele = source.indexOf("if (safety === 'alert')");
+    const appelModele = source.indexOf('anthropic');
+    expect(avantModele).toBeGreaterThan(0);
+    if (appelModele > 0) expect(avantModele).toBeLessThan(appelModele);
+  });
+});

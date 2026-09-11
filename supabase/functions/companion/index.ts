@@ -339,7 +339,27 @@ Deno.serve(servir(async (request) => {
   });
 
   const record = allowed === true;
-  if (record) await remember({ ...child, role: 'child', text: message, safety });
+  /**
+   * LES MOTS DE L'ENFANT NE SONT PAS ÉCRITS QUAND C'EST GRAVE.
+   *
+   * **Le défaut, et il rendait faux ce que la politique de confidentialité
+   * promet.** Cette ligne s'exécutait AVANT la branche d'alerte quelques
+   * lignes plus bas : un message que le serveur juge grave était donc rangé
+   * dans `companion_messages`, en clair, avant même qu'on décide de ne pas le
+   * traiter. Le parent l'y lisait.
+   *
+   * On croyait le cas impossible parce que le triage a lieu aussi sur
+   * l'appareil, qui s'arrête avant d'envoyer. Mais les deux triages ne sont
+   * pas toujours le même code : un téléphone dont la mise à jour n'est pas
+   * passée porte l'ancien, et c'est précisément le téléphone d'un enfant qui
+   * met le plus longtemps à se mettre à jour. La phrase partait alors, et
+   * atterrissait ici.
+   *
+   * Le garde-fou est donc ici, où il ne dépend de la version de personne. Ce
+   * qui reste enregistré est ce que l'application choisit : la réponse de
+   * Mino et sa date, jamais les mots de l'enfant.
+   */
+  if (record && safety !== 'alert') await remember({ ...child, role: 'child', text: message, safety });
 
   // Ce qui touche à la sécurité de l'enfant n'atteint jamais le modèle : la
   // réponse est écrite, identique pour tous, et elle oriente vers des humains

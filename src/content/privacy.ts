@@ -44,7 +44,7 @@ export const PRIVACY: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: 'Elles se répartissent en six catégories, et la liste ci-dessous est exhaustive.',
+          text: 'Elles se répartissent en sept catégories, et la liste ci-dessous est exhaustive.',
         },
         {
           kind: 'rows',
@@ -63,11 +63,15 @@ export const PRIVACY: LegalDocument = {
             },
             {
               label: 'Appareils de la famille',
-              value: 'Pour chaque appareil rattaché : le prénom de l’enfant auquel il est réservé s’il y en a un, le nom que son propriétaire a donné à son téléphone, l’état du verrouillage et la date du dernier contact, ainsi qu’un jeton de notification. Le NOMBRE d’applications que vous avez choisi de verrouiller, et lui seul : le système d’exploitation ne nous transmet jamais lesquelles, et nous ne pouvons donc pas savoir ce que votre enfant a installé ni ce qu’il utilise.',
+              value: 'Pour chaque appareil rattaché : le prénom de l’enfant auquel il est réservé s’il y en a un, le nom que son propriétaire a donné à son téléphone, l’état de l’encadrement et la date du dernier contact, ainsi qu’un jeton de notification. S’y ajoute le NOMBRE d’applications que vous avez choisi d’encadrer — jamais lesquelles : nos serveurs n’en reçoivent que le décompte. Sur iPhone et iPad, l’application elle-même l’ignore, Apple ne lui remettant que des identifiants anonymes. Sur Android, ce mécanisme n’existe pas : pour vous présenter la liste, Mino lit les applications installées sur l’appareil, et il conserve le nom de celles que vous cochez dans la mémoire privée de l’application, sur cet appareil et nulle part ailleurs. Nous n’y avons pas accès.',
             },
             {
               label: 'Abonnement',
               value: 'Statut de l’abonnement, dates, codes de parrainage. Les coordonnées bancaires ne transitent jamais par Mino : elles sont saisies et conservées directement par notre prestataire de paiement.',
+            },
+            {
+              label: 'Signalements et rapports d’incident',
+              value: 'Lorsque vous nous signalez un problème : votre message, l’adresse e-mail que vous laissez si vous en laissez une pour être recontacté, la version de Mino, votre plateforme et sa version, l’écran d’où part le signalement, et des compteurs (nombre d’enfants, de missions, d’appareils). Lorsque l’application rencontre une erreur technique, un rapport du même genre part automatiquement, sans message de votre part, avec la trace de l’erreur — y compris depuis l’appareil d’un enfant. Les prénoms de vos enfants et toute adresse citée dans le texte en sont retirés avant l’envoi. Ces signalements nous parviennent aussi par e-mail.',
             },
             {
               label: 'Conversations avec Mino',
@@ -121,6 +125,10 @@ export const PRIVACY: LegalDocument = {
         {
           kind: 'p',
           text: 'Mino est conçu pour que l’enfant n’ait jamais de compte à lui. C’est le parent, titulaire de l’autorité parentale, qui ouvre le compte, crée les profils et décide de ce qui y figure. Le traitement des données de l’enfant repose sur le contrat conclu avec ce parent et sur son autorisation.',
+        },
+        {
+          kind: 'p',
+          text: 'Une famille peut compter un second adulte. Celui-ci rejoint depuis son propre téléphone, avec le code famille puis le code à quatre chiffres, sans compte ni adresse à donner : c’est donc le parent qui a ouvert le compte qui l’autorise, en lui transmettant ce code, et lui seul. Le second adulte voit alors les mêmes données que lui — les profils, les missions, l’historique, et les conversations avec Mino — et peut les modifier. Il ne peut ni changer l’adresse du compte, ni résilier l’abonnement, ni supprimer la famille. Le parent titulaire peut retirer ce profil à tout moment, depuis Réglages puis « Les parents » : l’appareil concerné perd immédiatement tout accès.',
         },
         {
           kind: 'p',
@@ -210,6 +218,8 @@ export const PRIVACY: LegalDocument = {
             { label: 'Supabase', value: 'Hébergement de la base de données et authentification, en région européenne.' },
             { label: 'Stripe', value: 'Traitement des paiements et facturation. Stripe est responsable de traitement pour les données bancaires, que nous ne voyons jamais.' },
             { label: 'Anthropic', value: 'Génération des réponses du personnage Mino, lorsque cette fonctionnalité est activée. Voir la section 5.' },
+            { label: 'Expo', value: 'Acheminement des notifications vers vos appareils. Le service reçoit le jeton de l’appareil et le texte de la notification — par exemple « Manon a terminé une mission » : un prénom d’enfant y figure donc.' },
+            { label: 'Notre hébergeur de courrier', value: 'Acheminement de nos e-mails : bienvenue, rappel avant le premier prélèvement, information avant reconduction, réponse à un signalement. Il reçoit votre adresse et le contenu du message.' },
           ],
         },
         {
@@ -228,12 +238,17 @@ export const PRIVACY: LegalDocument = {
             { label: 'Historique détaillé (missions faites, minutes dépensées)', value: '90 jours. Au-delà, le détail est effacé et seul le total des minutes est conservé : le compteur de votre enfant reste juste, mais nous ne gardons pas la trace de ce qui a été fait il y a six mois.' },
             { label: 'Factures', value: '10 ans, conformément aux obligations comptables françaises.' },
             { label: 'Conversations avec Mino', value: '30 jours, puis effacement automatique.' },
+            { label: 'Signalements et rapports d’incident', value: '12 mois, puis effacement automatique. Ils ne sont pas rattachés à votre famille mais au compte qui les a envoyés : si vous supprimez votre compte, le lien est rompu et il ne subsiste qu’un texte anonyme — déjà nettoyé des prénoms — dont nous ne pouvons plus dire de qui il vient.' },
             { label: 'Journaux techniques', value: '12 mois au maximum.' },
           ],
         },
         {
           kind: 'p',
-          text: 'La suppression de votre compte se fait depuis l’application — Réglages, « Gérer mon compte » — et n’exige de nous écrire à personne. Elle entraîne l’effacement immédiat et définitif des profils enfants, des missions, de l’historique de temps et des minutes gagnées. Seules les factures déjà émises subsistent, pour la durée légale rappelée ci-dessus ; elles ne contiennent aucune donnée d’enfant.',
+          text: 'La suppression de votre compte se fait depuis l’application — Réglages, « Gérer mon compte » — et n’exige de nous écrire à personne. Elle entraîne l’effacement immédiat et définitif des profils enfants, des missions, de l’historique de temps et des minutes gagnées. Elle est réservée au parent qui a ouvert le compte : un second parent, qui a rejoint la famille par le code et n’a donné aucune adresse, ne peut pas l’exercer — il peut en revanche demander à tout moment que son propre profil soit retiré. Seules les factures déjà émises subsistent, pour la durée légale rappelée ci-dessus ; elles ne contiennent aucune donnée d’enfant.',
+        },
+        {
+          kind: 'note',
+          text: 'La suppression du compte n’annule pas un abonnement souscrit par l’App Store ou Google Play : eux seuls peuvent le résilier, et le prélèvement continuerait sans nous. Résiliez-le depuis votre téléphone avant de supprimer le compte — l’application vous le rappelle au moment de confirmer.',
         },
       ],
     },
