@@ -79,7 +79,7 @@ export const FAQ: FaqEntry[] = [
       'Installez Mino depuis l’App Store ou le Play Store sur son appareil, ouvrez l’application et choisissez « J’ai un code famille ». Votre code se trouve dans Réglages, sur votre propre téléphone. Le système vous demandera ensuite l’autorisation d’un adulte : c’est normal, c’est ce qui permet de vraiment débloquer le temps d’écran.',
     category: 'installation',
     keywords: ['installer', 'installation', 'appareil enfant', 'telephone enfant', 'tablette', 'configurer', 'demarrer', 'commencer'],
-    guide: 'appareil-enfant',
+    guide: 'installer',
   },
   {
     id: 'ou-trouver-code-famille',
@@ -146,7 +146,7 @@ export const FAQ: FaqEntry[] = [
       'Mino fonctionne quand même. Vous déclarez ses écrans dans Appareils — console, télévision, ordinateur familial — et vous confirmez ses demandes depuis votre téléphone. La différence : sur ces écrans-là, c’est vous qui ouvrez et fermez l’accès, Mino ne peut pas le faire tout seul.',
     category: 'installation',
     keywords: ['pas de telephone', 'sans telephone', 'petit', 'jeune enfant', 'console seulement'],
-    guide: 'autres-ecrans',
+    guide: 'console',
   },
   {
     id: 'console-tv-ordinateur',
@@ -155,7 +155,7 @@ export const FAQ: FaqEntry[] = [
       'Ces écrans se déclarent dans Appareils et entrent dans le système de minos : l’enfant demande, vous confirmez, le temps est décompté. Mais aucun système de console ou de téléviseur ne laisse une application extérieure couper l’accès. Sur ces écrans, le blocage reste entre vos mains — Mino tient le compte, vous tenez la manette.',
     category: 'installation',
     keywords: ['switch', 'nintendo', 'playstation', 'ps5', 'xbox', 'console', 'television', 'tele', 'ordinateur', 'pc', 'mac'],
-    guide: 'autres-ecrans',
+    guide: 'console',
     route: '/parent/appareils',
   },
   {
@@ -183,7 +183,7 @@ export const FAQ: FaqEntry[] = [
       'C’est presque toujours l’autorisation système qui manque. Sur l’appareil de l’enfant, ouvrez Mino, allez dans Réglages et relancez « Autoriser le temps d’écran » : le système demandera le compte d’un adulte. Sans cette autorisation, Mino compte le temps mais ne peut rien fermer.',
     category: 'temps-ecran',
     keywords: ['bloque pas', 'blocage', 'ne bloque rien', 'applications ouvertes', 'autorisation', 'temps ecran ne marche pas'],
-    guide: 'blocage-applications',
+    guide: 'blocage',
   },
   {
     id: 'choisir-applis-bloquees',
@@ -192,7 +192,7 @@ export const FAQ: FaqEntry[] = [
       'Depuis l’appareil de l’enfant, dans Réglages, « Applications concernées ». Le système affiche sa propre liste — c’est lui qui la fournit, Mino ne voit jamais quelles applications sont installées. Choisissez les jeux et les réseaux, laissez de côté l’école et les outils du quotidien.',
     category: 'temps-ecran',
     keywords: ['choisir applications', 'quelles applis', 'liste', 'selection', 'youtube', 'tiktok', 'jeux'],
-    guide: 'blocage-applications',
+    guide: 'blocage',
   },
   {
     id: 'message-grave-enfant',
@@ -268,7 +268,7 @@ export const FAQ: FaqEntry[] = [
       'Sur iPhone et iPad, les restrictions posées par le système ne disparaissent pas avec l’application : elles ont été autorisées par un adulte et se lèvent de la même façon. Sur Android, le blocage s’arrête avec Mino — mais vous le voyez : l’appareil cesse de donner de ses nouvelles, et votre écran Appareils le signale. Sur les deux, vous pouvez empêcher la suppression d’applications dans les réglages de son appareil, et le guide explique où.',
     category: 'temps-ecran',
     keywords: ['desinstaller', 'supprimer app', 'contourner', 'triche', 'malin', 'enlever'],
-    guide: 'blocage-applications',
+    guide: 'blocage',
   },
   {
     id: 'change-heure',

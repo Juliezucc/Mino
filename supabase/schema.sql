@@ -288,6 +288,45 @@ create trigger trg_stamp_completion
   before insert on mission_completions
   for each row execute function mino_stamp_completion();
 
+/**
+ * Et la date ne bouge plus JAMAIS ensuite.
+ *
+ * **Le défaut, et il annulait la répétition quotidienne.** Le déclencheur
+ * ci-dessus est `before insert`. Or toute écriture ordinaire du client passe
+ * par un `upsert`, que PostgREST traduit en
+ * `insert ... on conflict (id) do update set ... completed_at = excluded.completed_at`.
+ * PostgreSQL exécute les déclencheurs `before insert` sur la ligne PROPOSÉE
+ * avant de détecter le conflit, et leurs effets sont répercutés dans
+ * `excluded` : `completed_at` y vaut donc `now()`, et la branche `do update`
+ * l'écrit sur la ligne existante.
+ *
+ * Conséquence, invisible en relisant le code du domaine — qui est juste : le
+ * jour où un parent confirme la mission d'hier, la déclaration de son enfant
+ * prend la date de la confirmation. Le lendemain, « se brosser les dents »
+ * porte la date du jour, `isSameDay` la dit faite, et l'enfant ne la voit pas
+ * revenir. La mission quotidienne cesse d'être quotidienne, une journée sur
+ * deux, sans qu'aucun message ne le dise.
+ *
+ * `completed_at` est un FAIT : l'instant où un enfant a dit « j'ai terminé ».
+ * Rien de ce qui arrive ensuite — une confirmation, un refus, une fête
+ * marquée comme vue — n'a le droit de le déplacer. On le gèle donc ici, à
+ * l'endroit où aucun appelant ne peut l'oublier.
+ */
+create or replace function mino_freeze_completed_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.completed_at := old.completed_at;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_freeze_completed_at on mission_completions;
+create trigger trg_freeze_completed_at
+  before update on mission_completions
+  for each row execute function mino_freeze_completed_at();
+
 -- Append-only ledger. The balance of a child is the SUM of `delta` here and
 -- is never stored as a mutable counter.
 create table if not exists screen_time_transactions (

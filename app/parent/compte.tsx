@@ -298,6 +298,7 @@ export default function CompteParent() {
           value={code}
           onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 4))}
           keyboardType="number-pad"
+          maxLength={4}
           secureTextEntry
         />
         <Button

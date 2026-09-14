@@ -22,7 +22,36 @@ export default function GuideChapterScreen() {
   const { width } = useWindowDimensions();
 
   const chapter = chapterById(id ?? '');
-  if (!chapter) return null;
+
+  /**
+   * Un chapitre introuvable ne doit pas rendre un écran VIDE.
+   *
+   * **Le défaut, trouvé par Julie en touchant « Voir les étapes ».** Cette
+   * ligne rendait `null` : pas de titre, pas de texte, pas même le bouton de
+   * retour de `ScreenHeader`. Un rectangle bleu clair dont on ne sort que par
+   * le geste système — et rien n'indiquait que c'était une erreur plutôt qu'un
+   * chargement.
+   *
+   * La cause venait d'ailleurs : la FAQ renvoyait vers trois identifiants de
+   * chapitre qui n'existaient plus. Elle est corrigée. Mais une erreur de
+   * données ne doit pas se transformer en cul-de-sac : un identifiant faux se
+   * réintroduira, et ce jour-là le lecteur doit pouvoir repartir.
+   */
+  if (!chapter) {
+    return (
+      <Screen contentStyle={styles.content}>
+        <ScreenHeader onBack={() => router.back()} />
+        <Card background={colors.surfaceMuted} elevation="none" style={styles.introuvable}>
+          <Text variant="cardTitle">Ce chapitre n’existe plus</Text>
+          <Text variant="body" color={colors.textMuted}>
+            Il a dû être renommé. Le guide complet reste accessible, et vous y trouverez la même
+            marche à suivre.
+          </Text>
+          <Button label="Voir le guide" variant="secondary" onPress={() => router.replace('/aide')} />
+        </Card>
+      </Screen>
+    );
+  }
 
   const index = GUIDE.findIndex((c) => c.id === chapter.id);
   const next = GUIDE[index + 1];
@@ -122,6 +151,7 @@ export default function GuideChapterScreen() {
 }
 
 const styles = StyleSheet.create({
+  introuvable: { gap: spacing.sm },
   content: { paddingTop: spacing.md, paddingBottom: spacing.xl, gap: spacing.lg },
   head: { alignItems: 'center', gap: spacing.xs },
   // Explicit line height: an emoji at this size overflows its box and would

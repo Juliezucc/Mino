@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 
 import {
   balanceDetail,
@@ -128,11 +129,53 @@ export function useBalanceDetail(childId: ID | null | undefined): ScreenTimeBala
   );
 }
 
+/**
+ * Le jour civil courant, et ce qui le fait changer d'avis.
+ *
+ * **Le défaut que ceci répare.** `missionsForChild` décide de ce qu'un enfant
+ * a « encore à faire aujourd'hui » en comparant la date de sa déclaration à
+ * MAINTENANT. Appelée dans un `useMemo` qui ne dépend que des données, elle
+ * fige ce « maintenant » au moment du calcul — et sur la tablette d'un enfant,
+ * qui reste allumée toute la nuit sans qu'une seule ligne de la famille ne
+ * change, le mémo n'est jamais rejoué. Le matin, l'écran rend la liste
+ * calculée la veille au soir : « se brosser les dents » y est encore marquée
+ * faite, et la mission quotidienne n'a pas l'air de revenir.
+ *
+ * On ajoute donc le jour aux dépendances. Il change de deux façons, et il
+ * fallait les deux : au retour au premier plan — le geste que l'enfant fait
+ * vraiment le matin — et au passage de minuit pour un appareil resté ouvert,
+ * qu'un minuteur surveille sans rien coûter.
+ */
+function useJourCivil(): string {
+  const [jour, setJour] = useState(() => new Date().toDateString());
+
+  useEffect(() => {
+    const relire = () => setJour(new Date().toDateString());
+
+    const abonnement = AppState.addEventListener('change', (etat) => {
+      if (etat === 'active') relire();
+    });
+    // Une minute : assez fin pour que minuit se voie tout de suite, assez large
+    // pour ne rien coûter. Le calcul ne se refait que si la CHAÎNE change.
+    const battement = setInterval(relire, 60_000);
+
+    return () => {
+      abonnement.remove();
+      clearInterval(battement);
+    };
+  }, []);
+
+  return jour;
+}
+
 export function useChildMissions(childId: ID | null | undefined): ChildMission[] {
   const data = useFamily();
+  const jour = useJourCivil();
   return useMemo(
     () => (data && childId ? missionsForChild(data, childId) : EMPTY),
-    [data, childId],
+    // `jour` n'est pas lu dans le corps, et c'est voulu : il n'est là que pour
+    // forcer le recalcul quand la date civile change. Voir `useJourCivil`.
+    [data, childId, jour],
   );
 }
 

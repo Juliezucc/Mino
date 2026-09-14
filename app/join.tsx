@@ -301,6 +301,7 @@ export default function JoinFamily() {
                   label="Code parent de la famille"
                   placeholder="4 chiffres"
                   keyboardType="number-pad"
+                  maxLength={4}
                   value={codeParent}
                   onChangeText={(v) => setCodeParent(v.replace(/[^0-9]/g, '').slice(0, 4))}
                   hint="Demandez-le au parent qui a créé la famille. Ce n’est pas le code famille."
@@ -346,6 +347,7 @@ export default function JoinFamily() {
                   label="Code parent de la famille"
                   placeholder="4 chiffres"
                   keyboardType="number-pad"
+                  maxLength={4}
                   value={codeParent}
                   onChangeText={(v) => setCodeParent(v.replace(/[^0-9]/g, '').slice(0, 4))}
                 />
