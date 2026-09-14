@@ -213,6 +213,22 @@ export const FAQ: FaqEntry[] = [
     route: '/parent/plages',
   },
   {
+    id: 'arreter-plage-libre',
+    question: 'Comment arrêter une plage libre en cours ?',
+    answer:
+      'Sur l’accueil de votre espace parent, la plage en cours apparaît avec le prénom de l’enfant concerné et un bouton « Arrêter ». L’écran se referme tout de suite sur son appareil. Cet arrêt ne vaut que pour aujourd’hui : la plage revient d’elle-même la prochaine fois, sans que vous ayez rien à rallumer. Tant que l’heure de la plage n’est pas passée, un bouton « Reprendre » permet de revenir sur votre décision. Pour la suspendre durablement, c’est ailleurs : Réglages → Plages libres → Suspendre.',
+    category: 'temps-ecran',
+    keywords: [
+      'arreter plage libre',
+      'stopper plage',
+      'couper le mercredi',
+      'annuler plage libre',
+      'interrompre',
+      'reprendre plage',
+    ],
+    route: '/parent',
+  },
+  {
     id: 'plage-libre-rien-ne-souvre',
     question: 'C’est une plage libre et les applications restent bloquées',
     answer:

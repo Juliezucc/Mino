@@ -15,6 +15,7 @@ import { getNativeStore } from './native';
 
 export * from './BillingService';
 export * from './native';
+export * from './restauration';
 export { ExpoIapStore, LocalBillingService, PRODUITS, StoreBillingService, StripeWebBillingService };
 
 const API_URL = process.env.EXPO_PUBLIC_BILLING_API_URL;

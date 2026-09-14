@@ -559,15 +559,48 @@ async function envoyer(
     },
   });
 
+  /**
+   * UN EN-TÊTE NE CONTIENT JAMAIS DE SAUT DE LIGNE.
+   *
+   * **Le défaut, trouvé par Julie dans sa boîte de réception.** L'objet d'un
+   * signalement est construit à partir du message écrit par le parent. Le sien
+   * tenait sur deux lignes — et le retour à la ligne est parti dans l'en-tête
+   * `Subject:`. Un saut de ligne y TERMINE l'en-tête : tout ce qui suivait,
+   * `From:` compris, a basculé dans le corps. Elle a reçu un message « sans
+   * expéditeur » dont le corps affichait le MIME en clair.
+   *
+   * Et ce n'est pas qu'un défaut d'affichage. Un texte écrit par un
+   * utilisateur qui atteint un en-tête sans être filtré, c'est une injection
+   * d'en-tête : `\nBcc: ...` suffirait à faire partir une copie de nos
+   * courriers où l'on veut, depuis notre propre serveur.
+   *
+   * La garde est ici, au goulot par lequel passent les neuf messages, et non au
+   * point d'appel — une règle qui n'existe qu'à l'endroit où on y a pensé n'est
+   * pas une règle. Les sept objets des gabarits n'en souffrent pas : ils sont
+   * écrits à la main et ne contiennent aucun saut de ligne. Ils traversent
+   * cette fonction sans changer d'un caractère.
+   */
+  const enTete = (valeur: string, taille: number) =>
+    valeur
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\r\n\u0000-\u001f\u007f]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, taille);
+
   try {
     await client.send({
       from: env('MAIL_FROM'),
       // Répondre doit arriver quelque part où quelqu'un lit : le message le
       // promet, et une promesse d'écoute qui tombe dans le vide coûte plus
       // cher que pas de promesse du tout.
-      replyTo: repondreA ?? Deno.env.get('MAIL_REPLY_TO') ?? env('MAIL_FROM'),
+      // Filtrée elle aussi : elle vient d'un champ que le parent remplit
+      // librement, et elle atterrit dans un en-tête.
+      replyTo: enTete(repondreA ?? Deno.env.get('MAIL_REPLY_TO') ?? env('MAIL_FROM'), 320),
       to: destinataire,
-      subject: sujet,
+      // 200 caractères : au-delà, un objet se replie sur plusieurs lignes, et
+      // c'est le repli que les encodeurs ratent le plus souvent.
+      subject: enTete(sujet, 200),
       // Les deux versions, toujours : `content` pour les messageries qui
       // refusent le HTML, `html` pour les autres.
       content: texte,

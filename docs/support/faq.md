@@ -19,11 +19,19 @@ Vérifiez les caractères qui se ressemblent : le zéro et la lettre O, le 1 et 
 
 ### Dois-je aussi installer Mino sur mon téléphone ?
 
-Oui. C’est depuis votre téléphone que vous créez les missions, confirmez les demandes et suivez le temps en cours. L’application de l’enfant ne sert qu’à lui.
+Oui. C’est depuis votre téléphone que vous créez les missions, confirmez les demandes et suivez le temps en cours. L’application de l’enfant ne fait rien de tout cela.
 
 ### Nous sommes deux parents, sur deux téléphones
 
-Chacun installe Mino et se connecte au même compte. Les confirmations, les missions et l’historique sont partagés en direct : ce que l’un confirme, l’autre le voit aussitôt.
+L’autre parent installe Mino, saisit le code famille, puis choisit « C’est le téléphone d’un parent » et se sélectionne dans la liste. Il lui faut le code à quatre chiffres — pas votre mot de passe, que vous n’avez donc pas à partager. Il voit, crée et confirme exactement comme vous ; seuls l’adresse du compte, l’abonnement et la suppression de la famille restent à celui qui l’a créée. Pour l’ajouter à la liste depuis chez vous : Réglages → Les parents.
+
+### L’autre parent a changé de téléphone
+
+Sur le nouveau téléphone : code famille, « C’est le téléphone d’un parent », il se choisit dans la liste et donne le code à quatre chiffres. Son ancien appareil cesse aussitôt d’ouvrir l’espace parent — c’est le même geste qui reprend le profil et qui révoque l’ancien, précisément pour le cas du téléphone perdu ou volé.
+
+### Mon enfant a changé de téléphone ou cassé sa tablette
+
+Rien n’est perdu : ses minutes, ses missions et son historique appartiennent à son profil, pas à l’appareil. Sur le nouvel appareil, il saisit le code famille et se choisit — tout est là. Pensez à refaire le réglage du blocage, qui est propre à chaque appareil.
 
 ### Mon enfant n’a pas de téléphone
 
@@ -51,21 +59,29 @@ C’est presque toujours l’autorisation système qui manque. Sur l’appareil 
 
 Depuis l’appareil de l’enfant, dans Réglages, « Applications concernées ». Le système affiche sa propre liste — c’est lui qui la fournit, Mino ne voit jamais quelles applications sont installées. Choisissez les jeux et les réseaux, laissez de côté l’école et les outils du quotidien.
 
+### Comment ouvrir l’écran sans faire dépenser de minutes ? (plages libres)
+
+Une plage libre est un moment que vous déclarez ouvert : le mercredi de 14 h à 16 h, les vacances, le trajet du dimanche. Pendant ce créneau, les applications se débloquent toutes seules et votre enfant ne dépense rien — il n’a rien à lancer, et Mino refuse de lui prendre des minutes pour un écran déjà ouvert. À la fin de la plage, le blocage revient, même si l’application a été fermée entre-temps. Réglages → Plages libres.
+
+### Comment arrêter une plage libre en cours ?
+
+Sur l’accueil de votre espace parent, la plage en cours apparaît avec le prénom de l’enfant concerné et un bouton « Arrêter ». L’écran se referme tout de suite sur son appareil. Cet arrêt ne vaut que pour aujourd’hui : la plage revient d’elle-même la prochaine fois, sans que vous ayez rien à rallumer. Tant que l’heure de la plage n’est pas passée, un bouton « Reprendre » permet de revenir sur votre décision. Pour la suspendre durablement, c’est ailleurs : Réglages → Plages libres → Suspendre.
+
 ### Est-ce que les appels et les messages sont bloqués aussi ?
 
-Non, sauf si vous les ajoutez vous-même à la liste. Le téléphone, les messages et les appels d’urgence restent accessibles : un enfant doit pouvoir joindre un adulte, minos ou pas.
+Non, sauf si vous les ajoutez vous-même à la liste — et il ne faut pas. Pour les appels ordinaires, Android écarte de lui-même le composeur que vous utilisez ; sur iPhone, Mino ne peut pas le reconnaître, parce que le système ne lui donne que des jetons anonymes. C’est donc à vous de ne cocher ni Téléphone, ni Messages, ni une catégorie qui les contiendrait : un enfant doit pouvoir joindre un adulte, minos ou pas. Les dispositifs d’appel d’urgence propres au téléphone — l’appel depuis l’écran verrouillé, le SOS — ne passent pas par Mino et ne sont pas bloqués par lui ; mais ils appartiennent au système, pas à nous, et nous ne pouvons pas nous en porter garants.
 
 ### Que se passe-t-il quand le temps est écoulé ?
 
-L’enfant reçoit un avertissement cinq minutes avant, puis les applications choisies se referment. Rien n’est perdu : il retrouve ses minos dès qu’il en gagne de nouveaux.
+L’enfant reçoit un avertissement cinq minutes avant, puis les applications choisies se referment. Rien n’est perdu : chaque nouvelle mission confirmée rapporte de nouveaux minos.
 
 ### Puis-je arrêter le temps en cours à distance ?
 
-Oui. L’accueil de l’espace parent affiche la session en cours et le temps restant ; vous pouvez l’arrêter d’un geste. Les minutes non utilisées reviennent à l’enfant — on ne lui prend pas ce qu’il a gagné.
+Oui. L’accueil de l’espace parent affiche la session en cours et le temps restant ; vous pouvez l’arrêter d’un geste. Les minutes non utilisées reviennent à l’enfant — on ne reprend jamais ce qui a été gagné.
 
-### Mon enfant peut-il lancer son temps tout seul ?
+### Est-ce que mon enfant peut lancer son temps sans moi ?
 
-Sur l’appareil où Mino est installé, oui, s’il a des minos : c’est le principe même, il dépense ce qu’il a gagné. Si vous préférez confirmer chaque fois, activez « Demander avant chaque session » sur sa fiche. Sur les autres écrans, votre confirmation est toujours requise.
+Sur l’appareil où Mino est installé, oui, si le compteur n’est pas vide : c’est le principe même, on dépense ce qu’on a gagné. Si vous préférez confirmer chaque fois, activez « Demander avant chaque session » sur sa fiche. Sur les autres écrans, votre confirmation est toujours requise.
 
 ### Et si mon enfant désinstalle Mino ?
 
@@ -87,7 +103,7 @@ Une minute de temps d’écran, gagnée par une mission. Un mino vaut toujours u
 
 ### Mon enfant ne voit pas sa mission
 
-Vérifiez sa récurrence : une mission « certains jours » n’apparaît que les jours choisis. Vérifiez aussi qu’elle lui est bien attribuée, et pas seulement à son frère ou à sa sœur. Une mission déjà terminée disparaît de sa liste : c’est voulu, pour qu’il ne voie que ce qui lui reste à faire.
+Vérifiez sa récurrence : une mission « certains jours » n’apparaît que les jours choisis. Vérifiez aussi qu’elle lui est bien attribuée, et pas seulement à son frère ou à sa sœur. Une mission déjà terminée disparaît de sa liste : c’est voulu, pour ne laisser à l’écran que ce qui reste à faire.
 
 ### Les missions ne reviennent pas le lendemain
 
@@ -127,9 +143,13 @@ Dans l’onglet Missions, chaque mission porte une petite étiquette : « Vous c
 
 ## 🔐 Compte et code parent
 
+### Je change de téléphone — que dois-je faire ?
+
+Installez Mino et connectez-vous avec votre adresse et votre mot de passe. Votre famille, vos enfants, leur historique et votre abonnement suivent : tout vit sur le compte, pas sur l’appareil. Si vous avez oublié le mot de passe, le lien de réinitialisation part par e-mail.
+
 ### J’ai oublié mon code parent
 
-Le code parent est lié à votre compte, pas à l’appareil. Déconnectez-vous et reconnectez-vous avec votre e-mail et votre mot de passe : vous pourrez en choisir un nouveau. Après cinq essais ratés, l’accès se bloque cinq minutes.
+Le code appartient à la FAMILLE : il est le même sur tous vos appareils, et sur celui de l’autre parent. Pour en choisir un nouveau, il faut être connecté avec l’adresse et le mot de passe du compte : depuis ce téléphone-là, Réglages → Gérer mon compte → Code parent. Un second parent ne peut pas le remplacer sans cela — il n’a pas d’adresse à lui, c’est tout l’intérêt. Après cinq essais ratés, l’accès se bloque cinq minutes, pour la famille entière : un enfant ne contourne pas le blocage en prenant la tablette d’à côté.
 
 ### J’ai oublié mon mot de passe
 
@@ -137,7 +157,7 @@ Depuis l’écran de connexion, « Mot de passe oublié ». Vous recevrez un lie
 
 ### Mon enfant a vu mon code parent
 
-Changez-le depuis Réglages, « Gérer mon compte », section Code parent. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis son appareil, même en cherchant.
+Changez-le depuis Réglages, « Gérer mon compte », section Code parent. Le code n’est jamais stocké sur l’appareil de l’enfant : il est vérifié par le serveur, ce qui veut dire qu’il ne peut pas être lu depuis son appareil, même en cherchant. Une précision qui compte : si votre enfant a pu déclarer un appareil comme « téléphone d’un parent », changer le code ne suffit pas à le lui retirer — allez dans Réglages → Les parents et retirez le profil concerné.
 
 ### Comment changer mon adresse e-mail ?
 
@@ -145,11 +165,11 @@ Depuis Réglages, « Gérer mon compte ». Une confirmation part sur la nouvelle
 
 ### Mon enfant peut changer de profil et prendre celui de son frère
 
-Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> » : Mino s’ouvrira toujours sur son profil, sans passer par le sélecteur. Changer de profil reste possible et ne demande pas votre code — c’est votre espace parent qui est protégé, pas le choix du profil. Une minute prise sur le compte d’un frère apparaît de toute façon dans son historique, à la seconde près.
+Ouvrez Réglages sur l’appareil concerné, rubrique « Cet appareil », et choisissez « À <prénom> ». Mino s’ouvre alors toujours sur son profil — et passer à celui d’un frère demande votre code à quatre chiffres. Sur un appareil déclaré « partagé », en revanche, les enfants passent librement de l’un à l’autre : c’est le geste ordinaire d’une tablette de salon, et le demander dix fois par jour ferait taper le code devant eux. Une minute prise sur le compte d’un frère apparaît de toute façon dans son historique, à la seconde près.
 
 ### Mon enfant doit rechoisir son profil à chaque ouverture
 
-Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appareil est celui d’un seul enfant, réservez-le-lui dans Réglages → « Cet appareil » : il ouvrira toujours directement sur lui.
+Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appareil est celui d’un seul enfant, réservez-le-lui dans Réglages → « Cet appareil » : Mino s’ouvrira toujours directement sur son profil.
 
 ## 💳 Abonnement
 
@@ -179,7 +199,7 @@ Si vous vous êtes abonné dans l’application, le remboursement se demande à 
 
 ### Comment fonctionne le parrainage ?
 
-Votre filleul obtient soixante jours d’essai au lieu de trente. Dès qu’il devient payant, vous recevez un mois offert — jusqu’à douze par an. Votre code se trouve dans Réglages, section Parrainage.
+Vous partagez votre code. La famille qui l’utilise reçoit les 30 jours d’essai proposés à tout le monde — ni plus, ni moins. Dès qu’elle devient abonnée, vous recevez un mois offert, déduit de votre prochaine facture. Les mois se cumulent : un par filleul qui paie, jusqu’à douze par an. Votre code se trouve dans Réglages, section Parrainage.
 
 ### Puis-je passer du mensuel à l’annuel ?
 
@@ -199,6 +219,10 @@ Mettez à jour le moyen de paiement là où vous vous êtes abonné : dans votre
 
 ## 🛡️ Données et confidentialité
 
+### Que se passe-t-il si mon enfant confie quelque chose de grave à Mino ?
+
+Mino le reconnaît sur l’appareil même, sans qu’aucun modèle ne voie la phrase. Il répond un texte écrit à la main, toujours le même, qui oriente vers un adulte de confiance et donne le 119 — gratuit, confidentiel, joignable jour et nuit, et appelable d’une touche depuis son écran. Vous êtes prévenu que cela a eu lieu, à la date près, dans « Lire leurs conversations ». Mais ce que votre enfant a écrit n’est enregistré nulle part : c’est la condition pour qu’un enfant ose parler, y compris quand ce qu’il a à dire nous concerne. Si cette trace apparaît, ouvrez-lui une conversation le soir même.
+
 ### Combien de temps gardez-vous l’historique de mon enfant ?
 
 Quatre-vingt-dix jours. Passé ce délai, le détail est effacé — quelle mission, quel jour, quel écran — et il ne reste que le total des minutes. Le compteur de votre enfant reste donc exact, mais nous ne conservons pas la trace de ce qu’il a fait il y a six mois. Nous n’en avons pas besoin, et un enfant n’a pas à traîner un dossier derrière lui.
@@ -209,7 +233,7 @@ Depuis Réglages, « Gérer mon compte », tout en bas. L’effacement est immé
 
 ### Mon enfant discute avec Mino : qu’est-ce que c’est ?
 
-Quand son temps d’écran est terminé, Mino reste et peut discuter avec lui — une vingtaine d’échanges par jour, puis il l’envoie jouer. Mino connaît ses missions du jour, propose des défis sans écran, et ne confirme jamais une mission ni ne donne de minutes : cela n’appartient qu’à vous. Vous pouvez lire toutes leurs conversations, et votre enfant en est prévenu.
+Quand son temps d’écran est terminé, Mino reste et peut discuter avec votre enfant — une vingtaine d’échanges par jour, puis il l’envoie jouer. Mino connaît ses missions du jour, propose des défis sans écran, et ne confirme jamais une mission ni ne donne de minutes : cela n’appartient qu’à vous. Vous pouvez lire toutes leurs conversations, et votre enfant en est prévenu.
 
 ### Je ne veux pas que mon enfant discute avec Mino
 
@@ -240,6 +264,10 @@ Non, et pas seulement parce que l’application ne l’affiche pas : la base de 
 Dans l’Union européenne. Elles ne sont transférées à aucun pays tiers en dehors de ce que nécessite le paiement, assuré par Stripe.
 
 ## 🛠️ Ça ne marche pas
+
+### C’est une plage libre et les applications restent bloquées
+
+La plage s’applique à l’ouverture de Mino sur l’appareil de l’enfant : s’il ne l’a pas rouvert depuis le début du créneau, le blocage n’a pas encore été levé. Qu’il ouvre Mino une fois, et c’est réglé. Vérifiez aussi que la plage concerne bien cet enfant-là et ce jour-là, et que le blocage est autorisé sur son appareil — sans autorisation, il n’y a rien à lever.
 
 ### Le compteur de mon enfant ne bouge pas
 

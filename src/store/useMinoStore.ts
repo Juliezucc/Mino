@@ -25,7 +25,7 @@ import { GatedAction, LOCKED_MESSAGE, isLocked } from '@/domain/access';
 import { envoyerCourrier } from '@/services/courrier';
 import { Plan, Referral, Subscription } from '@/domain/billing';
 import { DeviceKind } from '@/domain/devices';
-import { minutesRestantes, openWindowAt } from '@/domain/freeWindows';
+import { gestePlageLibre } from '@/domain/freeWindows';
 import { AvatarKey, FamilyData, ID, ISODate, RepeatRule } from '@/domain/types';
 import * as notify from '@/domain/notifications';
 import { AuthResult, getAuthService } from '@/services/auth';
@@ -264,6 +264,13 @@ interface MinoState {
   addFreeWindow: (input: actions.FreeWindowInput) => Promise<ID>;
   /** Suspendre sans perdre : les vacances reviennent. */
   toggleFreeWindow: (windowId: ID) => Promise<void>;
+  /**
+   * Arrêter la plage en cours, pour aujourd'hui seulement — demain elle
+   * revient. Voir `interromprePlage` dans le domaine.
+   */
+  interromprePlage: (windowId: ID) => Promise<void>;
+  /** Se raviser : la plage arrêtée reprend là où elle en était. */
+  reprendrePlage: (windowId: ID) => Promise<void>;
   removeFreeWindow: (windowId: ID) => Promise<void>;
 
   addDevice: (input: { label: string; kind: DeviceKind }) => Promise<ID>;
@@ -325,6 +332,21 @@ async function migrateLegacyPin(
   await repository.persist(cleaned, { kind: 'family.updated' }).catch(() => undefined);
   return cleaned;
 }
+
+/**
+ * La plage libre pour laquelle CE processus a levé le bouclier, et pour qui.
+ *
+ * Hors de l'état zustand, et exprès : rien à l'écran n'en dépend, et ce n'est
+ * pas une propriété de la famille mais de ce lancement-ci de l'application.
+ * Elle n'existe que pour savoir si un bouclier reposé nous appartient — voir
+ * `appliquerPlageLibre`, qui porte la règle.
+ *
+ * L'enfant est gardé avec elle parce que le profil actif change sans que la
+ * plage bouge : le parent touche « Espace parent » sur la tablette et
+ * `activeChildId` tombe à `null`. Sans ce souvenir, on lirait « plus aucune
+ * plage ouverte » et on refermerait l'écran au milieu du mercredi après-midi.
+ */
+let plageLevee: { id: ID; childId: ID | null } | null = null;
 
 export const useMinoStore = create<MinoState>((set, get) => {
   /**
@@ -1464,6 +1486,27 @@ export const useMinoStore = create<MinoState>((set, get) => {
       });
     },
 
+    async interromprePlage(windowId) {
+      await commit('freeWindow.updated', (data) => {
+        const next = actions.interromprePlage(data, windowId);
+        const window = next.freeWindows.find((f) => f.id === windowId);
+        return { data: next, upsert: window ? { freeWindows: [window] } : undefined };
+      });
+      // Sur l'appareil du parent il n'y a rien à refermer ; sur celui de
+      // l'enfant, `appliquerPlageLibre` voit que la plage a disparu et remet
+      // le bouclier. Les deux passent par le même appel, qui sait lequel il est.
+      await get().appliquerPlageLibre();
+    },
+
+    async reprendrePlage(windowId) {
+      await commit('freeWindow.updated', (data) => {
+        const next = actions.reprendrePlage(data, windowId);
+        const window = next.freeWindows.find((f) => f.id === windowId);
+        return { data: next, upsert: window ? { freeWindows: [window] } : undefined };
+      });
+      await get().appliquerPlageLibre();
+    },
+
     async removeFreeWindow(windowId) {
       await commit('freeWindow.removed', (data) => ({
         data: actions.removeFreeWindow(data, windowId),
@@ -1587,18 +1630,52 @@ export const useMinoStore = create<MinoState>((set, get) => {
       if (etat.device.usagePersonnel) return;
 
       const maintenant = new Date();
-      const ouverte = openWindowAt(data.freeWindows ?? [], childId, maintenant);
-      if (!ouverte) return;
+      const geste = gestePlageLibre({
+        fenetres: data.freeWindows ?? [],
+        childId,
+        levee: plageLevee,
+        enfantsEnSeance: (data.sessions ?? [])
+          .filter((s) => s.status === 'running')
+          .map((s) => s.childId),
+        maintenant,
+      });
+
+      if (geste.kind === 'rien') return;
+
+      if (geste.kind === 'oublier') {
+        plageLevee = null;
+        return;
+      }
+
+      /**
+       * Refermer ce que nous avions ouvert, quand le parent l'arrête.
+       *
+       * **Demandé par Julie après un test en famille.** Une plage commencée
+       * était irrévocable : `ouvrirPlageLibre` confie une échéance au module
+       * natif, et rien ne pouvait l'avancer. Le parent arrête maintenant la
+       * plage du jour (voir `interromprePlage`), la ligne arrive ici par le
+       * temps réel, et `gestePlageLibre` dit de reposer le bouclier.
+       *
+       * Si Mino a été tué entre-temps, la mémoire est perdue et le bouclier
+       * revient à l'heure de fin prévue, comme avant. C'est la limite honnête
+       * d'un arrêt qui voyage par le réseau : aucun code ne tourne sur un
+       * téléphone où l'application est fermée.
+       */
+      if (geste.kind === 'refermer') {
+        plageLevee = null;
+        await getScreenTimeService()
+          .refermerPlageLibre()
+          .catch(() => undefined);
+        return;
+      }
 
       // L'échéance se calcule en minutes restantes plutôt qu'en reconstruisant
       // une heure : le fuseau et le passage à l'heure d'été ne s'invitent pas
       // dans une soustraction de minutes.
-      const reste = minutesRestantes(ouverte, maintenant);
-      if (reste <= 0) return;
-
       await getScreenTimeService()
-        .ouvrirPlageLibre(new Date(maintenant.getTime() + reste * 60_000))
+        .ouvrirPlageLibre(new Date(maintenant.getTime() + geste.minutes * 60_000))
         .catch(() => undefined);
+      plageLevee = { id: geste.fenetre.id, childId };
     },
 
     async loadBilling() {

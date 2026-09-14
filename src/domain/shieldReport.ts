@@ -156,3 +156,44 @@ export function phraseDe(etat: EtatBouclier): { titre: string; detail: string; g
 export function aRegler(appareils: AppareilRapporte[], maintenant: Date = new Date()): number {
   return appareils.filter((a) => phraseDe(etatDe(a, maintenant)).grave).length;
 }
+
+/**
+ * Quels enfants n'ont encore aucun appareil qui les protège.
+ *
+ * **Le défaut que ceci répare, signalé par Julie une semaine après le
+ * lancement.** Le bandeau « Le blocage se règle sur l'appareil de votre
+ * enfant » s'affiche sur le téléphone du parent, et il ne regardait que CET
+ * appareil-là — c'est-à-dire le seul sur lequel il n'y a jamais rien à
+ * verrouiller. Il restait donc affiché pour toujours, même une fois les deux
+ * tablettes réglées. Un conseil qui ne s'éteint jamais cesse d'être lu.
+ *
+ * La donnée existait pourtant : chaque appareil appairé rapporte son état, et
+ * `family_devices` le conserve. Il suffisait de croiser.
+ *
+ * **Ce qui compte comme protection.** Un bouclier actif, évidemment. Mais
+ * aussi le compteur seul : le parent a dit qu'il n'en voulait pas sur cet
+ * appareil, et le lui reprocher reviendrait à lui rappeler sa propre décision
+ * tous les jours. En revanche le téléphone d'un parent ne protège personne —
+ * aucun enfant n'y joue — et un appareil muet depuis trois jours ne protège
+ * plus : on ne sait pas ce qu'il est devenu.
+ *
+ * Un appareil sans enfant désigné est partagé : il couvre toute la fratrie.
+ */
+export function enfantsSansBlocage(
+  enfants: { id: string; firstName: string }[],
+  appareils: AppareilRapporte[],
+  maintenant: Date = new Date(),
+): { id: string; firstName: string }[] {
+  const protege = new Set<string>();
+  let partageProtege = false;
+
+  for (const appareil of appareils) {
+    const etat = etatDe(appareil, maintenant);
+    if (etat !== 'actif' && etat !== 'compteur-seul') continue;
+    if (appareil.childId) protege.add(appareil.childId);
+    else partageProtege = true;
+  }
+
+  if (partageProtege) return [];
+  return enfants.filter((e) => !protege.has(e.id));
+}

@@ -13,7 +13,7 @@ import {
   annualSavingPercent,
   formatPrice,
 } from '@/domain/billing';
-import { getBillingService } from '@/services/billing';
+import { RESTAURER, getBillingService, inviteARestaurer } from '@/services/billing';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
 import { useRetourBloque } from '@/hooks/useRetourBloque';
@@ -357,10 +357,17 @@ export default function OnboardingAbonnement() {
        * où l'on engage de l'argent pour la première fois.
        */}
       {erreur ? (
-        <Card background={colors.dangerSoft} elevation="none">
+        <Card background={colors.dangerSoft} elevation="none" style={styles.bandeau}>
           <Text variant="body" color={colors.dangerInk}>
             {erreur}
           </Text>
+          {/* Un message qui nomme un geste doit porter le geste. Julie a lu
+              « cet achat appartient à un autre compte » sur cet écran-ci, et
+              le bouton qui répare était plus bas, en ghost, après les
+              formules. Voir `services/billing/restauration.ts`. */}
+          {inviteARestaurer(erreur) && billing.restore ? (
+            <Button label={RESTAURER} variant="secondary" onPress={restaurer} disabled={loading} />
+          ) : null}
         </Card>
       ) : null}
 
@@ -402,7 +409,7 @@ export default function OnboardingAbonnement() {
 
       {billing.restore ? (
         <Button
-          label="Restaurer mes achats"
+          label={RESTAURER}
           variant="ghost"
           onPress={restaurer}
           disabled={loading}
@@ -448,6 +455,8 @@ export default function OnboardingAbonnement() {
 }
 
 const styles = StyleSheet.create({
+  // Le message et le geste qu'il nomme, dans la même carte.
+  bandeau: { gap: spacing.md },
   content: { gap: spacing.lg, paddingTop: spacing.xl },
   entete: { gap: spacing.sm },
   offre: {

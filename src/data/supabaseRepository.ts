@@ -241,6 +241,7 @@ const rowToFreeWindow = (r: any): FreeWindow => ({
   startMinute: r.start_minute,
   endMinute: r.end_minute,
   enabled: r.enabled,
+  interruptedOn: r.interrupted_on ?? null,
   createdAt: r.created_at,
 });
 const freeWindowToRow = (f: FreeWindow) => ({
@@ -253,6 +254,7 @@ const freeWindowToRow = (f: FreeWindow) => ({
   start_minute: f.startMinute,
   end_minute: f.endMinute,
   enabled: f.enabled,
+  interrupted_on: f.interruptedOn ?? null,
   created_at: f.createdAt,
 });
 

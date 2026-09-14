@@ -120,6 +120,49 @@ begin
   perform assert(v_touchees = 0, 'ni en la supprimant');
 end $$;
 
+-- ------------------------------- arrêter la plage du jour, et qui peut le faire
+
+do $$
+declare v_touchees int;
+begin
+  set local role authenticated;
+  set local mino.uid = 'bbbbbbbb-0000-0000-0000-000000000001';
+
+  -- « Ça suffit pour aujourd'hui » : une date, pas un booléen, pour que
+  -- l'arrêt se périme de lui-même. Voir `interrupted_on` dans `schema.sql`.
+  update free_windows set interrupted_on = current_date where id = 'fw-merc';
+  get diagnostics v_touchees = row_count;
+
+  perform assert(v_touchees = 1, 'un parent arrête la plage du jour');
+end $$;
+
+do $$
+declare v_touchees int;
+begin
+  set local role authenticated;
+  set local mino.uid = 'bbbbbbbb-0000-0000-0000-000000000002';
+
+  -- Le sens de la fraude est ici INVERSE de celui des autres essais : effacer
+  -- l'arrêt rouvre l'écran. Un appareil d'enfant qui saurait remettre ce
+  -- champ à null défairait la décision de son parent d'une seule ligne.
+  update free_windows set interrupted_on = null where id = 'fw-merc';
+  get diagnostics v_touchees = row_count;
+
+  perform assert(v_touchees = 0, 'L''ENFANT NE REPREND PAS UNE PLAGE QUE SON PARENT A ARRÊTÉE');
+
+  perform assert(
+    (select interrupted_on from free_windows where id = 'fw-merc') = current_date,
+    'et l''arrêt du parent tient');
+end $$;
+
+do $$ begin
+  set local role authenticated;
+  set local mino.uid = 'bbbbbbbb-0000-0000-0000-000000000001';
+
+  -- Se raviser reste possible, tant que c'est le parent qui le fait.
+  update free_windows set interrupted_on = null where id = 'fw-merc';
+end $$;
+
 -- ----------------------------------------------- la famille d'à côté
 
 do $$ begin

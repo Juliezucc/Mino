@@ -16,6 +16,7 @@
 
 import { MONTHLY_PRICE_EUR, Subscription, accessOf, canCancelInApp } from '@/domain/billing';
 import { ExpoIapStore, ModuleIap, PRODUITS } from '@/services/billing/ExpoIapStore';
+import { inviteARestaurer } from '@/services/billing/restauration';
 import { StoreBillingService } from '@/services/billing/StoreBillingService';
 import { BillingService } from '@/services/billing/BillingService';
 import { StorePurchase } from '@/services/billing/native';
@@ -229,6 +230,36 @@ describe('payer', () => {
         accountToken: JETON,
       }),
     ).rejects.toThrow(/connexion/i);
+  });
+
+  it('dit quoi faire quand l’achat appartient à un autre compte de boutique', async () => {
+    /**
+     * **Le défaut, vécu par Julie sur son iPhone.** Elle avait déjà payé Mino,
+     * puis recréé un compte avec une autre adresse pour retester l'inscription.
+     * Apple a refusé — l'achat appartient à un autre compte — et l'écran
+     * affichait ce refus sans rien en faire.
+     *
+     * La confusion est fondée : dans Mino un compte est une adresse e-mail,
+     * dans la boutique c'est le compte Apple du téléphone. Changer l'un ne
+     * change rien à l'autre. Le message doit le dire, et nommer le geste qui
+     * répare — que la carte d'erreur porte désormais (voir `restauration.ts`).
+     */
+    const { iap } = fausseBoutique({
+      produits: [mensuel],
+      surDemande: ({ echoue }) =>
+        echoue('unknown', 'This purchase belongs to another account'),
+    });
+
+    const echec = await new ExpoIapStore('apple', async () => iap)
+      .purchase({ productId: PRODUITS.monthly, accountToken: JETON })
+      .then(() => null)
+      .catch((e: Error) => e.message);
+
+    expect(echec).toBeTruthy();
+    // Et pas le repli « rien n'a été prélevé », qui n'apprend rien ici.
+    expect(echec).not.toMatch(/rien n’a été prélevé/);
+    expect(inviteARestaurer(echec)).toBe(true);
+    expect(echec).toMatch(/compte Apple ou Google/);
   });
 
   it('clôt une transaction rejouée sans la confondre avec la nôtre', async () => {

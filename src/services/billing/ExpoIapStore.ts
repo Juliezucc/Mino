@@ -6,6 +6,7 @@ import { OffreApple } from '@/domain/offrePromo';
 import { deviceContext, getDiagnosticsService } from '@/services/diagnostics';
 
 import { NativeStore, StoreProduct, StorePurchase } from './native';
+import { RESTAURER } from './restauration';
 
 /**
  * La boutique du téléphone, pour de vrai.
@@ -141,7 +142,17 @@ function messageBoutique(erreur: ErreurBoutique): string {
     return 'La boutique n’a pas répondu. Vérifiez votre connexion et réessayez.';
   }
   if (/already own|already purchas|déjà/.test(dit)) {
-    return 'Cet abonnement est déjà actif sur ce compte. Touchez « Restaurer mes achats ».';
+    return `Cet abonnement est déjà actif sur ce compte. Touchez « ${RESTAURER} ».`;
+  }
+  /**
+   * L'achat existe, mais ailleurs — et « ailleurs » n'est pas ce que le parent
+   * croit. Voir `restauration.ts` : dans Mino un compte est une adresse, dans
+   * la boutique c'est le compte Apple ou Google du téléphone. Julie a recréé
+   * une adresse en pensant repartir de zéro ; Apple, lui, voyait le même
+   * acheteur. Le dire, sinon le refus n'a aucun sens.
+   */
+  if (/another account|different account|other user|autre compte|belongs to/.test(dit)) {
+    return `Cet achat appartient au compte Apple ou Google qui l’a payé — pas à votre e-mail Mino. Touchez « ${RESTAURER} » depuis ce compte-là.`;
   }
   if (/not allowed|restrict|not authorized|unauthorized/.test(dit)) {
     return 'Les achats sont bloqués sur cet appareil, sans doute par un contrôle parental ou une restriction du compte.';
@@ -519,7 +530,7 @@ export class ExpoIapStore implements NativeStore {
           termine(
             null,
             new Error(
-              'La boutique n’a pas répondu. Si le paiement a été accepté, touchez « Restaurer mes achats » : rien n’est perdu.',
+              `La boutique n’a pas répondu. Si le paiement a été accepté, touchez « ${RESTAURER} » : rien n’est perdu.`,
             ),
           ),
         this.delais.feuille ?? DELAI_FEUILLE_MS,

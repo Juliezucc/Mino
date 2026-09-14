@@ -94,5 +94,17 @@ export interface ScreenTimeService {
    * Mino — le cas précis qu'aucun minuteur JavaScript ne couvre.
    */
   ouvrirPlageLibre(jusqua: Date): Promise<void>;
+  /**
+   * Refermer une plage libre avant son heure, parce que le parent l'a décidé.
+   *
+   * **Demandé par Julie : « il faut que le parent puisse quand même arrêter
+   * quand il veut ».** Sans ce retour en arrière, `ouvrirPlageLibre` confie
+   * une échéance au natif et plus rien ne peut l'avancer : le mercredi
+   * après-midi était irrévocable une fois commencé.
+   *
+   * N'est appelée que si c'est bien une plage que nous avions ouverte —
+   * jamais pendant une séance, dont le bouclier appartient à `grant`/`revoke`.
+   */
+  refermerPlageLibre(): Promise<void>;
   status(childId: ID): Promise<ScreenTimeStatus>;
 }

@@ -18,7 +18,7 @@ import {
   sellerOf,
   trialEndForCheckout,
 } from '@/domain/billing';
-import { getBillingService } from '@/services/billing';
+import { RESTAURER, getBillingService, inviteARestaurer } from '@/services/billing';
 import { useSession } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
@@ -66,24 +66,6 @@ export default function SubscriptionScreen() {
   const [selected, setSelected] = useState<Plan>('monthly');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  /**
-   * L'erreur suit le bouton qui l'a produite.
-   *
-   * Elle était posée sous la carte d'état, au-dessus de tout le reste : le
-   * seul endroit de l'écran où l'argument peut tenir, et le seul que le
-   * parent regarde AVANT d'avoir rien fait — d'où un écran qui informe d'un
-   * échec là où il devrait donner envie. Ce qu'elle réparait reste vrai (une
-   * erreur en bas d'une page qui défile n'est pas affichée), mais « juste
-   * sous le bouton qu'on vient de toucher » la met encore mieux sous l'œil.
-   */
-  const bandeauErreur = error ? (
-    <Card background={colors.dangerSoft} elevation="none">
-      <Text variant="body" color={colors.dangerInk}>
-        {error}
-      </Text>
-    </Card>
-  ) : null;
 
   const billing = getBillingService();
   const access = accessOf(subscription);
@@ -267,6 +249,33 @@ export default function SubscriptionScreen() {
     if (outcome.kind === 'failed') setError(outcome.reason);
     setLoading(false);
   };
+
+  /**
+   * L'erreur suit le bouton qui l'a produite — et porte sa réparation.
+   *
+   * Elle était posée sous la carte d'état, au-dessus de tout le reste : le
+   * seul endroit de l'écran où l'argument peut tenir, et le seul que le
+   * parent regarde AVANT d'avoir rien fait — d'où un écran qui informe d'un
+   * échec là où il devrait donner envie. Ce qu'elle réparait reste vrai (une
+   * erreur en bas d'une page qui défile n'est pas affichée), mais « juste
+   * sous le bouton qu'on vient de toucher » la met encore mieux sous l'œil.
+   *
+   * **Ce qu'il y manquait, vu par Julie.** Quand la boutique répond que
+   * l'achat appartient à un autre compte, le message dit de toucher
+   * « Restaurer mes achats » — et ce bouton-là est plus bas, en ghost, après
+   * les formules. Un message qui nomme un geste doit porter le geste : voir
+   * `services/billing/restauration.ts`.
+   */
+  const bandeauErreur = error ? (
+    <Card background={colors.dangerSoft} elevation="none" style={styles.bandeau}>
+      <Text variant="body" color={colors.dangerInk}>
+        {error}
+      </Text>
+      {inviteARestaurer(error) && billing.capability === 'store' ? (
+        <Button label={RESTAURER} variant="secondary" onPress={restore} loading={loading} />
+      ) : null}
+    </Card>
+  ) : null;
 
   /**
    * Ouvrir la gestion de l'abonnement — et dire quand elle n'ouvre rien.
@@ -666,7 +675,7 @@ export default function SubscriptionScreen() {
               de téléphone doit retrouver son abonnement sans repayer, et Apple
               refuse à la revue les applications qui n'offrent pas ce bouton. */}
           {billing.capability === 'store' ? (
-            <Button label="Restaurer mes achats" variant="ghost" onPress={restore} />
+            <Button label={RESTAURER} variant="ghost" onPress={restore} />
           ) : null}
 
           {bandeauErreur}
@@ -737,6 +746,8 @@ export default function SubscriptionScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Le message et le geste qu'il nomme, dans la même carte.
+  bandeau: { gap: spacing.md },
   content: { paddingTop: spacing.md, paddingBottom: spacing.xl, gap: spacing.lg },
   status: { gap: spacing.sm },
   actions: { gap: spacing.md },

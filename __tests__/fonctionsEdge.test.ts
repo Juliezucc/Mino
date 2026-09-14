@@ -219,3 +219,45 @@ describe('companion n’enregistre jamais un message grave', () => {
     if (appelModele > 0) expect(avantModele).toBeLessThan(appelModele);
   });
 });
+
+/**
+ * Un en-tête de courrier ne contient jamais de saut de ligne.
+ *
+ * **Le défaut, trouvé par Julie dans sa boîte de réception.** L'objet d'un
+ * signalement se construit à partir du message écrit par le parent. Le sien
+ * tenait sur deux lignes, et le retour à la ligne est parti dans `Subject:`.
+ * Un saut de ligne y termine l'en-tête : `From:`, `To:` et tout le MIME ont
+ * basculé dans le corps, et elle a reçu un message « sans expéditeur » dont le
+ * contenu affichait sa propre enveloppe.
+ *
+ * Ce n'est pas qu'un défaut d'affichage : du texte écrit par un utilisateur qui
+ * atteint un en-tête sans filtre, c'est une injection. `\nBcc: …` suffirait à
+ * faire partir une copie de nos courriers où l'on veut, depuis notre serveur.
+ */
+describe('courrier : les en-têtes sont filtrés', () => {
+  const source = readFileSync('supabase/functions/courrier/index.ts', 'utf8');
+
+  it('filtre l’objet AVANT de le remettre au client SMTP', () => {
+    expect(source).toContain('subject: enTete(sujet');
+  });
+
+  it('filtre aussi l’adresse de réponse, qui vient d’un champ libre', () => {
+    expect(source).toContain('replyTo: enTete(');
+  });
+
+  it('la garde retire les sauts de ligne et les caractères de contrôle', () => {
+    expect(source).toMatch(/\\r\\n\\u0000-\\u001f/);
+  });
+
+  it('et elle vit dans `envoyer`, pas au point d’appel', () => {
+    // Les neuf messages de Mino passent par cette fonction. Une règle posée
+    // seulement là où l'on y a pensé n'est pas une règle — c'est la même
+    // phrase que CLAUDE.md applique au client et à la base.
+    const dansEnvoyer = source.indexOf('const enTete');
+    const debutEnvoyer = source.indexOf('async function envoyer(');
+    const finEnvoyer = source.indexOf('async function ecrireA', debutEnvoyer);
+    expect(debutEnvoyer).toBeGreaterThan(0);
+    expect(dansEnvoyer).toBeGreaterThan(debutEnvoyer);
+    expect(dansEnvoyer).toBeLessThan(finEnvoyer > 0 ? finEnvoyer : source.length);
+  });
+});

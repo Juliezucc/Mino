@@ -3,6 +3,7 @@ import {
   FreeWindow,
   FreeWindowInput,
   heure,
+  jourLocal,
   openWindowAt,
   valideFenetre,
 } from './freeWindows';
@@ -505,6 +506,45 @@ export function toggleFreeWindow(data: FamilyData, windowId: ID): FamilyData {
     ...data,
     freeWindows: (data.freeWindows ?? []).map((f) =>
       f.id === windowId ? { ...f, enabled: !f.enabled } : f,
+    ),
+  };
+}
+
+/**
+ * Arrêter la plage en cours, pour aujourd'hui seulement.
+ *
+ * **Ce que Julie a demandé, et pourquoi ce n'est pas `enabled`.** « Plage
+ * libre : il faut que le parent puisse quand même arrêter quand il veut. » Le
+ * seul geste existant suspendait la plage POUR TOUJOURS : arrêter le mercredi
+ * après-midi une fois l'éteignait toutes les semaines suivantes, et personne
+ * ne se souvient d'aller rallumer un réglage six jours plus tard.
+ *
+ * On pose donc la date du jour. Elle se périme seule : voir `estInterrompue`.
+ * Aucune écriture au grand livre — la règle 1 des plages libres tient ici
+ * aussi, arrêter n'est pas dépenser.
+ */
+export function interromprePlage(data: FamilyData, windowId: ID, now = new Date()): FamilyData {
+  return {
+    ...data,
+    freeWindows: (data.freeWindows ?? []).map((f) =>
+      f.id === windowId ? { ...f, interruptedOn: jourLocal(now) } : f,
+    ),
+  };
+}
+
+/**
+ * Revenir sur un arrêt : la plage reprend tout de suite.
+ *
+ * Un geste sans retour est un piège, et celui-ci se fait d'une touche sur
+ * l'écran d'accueil. Tant que l'heure de la plage n'est pas passée, le parent
+ * doit pouvoir se raviser — c'est la même raison qui a fait ajouter une sortie
+ * à l'écran d'aide plutôt qu'un cul-de-sac.
+ */
+export function reprendrePlage(data: FamilyData, windowId: ID): FamilyData {
+  return {
+    ...data,
+    freeWindows: (data.freeWindows ?? []).map((f) =>
+      f.id === windowId ? { ...f, interruptedOn: null } : f,
     ),
   };
 }

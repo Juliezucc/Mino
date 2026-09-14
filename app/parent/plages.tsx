@@ -5,9 +5,10 @@ import { StyleSheet, View } from 'react-native';
 import { Button, Card, Chip, Field, Screen, ScreenHeader, Text, confirmer } from '@/components/ui';
 import {
   JOURS,
+  dansSonCreneau,
   decritFenetre,
+  estInterrompue,
   heure,
-  openWindowAt,
   valideFenetre,
 } from '@/domain/freeWindows';
 import { useFamily } from '@/store/selectors';
@@ -135,7 +136,17 @@ export default function PlagesLibres() {
       ) : null}
 
       {plages.map((plage) => {
-        const ouverte = openWindowAt([plage], null) !== null;
+        /**
+         * « OUVERTE » se lisait faux pour une plage nominative.
+         *
+         * `openWindowAt([plage], null)` demande « cette plage est-elle ouverte
+         * pour PERSONNE en particulier » : une plage réservée à Manon répond
+         * non, même en plein milieu. La pastille ne s'allumait donc que pour
+         * les plages de toute la famille. `dansSonCreneau` pose la seule
+         * question utile ici — est-ce son heure ?
+         */
+        const arretee = estInterrompue(plage);
+        const ouverte = dansSonCreneau(plage) && !arretee;
         return (
           <Card key={plage.id} style={styles.block}>
             <View style={styles.ligne}>
@@ -154,6 +165,11 @@ export default function PlagesLibres() {
             {!plage.enabled ? (
               <Text variant="caption" color={colors.textSubtle}>
                 Suspendue — elle ne s’ouvre plus, mais reste prête à reprendre.
+              </Text>
+            ) : null}
+            {arretee ? (
+              <Text variant="caption" color={colors.textSubtle}>
+                Arrêtée pour aujourd’hui. Elle revient demain, à son heure.
               </Text>
             ) : null}
             <View style={styles.actions}>

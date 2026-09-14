@@ -6,6 +6,8 @@ import { Button, Card, Text } from '@/components/ui';
 import { confirmer } from '@/components/ui/confirmer';
 import { getScreenTimeService } from '@/services/screenTime';
 import { choixEnregistre } from '@/data/deviceProfile';
+import { enfantsSansBlocage } from '@/domain/shieldReport';
+import { useChildren } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
@@ -75,6 +77,33 @@ export function BouclierBanner() {
    */
   const [etat, setEtat] = useState<string | undefined>(undefined);
 
+  /**
+   * Les enfants qu'aucun appareil ne protège encore.
+   *
+   * `null` tant qu'on n'a pas demandé, ou si la lecture a échoué : on ne se
+   * tait alors pas — un bandeau affiché à tort est un désagrément, un bandeau
+   * escamoté à tort laisse un parent croire que le verrou est posé.
+   */
+  const enfants = useChildren();
+  const depot = useMinoStore((s) => s.repository);
+  const [aDecouvert, setADecouvert] = useState<{ firstName: string }[] | null>(null);
+
+  useEffect(() => {
+    let vivant = true;
+    if (!depot.pairedDevices) return;
+    depot
+      .pairedDevices()
+      .then((appareils) => {
+        if (vivant) setADecouvert(enfantsSansBlocage(enfants, appareils));
+      })
+      .catch(() => {
+        if (vivant) setADecouvert(null);
+      });
+    return () => {
+      vivant = false;
+    };
+  }, [depot, enfants]);
+
   const relire = useCallback(() => {
     getScreenTimeService()
       .authorization()
@@ -109,9 +138,31 @@ export function BouclierBanner() {
    * rend avec son code famille.
    */
   if (choix.kind === 'parent') {
+    /**
+     * Le conseil s'efface quand il a été suivi.
+     *
+     * Tant que le bandeau ne regardait que CET appareil — le seul sur lequel il
+     * n'y a jamais rien à verrouiller — il restait affiché pour toujours, même
+     * les deux tablettes réglées. Un conseil qui ne s'éteint jamais cesse
+     * d'être lu, et emporte avec lui les avertissements qui, eux, comptent.
+     */
+    if (aDecouvert !== null && aDecouvert.length === 0) return null;
+
+    const nommes = aDecouvert?.map((e) => e.firstName) ?? [];
+    const qui =
+      nommes.length === 0
+        ? null
+        : nommes.length === 1
+          ? nommes[0]
+          : `${nommes.slice(0, -1).join(', ')} et ${nommes[nommes.length - 1]}`;
+
     return (
       <Card background={colors.surfaceMuted} elevation="none" style={styles.carte}>
-        <Text variant="bodyStrong">Le blocage se règle sur l’appareil de votre enfant</Text>
+        <Text variant="bodyStrong">
+          {qui
+            ? `Le blocage n’est pas encore posé pour ${qui}`
+            : 'Le blocage se règle sur l’appareil de votre enfant'}
+        </Text>
         <Text variant="caption" color={colors.textMuted}>
           Sur ce téléphone, il n’y a rien à fermer : c’est le vôtre. Installez Mino sur
           l’appareil où votre enfant joue, rejoignez la famille avec votre code, et c’est là que

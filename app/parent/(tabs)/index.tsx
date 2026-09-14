@@ -23,6 +23,7 @@ import { BouclierBanner } from '@/features/parent/BouclierBanner';
 import { CodeParentBanner } from '@/features/parent/CodeParentBanner';
 import { NotificationsBanner } from '@/features/parent/NotificationsBanner';
 import { FirstStepCard } from '@/features/parent/FirstStepCard';
+import { PlagesEnCours } from '@/features/parent/PlagesEnCours';
 import { RequestCard } from '@/features/parent/RequestCard';
 import { ScreenRequestCard } from '@/features/parent/ScreenRequestCard';
 import { HistoryList } from '@/features/history/HistoryList';
@@ -65,6 +66,8 @@ export default function ParentHome() {
   const firstStep = isFirstRun(data);
   // « Cet appareil est à Manon », répondu par le parent — voir `ChoixDAppareil`.
   const appareilDeLEnfant = choixEnregistre(device).kind === 'enfant';
+  // « Cet appareil est à moi », répondu à l'inscription ou dans les réglages.
+  const telephoneDuParent = choixEnregistre(device).kind === 'parent';
   const access = accessOf(subscription);
 
   return (
@@ -134,7 +137,11 @@ export default function ParentHome() {
           rouvre d'elle-même sur elle. Il vient voir où en est sa famille. La
           carte descend donc sous « Vue d'ensemble », qui prend sa place. */}
       {firstStep && !appareilDeLEnfant ? (
-        <FirstStepCard enfants={children} familyCode={data.family.code} />
+        <FirstStepCard
+          enfants={children}
+          familyCode={data.family.code}
+          telephoneDuParent={telephoneDuParent}
+        />
       ) : null}
 
       <View style={styles.section}>
@@ -161,25 +168,58 @@ export default function ParentHome() {
         ) : (
           children.map((child) => {
             const balance = balanceDetail(data.transactions, child.id);
+            /**
+             * Un solde et un compte à rebours ne se lisent pas ensemble.
+             *
+             * **Le défaut, vu par Julie avec ses deux enfants devant elle.** La
+             * vue d'ensemble annonçait « Raphaël 38:00 min disponibles », et la
+             * section « Écrans en cours », dix lignes plus bas, un décompte
+             * pour le même Raphaël. Deux nombres qui décrivent la même chose et
+             * bougent en sens inverse : l'un est le solde AVANT la séance et
+             * reste figé jusqu'à ce qu'elle se termine, l'autre fond à vue
+             * d'œil. Le parent lit les deux et n'en croit aucun.
+             *
+             * Pendant une séance, c'est donc le décompte qui a raison, et le
+             * solde qui se tait. Il revient quand la séance se termine, juste,
+             * débité de ce qui a été consommé.
+             */
+            const enSeance = runningSessions.some((s) => s.childId === child.id);
             return (
               <Card
                 key={child.id}
                 onPress={() =>
                   router.push({ pathname: '/parent/child/[id]', params: { id: child.id } })
                 }
-                accessibilityLabel={`${child.firstName}, ${balance.minutes} minutes disponibles`}
+                accessibilityLabel={
+                  enSeance
+                    ? `${child.firstName}, écran en cours`
+                    : `${child.firstName}, ${balance.minutes} minutes disponibles`
+                }
               >
                 <View style={styles.childRow}>
                   <Avatar avatarKey={child.avatarKey} size={54} />
                   <View style={styles.childTexts}>
                     <Text variant="cardTitle">{child.firstName}</Text>
-                    <Text variant="title" color={colors.blueInk}>
-                      {`${balance.minutes}:00`}
-                    </Text>
-                    <Text variant="caption" color={colors.textMuted}>
-                      min disponibles
-                    </Text>
-                    <TimeCapsules minutes={balance.minutes} compact maxCapsules={10} />
+                    {enSeance ? (
+                      <>
+                        <Text variant="title" color={colors.blueInk}>
+                          Écran en cours
+                        </Text>
+                        <Text variant="caption" color={colors.textMuted}>
+                          Le décompte est plus bas
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Text variant="title" color={colors.blueInk}>
+                          {`${balance.minutes}:00`}
+                        </Text>
+                        <Text variant="caption" color={colors.textMuted}>
+                          min disponibles
+                        </Text>
+                        <TimeCapsules minutes={balance.minutes} compact maxCapsules={10} />
+                      </>
+                    )}
                   </View>
                   <Icon name="chevron-right" color={colors.textSubtle} />
                 </View>
@@ -195,6 +235,11 @@ export default function ParentHome() {
       {firstStep && appareilDeLEnfant ? (
         <FirstStepCard enfants={children} familyCode={data.family.code} appareilDeLEnfant />
       ) : null}
+
+      {/* Une plage libre ouvre l'écran sans rien débiter, et le parent doit
+          pouvoir l'arrêter quand il veut — pour aujourd'hui, pas pour
+          toujours. Voir `PlagesEnCours`, qui porte la demande et la règle. */}
+      <PlagesEnCours />
 
       {runningSessions.length > 0 ? (
         <View style={styles.section}>

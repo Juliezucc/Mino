@@ -1,0 +1,224 @@
+import { interromprePlage, reprendrePlage } from '@/domain/actions';
+import {
+  FreeWindow,
+  dansSonCreneau,
+  estInterrompue,
+  gestePlageLibre,
+  jourLocal,
+  openWindowAt,
+  prochaineOuverture,
+} from '@/domain/freeWindows';
+import { FamilyData } from '@/domain/types';
+
+/**
+ * Arrêter la plage en cours — pour aujourd'hui, pas pour toujours.
+ *
+ * **Demandé par Julie après un test dans sa propre famille : « plage libre :
+ * il faut que le parent puisse quand même arrêter quand il veut. Pas besoin de
+ * compteur de temps d'écran, juste "enfant - arrêter". »**
+ *
+ * Le seul geste qui existait, `toggleFreeWindow`, suspend la plage POUR
+ * TOUJOURS. Arrêter le mercredi après-midi une fois aurait éteint tous les
+ * mercredis suivants, et personne ne retourne rallumer un réglage six jours
+ * plus tard : le parent aurait perdu la fonctionnalité en s'en servant.
+ *
+ * D'où une DATE, qui se périme d'elle-même. Ce que ces essais tiennent : elle
+ * ferme aujourd'hui, elle ne ferme que aujourd'hui, et elle ne ferme que ce
+ * qu'elle doit.
+ */
+const MERCREDI_15H = new Date(2026, 8, 16, 15, 0); // 16 septembre 2026, un mercredi
+const JEUDI_15H = new Date(2026, 8, 17, 15, 0);
+
+const plage = (over: Partial<FreeWindow> = {}): FreeWindow => ({
+  id: 'fw-1',
+  familyId: 'fam',
+  label: 'Mercredi après-midi',
+  childIds: null,
+  days: [3],
+  startMinute: 14 * 60,
+  endMinute: 16 * 60,
+  enabled: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  ...over,
+});
+
+const famille = (fenetres: FreeWindow[]): FamilyData =>
+  ({ freeWindows: fenetres }) as unknown as FamilyData;
+
+describe('arrêter une plage libre pour la journée', () => {
+  it('l’écran est ouvert tant que le parent n’a rien fait', () => {
+    expect(openWindowAt([plage()], 'enf-1', MERCREDI_15H)).not.toBeNull();
+  });
+
+  it('et il se referme dès que le parent arrête', () => {
+    const apres = interromprePlage(famille([plage()]), 'fw-1', MERCREDI_15H);
+    expect(openWindowAt(apres.freeWindows!, 'enf-1', MERCREDI_15H)).toBeNull();
+  });
+
+  it('la semaine suivante, la plage est revenue toute seule', () => {
+    // C'est toute la différence avec « Suspendre », et la raison d'une date.
+    const apres = interromprePlage(famille([plage()]), 'fw-1', MERCREDI_15H);
+    const mercrediSuivant = new Date(2026, 8, 23, 15, 0);
+    expect(openWindowAt(apres.freeWindows!, 'enf-1', mercrediSuivant)).not.toBeNull();
+    expect(apres.freeWindows![0].enabled).toBe(true);
+  });
+
+  it('un arrêt d’hier n’arrête rien aujourd’hui', () => {
+    const hier = plage({ days: [3, 4], interruptedOn: jourLocal(MERCREDI_15H) });
+    expect(openWindowAt([hier], 'enf-1', JEUDI_15H)).not.toBeNull();
+  });
+
+  it('le parent peut se raviser dans la foulée', () => {
+    let data = interromprePlage(famille([plage()]), 'fw-1', MERCREDI_15H);
+    data = reprendrePlage(data, 'fw-1');
+    expect(openWindowAt(data.freeWindows!, 'enf-1', MERCREDI_15H)).not.toBeNull();
+  });
+
+  it('n’arrête que la plage visée', () => {
+    const autre = plage({ id: 'fw-2', label: 'Devoirs finis', startMinute: 600, endMinute: 1200 });
+    const data = interromprePlage(famille([plage(), autre]), 'fw-1', MERCREDI_15H);
+    expect(openWindowAt(data.freeWindows!, 'enf-1', MERCREDI_15H)?.id).toBe('fw-2');
+  });
+
+  it('n’écrit rien au grand livre', () => {
+    // La règle 1 des plages libres vaut aussi pour l'arrêt : arrêter n'est pas
+    // dépenser. Le solde de l'enfant ne bouge pas d'un mino.
+    const avant = { freeWindows: [plage()], transactions: [] } as unknown as FamilyData;
+    const apres = interromprePlage(avant, 'fw-1', MERCREDI_15H);
+    expect(apres.transactions).toBe(avant.transactions);
+  });
+
+  it('ne promet pas à l’enfant une réouverture qui n’aura pas lieu', () => {
+    // « Ça rouvre à 14 h » dit à midi, alors que le parent a arrêté la plage du
+    // jour, serait une promesse que rien ne tiendra. On annonce donc la
+    // suivante — mercredi prochain — et pas celle de cet après-midi.
+    const midi = new Date(2026, 8, 16, 12, 0);
+    const arretee = plage({ interruptedOn: jourLocal(midi) });
+    expect(prochaineOuverture([plage()], 'enf-1', midi)?.quand.getDate()).toBe(16);
+    expect(prochaineOuverture([arretee], 'enf-1', midi)?.quand.getDate()).toBe(23);
+  });
+});
+
+describe('ce que le parent voit sur son accueil', () => {
+  it('la plage arrêtée reste visible tant que son heure n’est pas passée', () => {
+    // Sans quoi le bouton « Reprendre » disparaîtrait avec l'arrêt lui-même,
+    // et l'arrêt d'une touche n'aurait pas de retour.
+    const arretee = plage({ interruptedOn: jourLocal(MERCREDI_15H) });
+    expect(dansSonCreneau(arretee, MERCREDI_15H)).toBe(true);
+    expect(estInterrompue(arretee, MERCREDI_15H)).toBe(true);
+  });
+
+  it('et disparaît quand l’heure est passée', () => {
+    const dixSept = new Date(2026, 8, 16, 17, 0);
+    expect(dansSonCreneau(plage(), dixSept)).toBe(false);
+  });
+
+  it('une plage nominative compte aussi comme « en cours »', () => {
+    // `openWindowAt([plage], null)` répondait non pour une plage réservée à un
+    // enfant : la pastille « OUVERTE » des réglages ne s'allumait jamais pour
+    // celles-là, et l'accueil ne les aurait pas montrées non plus.
+    const nominative = plage({ childIds: ['enf-1'] });
+    expect(openWindowAt([nominative], null, MERCREDI_15H)).toBeNull();
+    expect(dansSonCreneau(nominative, MERCREDI_15H)).toBe(true);
+  });
+
+  it('une plage suspendue n’est pas « en cours »', () => {
+    expect(dansSonCreneau(plage({ enabled: false }), MERCREDI_15H)).toBe(false);
+  });
+});
+
+/**
+ * Ce que l'appareil de l'enfant fait du bouclier, à cet instant.
+ *
+ * Quatre cas, dont trois se sont révélés faux au premier essai — et aucun ne
+ * se voit en relisant un écran. C'est pour eux que la décision est sortie du
+ * magasin : ici, on peut la mettre dans chacun des quatre états.
+ */
+describe('le geste de l’appareil pendant une plage libre', () => {
+  const rien = { fenetres: [], childId: null, levee: null, enfantsEnSeance: [] };
+
+  it('lève le bouclier jusqu’à la fin de la plage', () => {
+    const geste = gestePlageLibre({
+      ...rien,
+      fenetres: [plage()],
+      childId: 'enf-1',
+      maintenant: MERCREDI_15H,
+    });
+    expect(geste).toEqual({ kind: 'ouvrir', fenetre: plage(), minutes: 60 });
+  });
+
+  it('le repose quand le parent arrête la plage', () => {
+    const arretee = plage({ interruptedOn: jourLocal(MERCREDI_15H) });
+    const geste = gestePlageLibre({
+      ...rien,
+      fenetres: [arretee],
+      childId: 'enf-1',
+      levee: { id: 'fw-1', childId: 'enf-1' },
+      maintenant: MERCREDI_15H,
+    });
+    expect(geste.kind).toBe('refermer');
+  });
+
+  it('ne repose rien si nous n’avions rien levé', () => {
+    // Le cas d'un appareil qui démarre en dehors de toute plage : reposer le
+    // bouclier serait sans effet au mieux, et couperait une séance au pire.
+    const geste = gestePlageLibre({ ...rien, fenetres: [plage()], childId: 'enf-1' });
+    expect(geste.kind).toBe('rien');
+  });
+
+  it('ne referme pas parce que le parent a ouvert son espace', () => {
+    // LE PIÈGE. Le parent touche « Espace parent » sur la tablette, le profil
+    // actif tombe à `null`, et une plage nominative cesse d'être « ouverte »
+    // pour cet appareil — alors qu'elle n'a pas bougé. Sans ce cas, l'écran de
+    // l'enfant se refermait au milieu du mercredi après-midi.
+    const nominative = plage({ childIds: ['enf-1'] });
+    const geste = gestePlageLibre({
+      ...rien,
+      fenetres: [nominative],
+      childId: null,
+      levee: { id: 'fw-1', childId: 'enf-1' },
+      maintenant: MERCREDI_15H,
+    });
+    expect(geste.kind).toBe('rien');
+  });
+
+  it('laisse une séance en cours tenir l’écran', () => {
+    // Le bouclier d'une séance appartient à `grant`/`revoke` : le reposer ici
+    // prendrait à l'enfant des minutes qu'il a déjà payées.
+    const arretee = plage({ interruptedOn: jourLocal(MERCREDI_15H) });
+    const geste = gestePlageLibre({
+      ...rien,
+      fenetres: [arretee],
+      childId: 'enf-1',
+      levee: { id: 'fw-1', childId: 'enf-1' },
+      enfantsEnSeance: ['enf-1'],
+      maintenant: MERCREDI_15H,
+    });
+    // Oublier, et non refermer : la plage est finie, mais ce n'est plus elle
+    // qui tient l'écran ouvert.
+    expect(geste.kind).toBe('oublier');
+  });
+
+  it('repose le bouclier quand la plage arrive à son heure de fin', () => {
+    const seize = new Date(2026, 8, 16, 16, 0);
+    const geste = gestePlageLibre({
+      ...rien,
+      fenetres: [plage()],
+      childId: 'enf-1',
+      levee: { id: 'fw-1', childId: 'enf-1' },
+      maintenant: seize,
+    });
+    expect(geste.kind).toBe('refermer');
+  });
+
+  it('et aussi quand le parent a supprimé la plage', () => {
+    const geste = gestePlageLibre({
+      ...rien,
+      fenetres: [],
+      childId: 'enf-1',
+      levee: { id: 'fw-1', childId: 'enf-1' },
+      maintenant: MERCREDI_15H,
+    });
+    expect(geste.kind).toBe('refermer');
+  });
+});

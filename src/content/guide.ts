@@ -241,6 +241,7 @@ export const GUIDE: GuideChapter[] = [
         body: [
           'Le mercredi après-midi, les vacances, le trajet du dimanche : déclarez une plage libre et les applications se débloquent toutes seules pendant ce créneau, sans que votre enfant dépense une minute.',
           'Il n’a rien à lancer, et Mino refuse de lui prendre du temps pour un écran déjà ouvert. À la fin de la plage, le verrou revient — même si l’application a été fermée entre-temps.',
+          'Et si le mercredi tombe mal, vous gardez la main : la plage en cours apparaît sur votre accueil avec un bouton « Arrêter ». L’arrêt ne vaut que pour la journée — la semaine suivante, elle revient toute seule.',
         ],
         where: 'Espace parent → Réglages → Plages libres',
         tip: 'La plage s’applique quand votre enfant ouvre Mino. S’il ne l’a pas rouvert depuis le début du créneau, une seule ouverture suffit.',

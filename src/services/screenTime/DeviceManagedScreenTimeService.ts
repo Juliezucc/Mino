@@ -78,6 +78,21 @@ export class DeviceManagedScreenTimeService implements ScreenTimeService {
     await this.native.unshield(jusqua.getTime());
   }
 
+  /**
+   * Reposer le bouclier tout de suite : le parent a arrêté la plage.
+   *
+   * Symétrique de `ouvrirPlageLibre`, et silencieuse dans les mêmes cas — pas
+   * d'autorisation, rien de choisi, donc rien à refermer. Aucune écriture au
+   * grand livre : arrêter n'est pas dépenser.
+   */
+  async refermerPlageLibre(): Promise<void> {
+    const etat = await this.native.authorizationStatus().catch(() => 'denied' as const);
+    if (etat !== 'approved') return;
+    const selection = await this.native.selectionCount().catch(() => ({ count: 0 }));
+    if (selection.count === 0) return;
+    await this.native.shield();
+  }
+
   async grant(params: { sessionId: ID; childId: ID; minutes: number }): Promise<ScreenTimeGrant> {
     /**
      * **Refuser de lever un verrou qui n'existe pas.**

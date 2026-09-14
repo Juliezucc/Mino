@@ -88,6 +88,42 @@ describe('une plage libre lève vraiment le bouclier', () => {
       new LocalTimerScreenTimeService().ouvrirPlageLibre(new Date()),
     ).resolves.toBeUndefined();
   });
+
+  /**
+   * Et le parent doit pouvoir la refermer avant l'heure.
+   *
+   * **Demandé par Julie : « il faut que le parent puisse quand même arrêter
+   * quand il veut ».** L'échéance est confiée au natif, et rien ne pouvait
+   * l'avancer : une plage commencée allait jusqu'au bout, quoi qu'il arrive
+   * dans la maison.
+   */
+  it('se referme quand le parent l’arrête, avant l’heure prévue', async () => {
+    const natif = fauxNatif();
+    const service = new DeviceManagedScreenTimeService(natif);
+    await service.ouvrirPlageLibre(new Date(Date.now() + 3_600_000));
+    expect(natif.protege()).toBe(false);
+
+    await service.refermerPlageLibre();
+
+    expect(natif.appels).toEqual(['unshield', 'shield']);
+    expect(natif.protege()).toBe(true);
+  });
+
+  it('ne repose rien là où il n’y a rien à reposer', async () => {
+    // Mêmes silences que `ouvrirPlageLibre` : pas d'autorisation, rien de
+    // choisi. Appeler le natif ici lèverait une erreur pour rien.
+    const refuse = fauxNatif('denied');
+    await new DeviceManagedScreenTimeService(refuse).refermerPlageLibre();
+    expect(refuse.appels).toEqual([]);
+
+    const sansApps = fauxNatif('approved', 0);
+    await new DeviceManagedScreenTimeService(sansApps).refermerPlageLibre();
+    expect(sansApps.appels).toEqual([]);
+
+    await expect(
+      new LocalTimerScreenTimeService().refermerPlageLibre(),
+    ).resolves.toBeUndefined();
+  });
 });
 
 /**

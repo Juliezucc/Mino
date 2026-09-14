@@ -66,6 +66,22 @@ export interface FreeWindow {
   endMinute: number;
   /** Suspendre sans supprimer : les vacances reviennent. */
   enabled: boolean;
+  /**
+   * Le jour où le parent a dit « pas aujourd'hui » — `AAAA-MM-JJ`, heure
+   * locale.
+   *
+   * **Ce qui manquait, et Julie l'a dit en une phrase : « il faut que le
+   * parent puisse quand même arrêter quand il veut ».** Une plage ne se
+   * fermait que pour toujours (`enabled`) ou jamais. Or le mercredi où les
+   * devoirs ne sont pas faits n'est pas le mercredi d'après : couper la plage
+   * du mercredi pour de bon, c'est la retrouver éteinte la semaine suivante,
+   * et personne ne pense à la rallumer.
+   *
+   * Une date plutôt qu'un booléen, pour que l'interruption se périme d'
+   * elle-même : demain, la plage revient sans que personne n'ait rien à faire.
+   * C'est la seule forme qui ne laisse pas de réglage derrière elle.
+   */
+  interruptedOn?: string | null;
   createdAt: ISODate;
 }
 
@@ -83,6 +99,11 @@ export function jourLocal(quand: Date): string {
   const m = `${quand.getMonth() + 1}`.padStart(2, '0');
   const j = `${quand.getDate()}`.padStart(2, '0');
   return `${quand.getFullYear()}-${m}-${j}`;
+}
+
+/** Le parent a arrêté cette plage POUR AUJOURD'HUI. Demain, elle revient. */
+export function estInterrompue(fenetre: FreeWindow, maintenant: Date = new Date()): boolean {
+  return !!fenetre.interruptedOn && fenetre.interruptedOn === jourLocal(maintenant);
 }
 
 function concerne(fenetre: FreeWindow, childId: ID | null): boolean {
@@ -113,6 +134,7 @@ export function openWindowAt(
   const ouvertes = fenetres.filter(
     (f) =>
       f.enabled &&
+      !estInterrompue(f, maintenant) &&
       concerne(f, childId) &&
       ceJourLa(f, maintenant) &&
       minute >= f.startMinute &&
@@ -120,6 +142,20 @@ export function openWindowAt(
   );
   if (ouvertes.length === 0) return null;
   return ouvertes.reduce((a, b) => (b.endMinute > a.endMinute ? b : a));
+}
+
+/**
+ * La plage tombe aujourd'hui ET l'heure y est — qu'elle soit arrêtée ou non.
+ *
+ * C'est ce que le parent doit voir sur son écran d'accueil : celle qu'il peut
+ * arrêter, et celle qu'il vient d'arrêter et peut reprendre. `openWindowAt`,
+ * lui, répond à une autre question — « l'écran est-il ouvert ? » — et doit
+ * donc continuer d'ignorer les plages arrêtées.
+ */
+export function dansSonCreneau(fenetre: FreeWindow, maintenant: Date = new Date()): boolean {
+  if (!fenetre.enabled || !ceJourLa(fenetre, maintenant)) return false;
+  const minute = minuteDuJour(maintenant);
+  return minute >= fenetre.startMinute && minute < fenetre.endMinute;
 }
 
 /** Combien de minutes il reste avant que la plage se referme. */
@@ -148,6 +184,10 @@ export function prochaineOuverture(
 
     for (const fenetre of fenetres) {
       if (!fenetre.enabled || !concerne(fenetre, childId) || !ceJourLa(fenetre, jour)) continue;
+      // Arrêtée aujourd'hui : elle ne rouvre pas aujourd'hui. Annoncer « à
+      // 14 h » à l'enfant que son parent vient d'arrêter serait une promesse
+      // que rien ne tiendra.
+      if (estInterrompue(fenetre, jour)) continue;
 
       const debut = new Date(jour);
       debut.setHours(Math.floor(fenetre.startMinute / 60), fenetre.startMinute % 60, 0, 0);
@@ -160,6 +200,65 @@ export function prochaineOuverture(
   }
 
   return meilleure;
+}
+
+/* ------------------------------------------------- le geste de l'appareil */
+
+/**
+ * Ce que l'appareil de l'enfant doit faire du bouclier, à cet instant.
+ *
+ * Sorti du magasin exprès. La décision tient en quatre cas, dont trois se sont
+ * révélés faux au premier essai — et aucun ne se voit en relisant l'écran :
+ *
+ *   • une plage est ouverte → lever le bouclier jusqu'à sa fin ;
+ *   • la plage qu'on avait levée est finie ou arrêtée → le reposer ;
+ *   • **le profil a seulement changé de mains** — le parent touche « Espace
+ *     parent » sur la tablette, `childId` tombe à `null` — et la plage, elle,
+ *     n'a pas bougé : ne rien faire. Sans ce cas, l'écran se refermait au
+ *     milieu du mercredi après-midi ;
+ *   • **une séance tourne** : son bouclier appartient à `grant`/`revoke`. Le
+ *     reposer ici prendrait à l'enfant des minutes qu'il a déjà payées.
+ */
+export type GestePlageLibre =
+  | { kind: 'ouvrir'; fenetre: FreeWindow; minutes: number }
+  /** Reposer le bouclier, et oublier la plage qu'on avait levée. */
+  | { kind: 'refermer' }
+  /** L'oublier sans rien reposer : une séance tient l'écran ouvert. */
+  | { kind: 'oublier' }
+  | { kind: 'rien' };
+
+export function gestePlageLibre(params: {
+  fenetres: FreeWindow[];
+  /** Le profil ouvert sur cet appareil, `null` s'il n'y en a pas. */
+  childId: ID | null;
+  /** La plage pour laquelle CE processus a levé le bouclier, et pour qui. */
+  levee: { id: ID; childId: ID | null } | null;
+  /** Les enfants dont une séance tourne en ce moment. */
+  enfantsEnSeance: ID[];
+  maintenant?: Date;
+}): GestePlageLibre {
+  const { fenetres, childId, levee, enfantsEnSeance } = params;
+  const maintenant = params.maintenant ?? new Date();
+
+  const ouverte = openWindowAt(fenetres, childId, maintenant);
+  if (ouverte) {
+    const minutes = minutesRestantes(ouverte, maintenant);
+    return minutes > 0 ? { kind: 'ouvrir', fenetre: ouverte, minutes } : { kind: 'rien' };
+  }
+
+  if (!levee) return { kind: 'rien' };
+
+  // Est-ce NOTRE plage qui s'est fermée, ou seulement le profil qui a changé ?
+  // La question se pose pour l'enfant à qui on l'avait ouverte, jamais pour
+  // celui qui regarde l'écran maintenant.
+  const notre = fenetres.find((f) => f.id === levee.id);
+  if (notre && openWindowAt([notre], levee.childId, maintenant)) return { kind: 'rien' };
+
+  const tenuParUneSeance = levee.childId
+    ? enfantsEnSeance.includes(levee.childId)
+    : enfantsEnSeance.length > 0;
+
+  return tenuParUneSeance ? { kind: 'oublier' } : { kind: 'refermer' };
 }
 
 /* ------------------------------------------------------------ écriture */

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AnimatedMascot } from '@/components/mascot';
@@ -14,6 +14,7 @@ import {
   TimeSlider,
 } from '@/components/ui';
 import { unitOf, tailleBouton } from '@/domain/ageBand';
+import { formatDuration } from '@/domain/ledger';
 import { bornesPour, formatTime } from '@/domain/minos';
 import { activeDevices, deviceIcon, describeDevice } from '@/domain/devices';
 import { getScreenTimeService } from '@/services/screenTime';
@@ -39,6 +40,43 @@ export default function ChildTime() {
   const balance = useBalanceDetail(child?.id);
   const running = useRunningSession(child?.id);
   const requested = useRequestedSession(child?.id);
+
+  /**
+   * Le temps qui défile, ici aussi.
+   *
+   * **Le défaut, vu par Julie sur le téléphone de son fils.** Pendant une
+   * séance, cet onglet n'affichait qu'un bouton « REPRENDRE ». Or le temps
+   * court : les minutes se consomment pendant que l'enfant est ailleurs, et
+   * c'est précisément ce qu'il doit voir. Un bouton qui invite à « reprendre »
+   * laisse croire que quelque chose est en pause — alors que rien ne l'est.
+   *
+   * Le décompte vivait dans `session.tsx`, l'écran qu'on atteint en touchant ce
+   * bouton. Il est donc à un geste de distance de l'endroit où il compte.
+   *
+   * `-1` et non `0` à l'amorce : zéro se lirait « temps écoulé » au tout
+   * premier rendu, avant que le premier battement n'ait eu lieu. C'est la même
+   * précaution que dans `session.tsx`, et pour la même raison.
+   */
+  const [restant, setRestant] = useState(() =>
+    running ? Math.max(0, Math.round((new Date(running.endsAt).getTime() - Date.now()) / 1000)) : -1,
+  );
+
+  useEffect(() => {
+    if (!running) {
+      setRestant(-1);
+      return;
+    }
+    const battre = () => {
+      const reste = Math.max(0, Math.round((new Date(running.endsAt).getTime() - Date.now()) / 1000));
+      setRestant(reste);
+      return reste;
+    };
+    battre();
+    const minuteur = setInterval(() => {
+      if (battre() <= 0) clearInterval(minuteur);
+    }, 1000);
+    return () => clearInterval(minuteur);
+  }, [running]);
   const startSession = useMinoStore((s) => s.startSession);
   const endSession = useMinoStore((s) => s.endSession);
 
@@ -137,10 +175,16 @@ export default function ChildTime() {
         <Card style={styles.useCard} background={colors.blueSoft} elevation="none">
           <AnimatedMascot expression="delighted" size={110} />
           <Text variant="cardTitle" center>
-            Une session est en cours
+            Ton temps tourne
+          </Text>
+          {/* Le décompte en grand, et le bouton en retrait : ce que l'enfant
+              veut savoir, c'est combien il lui reste — pas où appuyer. */}
+          <Text variant="hero" color={colors.blueInk} center>
+            {restant < 0 ? '—' : formatDuration(restant)}
           </Text>
           <Button
-            label="REPRENDRE"
+            label="VOIR MON TEMPS"
+            variant="secondary"
             size={taille}
             onPress={() =>
               router.push({ pathname: '/child/session', params: { sessionId: running.id } })

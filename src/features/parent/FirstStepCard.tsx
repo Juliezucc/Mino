@@ -45,14 +45,40 @@ interface Props {
    * l'action principale, puisque l'application y rouvre d'elle-même.
    */
   appareilDeLEnfant?: boolean;
+  /**
+   * Cet appareil est le téléphone d'un parent, il l'a déclaré à l'inscription
+   * ou dans « À moi » — `choixEnregistre(device).kind === 'parent'`.
+   *
+   * Aucun enfant ne joue ici : c'est le code famille qui devient le geste
+   * principal, et « Passer à… » disparaît.
+   */
+  telephoneDuParent?: boolean;
 }
 
-export function FirstStepCard({ enfants, familyCode, appareilDeLEnfant = false }: Props) {
+export function FirstStepCard({
+  enfants,
+  familyCode,
+  appareilDeLEnfant = false,
+  telephoneDuParent = false,
+}: Props) {
   const router = useRouter();
 
   const premier = enfants[0];
   if (!premier) return null;
   const plusieurs = enfants.length > 1;
+
+  const code = (
+    <View style={styles.code}>
+      <Text variant="caption" color={colors.textMuted} center>
+        {plusieurs
+          ? 'Sur chaque appareil confié à un enfant : installez Mino, puis « J’ai un code famille »'
+          : `Sur l’appareil de ${premier.firstName} : installez Mino, puis « J’ai un code famille »`}
+      </Text>
+      <Text variant="title" color={colors.blueInk} center>
+        {familyCode}
+      </Text>
+    </View>
+  );
 
   return (
     <Card style={styles.card} background={colors.surfaceMuted} elevation="none">
@@ -73,29 +99,37 @@ export function FirstStepCard({ enfants, familyCode, appareilDeLEnfant = false }
         </View>
       </View>
 
-      {/* Sur un appareil partagé — le cas le plus courant — l'enfant joue sur
-          celui-ci, et il faut pouvoir lui passer tout de suite. Sur le sien,
-          l'application rouvre déjà sur son profil : le bouton reste, en
-          retrait, parce qu'il sert encore à sortir de l'espace parent. */}
-      <Button
-        label={plusieurs ? 'Passer à un profil enfant' : `Passer à ${premier.firstName}`}
-        icon="👋"
-        variant={appareilDeLEnfant ? 'secondary' : 'primary'}
-        onPress={() => router.replace('/who')}
-      />
+      {/*
+        À qui s'adresse le geste principal — et ça dépend de l'appareil.
 
-      {appareilDeLEnfant ? null : (
-        <View style={styles.code}>
-          <Text variant="caption" color={colors.textMuted} center>
-            {plusieurs
-              ? 'Sur chaque appareil confié à un enfant : installez Mino, puis « J’ai un code famille »'
-              : `Sur l’appareil de ${premier.firstName} : installez Mino, puis « J’ai un code famille »`}
-          </Text>
-          <Text variant="title" color={colors.blueInk} center>
-            {familyCode}
-          </Text>
-        </View>
+        **Le défaut, relevé par Julie sur son propre téléphone.** « Passer à
+        Raphaël » s'affichait en bouton bleu pleine largeur, et le code
+        famille — la seule chose à faire depuis ce téléphone-là — était relégué
+        en petit texte gris dessous. Le commentaire d'origine l'assumait :
+        « sur un appareil partagé, le cas le plus courant, l'enfant joue sur
+        celui-ci ». C'était vrai avant que l'appareil ne sache dire qu'il est
+        celui d'un parent.
+
+        Il le sait depuis. Sur le téléphone d'un parent, aucun enfant ne joue :
+        lui proposer de basculer sur le profil de son fils l'envoie exactement
+        là où il n'y a rien à régler — l'écran à bloquer est ailleurs, sur
+        l'appareil de l'enfant, et on y arrive avec le code. Le code passe donc
+        devant, et le bouton disparaît.
+      */}
+      {telephoneDuParent ? (
+        code
+      ) : (
+        <Button
+          label={plusieurs ? 'Passer à un profil enfant' : `Passer à ${premier.firstName}`}
+          icon="👋"
+          variant={appareilDeLEnfant ? 'secondary' : 'primary'}
+          onPress={() => router.replace('/who')}
+        />
       )}
+
+      {/* Sur l'appareil de l'enfant, Mino est déjà installé : on est dessus. */}
+      {appareilDeLEnfant || telephoneDuParent ? null : code}
+
     </Card>
   );
 }

@@ -170,6 +170,20 @@ create table if not exists free_windows (
 
 create index if not exists idx_free_windows_family on free_windows (family_id);
 
+/**
+ * Arrêter la plage du jour sans la supprimer.
+ *
+ * Demandé par Julie après un test en famille : « il faut que le parent puisse
+ * quand même arrêter quand il veut ». `enabled` ne sait dire que « plus
+ * jamais » — arrêter le mercredi après-midi une fois l'éteindrait toutes les
+ * semaines. Une DATE se périme d'elle-même : demain, la plage revient sans que
+ * personne n'ait rien à rallumer.
+ *
+ * Écrite par le parent seul (`free_windows_write` exige `auth_is_parent()`),
+ * et l'appareil de l'enfant la reçoit par le temps réel, comme le reste.
+ */
+alter table free_windows add column if not exists interrupted_on date;
+
 create table if not exists missions (
   id         text primary key,
   family_id  text not null references families (id) on delete cascade,

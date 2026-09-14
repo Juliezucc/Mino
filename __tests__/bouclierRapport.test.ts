@@ -1,4 +1,4 @@
-import { AppareilRapporte, aRegler, etatDe, phraseDe } from '@/domain/shieldReport';
+import { AppareilRapporte, aRegler, etatDe, phraseDe, enfantsSansBlocage} from '@/domain/shieldReport';
 
 /**
  * Le mode de panne le plus grave du produit, et la règle qui le referme.
@@ -135,5 +135,88 @@ describe('le téléphone d’un parent', () => {
     // ne survit pas à l'absence de nouvelles.
     const vieux = { ...vu('telephone-parent'), seenAt: '2026-09-01T08:00:00.000Z' };
     expect(etatDe(vieux, MAINTENANT)).toBe('muet');
+  });
+});
+
+/**
+ * Le conseil s'efface quand il a été suivi.
+ *
+ * **Le défaut, signalé par Julie une semaine après le lancement.** Le bandeau
+ * « Le blocage se règle sur l'appareil de votre enfant » ne regardait que
+ * l'appareil sur lequel il s'affiche — le téléphone du parent, c'est-à-dire le
+ * seul sur lequel il n'y a jamais rien à verrouiller. Il restait donc là pour
+ * toujours, même une fois les deux tablettes réglées.
+ *
+ * Un conseil qui ne s'éteint jamais cesse d'être lu, et emporte avec lui les
+ * avertissements qui, eux, comptent.
+ */
+describe('quels enfants ne sont pas encore protégés', () => {
+  const MAINTENANT = new Date('2026-09-14T22:00:00.000Z');
+  const enfants = [
+    { id: 'enf-raph', firstName: 'Raphaël' },
+    { id: 'enf-elli', firstName: 'Elliott' },
+  ];
+  const appareil = (over: Partial<AppareilRapporte>): AppareilRapporte => ({
+    id: 'dev-1',
+    label: null,
+    childId: null,
+    status: 'approved',
+    seenAt: '2026-09-14T21:00:00.000Z',
+    joinedAt: '2026-09-10T00:00:00.000Z',
+    ...over,
+  });
+
+  it('aucun, quand chaque enfant a sa tablette réglée', () => {
+    expect(
+      enfantsSansBlocage(
+        enfants,
+        [appareil({ id: 'd1', childId: 'enf-raph' }), appareil({ id: 'd2', childId: 'enf-elli' })],
+        MAINTENANT,
+      ),
+    ).toEqual([]);
+  });
+
+  it('nomme celui qui manque', () => {
+    const restants = enfantsSansBlocage(
+      enfants,
+      [appareil({ id: 'd1', childId: 'enf-raph' })],
+      MAINTENANT,
+    );
+    expect(restants.map((e) => e.firstName)).toEqual(['Elliott']);
+  });
+
+  it('une tablette partagée couvre toute la fratrie', () => {
+    expect(enfantsSansBlocage(enfants, [appareil({ childId: null })], MAINTENANT)).toEqual([]);
+  });
+
+  it('le COMPTEUR SEUL compte comme réglé — c’est un choix, pas un oubli', () => {
+    expect(
+      enfantsSansBlocage(
+        enfants,
+        [appareil({ childId: null, status: 'compteur-seul' })],
+        MAINTENANT,
+      ),
+    ).toEqual([]);
+  });
+
+  it('mais le téléphone d’un parent ne protège personne', () => {
+    // Aucun enfant n'y joue. Le compter reviendrait a taire le conseil des
+    // qu'un second parent rejoint la famille — exactement le contraire du but.
+    const restants = enfantsSansBlocage(
+      enfants,
+      [appareil({ childId: null, status: 'telephone-parent' })],
+      MAINTENANT,
+    );
+    expect(restants).toHaveLength(2);
+  });
+
+  it('ni un appareil muet depuis trois jours', () => {
+    // On ne sait plus ce qu'il est devenu : le silence n'est pas une garantie.
+    const restants = enfantsSansBlocage(
+      enfants,
+      [appareil({ childId: null, seenAt: '2026-09-01T00:00:00.000Z' })],
+      MAINTENANT,
+    );
+    expect(restants).toHaveLength(2);
   });
 });

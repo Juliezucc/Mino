@@ -64,6 +64,11 @@ export class LocalTimerScreenTimeService implements ScreenTimeService {
     return;
   }
 
+  /** Rien n'a été levé ici non plus : il n'y a rien à reposer. */
+  async refermerPlageLibre(): Promise<void> {
+    return;
+  }
+
   async revoke(sessionId: ID): Promise<{ consumedMinutes: number }> {
     const grant = this.grants.get(sessionId);
     if (!grant) return { consumedMinutes: 0 };
