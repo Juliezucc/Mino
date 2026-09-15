@@ -97,7 +97,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Reprenez le téléphone pour la dernière étape',
         body: [
-          'Mino demande alors de passer l’appareil à un adulte : c’est vous qui autorisez le verrouillage des applications, et personne d’autre. C’est à faire une seule fois.',
+          'Mino demande alors de passer l’appareil à un adulte : c’est vous qui autorisez le blocage des applications, et personne d’autre. C’est à faire une seule fois.',
           'C’est le système lui-même qui vérifie qu’un adulte est bien là : iOS et Android demandent votre compte ou votre code parental à ce moment précis. C’est aussi pour cela que Mino n’a pas besoin de le demander plus tôt.',
           'Si vous préférez le faire plus tard, l’étape se retrouve à tout moment dans Réglages → Blocage des applications.',
         ],
@@ -229,8 +229,8 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Choisir les applications',
         body: [
-          'Le système ouvre sa propre liste et vous cochez ce qui doit être verrouillé. Mino, lui, reste toujours ouvert : le système protège l’application qui détient l’autorisation, et il ne se laisse pas enfermer dehors. Votre enfant pourra donc toujours voir ses missions et lancer son temps.',
-          'Le reste est verrouillé si vous le cochez, et seulement si vous le cochez. Laissez le téléphone et les messages en dehors de la liste : votre enfant doit pouvoir vous joindre à tout moment. Sur Android, Mino épargne de lui-même le composeur d’appels ; sur iPhone, il ne peut pas le reconnaître — le système ne nous donne que des jetons anonymes — et c’est donc à vous de ne pas le cocher.',
+          'Le système ouvre sa propre liste et vous cochez ce qui doit être bloqué. Mino, lui, reste toujours ouvert : le système protège l’application qui détient l’autorisation, et il ne se laisse pas enfermer dehors. Votre enfant pourra donc toujours voir ses missions et lancer son temps.',
+          'Le reste est bloqué si vous le cochez, et seulement si vous le cochez. Laissez le téléphone et les messages en dehors de la liste : votre enfant doit pouvoir vous joindre à tout moment. Sur Android, Mino épargne de lui-même le composeur d’appels ; sur iPhone, il ne peut pas le reconnaître — le système ne nous donne que des jetons anonymes — et c’est donc à vous de ne pas le cocher.',
           'Le système ne nous dira jamais lesquelles vous avez cochées, seulement combien. Mino ne peut donc pas savoir ce que votre enfant utilise.',
         ],
         where: 'Espace parent → Réglages → Blocage des applications',
@@ -249,7 +249,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Si votre appareil ne le permet pas',
         body: [
-          'Sur le web, ou sur une version sans le module de blocage, Mino compte le temps sans rien verrouiller — et il le dit plutôt que de le laisser croire.',
+          'Sur le web, ou sur une version sans le module de blocage, Mino compte le temps sans rien bloquer — et il le dit plutôt que de le laisser croire.',
           'Dans ce cas, posez la limite dans le contrôle parental du système : sur iPhone, Réglages → Temps d’écran → Limites d’app, avec un code différent de celui qui déverrouille l’appareil. Sur Android, Family Link, ou Bien-être numérique directement sur l’appareil.',
           'Excluez Mino de la limite, pour qu’il puisse toujours ouvrir ses missions.',
         ],

@@ -18,7 +18,21 @@ import { readFileSync } from 'node:fs';
  *
  * C'est la règle des libellés de `CLAUDE.md`, appliquée aux documents.
  */
-const DOCUMENTS = ['src/content/terms.ts', 'src/content/privacy.ts', 'src/content/faq.ts'];
+/**
+ * **Le guide a rejoint la liste, et il a fallu le nettoyer d'abord.**
+ *
+ * Il disait « verrouillage », « verrouillé », « verrouiller » là où le produit
+ * dit « blocage » — quatre passages, écrits avant que la règle ne soit tenue
+ * par un essai. Le guide est pourtant le texte le plus lu de l'application :
+ * c'est celui qu'ouvre un parent qui s'installe, avant même d'avoir un enfant
+ * à l'écran. Un mot qui diverge là diverge à l'endroit le plus visible.
+ */
+const DOCUMENTS = [
+  'src/content/terms.ts',
+  'src/content/privacy.ts',
+  'src/content/faq.ts',
+  'src/content/guide.ts',
+];
 
 /**
  * **`guide.ts` manquait, et la garantie y a survécu quatre jours.**
@@ -52,6 +66,14 @@ const LEGITIMES = [
   'il est encadré par les clauses',
   'transferts est encadré par les clauses',
   'l’écran verrouillé',
+  // « un encadré ⚠️ » est une boîte dans une page, et « un échange encadré »
+  // décrit une convention entre un parent et son enfant sur une console. Ni
+  // l'un ni l'autre ne nomme la fonctionnalité.
+  'portent un encadré',
+  'un échange encadré',
+  // Le code qui ouvre le téléphone lui-même, dans la consigne qui dit d'en
+  // choisir un autre que celui du contrôle parental du système.
+  'celui qui déverrouille l’appareil',
 ];
 
 /**
