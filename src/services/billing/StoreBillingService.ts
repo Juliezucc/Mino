@@ -48,6 +48,16 @@ export class StoreBillingService implements BillingService {
       platform: 'apple' | 'google';
       token: string;
       productId: string;
+      /**
+       * Quel geste a produit cette preuve.
+       *
+       * Le serveur en a besoin pour ne pas promettre ce qu'il ne peut pas
+       * tenir : après un ACHAT, une vérification ratée sera rattrapée par la
+       * notification serveur à serveur ; après une RESTAURATION, non — Apple
+       * ne réémet pas de notification pour une transaction ancienne qu'on
+       * redemande. La même phrase serait vraie d'un côté et fausse de l'autre.
+       */
+      geste?: 'achat' | 'restauration';
     }) => Promise<Subscription | null>,
     /** Le jeton qui relie l'achat à la famille — voir `native.ts`. */
     private readonly accountToken: (familyId: ID) => Promise<string>,
@@ -295,13 +305,39 @@ export class StoreBillingService implements BillingService {
    * le parent sans abonnement et sans explication, indéfiniment.
    */
   async restore(familyId: ID): Promise<CheckoutOutcome> {
-    const purchases = await this.store.restore().catch(() => []);
+    /**
+     * **« Aucun achat à restaurer » accusait le compte Apple du parent d'une
+     * panne qui n'était pas la sienne.**
+     *
+     * `.catch(() => [])` confondait deux choses que la méthode entière existe
+     * pour distinguer : une boutique qui répond « je n'ai rien » et une
+     * boutique qui ne répond pas. Le délai de liaison de vingt secondes, un
+     * `getAvailablePurchases` qui lève, un module absent — tout finissait en
+     * liste vide, et le parent lisait qu'il n'a rien acheté sur ce compte.
+     * C'est faux, et ça l'envoie chercher un second identifiant Apple qui
+     * n'existe pas.
+     *
+     * `ExpoIapStore` écrit déjà ses pannes en français (« La boutique n'a pas
+     * répondu (ouverture). ») : il suffisait de cesser de les jeter.
+     */
+    let purchases;
+    try {
+      purchases = await this.store.restore();
+    } catch (erreur) {
+      const dit = erreur instanceof Error ? erreur.message.trim() : '';
+      return {
+        kind: 'failed',
+        reason: dit || 'La boutique n’a pas répondu. Réessayez dans un instant.',
+      };
+    }
+
     if (purchases.length === 0) {
       return { kind: 'failed', reason: 'Aucun achat à restaurer sur ce compte.' };
     }
 
     let confirmes = 0;
     let dit = '';
+    let ditEstDefinitif = false;
 
     for (const purchase of purchases) {
       try {
@@ -310,10 +346,24 @@ export class StoreBillingService implements BillingService {
           platform: this.store.platform,
           token: purchase.token,
           productId: purchase.productId,
+          geste: 'restauration',
         });
         if (abonnement) confirmes += 1;
       } catch (erreur) {
-        if (erreur instanceof Error && erreur.message.trim()) dit = erreur.message.trim();
+        const message = erreur instanceof Error ? erreur.message.trim() : '';
+        if (!message) continue;
+        /**
+         * **Le dernier écrasait le vrai.** `dit` était réaffecté à chaque tour :
+         * avec deux transactions rendues par Apple, un refus définitif — « cet
+         * abonnement est déjà rattaché à un compte Mino », qui dira la même
+         * chose dans un mois — pouvait être recouvert par un 502 passager, et
+         * le parent lisait « réessayez » sur un refus qui ne bougera pas.
+         */
+        const definitif = estDefinitif(erreur);
+        if (!dit || (definitif && !ditEstDefinitif)) {
+          dit = message;
+          ditEstDefinitif = definitif;
+        }
       }
     }
 

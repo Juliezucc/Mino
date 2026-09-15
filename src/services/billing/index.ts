@@ -73,6 +73,8 @@ async function confirmPurchase(input: {
   platform: 'apple' | 'google';
   token: string;
   productId: string;
+  /** « achat » ou « restauration » — voir `StoreBillingService`. */
+  geste?: 'achat' | 'restauration';
 }): Promise<Subscription | null> {
   const client = getSupabaseClient();
   if (!client) return null;

@@ -66,6 +66,15 @@ export default function SubscriptionScreen() {
   const [selected, setSelected] = useState<Plan>('monthly');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Ce qui s'est bien passé, quand rien ne se voit.
+   *
+   * **Une restauration réussie ne produisait rien.** Le parent touche
+   * « Restaurer mes achats », l'écran se recompose à l'identique — parce que
+   * le serveur a rendu l'abonnement qu'on affichait déjà — et il conclut que
+   * le bouton est cassé. Un succès muet se lit comme une panne.
+   */
+  const [succes, setSucces] = useState<string | null>(null);
 
   const billing = getBillingService();
   const access = accessOf(subscription);
@@ -245,8 +254,12 @@ export default function SubscriptionScreen() {
   const restore = async () => {
     setLoading(true);
     setError(null);
+    setSucces(null);
     const outcome = await restorePurchases();
     if (outcome.kind === 'failed') setError(outcome.reason);
+    else if (outcome.kind === 'done') {
+      setSucces('Vos achats ont été vérifiés auprès de la boutique.');
+    }
     setLoading(false);
   };
 
@@ -266,7 +279,13 @@ export default function SubscriptionScreen() {
    * les formules. Un message qui nomme un geste doit porter le geste : voir
    * `services/billing/restauration.ts`.
    */
-  const bandeauErreur = error ? (
+  const bandeauErreur = succes && !error ? (
+    <Card background={colors.mintSoft} elevation="none">
+      <Text variant="body" color={colors.mintInk}>
+        {succes}
+      </Text>
+    </Card>
+  ) : error ? (
     <Card background={colors.dangerSoft} elevation="none" style={styles.bandeau}>
       <Text variant="body" color={colors.dangerInk}>
         {error}

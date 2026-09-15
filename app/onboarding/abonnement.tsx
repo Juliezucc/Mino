@@ -118,6 +118,10 @@ export default function OnboardingAbonnement() {
   const [selected, setSelected] = useState<Plan>('monthly');
   const [loading, setLoading] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  /** Voir le même état sur l'écran Abonnement : un succès muet se lit comme
+      une panne. Ici il ne s'affiche qu'un instant quand l'abonnement retrouvé
+      ouvre l'accès — l'effet `dejaServi` emmène alors le parent plus loin. */
+  const [succes, setSucces] = useState<string | null>(null);
 
   const billing = getBillingService();
   const access = accessOf(subscription);
@@ -218,8 +222,12 @@ export default function OnboardingAbonnement() {
   const restaurer = async () => {
     setLoading(true);
     setErreur(null);
+    setSucces(null);
     const outcome = await restorePurchases();
     if (outcome.kind === 'failed') setErreur(outcome.reason);
+    else if (outcome.kind === 'done') {
+      setSucces('Vos achats ont été vérifiés auprès de la boutique.');
+    }
     setLoading(false);
   };
 
@@ -356,6 +364,14 @@ export default function OnboardingAbonnement() {
        * affichée » — et le correctif n'avait jamais été porté ici, sur l'écran
        * où l'on engage de l'argent pour la première fois.
        */}
+      {succes && !erreur ? (
+        <Card background={colors.mintSoft} elevation="none">
+          <Text variant="body" color={colors.mintInk}>
+            {succes}
+          </Text>
+        </Card>
+      ) : null}
+
       {erreur ? (
         <Card background={colors.dangerSoft} elevation="none" style={styles.bandeau}>
           <Text variant="body" color={colors.dangerInk}>
