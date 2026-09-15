@@ -362,6 +362,15 @@ async function capture(screen, viewport) {
  * suit ne peut marcher.
  */
 {
+  /**
+   * Ouvrir AVANT d'écrire dans le stockage, et c'est l'ordre qui compte.
+   *
+   * Une page fraîche est sur `about:blank`, qui n'a pas d'origine : y lire
+   * `localStorage` lève `SecurityError: Access is denied for this document`.
+   * Il faut donc être arrivé quelque part pour pouvoir y déposer le drapeau —
+   * puis recharger, puisque l'écran d'accueil ne le lit qu'au montage.
+   */
+  await open();
   await page.evaluate((cle) => {
     localStorage.clear();
     localStorage.setItem(cle, '1');
