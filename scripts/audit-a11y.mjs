@@ -19,8 +19,29 @@
  * - **un nom accessible** sur tout ce qui se touche. Sans lui, VoiceOver
  *   annonce « bouton », ce qui n'aide personne.
  *
- * Usage :  AUDIT_URL=http://127.0.0.1:4181/ node scripts/audit-a11y.mjs
+ * Usage :
+ *   EXPO_NO_DOTENV=1 npx expo export -p web --output-dir dist --clear
+ *   npx http-server dist -p 4181 --silent &
+ *   AUDIT_URL=http://127.0.0.1:4181/ node scripts/audit-a11y.mjs
+ *
+ * **`EXPO_NO_DOTENV=1`, et ce n'est pas un détail.** Avec `.env`, les variables
+ * Supabase entrent dans le paquet, l'application parle au vrai serveur, et
+ * `app/welcome.tsx` refuse de créer la famille de démonstration — la garde y est
+ * explicite. Les onze parcours deviennent alors injouables, et l'audit annonce
+ * « 0 problème » en n'ayant rien regardé.
+ *
+ * **Ce que ce script a annoncé pendant des semaines, et pourquoi c'était faux.**
+ * Chaque parcours commençait par « Découvrir avec la démo », un bouton retiré de
+ * l'accueil depuis. Les onze chemins tombaient donc sur « chemin injouable », la
+ * boucle passait au suivant sans rien mesurer, et le total s'affichait en vert.
+ * Un outil qui ment vaut moins que pas d'outil : on croit avoir regardé.
+ *
+ * La famille de démonstration se demande maintenant par le même drapeau que les
+ * captures — voir `scripts/capture-store.mjs`, qui porte la même correction.
  */
+
+/** Le drapeau lu par `app/welcome.tsx`, et seulement là où le dépôt est local. */
+const DEMO_FLAG = 'mino.captures.demo';
 
 import { createRequire } from 'node:module';
 
@@ -53,6 +74,11 @@ const ACCEPTED = [
     min: 52,
     why: "chrome de navigation partagé avec l'espace parent ; 52 dépasse les minimums d'Apple (44) et de Google (48), et une flèche de 64 dans un en-tête écrase le titre",
   },
+  {
+    label: /^Espace parent$/,
+    min: 52,
+    why: "ce n'est pas une commande d'enfant : elle mène au code à quatre chiffres. La grossir à 64 sur l'écran d'un enfant l'inviterait à la toucher par erreur, pour se heurter à une porte fermée — on ne rend pas plus visible ce qui ne lui est pas destiné. 52 reste au-dessus des minimums d'Apple et de Google, et le parent qui la cherche la trouve",
+  },
 ];
 const MIN_CONTRAST = { normal: 4.5, large: 3 };
 
@@ -64,33 +90,41 @@ const MIN_CONTRAST = { normal: 4.5, large: 3 };
  * parcours dans ce dépôt.
  */
 const SCREENS = [
-  { id: 'accueil-enfant', registre: 'enfant', path: 'Découvrir avec la démo → Noah' },
-  { id: 'missions-enfant', registre: 'enfant', path: 'Découvrir avec la démo → Noah → VOIR MES MISSIONS' },
+  { id: 'accueil-enfant', registre: 'enfant', path: 'Noah' },
+  { id: 'missions-enfant', registre: 'enfant', path: 'Noah → VOIR MES MISSIONS' },
   {
     id: 'mission-enfant',
     registre: 'enfant',
-    path: 'Découvrir avec la démo → Noah → VOIR MES MISSIONS → Ranger ma chambre',
+    path: 'Noah → VOIR MES MISSIONS → Ranger ma chambre',
   },
-  { id: 'temps-enfant', registre: 'enfant', path: 'Découvrir avec la démo → Noah → onglet Temps' },
-  { id: 'profil-enfant', registre: 'enfant', path: 'Découvrir avec la démo → Noah → onglet Profil' },
+  { id: 'temps-enfant', registre: 'enfant', path: 'Noah → onglet Temps' },
+  { id: 'profil-enfant', registre: 'enfant', path: 'Noah → onglet Profil' },
   // L'écran d'accueil s'adresse à un parent qui installe : c'est le seul de
   // cette liste où le seuil adulte est le bon.
-  { id: 'accueil-app', registre: 'parent', path: '' },
-  { id: 'qui', registre: 'enfant', path: 'Découvrir avec la démo → Espace parent → code parent → onglet Réglages → Verrouiller l’espace parent' },
+  /**
+   * L'accueil lui-même, c'est-à-dire l'écran d'AVANT la famille.
+   *
+   * Seul parcours qui ne demande pas la démonstration : avec le drapeau, on est
+   * redirigé sur le sélecteur de profils et on ne verrait jamais « Créer ma
+   * famille », « J'ai déjà un compte », « J'ai un code famille » — les trois
+   * premiers boutons que touche quelqu'un qui installe Mino.
+   */
+  { id: 'accueil-app', registre: 'parent', path: '', sansDemo: true },
+  { id: 'qui', registre: 'enfant', path: 'Espace parent → code parent → onglet Réglages → Verrouiller l’espace parent' },
   {
     id: 'accueil-parent',
     registre: 'parent',
-    path: 'Découvrir avec la démo → Espace parent → code parent',
+    path: 'Espace parent → code parent',
   },
   {
     id: 'missions-parent',
     registre: 'parent',
-    path: 'Découvrir avec la démo → Espace parent → code parent → onglet Missions-parent',
+    path: 'Espace parent → code parent → onglet Missions-parent',
   },
   {
     id: 'reglages-parent',
     registre: 'parent',
-    path: 'Découvrir avec la démo → Espace parent → code parent → onglet Réglages',
+    path: 'Espace parent → code parent → onglet Réglages',
   },
 ];
 
@@ -234,9 +268,17 @@ let contrastFails = 0;
 let unnamed = 0;
 
 for (const screen of SCREENS) {
+  // Ouvrir AVANT d'écrire : une page fraîche est sur `about:blank`, qui n'a pas
+  // d'origine, et y lire `localStorage` lève une `SecurityError`.
   await page.goto(APP_URL, { waitUntil: 'networkidle' });
   await wait(2200);
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(
+    ({ cle, demo }) => {
+      localStorage.clear();
+      if (demo) localStorage.setItem(cle, '1');
+    },
+    { cle: DEMO_FLAG, demo: !screen.sansDemo },
+  );
   await page.goto(APP_URL, { waitUntil: 'networkidle' });
   await wait(2400);
 

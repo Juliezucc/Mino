@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { PanResponder, Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, radii, spacing } from '@/theme';
+import { colors, radii, spacing, hitSize } from '@/theme';
 
 import { Text } from './Text';
 
@@ -122,11 +122,18 @@ export function TimeSlider({ value, min, max, label, onChange }: Props) {
 const styles = StyleSheet.create({
   bloc: { gap: spacing.md, alignSelf: 'stretch' },
   ligne: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  // 56 points : la taille des touches de l'écran enfant, pas celle d'un
-  // bouton d'interface ordinaire.
+  /**
+   * La taille d'une touche d'enfant, prise à la source.
+   *
+   * Elle était écrite 56 en dur, avec un commentaire qui affirmait que c'était
+   * « la taille des touches de l'écran enfant ». Ce n'en était aucune : le
+   * dépôt pose `hitSize.kid = 64`, et l'audit d'accessibilité exige 60 sur un
+   * écran d'enfant. 56 ne passait ni l'un ni l'autre — mais l'audit, cassé
+   * depuis des semaines, annonçait « 0 problème ».
+   */
   pas: {
-    width: 56,
-    height: 56,
+    width: hitSize.kid,
+    height: hitSize.kid,
     borderRadius: radii.pill,
     backgroundColor: colors.surfaceSunken,
     alignItems: 'center',
@@ -134,7 +141,7 @@ const styles = StyleSheet.create({
   },
   presse: { opacity: 0.7 },
   eteint: { opacity: 0.35 },
-  rail: { flex: 1, height: 56, justifyContent: 'center' },
+  rail: { flex: 1, height: hitSize.kid, justifyContent: 'center' },
   piste: { height: 12, borderRadius: radii.pill, backgroundColor: colors.surfaceSunken },
   remplie: {
     position: 'absolute',

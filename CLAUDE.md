@@ -146,9 +146,18 @@ deux fois pour cette raison.
 vérifié qu'il tombe quand il le doit ne prouve rien. Deux gardes écrites ici ont
 été trouvées inutiles de cette façon.
 
-**Ce que ces commandes ne couvrent pas.** `npm run audit:a11y` n'atteint plus
-qu'un écran sur onze — il passait par un bouton « Voir la démo » retiré depuis —
-et annonce donc « 0 problème » en n'ayant presque rien regardé. À réparer.
+**`npm run audit:a11y` demande un paquet particulier**, et c'est écrit en tête
+du script : sans `EXPO_NO_DOTENV=1`, l'application parle au vrai serveur, la
+famille de démonstration ne se crée pas, et les onze parcours deviennent
+injouables — l'audit annonce alors « 0 problème » en n'ayant rien regardé.
+C'est ce qu'il a fait pendant des semaines, en passant par un bouton « Voir la
+démo » retiré depuis.
+
+```
+EXPO_NO_DOTENV=1 npx expo export -p web --output-dir dist --clear
+npx http-server dist -p 4181 --silent &
+AUDIT_URL=http://127.0.0.1:4181/ node scripts/audit-a11y.mjs
+```
 
 ---
 

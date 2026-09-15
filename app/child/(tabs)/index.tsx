@@ -213,6 +213,7 @@ export default function ChildHome() {
         <Button
           label="Changer de profil"
           icon="👥"
+          size={taille}
           variant="ghost"
           haptic={false}
           onPress={() => router.replace('/who')}
