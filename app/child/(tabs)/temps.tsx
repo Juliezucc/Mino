@@ -18,10 +18,12 @@ import { formatDuration } from '@/domain/ledger';
 import { bornesPour, formatTime } from '@/domain/minos';
 import { activeDevices, deviceIcon, describeDevice } from '@/domain/devices';
 import { getScreenTimeService } from '@/services/screenTime';
+import { heure, openWindowAt } from '@/domain/freeWindows';
 import {
   useActiveChild,
   useBalanceDetail,
   useFamily,
+  useMinuteCourante,
   useRequestedSession,
   useRunningSession,
 } from '@/store/selectors';
@@ -39,6 +41,29 @@ export default function ChildTime() {
   const family = useFamily();
   const balance = useBalanceDetail(child?.id);
   const running = useRunningSession(child?.id);
+
+  /**
+   * ------------------------------------------- l'onglet Temps ne disait RIEN
+   *
+   * **Le défaut, et c'est l'écran où l'enfant vient justement.** « Mon temps »
+   * ne mentionnait les plages libres nulle part : zéro occurrence dans tout le
+   * fichier. Un enfant qui arrive ici un mercredi à 14 h voit son solde, choisit
+   * une durée, appuie sur COMMENCER — et reçoit le refus du domaine EN ROUGE,
+   * sous le curseur, en petits caractères : « C'est ouvert jusqu'à 16:00, tu
+   * n'as rien à dépenser. »
+   *
+   * Une bonne nouvelle annoncée comme une erreur. C'est probablement ce que les
+   * enfants de Julie ont vécu sans savoir le nommer : la plage marchait, mais
+   * l'écran où ils vont pour s'en servir la traitait comme un problème.
+   *
+   * On la dit donc à la place du lanceur, pas après lui.
+   */
+  const minute = useMinuteCourante();
+  const plageOuverte = openWindowAt(
+    family?.freeWindows ?? [],
+    child?.id ?? null,
+    new Date(minute * 60_000),
+  );
   const requested = useRequestedSession(child?.id);
 
   /**
@@ -215,6 +240,23 @@ export default function ChildTime() {
             size={child.companionEnabled === false ? 'kid' : undefined}
             onPress={() => router.push('/child/missions')}
           />
+        </Card>
+      ) : plageOuverte ? (
+        /* Ni demande en attente, ni séance en cours, et l'écran est ouvert : le
+           lanceur ne mènerait qu'à un refus. On met la nouvelle à sa place. */
+        <Card style={styles.useCard} background={colors.mintSoft} elevation="soft">
+          <AnimatedMascot expression="delighted" size={110} />
+          <Text variant="hero" color={colors.mintInk} center>
+            🎉 C’est ouvert !
+          </Text>
+          <Text variant="section" color={colors.mintInk} center>
+            {`${plageOuverte.label} — jusqu’à ${heure(plageOuverte.endMinute)}`}
+          </Text>
+          <Text variant="body" color={colors.textMuted} center>
+            {unit === 'minos'
+              ? 'Tu n’as rien à lancer et rien à dépenser : tes minos t’attendent pour plus tard.'
+              : 'Rien à lancer : tes minutes ne sont pas décomptées pendant ce moment.'}
+          </Text>
         </Card>
       ) : (
         <Card style={styles.useCard}>

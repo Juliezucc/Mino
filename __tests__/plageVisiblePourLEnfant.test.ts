@@ -70,6 +70,43 @@ describe('l’accueil de l’enfant pendant une plage libre', () => {
   });
 });
 
+/**
+ * L'onglet Temps est l'écran où l'enfant VIENT pendant une plage.
+ *
+ * Il n'en parlait nulle part — zéro occurrence dans tout le fichier. Un enfant
+ * qui arrive un mercredi à 14 h voyait son solde, choisissait une durée,
+ * appuyait sur COMMENCER, et recevait le refus du domaine EN ROUGE, sous le
+ * curseur, en caractères de légende : « C'est ouvert jusqu'à 16:00, tu n'as
+ * rien à dépenser. » Une bonne nouvelle annoncée comme une erreur.
+ */
+describe('l’onglet Temps pendant une plage libre', () => {
+  const ecran = lire('app/child/(tabs)/temps.tsx');
+
+  it('sait qu’une plage est ouverte', () => {
+    expect(ecran).toMatch(/openWindowAt\(/);
+    expect(ecran).toMatch(/useMinuteCourante\(\)/);
+  });
+
+  it('remplace le lanceur au lieu de le laisser échouer', () => {
+    // L'ordre compte : une demande en attente et une séance en cours passent
+    // avant — une plage n'annule ni l'une ni l'autre.
+    const demande = ecran.indexOf('{requested ? (');
+    const enCours = ecran.indexOf(') : running ? (');
+    const plage = ecran.indexOf(') : plageOuverte ? (');
+    expect(demande).toBeGreaterThan(0);
+    expect(enCours).toBeGreaterThan(demande);
+    expect(plage).toBeGreaterThan(enCours);
+  });
+
+  it('et le dit aussi grand qu’ailleurs', () => {
+    const i = ecran.indexOf(') : plageOuverte ? (');
+    const carte = ecran.slice(i, i + 900);
+    expect(carte).toMatch(/variant="hero"/);
+    expect(carte).toMatch(/colors\.mintInk/);
+    expect(carte).toMatch(/expression="delighted"/);
+  });
+});
+
 describe('le battement d’horloge', () => {
   it('vit dans les sélecteurs, et sert aux deux écrans', () => {
     // Il était né dans l'écran du parent. L'écran de l'enfant en avait autant
