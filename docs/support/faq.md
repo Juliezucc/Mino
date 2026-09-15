@@ -173,6 +173,10 @@ Ce n’est plus le cas : Mino rouvre sur le dernier profil utilisé. Si l’appa
 
 ## 💳 Abonnement
 
+### On me dit que mon abonnement est déjà rattaché à un autre compte Mino
+
+Un abonnement acheté sur l’App Store ou Google Play appartient au compte Mino qui l’a pris, pas à votre compte Apple ou Google. Si vous avez créé un second compte Mino — une autre adresse e-mail —, il ne peut pas reprendre l’abonnement du premier tant que celui-ci en profite. Et attention : résilier ne le détache pas tout de suite. Chez Apple comme chez Google, résilier coupe le renouvellement, et l’abonnement court jusqu’à la fin de la période déjà payée ; la date est dans les réglages de votre téléphone, rubrique Abonnements. Deux sorties : reconnectez-vous au compte Mino d’origine — « J’ai déjà un compte Mino » sur l’écran d’abonnement —, ou attendez cette date et reprenez ici.
+
 ### Combien coûte Mino ?
 
 9,99 € par mois, ou 79,99 € par an — soit 4 mois offerts, 33 % de moins. Toute la famille est comprise : autant d’enfants et d’appareils que vous voulez, sans supplément.

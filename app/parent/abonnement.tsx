@@ -19,6 +19,7 @@ import {
   trialEndForCheckout,
 } from '@/domain/billing';
 import { RESTAURER, getBillingService, inviteARestaurer } from '@/services/billing';
+import { inviteAChangerDeCompte } from '@/domain/billing';
 import { useSession } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
@@ -263,38 +264,6 @@ export default function SubscriptionScreen() {
     setLoading(false);
   };
 
-  /**
-   * L'erreur suit le bouton qui l'a produite — et porte sa réparation.
-   *
-   * Elle était posée sous la carte d'état, au-dessus de tout le reste : le
-   * seul endroit de l'écran où l'argument peut tenir, et le seul que le
-   * parent regarde AVANT d'avoir rien fait — d'où un écran qui informe d'un
-   * échec là où il devrait donner envie. Ce qu'elle réparait reste vrai (une
-   * erreur en bas d'une page qui défile n'est pas affichée), mais « juste
-   * sous le bouton qu'on vient de toucher » la met encore mieux sous l'œil.
-   *
-   * **Ce qu'il y manquait, vu par Julie.** Quand la boutique répond que
-   * l'achat appartient à un autre compte, le message dit de toucher
-   * « Restaurer mes achats » — et ce bouton-là est plus bas, en ghost, après
-   * les formules. Un message qui nomme un geste doit porter le geste : voir
-   * `services/billing/restauration.ts`.
-   */
-  const bandeauErreur = succes && !error ? (
-    <Card background={colors.mintSoft} elevation="none">
-      <Text variant="body" color={colors.mintInk}>
-        {succes}
-      </Text>
-    </Card>
-  ) : error ? (
-    <Card background={colors.dangerSoft} elevation="none" style={styles.bandeau}>
-      <Text variant="body" color={colors.dangerInk}>
-        {error}
-      </Text>
-      {inviteARestaurer(error) && billing.capability === 'store' ? (
-        <Button label={RESTAURER} variant="secondary" onPress={restore} loading={loading} />
-      ) : null}
-    </Card>
-  ) : null;
 
   /**
    * Ouvrir la gestion de l'abonnement — et dire quand elle n'ouvre rien.
@@ -330,6 +299,49 @@ export default function SubscriptionScreen() {
       );
     }
   };
+
+  /**
+   * L'erreur suit le bouton qui l'a produite — et porte sa réparation.
+   *
+   * Elle était posée sous la carte d'état, au-dessus de tout le reste : le
+   * seul endroit de l'écran où l'argument peut tenir, et le seul que le
+   * parent regarde AVANT d'avoir rien fait — d'où un écran qui informe d'un
+   * échec là où il devrait donner envie. Ce qu'elle réparait reste vrai (une
+   * erreur en bas d'une page qui défile n'est pas affichée), mais « juste
+   * sous le bouton qu'on vient de toucher » la met encore mieux sous l'œil.
+   *
+   * **Ce qu'il y manquait, vu par Julie.** Quand la boutique répond que
+   * l'achat appartient à un autre compte, le message dit de toucher
+   * « Restaurer mes achats » — et ce bouton-là est plus bas, en ghost, après
+   * les formules. Un message qui nomme un geste doit porter le geste : voir
+   * `services/billing/restauration.ts`.
+   */
+  const bandeauErreur = succes && !error ? (
+    <Card background={colors.mintSoft} elevation="none">
+      <Text variant="body" color={colors.mintInk}>
+        {succes}
+      </Text>
+    </Card>
+  ) : error ? (
+    <Card background={colors.dangerSoft} elevation="none" style={styles.bandeau}>
+      <Text variant="body" color={colors.dangerInk}>
+        {error}
+      </Text>
+      {inviteARestaurer(error) && billing.capability === 'store' ? (
+        <Button label={RESTAURER} variant="secondary" onPress={restore} loading={loading} />
+      ) : null}
+      {/* Ici le parent est déjà connecté : le geste utile n'est pas de changer
+          de compte mais d'aller voir, chez Apple ou Google, la date de fin de
+          l'abonnement qui bloque — celle que le message ne peut pas donner. */}
+      {inviteAChangerDeCompte(error) ? (
+        <Button
+          label="Ouvrir les réglages d’abonnement"
+          variant="secondary"
+          onPress={ouvrirGestion}
+        />
+      ) : null}
+    </Card>
+  ) : null;
 
   /**
    * Résilier, là où la résiliation existe.

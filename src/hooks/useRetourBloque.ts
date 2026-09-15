@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { BackHandler, Platform } from 'react-native';
 
 /**
@@ -22,17 +23,30 @@ import { BackHandler, Platform } from 'react-native';
  * `quoiFaire` permet d'en faire autre chose qu'un refus : rendre `true` dit à
  * Android qu'on s'en occupe, et l'écran peut alors reculer d'une étape pour de
  * bon plutôt que de tomber dans le vide.
+ *
+ * **Et il ne bloque QUE tant que l'écran est à l'écran.** `useEffect` gardait
+ * le gestionnaire actif sous une page empilée par-dessus : le paywall de
+ * l'inscription ouvre désormais l'écran de connexion — il fallait bien une
+ * sortie pour le parent dont l'abonnement est rattaché à un autre compte —, et
+ * le bouton retour d'Android y serait resté inerte, parce que le paywall,
+ * invisible dessous, continuait de le refuser. On aurait déplacé l'impasse au
+ * lieu de la fermer.
+ *
+ * `useFocusEffect` est la forme juste, et elle l'était déjà avant ce cas : un
+ * écran qui n'est pas affiché n'a rien à dire du bouton retour.
  */
 export function useRetourBloque(quoiFaire?: () => boolean): void {
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== 'android') return;
 
-    const abonnement = BackHandler.addEventListener('hardwareBackPress', () =>
-      // `true` = « c'est traité, ne dépile pas ». Sans valeur de retour vraie,
-      // Android ferme l'écran, ce qui est exactement ce qu'on empêche.
-      quoiFaire ? quoiFaire() : true,
-    );
+      const abonnement = BackHandler.addEventListener('hardwareBackPress', () =>
+        // `true` = « c'est traité, ne dépile pas ». Sans valeur de retour vraie,
+        // Android ferme l'écran, ce qui est exactement ce qu'on empêche.
+        quoiFaire ? quoiFaire() : true,
+      );
 
-    return () => abonnement.remove();
-  }, [quoiFaire]);
+      return () => abonnement.remove();
+    }, [quoiFaire]),
+  );
 }

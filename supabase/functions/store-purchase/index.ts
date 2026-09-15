@@ -19,7 +19,7 @@ import {
   verifyAppleTransaction,
   verifyGooglePurchase,
 } from '../_shared/store.ts';
-import { STATUTS_AVEC_BENEFICE } from '../../../src/domain/billing.ts';
+import { DEJA_RATTACHE, STATUTS_AVEC_BENEFICE } from '../../../src/domain/billing.ts';
 
 Deno.serve(servir(async (request) => {
 
@@ -61,16 +61,6 @@ Deno.serve(servir(async (request) => {
    * champ, et pour elles la phrase d'origine reste la bonne.
    */
   const restauration = body.geste === 'restauration';
-  /**
-   * Le refus, dit une seule fois.
-   *
-   * Deux chemins y mènent — le jeton de compte, et l'identifiant de
-   * transaction quand la boutique n'a pas rendu de jeton. Deux copies de la
-   * même phrase finiraient par diverger, et c'est la phrase que lit un parent
-   * bloqué.
-   */
-  const DEJA_RATTACHE =
-    'Cet abonnement est déjà rattaché à un compte Mino. Connectez-vous avec ce compte pour le retrouver, ou résiliez-le dans les réglages de votre téléphone : vous pourrez alors reprendre ici.';
   const PANNE = restauration
     ? 'Vérification impossible pour le moment. Réessayez dans un instant.'
     : 'Vérification impossible pour le moment. Votre achat sera pris en compte.';
@@ -277,21 +267,24 @@ Deno.serve(servir(async (request) => {
       if (detenu) {
         console.error('jeton de compte étranger', caller.familyId, state.transactionId);
         /**
-         * **« Un autre compte » était faux pour celui qui le lisait.**
+         * **« Un autre compte » était faux pour celui qui le lisait, et la
+         * sortie qu'on lui indiquait ne menait nulle part.**
          *
          * Le parent comprend « un autre compte Apple » — et il n'en a qu'un.
          * Il cherche donc un second identifiant qui n'existe pas, conclut
-         * qu'il s'est trompé, ou que Mino l'accuse de fraude. C'est le
-         * message, pas le refus, qui fabrique le billet de support.
+         * qu'il s'est trompé, ou que Mino l'accuse de fraude.
          *
-         * L'autre compte est un compte MINO, et la phrase nomme désormais les
-         * deux sorties — se reconnecter, ou résilier. Elle ne nomme en
-         * revanche jamais la famille détentrice ni son adresse : répondre
-         * différemment selon qu'une adresse est prise ou libre livrerait la
-         * liste des clients, une adresse à la fois.
+         * Pire : la phrase lui disait de résilier. Julie l'avait fait, et
+         * s'est vu refuser quand même — parce que résilier, chez Apple, coupe
+         * le renouvellement sans rien terminer. La phrase prescrivait le geste
+         * qu'elle venait d'accomplir, en promettant un effet immédiat qui
+         * n'existe pas.
          *
-         * Deux phrases, et pas trois : au-delà de 300 caractères, le message
-         * est écarté avant d'atteindre l'écran (voir `raisonDeLaFonction`).
+         * Le texte vit maintenant dans le domaine, avec ses raisons, sa mesure
+         * (284 caractères sur 300, au-delà desquels il est JETÉ et non
+         * tronqué) et la règle de confidentialité qui lui interdit de nommer
+         * la famille détentrice : voir `DEJA_RATTACHE` dans
+         * `src/domain/billing.ts`.
          */
         return fail(DEJA_RATTACHE, 403);
       }

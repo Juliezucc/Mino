@@ -254,6 +254,22 @@
       ]
     },
     {
+      "id": "abonnement-rattache-autre-compte",
+      "title": "On me dit que mon abonnement est déjà rattaché à un autre compte Mino",
+      "body": "Un abonnement acheté sur l’App Store ou Google Play appartient au compte Mino qui l’a pris, pas à votre compte Apple ou Google. Si vous avez créé un second compte Mino — une autre adresse e-mail —, il ne peut pas reprendre l’abonnement du premier tant que celui-ci en profite. Et attention : résilier ne le détache pas tout de suite. Chez Apple comme chez Google, résilier coupe le renouvellement, et l’abonnement court jusqu’à la fin de la période déjà payée ; la date est dans les réglages de votre téléphone, rubrique Abonnements. Deux sorties : reconnectez-vous au compte Mino d’origine — « J’ai déjà un compte Mino » sur l’écran d’abonnement —, ou attendez cette date et reprenez ici.",
+      "category": "Abonnement",
+      "keywords": [
+        "abonnement deja rattache",
+        "autre compte mino",
+        "restaurer mes achats",
+        "achat appartient a un autre compte",
+        "deux comptes",
+        "resilie mais bloque",
+        "je me suis trompe d adresse",
+        "mauvais e-mail inscription"
+      ]
+    },
+    {
       "id": "plage-libre-rien-ne-souvre",
       "title": "C’est une plage libre et les applications restent bloquées",
       "body": "La plage s’applique à l’ouverture de Mino sur l’appareil de l’enfant : s’il ne l’a pas rouvert depuis le début du créneau, le blocage n’a pas encore été levé. Qu’il ouvre Mino une fois, et c’est réglé. Vérifiez aussi que la plage concerne bien cet enfant-là et ce jour-là, et que le blocage est autorisé sur son appareil — sans autorisation, il n’y a rien à lever.",

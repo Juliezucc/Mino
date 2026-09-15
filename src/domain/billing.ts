@@ -563,9 +563,51 @@ export function peutSAbonner(access: Access): boolean {
  *
  * `canceled` est donc absent : c'est un abonnement terminé, il ne prive plus
  * personne. `past_due` y est : le paiement a échoué mais l'accès court encore.
- * La même liste est tenue côté base par `has_active_subscription()`.
+ *
+ * **Ce n'est PAS la liste de `has_active_subscription()`**, et le commentaire
+ * qui l'affirmait ici était faux. La fonction SQL (`supabase/store.sql`) lit
+ * `('active', 'past_due', 'offert')` — sans `trialing`, avec `offert` — parce
+ * qu'elle répond à une autre question : « faut-il encore proposer un achat à
+ * cette famille ? ». Conséquence à écrire noir sur blanc : une vérification
+ * « cette famille détient-elle l'abonnement ? » se fait sur cette liste-ci, et
+ * jamais en appelant `has_active_subscription()`.
  */
 export const STATUTS_AVEC_BENEFICE: SubscriptionStatus[] = ['trialing', 'active', 'past_due'];
+
+/**
+ * Le refus opposé à qui réclame un abonnement qu'une autre famille détient.
+ *
+ * **Écrit ici — dans le domaine — parce que deux mondes doivent s'accorder
+ * dessus.** La fonction Edge `store-purchase` l'envoie ; l'application doit le
+ * reconnaître pour offrir, dans la carte d'erreur, la sortie que la phrase
+ * nomme. Une chaîne recopiée des deux côtés finirait par diverger, et l'écran
+ * deviendrait muet exactement le jour où il sert.
+ *
+ * **Ce que la phrase d'avant ratait, et Julie l'a rencontré en vrai.** Elle
+ * disait : « connectez-vous avec ce compte […] ou résiliez-le dans les
+ * réglages de votre téléphone : vous pourrez alors reprendre ici ». Julie
+ * AVAIT résilié. On lui prescrivait le geste qu'elle venait de faire, et le
+ * mot « alors » promettait un effet immédiat qui n'existe pas : chez Apple,
+ * résilier coupe le renouvellement et ne termine rien — l'abonnement court
+ * jusqu'au dernier jour payé, et le statut reste `active` jusque-là. Elle a
+ * donc conclu que Mino était cassé, ce qui était l'interprétation raisonnable.
+ *
+ * **Et pas de date dans le message.** Le serveur la connaît (`state.expiresAt`
+ * vient d'être vérifiée auprès d'Apple), mais la mettre ici transformerait un
+ * refus constant en oracle : qui posséderait un identifiant de transaction
+ * pourrait interroger les échéances de facturation d'inconnus. Elle est dans
+ * les réglages du téléphone de celui qui la demande ; on l'y envoie.
+ *
+ * 284 caractères : `raisonDeLaFonction` JETTE au-delà de 300 et lui substitue
+ * une phrase muette. Ce n'est pas du style, c'est une mesure.
+ */
+export const DEJA_RATTACHE =
+  'Cet abonnement est déjà rattaché à un autre compte Mino. Le résilier ne le détache pas tout de suite : il y reste jusqu’à la fin de la période déjà payée, dont la date figure dans les réglages de votre téléphone. Reprenez-le ici ensuite, ou connectez-vous à cet autre compte d’ici là.';
+
+/** Ce refus-là : la carte d'erreur porte alors la sortie que la phrase nomme. */
+export function inviteAChangerDeCompte(message: string | null | undefined): boolean {
+  return !!message && message.includes('déjà rattaché à un autre compte Mino');
+}
 
 /** Cette famille bénéficie-t-elle encore de son abonnement ? */
 export function beneficieEncore(status: SubscriptionStatus | null | undefined): boolean {

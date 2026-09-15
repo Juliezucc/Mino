@@ -404,6 +404,20 @@ function ecrire(genre: Genre, f: Famille): { sujet: string; texte: string; html:
               {
                 p: 'Vos données restent conservées. Si vous revenez un jour, les missions, les minutes et les réglages seront exactement là où vous les laissez.',
               },
+              /**
+               * **Dire où revenir, et pas seulement qu'on peut revenir.**
+               *
+               * Julie a résilié, puis créé un second compte Mino avec une autre
+               * adresse, et s'est vu refuser l'abonnement — il reste rattaché au
+               * premier tant que la période payée court. C'est le seul courrier
+               * qui lui parle AVANT ce geste : une phrase ici épargne tout le
+               * reste.
+               */
+              {
+                p: f.finAcces
+                  ? `Un mot pour plus tard : l'abonnement reste rattaché à cette adresse jusqu'au ${jour(f.finAcces)}. D'ici là, un autre compte Mino ne peut pas le reprendre — revenez sur celui-ci.`
+                  : "Un mot pour plus tard : l'abonnement reste rattaché à cette adresse jusqu'à la fin de la période déjà payée. D'ici là, un autre compte Mino ne peut pas le reprendre — revenez sur celui-ci.",
+              },
               { titre: 'Une question, une seule' },
               {
                 p: "Qu'est-ce qui n'a pas marché ? Un clic suffit, et ça nous aide vraiment.",

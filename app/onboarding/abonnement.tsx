@@ -14,6 +14,7 @@ import {
   formatPrice,
 } from '@/domain/billing';
 import { RESTAURER, getBillingService, inviteARestaurer } from '@/services/billing';
+import { inviteAChangerDeCompte } from '@/domain/billing';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, radii, spacing } from '@/theme';
 import { useRetourBloque } from '@/hooks/useRetourBloque';
@@ -384,6 +385,17 @@ export default function OnboardingAbonnement() {
           {inviteARestaurer(erreur) && billing.restore ? (
             <Button label={RESTAURER} variant="secondary" onPress={restaurer} disabled={loading} />
           ) : null}
+          {/* Et quand le refus dit que l'abonnement appartient à un autre
+              compte Mino, le geste n'est pas de restaurer — restaurer redonnera
+              le même refus — mais d'aller sur cet autre compte. */}
+          {inviteAChangerDeCompte(erreur) ? (
+            <Button
+              label="J’ai déjà un compte Mino"
+              variant="secondary"
+              onPress={() => router.push('/login')}
+              disabled={loading}
+            />
+          ) : null}
         </Card>
       ) : null}
 
@@ -431,6 +443,29 @@ export default function OnboardingAbonnement() {
           disabled={loading}
         />
       ) : null}
+
+      {/**
+       * La sortie de l'écran dont on ne sortait pas.
+       *
+       * **Le défaut, rencontré par Julie.** Le serveur lui répond que son
+       * abonnement est rattaché à un autre compte Mino et lui dit de s'y
+       * connecter — depuis le seul écran du parcours d'où l'on ne peut pas se
+       * connecter. Le bouton retour d'Android y est refusé (`useRetourBloque`,
+       * et à juste titre : il déposait le parent sur « Créer ma famille »
+       * alors qu'il venait de la créer), et aucun lien ne menait ailleurs.
+       *
+       * Le cas n'a rien d'exotique : quelqu'un qui s'est trompé d'adresse à
+       * l'inscription arrive exactement là, et n'a plus qu'à désinstaller.
+       *
+       * `push` et non `replace` : la flèche de l'écran de connexion ramène ici,
+       * et rien de ce qui a été saisi n'est détruit.
+       */}
+      <Button
+        label="J’ai déjà un compte Mino"
+        variant="ghost"
+        onPress={() => router.push('/login')}
+        disabled={loading}
+      />
 
       {/**
        * Créditer l'ami, sans rien promettre à celui qui saisit.
