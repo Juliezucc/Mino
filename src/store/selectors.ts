@@ -146,6 +146,37 @@ export function useBalanceDetail(childId: ID | null | undefined): ScreenTimeBala
  * vraiment le matin — et au passage de minuit pour un appareil resté ouvert,
  * qu'un minuteur surveille sans rien coûter.
  */
+/**
+ * L'heure, relue chaque minute.
+ *
+ * **Sans elle, un écran qui affiche une plage libre ment deux fois.** Il ne dit
+ * rien à 14 h quand la plage s'ouvre — alors que l'enfant a justement
+ * l'application ouverte, c'est le cas le plus fréquent un mercredi — et il dit
+ * encore « c'est ouvert » à 16 h 20, alors que le compteur, lui, s'est remis à
+ * débiter. La seconde moitié coûte des minos.
+ *
+ * Trente secondes : assez fin pour qu'une bascule à l'heure pile se voie tout
+ * de suite, assez large pour ne rien coûter. Le rendu ne se refait que si la
+ * MINUTE change, pas à chaque battement.
+ */
+export function useMinuteCourante(): number {
+  const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60_000));
+
+  useEffect(() => {
+    const relire = () => setMinute(Math.floor(Date.now() / 60_000));
+    const abonnement = AppState.addEventListener('change', (etat) => {
+      if (etat === 'active') relire();
+    });
+    const battement = setInterval(relire, 30_000);
+    return () => {
+      abonnement.remove();
+      clearInterval(battement);
+    };
+  }, []);
+
+  return minute;
+}
+
 function useJourCivil(): string {
   const [jour, setJour] = useState(() => new Date().toDateString());
 

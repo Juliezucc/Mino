@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, SectionHeader, Text } from '@/components/ui';
 import { FreeWindow, dansSonCreneau, estInterrompue, heure } from '@/domain/freeWindows';
-import { useChildren } from '@/store/selectors';
+import { useChildren, useMinuteCourante } from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing } from '@/theme';
 
@@ -27,23 +27,6 @@ import { colors, spacing } from '@/theme';
  * descendent donnerait à voir exactement ce que la fonctionnalité n'est pas.
  * L'heure de fin suffit, elle est fixe.
  */
-
-/**
- * L'heure, relue chaque minute.
- *
- * Sans cela, la carte resterait celle du moment où l'écran s'est affiché : une
- * plage finie à 16 h y serait encore à 16 h 20, avec un bouton « Arrêter » qui
- * n'arrête plus rien. Même battement que `useJourCivil` dans `selectors.ts`,
- * pour la même raison.
- */
-function useMinuteCourante(): number {
-  const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60_000));
-  useEffect(() => {
-    const battement = setInterval(() => setMinute(Math.floor(Date.now() / 60_000)), 30_000);
-    return () => clearInterval(battement);
-  }, []);
-  return minute;
-}
 
 export function PlagesEnCours() {
   const minute = useMinuteCourante();

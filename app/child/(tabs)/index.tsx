@@ -12,7 +12,13 @@ import { unitOf, tailleBouton } from '@/domain/ageBand';
 import { heure, openWindowAt } from '@/domain/freeWindows';
 import { pendingBonus } from '@/domain/bonus';
 import { lastSeenBonus } from '@/data/seenBonus';
-import { useBalanceDetail, useChildMissions, useActiveChild, useFamily } from '@/store/selectors';
+import {
+  useBalanceDetail,
+  useChildMissions,
+  useActiveChild,
+  useFamily,
+  useMinuteCourante,
+} from '@/store/selectors';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors, spacing, tabBarSpace } from '@/theme';
 
@@ -35,7 +41,12 @@ export default function ChildHome() {
    * une heure précise, et un enfant peut très bien avoir l'écran allumé à ce
    * moment-là — c'est même le cas le plus fréquent un mercredi.
    */
-  const plageOuverte = openWindowAt(data?.freeWindows ?? [], child?.id ?? null);
+  const minute = useMinuteCourante();
+  const plageOuverte = openWindowAt(
+    data?.freeWindows ?? [],
+    child?.id ?? null,
+    new Date(minute * 60_000),
+  );
 
   /**
    * Un bonus reçu se fête ici.
@@ -90,7 +101,27 @@ export default function ChildHome() {
    */
   const debut = data ? data.transactions.every((t) => t.childId !== child.id) : false;
 
-  const expression: MascotExpression = debut
+  /**
+   * ------------------------------------------- une plage ouverte change TOUT l'en-tête
+   *
+   * **Ce que les enfants de Julie ont décrit, et il fallait les écouter jusqu'au
+   * bout.** La plage fonctionnait sur leur téléphone — le bouclier se levait
+   * bien — mais « ils n'avaient pas remarqué sur leur app ». Voici pourquoi.
+   *
+   * Un enfant à zéro mino pendant une plage libre lisait, en grand et avec un
+   * Mino TRISTE : « Plus de minos… fais une mission pour en gagner ! » Et en
+   * dessous, en petit et en vert pâle : « C'est ouvert ! ». Les deux éléments
+   * les plus visibles de l'écran disaient exactement le contraire de la bonne
+   * nouvelle, et c'est le solde qui gagnait.
+   *
+   * Rendre la carte plus grosse n'aurait pas suffi : il fallait que l'en-tête
+   * cesse de la contredire. Une plage ouverte passe donc AVANT le solde — c'est
+   * la seule information qui compte à cet instant, puisque le compteur, lui,
+   * ne bouge pas.
+   */
+  const expression: MascotExpression = plageOuverte
+    ? 'delighted'
+    : debut
     ? 'motivated'
     : balance.minutes === 0
       ? 'sad'
@@ -100,7 +131,11 @@ export default function ChildHome() {
           ? 'motivated'
           : 'happy';
 
-  const message = debut
+  const message = plageOuverte
+    ? unit === 'minos'
+      ? `C’est ouvert jusqu’à ${heure(plageOuverte.endMinute)} — profite, tes minos ne bougent pas !`
+      : `Ton écran est ouvert jusqu’à ${heure(plageOuverte.endMinute)}. Tes minutes ne sont pas décomptées.`
+    : debut
     ? todo.length > 0
       ? `Bienvenue ! Tu as ${todo.length} mission${todo.length > 1 ? 's' : ''} pour commencer.`
       : 'Bienvenue ! Tes missions arrivent bientôt.'
@@ -145,10 +180,16 @@ export default function ChildHome() {
         l'essentiel — ça ne coûte rien.
       */}
       {plageOuverte ? (
-        <Card background={colors.mintSoft} elevation="none" style={styles.plage}>
-          <Text variant="cardTitle">🗓️ C’est ouvert !</Text>
-          <Text variant="body">
-            {`${plageOuverte.label} — jusqu’à ${heure(plageOuverte.endMinute)}.`}
+        <Card background={colors.mintSoft} elevation="soft" style={styles.plage}>
+          {/* Aussi gros que « Salut Noah ! », et c'est voulu : sur un écran qui
+              porte une mascotte de 96 px, un anneau de minutes et deux boutons
+              d'enfant, une ligne de 18 px ne se voit pas. Elle était là, ils ne
+              l'avaient pas remarquée. */}
+          <Text variant="hero" color={colors.mintInk}>
+            🎉 C’est ouvert !
+          </Text>
+          <Text variant="section" color={colors.mintInk}>
+            {`${plageOuverte.label} — jusqu’à ${heure(plageOuverte.endMinute)}`}
           </Text>
           <Text variant="body" color={colors.textMuted}>
             {unit === 'minos'
@@ -272,7 +313,7 @@ const styles = StyleSheet.create({
   content: { paddingTop: spacing.lg, paddingBottom: tabBarSpace, gap: spacing.lg },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   headerTexts: { flex: 1, gap: spacing.xs },
-  plage: { gap: spacing.xs },
+  plage: { gap: spacing.sm },
   missions: { gap: spacing.md },
   ringCard: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.lg },
   earned: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
