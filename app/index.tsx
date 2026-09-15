@@ -1,7 +1,9 @@
 import { Redirect } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { inscriptionInachevee } from '@/domain/firstRun';
+import { usageDeLAppareil } from '@/domain/notifications';
+import { destinationEnAttente, oublierLAppui } from '@/services/notifications/appuiNotification';
 import { useMinoStore } from '@/store/useMinoStore';
 
 /**
@@ -31,6 +33,29 @@ export default function Index() {
   const selectChild = useMinoStore((s) => s.selectChild);
 
   const usagePersonnel = useMinoStore((s) => s.device.usagePersonnel);
+
+  /**
+   * Une notification vient d'être touchée, et Mino était fermé.
+   *
+   * L'appui a déposé une intention au chargement du paquet — voir
+   * `services/notifications/appuiNotification`, qui dit pourquoi elle ne peut
+   * pas naviguer elle-même. On la lit ici, où les destinations s'arbitrent
+   * déjà.
+   *
+   * Gelée au premier rendu : lue réactivement, elle rendrait une SECONDE
+   * redirection à l'instant où on l'efface, et c'est la seconde qui gagnerait.
+   * Le gel est sûr parce que cet écran n'est monté qu'une fois `status` passé à
+   * `ready` — le profil de l'appareil est alors connu, et la garde qui s'appuie
+   * dessus ne peut pas passer au vert par ignorance.
+   */
+  const usage = useMinoStore((s) => usageDeLAppareil(s.device));
+  const [venantDUneNotification] = useState(() => destinationEnAttente(usage));
+
+  useEffect(() => {
+    // Consommée même quand on ne l'a pas suivie : une intention refusée ne doit
+    // pas ressortir au lancement suivant.
+    oublierLAppui();
+  }, []);
 
   const resume = status === 'ready' && data ? resumeChildId() : null;
 
@@ -66,6 +91,19 @@ export default function Index() {
    * suite de son inscription, avec ce qu'il a déjà saisi encore en place.
    */
   if (inscriptionInachevee(data)) return <Redirect href="/onboarding/account" />;
+
+  /**
+   * Après les trois gardes ci-dessus, et pas avant : hors ligne va à l'écran
+   * hors ligne, notification ou pas, sans quoi on annoncerait à un parent que
+   * sa famille a disparu. Avant la reprise de profil, en revanche : sur la
+   * tablette du salon, laisser la reprise gagner voudrait dire que l'appui ne
+   * marche jamais là où le serveur écrit quand la famille n'a pas de téléphone
+   * de parent.
+   *
+   * La destination sort d'une table fermée écrite dans le domaine, jamais de la
+   * chaîne reçue : voir `destinationDeLAppui`.
+   */
+  if (venantDUneNotification) return <Redirect href={venantDUneNotification} />;
 
   if (resume) return activeChildId === resume ? <Redirect href="/child" /> : null;
 

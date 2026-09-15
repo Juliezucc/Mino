@@ -24,6 +24,11 @@ import { getDiagnosticsService } from '@/services/diagnostics';
 // qu'un écran puisse être monté. C'est la seule position d'où l'on ne peut pas
 // rater le lien de confirmation d'un parent qui a Mino déjà ouvert.
 import '@/services/auth/lienEntrant';
+// Même position, et pour la même raison : ce module lit au chargement du paquet
+// la réponse que le natif a retenue — c'est-à-dire avant qu'un écran puisse
+// être monté. C'est la seule position d'où l'on ne peut pas rater l'appui qui a
+// LANCÉ l'application.
+import '@/services/notifications/appuiNotification';
 import { useMinoStore } from '@/store/useMinoStore';
 import { colors } from '@/theme';
 
