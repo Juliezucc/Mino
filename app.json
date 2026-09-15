@@ -8,12 +8,6 @@
     "scheme": "mino",
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F2F6FF"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "fr.minoapp.mino",
@@ -40,8 +34,7 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F2F6FF"
-      },
-      "edgeToEdgeEnabled": true
+      }
     },
     "web": {
       "bundler": "metro",
@@ -51,6 +44,14 @@
     "plugins": [
       "expo-router",
       "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F2F6FF"
+        }
+      ],
       [
         "expo-notifications",
         {
