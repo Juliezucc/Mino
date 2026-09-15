@@ -468,10 +468,42 @@ export const useMinoStore = create<MinoState>((set, get) => {
     return typeof e?.message === 'string' && /row-level security/i.test(e.message);
   }
 
-  /** Runs a pure domain transition, persists it, publishes it. */
+  /**
+   * Runs a pure domain transition, persists it, publishes it.
+   *
+   * ---------------------------------------- un champ recopié à la main, et perdu
+   *
+   * **Le défaut, trouvé par Julie sur la version publiée.** Elle supprime une
+   * plage libre, l'écran l'enlève, elle en ajoute une autre — et la supprimée
+   * revient. Voici pourquoi, et ce n'était visible nulle part.
+   *
+   * `removeFreeWindow` rend bien `{ data, deleteFreeWindowId }`. Mais cette
+   * fonction-ci recopiait QUATRE champs à la main dans l'objet remis au dépôt,
+   * et `deleteFreeWindowId` n'en faisait pas partie. Il tombait donc en
+   * silence. Pire : pour ce geste-là, `upsert` est vide aussi, et `persist`
+   * ressort alors sans faire le moindre appel réseau. La suppression n'était
+   * pas refusée par la base — elle n'était jamais tentée.
+   *
+   * La ligne restait donc en base. L'ajout suivant écrit, la base diffuse le
+   * changement, l'application recharge, et la plage « supprimée » réapparaît —
+   * suspendue, parce que la suspension, elle, passait bien par `upsert`.
+   *
+   * **Et rien ne pouvait l'attraper.** `tsc` ne dit rien : TypeScript
+   * n'applique pas le contrôle des propriétés excédentaires à un littéral rendu
+   * par une lambda typée par un paramètre générique. Le champ était déclaré
+   * dans `ChangeEvent`, posé à un endroit, lu à un autre, et rien ne reliait
+   * les deux.
+   *
+   * D'où la forme d'aujourd'hui : le type de `run` DÉRIVE de `ChangeEvent`, et
+   * ce qu'il rend est réétalé tel quel. Ajouter un champ au changement suffit
+   * désormais à le faire voyager ; on ne peut plus en oublier un.
+   */
   async function commit<T>(
     kind: ChangeEvent['kind'],
-    run: (data: FamilyData) => { data: FamilyData; result?: T; upsert?: Partial<FamilyData>; deleteChildId?: ID },
+    run: (data: FamilyData) => { data: FamilyData; result?: T } & Omit<
+      ChangeEvent,
+      'kind' | 'codeParent'
+    >,
     // Le code à quatre chiffres, quand un parent agit depuis la tablette de
     // son enfant. Voir `ChangeEvent.codeParent`.
     options?: { codeParent?: string },
@@ -484,10 +516,12 @@ export const useMinoStore = create<MinoState>((set, get) => {
 
     writing += 1;
     try {
+      // `data` et `result` appartiennent au magasin ; tout le reste EST le
+      // changement, et part sans qu'on ait à le nommer.
+      const { data: _donnees, result: _resultat, ...changement } = outcome;
       await get().repository.persist(outcome.data, {
         kind,
-        upsert: outcome.upsert,
-        deleteChildId: outcome.deleteChildId,
+        ...changement,
         codeParent: options?.codeParent,
       });
     } catch (error) {
