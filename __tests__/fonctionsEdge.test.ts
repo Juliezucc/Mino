@@ -261,3 +261,64 @@ describe('courrier : les en-têtes sont filtrés', () => {
     expect(dansEnvoyer).toBeLessThan(finEnvoyer > 0 ? finEnvoyer : source.length);
   });
 });
+
+/**
+ * Le journal ne décide pas de l'accès.
+ *
+ * **Le mécanisme par lequel un abonnement expiré reste `active` pour
+ * toujours.** L'application de l'état lu chez Apple était conditionnée au
+ * succès d'une écriture dans `store_notifications` — une table d'audit, qui ne
+ * donne ni ne retire rien à personne. Une erreur sur cette table suffisait à ne
+ * pas appliquer la notification, et la fonction répondait quand même
+ * « reçu », ce qui dit à Apple de ne pas rejouer. L'état n'arrivait jamais.
+ *
+ * Rien, dans tout le dépôt, ne périme une ligne d'abonnement par sa date : le
+ * seul chemin qui fait passer un abonnement à `canceled` est cette
+ * notification-là. Une famille aurait gardé un accès qu'elle ne paie plus, et
+ * son jeton de compte serait resté verrouillé sur elle — interdisant pour
+ * toujours de rattacher l'abonnement à un autre compte Mino, ce que Julie a
+ * précisément rencontré dans sa variante temporaire.
+ */
+describe('les notifications des boutiques', () => {
+  const source = readFileSync(
+    join(__dirname, '..', 'supabase/functions/store-notifications/index.ts'),
+    'utf8',
+  );
+
+  it('appliquent l’état AVANT de le journaliser, sur les deux rails', () => {
+    const debutApple = source.indexOf("path.endsWith('/apple')");
+    const debutGoogle = source.indexOf("path.endsWith('/google')");
+    expect(debutApple).toBeGreaterThan(0);
+    expect(debutGoogle).toBeGreaterThan(debutApple);
+
+    const sections = {
+      apple: source.slice(debutApple, debutGoogle),
+      google: source.slice(debutGoogle),
+    };
+
+    for (const [rail, bloc] of Object.entries(sections)) {
+      const applique = bloc.indexOf('await applyStoreState(state)');
+      // Le journal qui porte l'état vérifié — pas celui du cas « aucun
+      // abonnement », ni celui du `catch`, qui écrivent `transactionId: null`.
+      const journal = bloc.indexOf('transactionId: state');
+      expect(`${rail}:${applique > 0}`).toBe(`${rail}:true`);
+      expect(`${rail}:${journal > 0}`).toBe(`${rail}:true`);
+      // L'accès d'abord, la trace ensuite — jamais l'inverse.
+      expect(`${rail}:${applique < journal}`).toBe(`${rail}:true`);
+    }
+  });
+
+  it('ne laissent plus une écriture de journal conditionner l’accès', () => {
+    // `fresh` ne voulait déjà pas dire ce que son nom promettait : `keep()`
+    // rend `!error`, et un doublon n'est pas une erreur.
+    expect(source).not.toMatch(/const fresh = /);
+    expect(source).not.toMatch(/if \(state && fresh\)/);
+  });
+
+  it('nomment la famille dans le journal, au lieu d’y écrire null', () => {
+    // La colonne `family_id` était nulle sur 100 % des lignes, et l'index posé
+    // dessus ne servait à rien. C'est elle qu'on lit quand on cherche ce
+    // qu'Apple a envoyé pour une famille donnée.
+    expect(source).not.toMatch(/familyId: null,\n\s+productId: state/);
+  });
+});

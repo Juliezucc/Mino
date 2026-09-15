@@ -98,7 +98,24 @@ function kindOfApple(notification: string): string | null {
   if (notification.startsWith('DID_RENEW')) return 'paiement';
   if (notification.startsWith('SUBSCRIBED')) return 'abonnement_commence';
   if (notification.startsWith('DID_FAIL_TO_RENEW')) return 'paiement_echoue';
-  if (notification.startsWith('EXPIRED') || notification.startsWith('REFUND')) {
+  /**
+   * **Deux façons de perdre un abonné sortaient des cohortes.**
+   *
+   * `'GRACE_PERIOD_EXPIRED'.startsWith('EXPIRED')` est faux — le mot est au
+   * milieu, pas au début — et `REVOKE`, qui est la révocation d'un achat
+   * partagé en famille, ne correspondait à rien. Les deux terminent pourtant
+   * un abonnement aussi sûrement qu'`EXPIRED`, et le tableau de bord les
+   * comptait comme des abonnés toujours là.
+   *
+   * Sans effet sur l'accès : celui-ci vient de `applyStoreState`, qui lit
+   * l'état chez Apple et ne consulte jamais le type de notification.
+   */
+  if (
+    notification.startsWith('EXPIRED') ||
+    notification.startsWith('REFUND') ||
+    notification.startsWith('GRACE_PERIOD_EXPIRED') ||
+    notification.startsWith('REVOKE')
+  ) {
     return 'resiliation_effective';
   }
   if (notification.includes('AUTO_RENEW_DISABLED')) return 'resiliation_demandee';
@@ -125,22 +142,51 @@ Deno.serve(async (request) => {
       // une à cette adresse, qui est publique par nécessité.
       const { kind, state, raw } = await verifyAppleNotification(signedPayload);
 
-      const fresh = await keep({
+      /**
+       * ------------------------------- appliquer d'abord, journaliser ensuite
+       *
+       * **L'ordre inverse faisait décider l'accès par une table d'audit.**
+       * L'application de l'état était conditionnée à `fresh`, c'est-à-dire au
+       * succès de l'écriture dans `store_notifications` — un journal, qui ne
+       * donne ni ne retire rien à personne. Une erreur sur cette table-là
+       * suffisait donc à ne PAS appliquer la notification… et la fonction
+       * répondait quand même `{ received: true }`, ce qui dit à Apple : c'est
+       * traité, ne rejoue pas. L'état n'arrivait alors jamais.
+       *
+       * C'est le mécanisme exact par lequel un abonnement expiré reste
+       * `active` pour toujours dans `subscriptions` — et rien, dans tout le
+       * dépôt, ne périme une ligne par sa date. Une famille qui a résilié et
+       * laissé la période s'achever garderait un accès qu'elle ne paie plus,
+       * et son jeton de compte resterait verrouillé sur elle, interdisant à
+       * jamais de le rattacher ailleurs.
+       *
+       * **Et `fresh` ne voulait pas dire ce que son nom promettait.** `keep()`
+       * rend `!error`, et un doublon n'est pas une erreur : `ignoreDuplicates`
+       * fait un `ON CONFLICT DO NOTHING`, qui réussit sans rien écrire. `fresh`
+       * valait donc `true` sur une notification rejouée — la protection contre
+       * le double comptage n'a jamais été là. Elle est ailleurs, et elle est
+       * réelle : `record()` déduplique sur `stripe_event_id`, et
+       * `applyStoreState` réécrit l'état courant, donc le rejouer n'ajoute
+       * rien. Ces traitements sont écrits pour être rejoués sans dommage,
+       * comme le dit déjà le commentaire du 500 plus bas.
+       */
+      const familyId = state ? await applyStoreState(state) : null;
+
+      await keep({
         platform: 'apple',
         notificationId: (raw as { notificationUUID?: string }).notificationUUID ?? null,
         kind,
         accountToken: state?.accountToken ?? null,
-        familyId: null,
+        familyId,
         productId: state?.productId ?? null,
         transactionId: state?.transactionId ?? null,
         payload: raw,
         verified: true,
       });
 
-      if (state && fresh) {
-        const familyId = await applyStoreState(state);
+      if (state && familyId) {
         const ledgerKind = kindOfApple(kind);
-        if (familyId && ledgerKind) {
+        if (ledgerKind) {
           await record({
             familyId,
             kind: ledgerKind,
@@ -231,36 +277,37 @@ Deno.serve(async (request) => {
       // quelque chose, et c'est Google lui-même qui dit quoi.
       const state = await verifyGooglePurchase(purchaseToken);
 
-      const fresh = await keep({
+      // Même ordre que côté Apple, et pour la même raison : le journal ne
+      // décide pas de l'accès. Voir le commentaire là-haut.
+      const familyId = await applyStoreState(state);
+
+      await keep({
         platform: 'google',
         notificationId: message.messageId ?? null,
         kind: String(decoded.subscriptionNotification?.notificationType ?? ''),
         accountToken: state.accountToken,
-        familyId: null,
+        familyId,
         productId: state.productId,
         transactionId: state.transactionId,
         payload: decoded,
         verified: true,
       });
 
-      if (fresh) {
-        const familyId = await applyStoreState(state);
-        if (familyId) {
-          await record({
-            familyId,
-            kind:
-              state.status === 'active'
-                ? 'paiement'
-                : state.status === 'past_due'
-                  ? 'paiement_echoue'
-                  : 'resiliation_effective',
-            eventId: `google:${message.messageId ?? state.transactionId}`,
-            status: state.status,
-            plan: state.plan,
-            source: 'google',
-            amountCents: state.amountCents,
-          });
-        }
+      if (familyId) {
+        await record({
+          familyId,
+          kind:
+            state.status === 'active'
+              ? 'paiement'
+              : state.status === 'past_due'
+                ? 'paiement_echoue'
+                : 'resiliation_effective',
+          eventId: `google:${message.messageId ?? state.transactionId}`,
+          status: state.status,
+          plan: state.plan,
+          source: 'google',
+          amountCents: state.amountCents,
+        });
       }
 
       return json({ received: true });
