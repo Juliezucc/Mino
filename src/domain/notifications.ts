@@ -128,7 +128,21 @@ export function missionCountedItself(child: Child, mission: Mission): Notificati
     childId: child.id,
     title: `${child.firstName} a fait « ${mission.title} »`,
     body: `${mission.icon} ${formatTime(mission.minutes, unit, { signed: true })} · comptée sans confirmation, comme vous l’aviez choisi.`,
-    route: '/parent',
+    /**
+     * **Pas de route, et c'est la même raison que le ton.**
+     *
+     * Depuis qu'un appui mène quelque part, une route n'est plus un détail de
+     * charge utile : elle promet qu'il y a quelque chose à faire au bout. Ici
+     * il n'y a rien — le parent a décidé d'avance de faire confiance sur cette
+     * mission-là — et l'appui l'aurait déposé devant le pavé de code pour une
+     * information.
+     *
+     * Le paragraphe ci-dessus dit pourquoi ce serait une faute : une
+     * notification qui ressemble à une demande et n'en est pas apprend au
+     * parent à ne plus les ouvrir. Une notification qui MÈNE là où mènent les
+     * demandes le lui apprendrait deux fois plus vite. Celles qui emmènent
+     * quelque part sont celles qui l'attendent.
+     */
   };
 }
 

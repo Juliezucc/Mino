@@ -135,14 +135,23 @@ describe('les annonces qui attendent le parent', () => {
   const enfant = { id: 'enf_1', firstName: 'Raphaël', age: 8 } as Child;
   const mission = { id: 'm1', title: 'Se brosser les dents', icon: '🪥', minutes: 10 } as Mission;
 
-  it('mènent toutes les trois à l’accueil parent', () => {
+  it('mènent à l’accueil parent — celles qui attendent vraiment le parent', () => {
     for (const charge of [
       missionCompleted(enfant, mission),
-      missionCountedItself(enfant, mission),
       sessionRequested(enfant, 20, undefined, undefined),
     ]) {
       expect(appui({ route: charge.route })).toBe('/parent');
     }
+  });
+
+  it('et la mission comptée toute seule ne mène nulle part', () => {
+    // Elle n'attend rien du parent : il a décidé d'avance de faire confiance.
+    // L'y emmener quand même le déposerait devant le pavé de code pour une
+    // information — et lui apprendrait à ne plus ouvrir les notifications, ce
+    // que `missionCountedItself` existe précisément pour éviter.
+    const annonce = missionCountedItself(enfant, mission);
+    expect(annonce.route).toBeUndefined();
+    expect(appui({ route: annonce.route })).toBeNull();
   });
 
   it('et la fin d’essai mène à la formule', () => {
