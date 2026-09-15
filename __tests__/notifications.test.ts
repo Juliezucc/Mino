@@ -10,9 +10,14 @@ import {
   sessionRequested,
   shouldDeliver,
   usageDeLAppareil,
-  recoitLesNotificationsEnfant,} from '@/domain/notifications';
+  recoitLesNotificationsEnfant,
+  livrableMaintenant,
+  QUIET_FROM_HOUR,
+  QUIET_UNTIL_HOUR,
+} from '@/domain/notifications';
 import { Child, Device, Mission } from '@/domain/types';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const child = (over: Partial<Child> = {}): Child => ({
   id: 'c1',
@@ -196,7 +201,7 @@ describe('le serveur applique la même règle', () => {
   const edge = readFileSync('supabase/functions/notify/index.ts', 'utf8');
 
   it('lit le genre de l’appareil', () => {
-    expect(edge).toContain("select('user_id, token, usage')");
+    expect(edge).toContain("select('user_id, token, usage, fuseau, heures_calmes')");
   });
 
   it('exclut l’appareil réservé à un enfant', () => {
@@ -249,5 +254,142 @@ describe('les annonces de l’enfant', () => {
     // `inconnu` n'est exclu de rien : retirer des notifications sur la foi
     // d'une information qu'on n'a pas serait la faute qu'on corrige.
     expect(recoitLesNotificationsEnfant('inconnu')).toBe(true);
+  });
+});
+
+/**
+ * Les heures calmes, appliquées LÀ OÙ la notification est livrée.
+ *
+ * **Le défaut : la règle ne vivait que sur l'appareil qui envoie.** Elle était
+ * appliquée par le téléphone qui venait d'agir, avec ses préférences et son
+ * horloge — juste tant que la notification était locale. Or depuis que le
+ * serveur pousse aux autres appareils, c'est lui qui livre, et `notify` ne
+ * consultait AUCUNE heure : pas une mention dans tout le fichier. Le téléphone
+ * d'un enfant pouvait sonner à 22 h 40.
+ *
+ * Trois données décident, et toutes trois appartiennent au destinataire — son
+ * fuseau, sa préférence, le genre de ce qui arrive. Deux téléphones d'une même
+ * maison peuvent être dans deux pays.
+ */
+describe('se taire la nuit, chez celui qui reçoit', () => {
+  const a = (heureUtc: number) => new Date(Date.UTC(2026, 8, 15, heureUtc, 30));
+
+  it('se tait à 22 h à Paris', () => {
+    // 20 h UTC = 22 h à Paris en septembre.
+    expect(
+      livrableMaintenant({
+        kind: 'mission.completed',
+        heuresCalmes: true,
+        fuseau: 'Europe/Paris',
+        maintenant: a(20),
+      }),
+    ).toBe(false);
+  });
+
+  it('parle à 22 h UTC quand le destinataire est à la Martinique', () => {
+    // 22 h UTC = 18 h à Fort-de-France : chez lui, il fait encore jour.
+    // Lire l'heure du serveur l'aurait fait taire pour rien.
+    expect(
+      livrableMaintenant({
+        kind: 'mission.completed',
+        heuresCalmes: true,
+        fuseau: 'America/Martinique',
+        maintenant: a(22),
+      }),
+    ).toBe(true);
+  });
+
+  it('suppose Paris quand l’appareil n’a pas dit son fuseau', () => {
+    // Les versions déjà installées n'envoient rien. Se taire entièrement
+    // priverait une famille de ses notifications sans qu'elle le sache ;
+    // livrer aveuglément ramènerait le défaut.
+    expect(
+      livrableMaintenant({
+        kind: 'mission.completed',
+        heuresCalmes: true,
+        fuseau: null,
+        maintenant: a(20),
+      }),
+    ).toBe(false);
+  });
+
+  it('laisse passer l’avertissement de fin de séance', () => {
+    // Se taire cinq minutes avant la fin, c'est un écran qui s'éteint sans
+    // prévenir. Un buzz vaut mieux qu'une coupure sèche.
+    expect(
+      livrableMaintenant({
+        kind: 'session.endingSoon',
+        heuresCalmes: true,
+        fuseau: 'Europe/Paris',
+        maintenant: a(20),
+      }),
+    ).toBe(true);
+  });
+
+  it('respecte la famille qui a coupé la règle', () => {
+    expect(
+      livrableMaintenant({
+        kind: 'mission.completed',
+        heuresCalmes: false,
+        fuseau: 'Europe/Paris',
+        maintenant: a(20),
+      }),
+    ).toBe(true);
+  });
+
+  it('parle à 10 h', () => {
+    expect(
+      livrableMaintenant({
+        kind: 'mission.completed',
+        heuresCalmes: true,
+        fuseau: 'Europe/Paris',
+        maintenant: a(8),
+      }),
+    ).toBe(true);
+  });
+
+  it('ne lève pas sur un fuseau inconnu', () => {
+    // Une notification perdue pour cause d'exception serait le pire des deux
+    // mondes.
+    expect(() =>
+      livrableMaintenant({
+        kind: 'mission.completed',
+        heuresCalmes: true,
+        fuseau: 'Mars/Olympus_Mons',
+        maintenant: a(8),
+      }),
+    ).not.toThrow();
+  });
+});
+
+describe('la fonction Edge applique la même règle', () => {
+  const source = readFileSync(
+    join(__dirname, '..', 'supabase/functions/notify/index.ts'),
+    'utf8',
+  );
+
+  it('lit le fuseau et la préférence du destinataire', () => {
+    expect(source).toMatch(/select\('user_id, token, usage, fuseau, heures_calmes'\)/);
+  });
+
+  it('porte les mêmes bornes que le domaine', () => {
+    // Une fonction Edge ne peut pas importer un module React Native : les deux
+    // versions coexistent, et cet essai refuse qu'elles divergent.
+    expect(source).toMatch(new RegExp(`CALME_DE = ${QUIET_FROM_HOUR}`));
+    expect(source).toMatch(new RegExp(`CALME_JUSQUA = ${QUIET_UNTIL_HOUR}`));
+  });
+
+  it('laisse passer le même genre', () => {
+    expect(source).toMatch(/corps\.kind === 'session\.endingSoon'/);
+  });
+
+  it('et le client envoie ce genre', () => {
+    const client = readFileSync(
+      join(__dirname, '..', 'src/services/notifications/jetonPush.ts'),
+      'utf8',
+    );
+    expect(client).toMatch(/kind: payload\.kind/);
+    expect(client).toMatch(/fuseau,/);
+    expect(client).toMatch(/heures_calmes: heuresCalmes/);
   });
 });

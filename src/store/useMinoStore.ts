@@ -436,7 +436,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
    */
   function redireLeGenreDeLAppareil() {
     const famille = get().data;
-    if (famille) void poserJetonPush(famille.family.id).catch(() => undefined);
+    if (famille) void poserJetonPush(famille.family.id, get().notifications.quietHours).catch(() => undefined);
   }
 
   /**
@@ -662,7 +662,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
       publish(data, { status: 'ready', device, offline });
       // L'appareil se déclare joignable dès qu'on sait de quelle famille il
       // est. Silencieux et sans effet s'il n'y a pas de permission.
-      if (data) void poserJetonPush(data.family.id).catch(() => undefined);
+      if (data) void poserJetonPush(data.family.id, get().notifications.quietHours).catch(() => undefined);
       if (data) await get().loadBilling();
       if (data) void get().reportShield();
       // Une plage libre en cours doit ouvrir l'écran MAINTENANT, sans attendre
@@ -1031,7 +1031,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
       if (!result.ok) return result;
       const data = await get().repository.load();
       publish(data, { status: 'ready', activeChildId: null, parentUnlocked: true });
-      if (data) void poserJetonPush(data.family.id).catch(() => undefined);
+      if (data) void poserJetonPush(data.family.id, get().notifications.quietHours).catch(() => undefined);
       if (data) await get().loadBilling();
       return { ok: true };
     },

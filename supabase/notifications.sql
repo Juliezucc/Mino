@@ -65,6 +65,27 @@ create table if not exists push_tokens (
  */
 alter table push_tokens add column if not exists usage text;
 
+/**
+ * ------------------------------------- de quoi savoir s'il est l'heure de se taire
+ *
+ * **Le défaut : les heures calmes ne vivaient que sur l'appareil qui envoie.**
+ * La règle — pas de notification entre 20 h et 7 h — était appliquée par le
+ * téléphone qui agissait, avec SES préférences et SON horloge. Or c'est le
+ * serveur qui pousse aux autres appareils, et `notify` ne consultait rien :
+ * aucune heure, aucune préférence. Le téléphone d'un enfant pouvait sonner à
+ * 22 h 40.
+ *
+ * Les deux colonnes sont des propriétés du JETON, pas de la famille : deux
+ * téléphones d'une même maison peuvent être dans deux pays, et deux parents
+ * peuvent avoir réglé leurs alertes différemment. Le domaine refuse d'ailleurs
+ * d'enregistrer un fuseau familial — « l'heure est celle de l'appareil ».
+ *
+ * `heures_calmes` vaut vrai par défaut : une version qui ne l'envoie pas encore
+ * se tait la nuit, ce qui est le bon sens du produit.
+ */
+alter table push_tokens add column if not exists fuseau text;
+alter table push_tokens add column if not exists heures_calmes boolean not null default true;
+
 -- L'envoi lit toujours par famille, jamais par compte.
 create index if not exists idx_push_tokens_family on push_tokens (family_id);
 

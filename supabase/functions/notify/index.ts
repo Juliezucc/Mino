@@ -32,6 +32,18 @@ interface Corps {
   title?: string;
   body?: string;
   route?: string | null;
+  /**
+   * Le genre de la notification.
+   *
+   * Il ne servait à rien côté serveur, donc il ne voyageait pas. Il sert
+   * maintenant à UNE chose, et elle compte : `session.endingSoon` traverse les
+   * heures calmes. Se taire cinq minutes avant la fin d'une séance, c'est un
+   * écran qui s'éteint sans prévenir.
+   *
+   * Facultatif : les versions déjà installées ne l'envoient pas, et une
+   * notification sans genre se tait la nuit comme les autres.
+   */
+  kind?: string;
 }
 
 Deno.serve(servir(async (request) => {
@@ -56,7 +68,7 @@ Deno.serve(servir(async (request) => {
   // Tous les jetons de la famille — celle du jeton d'authentification.
   const { data: jetons } = await db
     .from('push_tokens')
-    .select('user_id, token, usage')
+    .select('user_id, token, usage, fuseau, heures_calmes')
     .eq('family_id', qui.familyId);
 
   if (!jetons || jetons.length === 0) return json({ envoyes: 0 });
@@ -162,9 +174,64 @@ Deno.serve(servir(async (request) => {
     return !corps.childId || affiche === null || affiche === corps.childId;
   });
 
-  if (destinataires.length === 0) return json({ envoyes: 0 });
+  /**
+   * ------------------------------------------- se taire la nuit, CHEZ celui qui reçoit
+   *
+   * **Le défaut : cette fonction ne consultait aucune heure.** La règle des
+   * heures calmes — rien entre 20 h et 7 h — était appliquée par le téléphone
+   * qui ENVOIE, avec ses préférences et son horloge. Or c'est ici que la
+   * notification est livrée, et ici il n'y avait rien : pas une mention. Le
+   * téléphone d'un enfant pouvait sonner à 22 h 40, ce que le domaine appelle
+   * la chose qu'une application de temps d'écran ne doit jamais faire. Et
+   * depuis que toucher une notification ouvre un écran, elle ne se contente
+   * plus de réveiller : elle déroule l'application.
+   *
+   * La décision se prend jeton par jeton, parce que les trois données qu'elle
+   * demande appartiennent au DESTINATAIRE : son fuseau, sa préférence, et le
+   * genre de ce qui arrive. Deux téléphones d'une même maison peuvent être
+   * dans deux pays, et deux parents peuvent avoir réglé leurs alertes
+   * différemment.
+   *
+   * Jumeau de `livrableMaintenant` dans `src/domain/notifications.ts`, qui est
+   * la version éprouvée par les essais — une fonction Edge ne peut pas importer
+   * un module React Native. `__tests__/notifications.test.ts` lit ce fichier-ci
+   * et refuse qu'ils divergent.
+   */
+  const CALME_DE = 20;
+  const CALME_JUSQUA = 7;
+  const maintenant = new Date();
 
-  const messages = destinataires.map((j) => ({
+  const eveilles = destinataires.filter((j) => {
+    if ((j.heures_calmes as boolean | null) === false) return true;
+    if (corps.kind === 'session.endingSoon') return true;
+
+    // `Intl` avec un fuseau explicite : lire l'heure du serveur donnerait UTC,
+    // et décalerait le silence de deux heures tout l'été. Sans fuseau connu —
+    // les versions déjà installées n'en envoient pas — on suppose Paris, le
+    // pari le moins faux pour une application vendue en France.
+    const fuseau = (j.fuseau as string | null) ?? 'Europe/Paris';
+    // `formatToParts` et non `format` : en français, dix-huit heures s'écrit
+    // « 18 h », et `Number('18 h')` vaut NaN — on retomberait sur l'heure du
+    // serveur en croyant honorer le fuseau.
+    let heure = Number.NaN;
+    try {
+      const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: fuseau,
+        hour: 'numeric',
+        hour12: false,
+      }).formatToParts(maintenant);
+      heure = Number(parts.find((p) => p.type === 'hour')?.value);
+    } catch {
+      heure = Number.NaN;
+    }
+    if (!Number.isFinite(heure)) heure = maintenant.getUTCHours();
+
+    return !(heure >= CALME_DE || heure < CALME_JUSQUA);
+  });
+
+  if (eveilles.length === 0) return json({ envoyes: 0, silence: 'heures calmes' });
+
+  const messages = eveilles.map((j) => ({
     to: j.token,
     title,
     body,

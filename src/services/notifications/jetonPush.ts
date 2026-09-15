@@ -31,6 +31,10 @@ let pose: string | null = null;
  */
 let genrePose: string | null = null;
 
+/** Voir `genrePose` : mêmes raisons, mêmes conséquences si on les oublie. */
+let fuseauPose: string | null = null;
+let calmesPose: boolean | null = null;
+
 /**
  * Déclarer cet appareil comme joignable.
  *
@@ -43,7 +47,20 @@ let genrePose: string | null = null;
  * quand le parent a refusé les notifications, il n'y a rien à faire et rien à
  * dire. Un échec ici ne doit jamais empêcher Mino de s'ouvrir.
  */
-export async function poserJetonPush(familyId: string): Promise<void> {
+export async function poserJetonPush(
+  familyId: string,
+  /**
+   * Les heures calmes, telles que CE parent les a réglées.
+   *
+   * Passées par l'appelant plutôt que lues ici : le magasin les détient, et un
+   * service qui importerait le magasin fermerait un cercle — `useMinoStore`
+   * importe déjà ce fichier.
+   *
+   * Vrai par défaut, comme la préférence : un appel qui ne la précise pas se
+   * tait la nuit, ce qui est le bon sens du produit.
+   */
+  heuresCalmes = true,
+): Promise<void> {
   const client = getSupabaseClient();
   if (!client) return;
 
@@ -67,8 +84,28 @@ export async function poserJetonPush(familyId: string): Promise<void> {
    */
   const genre = usageDeLAppareil(await readDeviceProfile().catch(() => NO_DEVICE_PROFILE));
 
+  /**
+   * De quoi savoir, côté serveur, s'il est l'heure de se taire.
+   *
+   * Les heures calmes ne vivaient que sur l'appareil qui ENVOIE, avec ses
+   * préférences et son horloge. C'est pourtant le serveur qui pousse aux
+   * autres, et il ne consultait rien : un téléphone d'enfant pouvait sonner à
+   * 22 h 40. Les deux voyagent donc avec le jeton — ce sont des propriétés de
+   * CET appareil, pas de la famille.
+   *
+   * Le fuseau se lit sur le téléphone lui-même. Il retombe silencieusement sur
+   * `null` là où `Intl` n'expose rien : le serveur suppose alors Paris, ce qui
+   * est le pari le moins faux pour une application vendue en France.
+   */
+  let fuseau: string | null = null;
+  try {
+    fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone ?? null;
+  } catch {
+    fuseau = null;
+  }
   // Le jeton n'a pas bougé ET la réponse non plus : il n'y a rien à réécrire.
-  if (jeton === pose && genre === genrePose) return;
+  if (jeton === pose && genre === genrePose && fuseau === fuseauPose && heuresCalmes === calmesPose)
+    return;
 
   const { data } = await client.auth.getUser();
   if (!data.user) return;
@@ -78,12 +115,16 @@ export async function poserJetonPush(familyId: string): Promise<void> {
     family_id: familyId,
     token: jeton,
     usage: genre,
+    fuseau,
+    heures_calmes: heuresCalmes,
     updated_at: new Date().toISOString(),
   });
 
   if (!error) {
     pose = jeton;
     genrePose = genre;
+    fuseauPose = fuseau;
+    calmesPose = heuresCalmes;
   }
 }
 
@@ -130,6 +171,9 @@ export async function pousserAuxAutres(payload: NotificationPayload): Promise<vo
       title: payload.title,
       body: payload.body,
       route: payload.route ?? null,
+      // Le serveur en a besoin pour UNE chose : laisser passer l'avertissement
+      // de fin de séance à travers les heures calmes.
+      kind: payload.kind,
     },
   });
 }

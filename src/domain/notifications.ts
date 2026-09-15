@@ -97,6 +97,89 @@ export function shouldDeliver(
   return !isQuietHour(now);
 }
 
+/**
+ * ------------------------------------- les heures calmes, vues du SERVEUR
+ *
+ * **Le défaut : la règle ne vivait que sur l'appareil qui envoie.**
+ * `shouldDeliver` ci-dessus lit les préférences de CE téléphone et l'heure de
+ * CETTE horloge — ce qui est juste tant que la notification est locale. Or
+ * depuis que le serveur pousse aux autres appareils, c'est lui qui livre, et
+ * `notify` ne consultait rien du tout : aucune mention d'heure calme, nulle
+ * part. Le téléphone d'un enfant pouvait donc sonner à 22 h 40, ce que le
+ * commentaire des heures calmes appelle précisément la chose qu'une
+ * application de temps d'écran ne doit jamais faire.
+ *
+ * La décision demande trois choses que l'appelant ne possède pas, et qui
+ * doivent donc voyager avec le jeton du destinataire : son fuseau, sa
+ * préférence, et le genre de la notification.
+ *
+ * **Le fuseau vient de l'appareil, pas de la famille.** Le domaine refuse
+ * d'enregistrer un fuseau familial — « l'heure est celle de l'appareil », dit
+ * `freeWindows` — et il a raison : deux téléphones d'une même famille peuvent
+ * être dans deux pays. C'est donc une propriété du jeton, posée au moment où
+ * on l'enregistre.
+ *
+ * **Sans fuseau connu, on suppose Paris.** Les versions déjà installées n'en
+ * envoient pas. Se taire serait pire — une famille entière privée de ses
+ * notifications sans le savoir — et livrer aveuglément ramènerait le défaut.
+ * L'application est vendue en France, en français et en euros : Paris est le
+ * pari le moins faux, et il se corrige au premier lancement de la version
+ * suivante.
+ */
+export function livrableMaintenant(input: {
+  kind: NotificationKind;
+  /** Ce que le destinataire a réglé, pas l'expéditeur. */
+  heuresCalmes: boolean;
+  /** `Europe/Paris`, `America/Martinique`… ou `null` sur une version ancienne. */
+  fuseau: string | null;
+  maintenant?: Date;
+}): boolean {
+  if (!input.heuresCalmes) return true;
+
+  /**
+   * Le seul genre qui traverse la nuit, et la raison n'a pas changé : se taire
+   * cinq minutes avant la fin d'une séance, c'est un écran qui s'éteint sans
+   * prévenir. Un buzz vaut mieux qu'une coupure sèche.
+   */
+  if (input.kind === 'session.endingSoon') return true;
+
+  return !heureCalmeDans(input.fuseau ?? 'Europe/Paris', input.maintenant ?? new Date());
+}
+
+/**
+ * L'heure qu'il est CHEZ LE DESTINATAIRE.
+ *
+ * `Intl` avec un fuseau explicite est la seule façon juste : lire
+ * `date.getHours()` donnerait l'heure du serveur, c'est-à-dire UTC, et
+ * décalerait le silence de deux heures tout l'été. Un fuseau inconnu ou refusé
+ * retombe sur l'heure du serveur plutôt que de lever — une notification perdue
+ * pour cause d'exception serait le pire des deux mondes.
+ */
+function heureCalmeDans(fuseau: string, maintenant: Date): boolean {
+  let heure = Number.NaN;
+  try {
+    /**
+     * `formatToParts` et non `format`, et ce n'est pas un détail de style.
+     *
+     * `format` rend une chaîne LOCALISÉE : en français, dix-huit heures
+     * s'écrit « 18 h », et `Number('18 h')` vaut NaN. Le repli se déclenchait
+     * donc à chaque appel et l'on relisait l'heure du serveur — c'est-à-dire
+     * qu'on ignorait le fuseau tout en croyant l'honorer. Un essai à la
+     * Martinique l'a attrapé.
+     */
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: fuseau,
+      hour: 'numeric',
+      hour12: false,
+    }).formatToParts(maintenant);
+    heure = Number(parts.find((p) => p.type === 'hour')?.value);
+  } catch {
+    heure = Number.NaN;
+  }
+  if (!Number.isFinite(heure)) heure = maintenant.getHours();
+  return heure >= QUIET_FROM_HOUR || heure < QUIET_UNTIL_HOUR;
+}
+
 /* --------------------------------------------------------------- builders */
 
 export function missionCompleted(child: Child, mission: Mission): NotificationPayload {
