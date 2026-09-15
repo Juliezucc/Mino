@@ -41,4 +41,29 @@ describe('les renvois de la FAQ vers le guide', () => {
     const ids = GUIDE.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  /**
+   * Deux réponses ne portent pas la même question.
+   *
+   * **Le défaut, trouvé en préparant la mise à jour du site.** La FAQ publiée
+   * posait DEUX FOIS « Que se passe-t-il si mon enfant confie quelque chose de
+   * grave à Mino ? », avec deux réponses différentes — et l'ancienne disait le
+   * contraire de la nouvelle : « le message est signalé dans les conversations
+   * que vous pouvez lire », alors que les mots de l'enfant ne sont enregistrés
+   * nulle part, précisément pour qu'il ose parler.
+   *
+   * Sur le sujet le plus grave de l'application, le site tenait donc les deux
+   * versions l'une sous l'autre. Les identifiants étaient uniques, eux : c'est
+   * le titre qu'il fallait surveiller, et personne ne le faisait.
+   */
+  it('deux réponses ne posent jamais la même question', () => {
+    const questions = FAQ.map((e) => e.question.trim().toLowerCase());
+    const doublons = questions.filter((q, i) => questions.indexOf(q) !== i);
+    expect(doublons).toEqual([]);
+  });
+
+  it('et deux réponses ne portent jamais le même identifiant', () => {
+    const ids = FAQ.map((e) => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 });

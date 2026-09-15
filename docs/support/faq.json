@@ -216,7 +216,11 @@
         "violence",
         "119",
         "alerte",
-        "securite enfant"
+        "securite enfant",
+        "grave",
+        "inquiet",
+        "danger",
+        "confidence"
       ]
     },
     {
@@ -739,20 +743,6 @@
         "enlever chat",
         "pas de discussion",
         "interdire"
-      ]
-    },
-    {
-      "id": "mino-confidence-grave",
-      "title": "Que se passe-t-il si mon enfant confie quelque chose de grave à Mino ?",
-      "body": "Mino s’arrête. Il ne conseille pas et ne pose pas de questions : il invite votre enfant à en parler à un adulte de confiance et lui donne le 119, gratuit et confidentiel, avec un bouton pour appeler. Le message est signalé dans les conversations que vous pouvez lire. Mino n’est pas une ligne d’écoute et personne ne surveille ces échanges en temps réel.",
-      "category": "Données et confidentialité",
-      "keywords": [
-        "grave",
-        "inquiet",
-        "danger",
-        "119",
-        "confidence",
-        "securite enfant"
       ]
     },
     {

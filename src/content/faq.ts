@@ -200,7 +200,7 @@ export const FAQ: FaqEntry[] = [
     answer:
       'Mino le reconnaît sur l’appareil même, sans qu’aucun modèle ne voie la phrase. Il répond un texte écrit à la main, toujours le même, qui oriente vers un adulte de confiance et donne le 119 — gratuit, confidentiel, joignable jour et nuit, et appelable d’une touche depuis son écran. Vous êtes prévenu que cela a eu lieu, à la date près, dans « Lire leurs conversations ». Mais ce que votre enfant a écrit n’est enregistré nulle part : c’est la condition pour qu’un enfant ose parler, y compris quand ce qu’il a à dire nous concerne. Si cette trace apparaît, ouvrez-lui une conversation le soir même.',
     category: 'confidentialite',
-    keywords: ['message grave', 'inquietant', 'suicide', 'harcelement', 'violence', '119', 'alerte', 'securite enfant'],
+    keywords: ['message grave', 'inquietant', 'suicide', 'harcelement', 'violence', '119', 'alerte', 'securite enfant', 'grave', 'inquiet', 'danger', 'confidence'],
     route: '/parent/conversations',
   },
   {
@@ -547,15 +547,6 @@ export const FAQ: FaqEntry[] = [
     keywords: ['desactiver', 'couper', 'enlever chat', 'pas de discussion', 'interdire'],
     route: '/parent/enfants',
   },
-  {
-    id: 'mino-confidence-grave',
-    question: 'Que se passe-t-il si mon enfant confie quelque chose de grave à Mino ?',
-    answer:
-      'Mino s’arrête. Il ne conseille pas et ne pose pas de questions : il invite votre enfant à en parler à un adulte de confiance et lui donne le 119, gratuit et confidentiel, avec un bouton pour appeler. Le message est signalé dans les conversations que vous pouvez lire. Mino n’est pas une ligne d’écoute et personne ne surveille ces échanges en temps réel.',
-    category: 'confidentialite',
-    keywords: ['grave', 'inquiet', 'danger', '119', 'confidence', 'securite enfant'],
-  },
-
   {
     id: 'appareil-partage-profils',
     question: 'Mon enfant peut changer de profil et prendre celui de son frère',

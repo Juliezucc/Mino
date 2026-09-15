@@ -239,10 +239,6 @@ Quand son temps d’écran est terminé, Mino reste et peut discuter avec votre 
 
 Ouvrez sa fiche dans Enfants, puis « Parler à Mino » et choisissez Non. C’est immédiat, et l’écran « plus de temps » lui proposera simplement ses missions.
 
-### Que se passe-t-il si mon enfant confie quelque chose de grave à Mino ?
-
-Mino s’arrête. Il ne conseille pas et ne pose pas de questions : il invite votre enfant à en parler à un adulte de confiance et lui donne le 119, gratuit et confidentiel, avec un bouton pour appeler. Le message est signalé dans les conversations que vous pouvez lire. Mino n’est pas une ligne d’écoute et personne ne surveille ces échanges en temps réel.
-
 ### Quelles données collectez-vous sur mon enfant ?
 
 Son prénom, son âge et son avatar. Rien d’autre : pas d’adresse e-mail, pas de photo, pas de numéro. Mino ne sait pas quelles applications sont installées sur son appareil — le système ne les lui montre jamais.
