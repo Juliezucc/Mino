@@ -315,6 +315,25 @@ describe('les notifications des boutiques', () => {
     expect(source).not.toMatch(/if \(state && fresh\)/);
   });
 
+  it('ne retirent pas un accès offert accordé à la main', () => {
+    /**
+     * **Ce qui menaçait le compte de démonstration d'Apple et de Google.**
+     * `accessOf` lit `offert` avant toute date, exprès, pour que rien ne
+     * puisse le faire expirer. Mais `applyStoreState` réécrivait le statut
+     * avec celui de la boutique : le renouvellement suivant rendait la famille
+     * `active` avec une échéance, et l'expiration la passait à `canceled`.
+     * L'accès accordé à la main disparaissait sans qu'aucun humain ne l'ait
+     * retiré.
+     */
+    const store = readFileSync(join(__dirname, '..', 'supabase/functions/_shared/store.ts'), 'utf8');
+    expect(store).toMatch(/const offert = .*status === 'offert'/);
+    // Le statut et les dates ne partent que si la famille n'est pas « offerte ».
+    expect(store).toMatch(/\.\.\.\(offert \? \{\} : facturation\)/);
+    // Et la trace de la boutique, elle, s'écrit dans les deux cas.
+    const bloc = store.slice(store.indexOf('...(offert ? {} : facturation)'));
+    expect(bloc.slice(0, 300)).toMatch(/store_transaction_id: state\.transactionId/);
+  });
+
   it('nomment la famille dans le journal, au lieu d’y écrire null', () => {
     // La colonne `family_id` était nulle sur 100 % des lignes, et l'index posé
     // dessus ne servait à rien. C'est elle qu'on lit quand on cherche ce

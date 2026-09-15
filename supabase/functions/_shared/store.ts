@@ -543,8 +543,36 @@ export async function applyStoreState(
     return null;
   }
 
-  const { error } = await db.from('subscriptions').upsert({
-    family_id: familyId,
+  /**
+   * ------------------------------------- un accès offert ne se retire pas seul
+   *
+   * **Ce qui menaçait le compte de démonstration, celui d'Apple et de Google.**
+   * Un accès `offert` est une décision prise à la main — `acces-offert.sql` —
+   * et `accessOf` le traite comme sans échéance : il est lu AVANT toute date,
+   * précisément pour que rien ne puisse le faire expirer par inadvertance.
+   *
+   * Sauf ici. Cette écriture-ci remplaçait le statut par celui de la boutique,
+   * quel qu'il soit : le renouvellement suivant rendait la famille `active`
+   * avec une échéance, et la notification d'expiration, le jour venu, la
+   * passait à `canceled`. L'accès accordé à la main disparaissait donc sans
+   * qu'aucun humain ne l'ait retiré — et le compte de démonstration, qui doit
+   * rester ouvert pour les examinateurs des deux boutiques, se serait éteint
+   * un matin sans prévenir.
+   *
+   * On garde donc le statut et ce qui décrit la facturation, et on n'écrit que
+   * la trace de la boutique : de quoi savoir quelle transaction a parlé, sans
+   * poser une échéance sur un accès qui n'en a pas. Le retirer reste un geste
+   * humain, comme le donner (étape 5 du script).
+   */
+  const { data: existante } = await db
+    .from('subscriptions')
+    .select('status')
+    .eq('family_id', familyId)
+    .maybeSingle();
+
+  const offert = (existante as { status?: string } | null)?.status === 'offert';
+
+  const facturation = {
     status: state.status,
     plan: state.plan,
     current_period_end: state.expiresAt,
@@ -567,6 +595,15 @@ export async function applyStoreState(
      */
     ...(state.status === 'trialing' ? { trial_ends_at: state.expiresAt } : {}),
     cancel_at_period_end: state.cancelAtPeriodEnd,
+  };
+
+  const { error } = await db.from('subscriptions').upsert({
+    family_id: familyId,
+    // Omettre une colonne la laisse intacte : PostgREST écrit un
+    // `ON CONFLICT DO UPDATE SET` des seules colonnes fournies. Et `offert`
+    // n'est vrai que si la ligne existe déjà, donc jamais sur une insertion —
+    // `status` est `not null` et sans valeur par défaut.
+    ...(offert ? {} : facturation),
     source: state.platform,
     store_product_id: state.productId,
     store_transaction_id: state.transactionId,
