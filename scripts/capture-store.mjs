@@ -21,10 +21,23 @@
  * filtres vidéo demande une demi-journée pour un résultat approximatif.
  *
  * Prérequis :
- *   npx expo export -p web --output-dir dist
+ *   EXPO_NO_DOTENV=1 npx expo export -p web --output-dir dist --clear
  *   node scripts/build-web-preview.mjs
  *   npx http-server dist -p 8099 --silent &
  *   node scripts/capture-store.mjs
+ *
+ * **`EXPO_NO_DOTENV=1`, et ce n'est pas un détail.** Avec `.env`, les variables
+ * Supabase entrent dans le paquet, l'application parle au vrai serveur, et
+ * `app/welcome.tsx` refuse alors de créer la famille de démonstration — la
+ * garde y est explicite, on ne fabrique pas de fausse famille là où le dépôt
+ * n'est pas local. Les huit parcours attendent « Noah » sur un écran qui ne
+ * l'affichera jamais, et le script rend seize délais dépassés de douze
+ * secondes chacun, sans dire pourquoi. C'est arrivé le 15 septembre 2026.
+ *
+ * **`--clear`, pour la même raison.** Metro ressert un paquet mis en cache dont
+ * la clé ne tient pas compte des variables d'environnement : sans cette
+ * option, on rebâtit `dist` et l'on obtient, au bit près, le paquet précédent.
+ * Deux exports de suite avaient rendu le même `entry-c919d2a8….js`.
  */
 
 import { execFileSync } from 'node:child_process';
@@ -133,6 +146,32 @@ const FORMATS = [
     deviceFraction: 0.72,
     // Play refuse un PNG porteur d'un canal alpha : on aplatit en JPEG.
     alpha: false,
+  },
+  /**
+   * ------------------------------------------------- les réseaux sociaux
+   *
+   * **Le format carré manquait, et lui seul.** Le 1080 × 1920 de Play est déjà
+   * celui d'une story Instagram ou TikTok, au pixel près : ces huit visuels-là
+   * se publient tels quels. Ce qui n'existait pas, c'est le carré du fil —
+   * Instagram, Facebook, LinkedIn — et c'est le format le plus vu.
+   *
+   * Même gabarit, même légende, mêmes fonds qui alternent : tout est déjà
+   * relatif à la taille demandée. Seule la part de l'appareil change, et elle
+   * doit beaucoup diminuer — 0,72 sur un carré donnerait un téléphone de 778 px
+   * de large qui ne laisserait pas de place au titre.
+   *
+   * L'appareil déborde en bas, comme sur les fiches, et c'est encore plus vrai
+   * ici : sur un fil, une capture coupée par le bord du cadre est ce qui fait
+   * s'arrêter le pouce.
+   */
+  {
+    id: 'carre',
+    width: 1080,
+    height: 1080,
+    label: 'Réseaux sociaux — fil carré (Instagram, Facebook, LinkedIn)',
+    viewport: { width: 393, height: 852 },
+    deviceFraction: 0.46,
+    alpha: true,
   },
 ];
 
@@ -308,6 +347,38 @@ async function capture(screen, viewport) {
     if (instruction) await step(instruction);
   }
   return page.screenshot();
+}
+
+/**
+ * ------------------------------------------------- vérifier avant de perdre trois minutes
+ *
+ * Un parcours qui échoue rend un délai dépassé de douze secondes, et il y en a
+ * seize. Trois minutes d'attente pour apprendre « TimeoutError », qui ne dit
+ * ni que le paquet servi n'est pas le bon, ni qu'il parle à Supabase, ni qu'il
+ * faut refaire l'export autrement.
+ *
+ * Une seule chose est à vérifier, et elle se voit tout de suite : la démo
+ * démarre-t-elle ? Si le sélecteur de profils n'apparaît pas, rien de ce qui
+ * suit ne peut marcher.
+ */
+{
+  await page.evaluate((cle) => {
+    localStorage.clear();
+    localStorage.setItem(cle, '1');
+  }, DEMO_FLAG);
+  await open();
+
+  const selecteur = page.getByText('Qui utilise Mino ?');
+  if (!(await selecteur.isVisible().catch(() => false))) {
+    console.error(`\nLa famille de démonstration ne s'est pas créée sur ${APP_URL}.`);
+    console.error("L'application y est servie avec ses variables d'environnement : elle parle");
+    console.error("au vrai serveur, et `welcome.tsx` ne fabrique alors aucune fausse famille.\n");
+    console.error('Refaites le paquet sans elles, et sans le cache de Metro :\n');
+    console.error('  EXPO_NO_DOTENV=1 npx expo export -p web --output-dir dist --clear');
+    console.error('  node scripts/build-web-preview.mjs\n');
+    await browser.close();
+    process.exit(1);
+  }
 }
 
 const composer = await browser.newPage();
