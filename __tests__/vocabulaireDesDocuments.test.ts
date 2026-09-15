@@ -21,6 +21,24 @@ import { readFileSync } from 'node:fs';
 const DOCUMENTS = ['src/content/terms.ts', 'src/content/privacy.ts', 'src/content/faq.ts'];
 
 /**
+ * **`guide.ts` manquait, et la garantie y a survécu quatre jours.**
+ *
+ * La garantie absolue sur les appels d'urgence a été retirée des CGV et de la
+ * FAQ le 11 septembre. Elle est restée dans le guide de démarrage — livré dans
+ * l'application, lu par chaque parent qui s'installe — parce que ce fichier
+ * n'était dans aucun essai du dépôt. Le motif de l'essai lui correspondait
+ * pourtant déjà, au caractère près : la garde était écrite, elle ne regardait
+ * simplement pas là.
+ *
+ * **Le guide n'entre QUE dans cet essai-ci, et pas dans celui du vocabulaire.**
+ * Il emploie « verrouiller » là où le produit dit « blocage » — une dérive
+ * réelle, à corriger, mais qui demande de réécrire plusieurs passages. Ce qu'on
+ * ne fait pas dans le même geste qu'une correction de garantie : l'un protège
+ * un parent, l'autre range des mots.
+ */
+const SANS_GARANTIE_ABSOLUE = [...DOCUMENTS, 'src/content/guide.ts'];
+
+/**
  * Les emplois légitimes, qui ne nomment pas la fonctionnalité.
  *
  * « encadrer un enfant » et « un transfert encadré par les clauses
@@ -32,6 +50,7 @@ const LEGITIMES = [
   'de l’expliquer et de l’encadrer',
   'le transfert est encadré par les clauses',
   'il est encadré par les clauses',
+  'transferts est encadré par les clauses',
   'l’écran verrouillé',
 ];
 
@@ -75,7 +94,7 @@ describe('le nom de la fonctionnalité de blocage', () => {
  * au système, et nous ne pouvons pas nous en porter garants.
  */
 describe('ce qu’on promet sur les appels d’urgence', () => {
-  it.each(DOCUMENTS)('ne donne aucune garantie absolue dans %s', (chemin) => {
+  it.each(SANS_GARANTIE_ABSOLUE)('ne donne aucune garantie absolue dans %s', (chemin) => {
     const texte = readFileSync(chemin, 'utf8');
     expect(texte).not.toMatch(/quoi qu’il arrive/);
     expect(texte).not.toMatch(/ne les laissent bloquer par une application/);

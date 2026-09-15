@@ -234,7 +234,7 @@ export const GUIDE: GuideChapter[] = [
           'Le système ne nous dira jamais lesquelles vous avez cochées, seulement combien. Mino ne peut donc pas savoir ce que votre enfant utilise.',
         ],
         where: 'Espace parent → Réglages → Blocage des applications',
-        tip: 'Les appels d’urgence, eux, passent toujours : ni iOS ni Android ne les laissent bloquer par une application.',
+        tip: 'Ne cochez ni Téléphone, ni Messages, ni une catégorie qui les contiendrait : un enfant doit pouvoir joindre un adulte. Les dispositifs d’appel d’urgence du téléphone, eux, ne passent pas par Mino — mais ils appartiennent au système, et nous ne pouvons pas nous en porter garants.',
       },
       {
         title: 'Ouvrir l’écran sans rien faire dépenser',

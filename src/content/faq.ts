@@ -189,7 +189,7 @@ export const FAQ: FaqEntry[] = [
     id: 'choisir-applis-bloquees',
     question: 'Comment choisir les applications à bloquer ?',
     answer:
-      'Depuis l’appareil de l’enfant, dans Réglages, « Applications concernées ». Le système affiche sa propre liste — c’est lui qui la fournit, Mino ne voit jamais quelles applications sont installées. Choisissez les jeux et les réseaux, laissez de côté l’école et les outils du quotidien.',
+      'Depuis l’appareil de l’enfant, dans Réglages, « Applications concernées ». Sur iPhone et iPad, c’est le système qui affiche la liste et Mino n’en voit rien : il ne reçoit que des jetons anonymes. Sur Android, Mino dresse lui-même la liste des applications qui s’ouvrent depuis l’écran d’accueil, parce que le système n’offre pas d’équivalent. Dans les deux cas, rien de cette liste ne quitte l’appareil. Choisissez les jeux et les réseaux, laissez de côté l’école et les outils du quotidien.',
     category: 'temps-ecran',
     keywords: ['choisir applications', 'quelles applis', 'liste', 'selection', 'youtube', 'tiktok', 'jeux'],
     guide: 'blocage',
@@ -608,7 +608,7 @@ export const FAQ: FaqEntry[] = [
     id: 'donnees-enfant',
     question: 'Quelles données collectez-vous sur mon enfant ?',
     answer:
-      'Son prénom, son âge et son avatar. Rien d’autre : pas d’adresse e-mail, pas de photo, pas de numéro. Mino ne sait pas quelles applications sont installées sur son appareil — le système ne les lui montre jamais.',
+      'Son prénom, son âge et son avatar — pas d’adresse e-mail, pas de photo, pas de numéro. La liste des applications de son appareil, elle, ne nous parvient jamais : sur iPhone le système ne la montre pas même à Mino, et sur Android Mino la dresse sur l’appareil sans jamais l’envoyer.',
     category: 'confidentialite',
     keywords: ['donnees enfant', 'collecte', 'vie privee', 'rgpd', 'prenom', 'age'],
     route: '/legal/confidentialite',
@@ -641,7 +641,7 @@ export const FAQ: FaqEntry[] = [
     id: 'ou-sont-les-donnees',
     question: 'Où sont hébergées les données ?',
     answer:
-      'Dans l’Union européenne. Elles ne sont transférées à aucun pays tiers en dehors de ce que nécessite le paiement, assuré par Stripe.',
+      'Dans l’Union européenne. Trois services situés hors UE interviennent malgré tout, et la politique de confidentialité les nomme : le paiement, l’acheminement des notifications — qui reçoit le texte, où peut figurer le prénom de votre enfant — et, si vous avez laissé « Parler à Mino » activé, la génération des réponses du personnage. Chacun de ces transferts est encadré par les clauses contractuelles types de la Commission européenne.',
     category: 'confidentialite',
     keywords: ['hebergement', 'serveur', 'europe', 'ue', 'rgpd', 'stockage'],
     route: '/legal/confidentialite',
@@ -676,7 +676,7 @@ export const FAQ: FaqEntry[] = [
     id: 'application-plante',
     question: 'L’application se ferme toute seule',
     answer:
-      'Mettez-la à jour depuis la boutique, c’est la cause la plus fréquente. Si cela recommence, envoyez-nous un signalement depuis Aide : il partira avec le contexte technique nécessaire, et sans aucune donnée sur vos enfants.',
+      'Mettez-la à jour depuis la boutique, c’est la cause la plus fréquente. Si cela recommence, envoyez-nous un signalement depuis Aide : il partira avec le contexte technique nécessaire — la version, l’écran, et des compteurs comme le nombre d’enfants ou de missions. Les prénoms de vos enfants et toute adresse citée dans votre message en sont retirés avant l’envoi.',
     category: 'problemes',
     keywords: ['plante', 'crash', 'se ferme', 'bug', 'ferme toute seule', 'ecran noir'],
     route: '/probleme',
