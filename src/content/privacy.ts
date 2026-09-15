@@ -22,7 +22,7 @@ export const PRIVACY: LegalDocument = {
     },
     {
       kind: 'note',
-      text: 'Pas de publicité. Pas de revente de données. Pas de traceur publicitaire. Pas de géolocalisation. Pas de messagerie entre personnes. Pas de profil public. Aucun enfant n’est visible par une autre famille que la sienne.',
+      text: 'Aucune publicité et aucun traceur dans l’application. Pas de revente de données. Pas de géolocalisation. Pas de messagerie entre personnes. Pas de profil public. Aucun enfant n’est visible par une autre famille que la sienne.',
     },
   ],
   sections: [
@@ -291,11 +291,19 @@ export const PRIVACY: LegalDocument = {
       ],
     },
     {
-      title: '11. Cookies',
+      title: '11. Cookies et mesure',
       blocks: [
         {
           kind: 'p',
-          text: 'L’application mobile n’utilise aucun cookie publicitaire ni traceur tiers. Notre site web n’utilise que les cookies strictement nécessaires à son fonctionnement et au paiement, qui ne requièrent pas de consentement préalable. Nous n’utilisons pas de régie publicitaire.',
+          text: 'L’application mobile n’utilise aucun cookie publicitaire ni traceur tiers, et n’affiche aucune publicité. Ce point ne dépend d’aucun réglage : il n’y a rien à refuser, parce qu’il n’y a rien.',
+        },
+        {
+          kind: 'p',
+          text: 'Notre site web, lui, dépose sans votre accord les seuls cookies strictement nécessaires à son fonctionnement et au paiement. Si nous recourons à des cookies de mesure d’audience ou de publicité — pour savoir quelles annonces amènent des familles jusqu’à nous —, ils ne sont déposés qu’APRÈS votre consentement, recueilli par un bandeau au premier passage. Refuser doit vous coûter le même nombre de clics qu’accepter, et vous pouvez revenir sur votre choix à tout moment depuis la même page.',
+        },
+        {
+          kind: 'p',
+          text: 'Ces cookies-là, s’ils existent, ne concernent que le site : ils ne suivent personne dans l’application, et aucun enfant n’est jamais concerné — un enfant n’a rien à faire sur notre site, et l’application n’en dépose aucun.',
         },
       ],
     },

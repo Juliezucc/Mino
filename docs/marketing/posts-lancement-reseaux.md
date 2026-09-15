@@ -1,6 +1,7 @@
-# DIX POSTS DE LANCEMENT — INSTAGRAM & TIKTOK
+# LES POSTS DE LANCEMENT — INSTAGRAM & TIKTOK
 
-*Chaque post ouvre sur une scène que le parent reconnaît. Le produit arrive en réponse, jamais en sujet.*
+*Quatre carrousels, dix posts fixes, un Reel.*
+*Chaque post ouvre sur une scène ou sur une mission réelle. Le produit arrive en réponse, jamais en sujet.*
 *La ligne qui porte la série est déjà arbitrée : **« Le temps d'écran se gagne, il ne se négocie plus. »***
 
 - **Visuels :** `docs/marketing/visuels-lancement/` — 32 PNG en **1080 × 1350** (4:5, le format du fil Instagram). Couverture Reel / TikTok en 1080 × 1920.
@@ -77,66 +78,11 @@ Le troc, montré nu. C'est ce qui se comprend en une seconde et se raconte à un
 >
 > Chez vous, ça se réclame trois fois. Dans Mino, ça se compte.
 >
-> Et c'est vous qui fixez le tarif de chaque mission. Le repère qui marche : une journée de missions faites doit donner à peu près le temps d'écran que vous acceptiez déjà. Cinq minutes pour un geste rapide, dix à quinze pour une vraie tâche, vingt pour un effort long.
+> Et c’est vous qui décidez du temps que chaque mission fait gagner. Le repère qui marche : une journée de missions faites doit donner à peu près le temps d'écran que vous acceptiez déjà. Cinq minutes pour un geste rapide, dix à quinze pour une vraie tâche, vingt pour un effort long.
 >
-> Soixante-six missions sont déjà écrites, rangées en douze routines — la routine du matin, celle du coucher, les devoirs, la chambre. Vous choisissez, vous ajustez, et c'est parti.
+> Cinquante-quatre missions sont déjà écrites, rangées en douze routines — la routine du matin, celle du coucher, les devoirs, la chambre. Vous choisissez, vous ajustez, et c'est parti.
 
 `#routine #parentalité #enfants #famille #tempsdécran #autonomie #routinedumatin`
-
----
-
-## POST 04 — Ce n'est plus à vous de dire non
-
-**Carrousel 3 vues** · `post04-1` → `post04-3`
-Le vrai bénéfice, et il n'est dans aucune liste de fonctionnalités : le parent cesse d'être celui qui arrête.
-
-> Le plus dur, dans le temps d'écran, ce n'est pas le temps d'écran. C'est d'être celui qui l'arrête. Tous les soirs. Face à quelqu'un qu'on aime.
->
-> Avec Mino, la réponse ne vient plus de vous. Elle vient de ce que votre enfant a fait dans la journée. Le compteur dit ce qu'il reste ; vous n'avez plus à le dire à sa place.
->
-> Ce qui vous reste, c'est le bon rôle : confirmer une mission, ajouter un bonus quand le coup de main était spontané, offrir une plage libre un mercredi.
->
-> Vous, vous pouvez dire oui.
-
-`#parentalité #viedeparent #famille #enfants #tempsdécran #éducation`
-
-✓ *« Le compteur dit ce qu'il reste » décrit la mécanique, pas un résultat promis. Aucune formule du type « moins de disputes » — Mino ne promet nulle part un résultat éducatif.*
-
----
-
-## POST 05 — « À quatorze ans, il va me rire au nez. »
-
-**Carrousel 4 vues** · `post05-1` → `post05-4`
-L'objection n°1. On donne raison au parent avant de répondre : c'est ce qui rend la réponse crédible.
-
-> Vous vous dites qu'à quatorze ans, une application avec une mascotte et des confettis, c'est perdu d'avance.
->
-> Vous avez raison. Un adolescent à qui l'on sert des confettis et une monnaie appelée « minos » ferme l'application et ne la rouvre pas.
->
-> C'est pour ça qu'à treize ans, Mino change. On ne parle plus de minos mais de minutes. Les célébrations disparaissent. La mise en page devient sobre. Et les missions proposées ne parlent plus de se brosser les dents, mais d'autonomie, de travail et d'équilibre.
->
-> L'âge se règle sur sa fiche, et tout suit.
-
-`#ado #adolescent #parentalité #famille #tempsdécran #autonomie #collège`
-
-⚠️ **Un seul registre d'âge par vue.** « minos » et « minutes » ne se croisent jamais dans la même image, et aucune tranche d'âge n'enjambe 13 ans.
-
----
-
-## POST 06 — Il a gagné 20 minutes. Personne ne peut les lui reprendre.
-
-**Carrousel 3 vues** · `post06-1` → `post06-3`
-Ce qui rassure l'enfant rassure le parent. Le conseil final va contre l'intérêt immédiat du parent — c'est ce qui le rend crédible.
-
-> Une minute gagnée est acquise. Pas « en principe » : par construction.
->
-> Il n'existe aucun bouton, nulle part, qui retire à un enfant du temps qu'il a gagné. Une erreur se corrige en ajoutant une ligne, jamais en effaçant.
->
-> Pourquoi si strict ? Parce qu'un compteur qu'on peut modifier et un historique finissent toujours par se contredire — et le jour où ça arrive, c'est devant un enfant qui a perdu des minutes qu'il avait gagnées. C'est la seule dispute que ce produit ne peut pas se permettre.
->
-> Un conseil, aussi, qui va contre votre intérêt du moment : ne renvoyez pas « à refaire » une mission réellement accomplie pour freiner le compteur. C'est le plus court chemin pour casser la confiance, et celle-là ne revient pas.
-
-`#parentalité #confiance #éducation #famille #enfants #tempsdécran`
 
 ---
 
@@ -158,58 +104,41 @@ Ce qui rassure l'enfant rassure le parent. Le conseil final va contre l'intérê
 
 ---
 
-## POST 08 — Le mercredi, on ne compte pas
+# DIX POSTS FIXES — UNE IMAGE CHACUN
 
-**Carrousel 2 vues** · `post08-1`, `post08-2`
-Désamorce l'objection tacite : « je ne veux pas que tout devienne un mérite chez moi. »
+*Pas de carrousel : une image, une mission, une idée.*
+*Chaque mission vient du catalogue réel (`src/domain/missionLibrary.ts`) — titre, emoji, minutes, tranche d'âge et consigne de sécurité sont copiés, pas inventés.*
 
-> Il y a des après-midi où on ne veut rien mériter. Le mercredi chez les grands-parents, le premier jour des vacances, le samedi où il pleut depuis le matin.
->
-> Dans une vraie famille, tout n'est pas mérité. Une application qui l'ignorerait vous obligerait à inventer une fausse mission « c'est mercredi ».
->
-> Alors vous déclarez une plage libre : un créneau ouvert, pendant lequel rien n'est décompté. Aucun compte à rebours ne s'affiche. C'est du temps qui n'est pas compté, parce qu'il n'a pas à l'être.
->
-> Et si la journée tourne autrement, vous l'arrêtez depuis votre accueil — pour aujourd'hui seulement. Mercredi prochain revient tout seul.
+**La règle d'écriture de la série.** On dit que la mission **existe** et ce qu'elle **apprend**. On ne dit jamais ce que l'enfant fera : ce serait une promesse de résultat, que le dépôt interdit. Et le temps gagné reste une petite pastille dans la carte, comme à l'écran — jamais un prix affiché en grand.
 
-`#mercredi #vacances #famille #parentalité #enfants #tempsdécran`
+| # | Fichier | Accroche | Mission |
+|---|---|---|---|
+| 1 | `tache01-lessive` | À treize ans, une machine à laver, c'est une première autonomie. | Lancer et étendre une lessive · 20 min · dès 13 ans |
+| 2 | `tache02-debarrasser` | Ce n'est pas l'assiette qui compte. | Débarrasser la table · 10 min · dès 5 ans |
+| 3 | `tache03-repas` | Cuisiner ensemble, c'est du temps passé côte à côte. | Aider à préparer le repas · 15 min · dès 7 ans |
+| 4 | `tache04-gouter` | Préparer le goûter. Pour tout le monde, pas juste pour soi. | Préparer le goûter pour tout le monde · 15 min · dès 8 ans |
+| 5 | `tache05-plantes` | La première mission des plus petits. | Arroser les plantes · 5 min · dès 5 ans |
+| 6 | `tache06-garde` | La première fois qu'on vous confie quelqu'un. | Garder mon frère ou ma sœur une heure · 30 min · dès 15 ans |
+| 7 | `tache07-mot-gentil` | Il existe une mission qui s'appelle « Dire un mot gentil ». | Dire un mot gentil à Elliott · 10 min · 5 à 12 ans |
+| 8 | `tache08-sans-telephone` | Une heure sans téléphone fait gagner du temps d'écran. | Une heure sans téléphone · 20 min · dès 13 ans |
+| 9 | `tache09-diner` | Dîner en famille sans téléphone. | Dîner en famille sans téléphone · 15 min · dès 13 ans |
+| 10 | `tache10-amis` | Voir ses amis en vrai. | Voir mes amis en vrai · 20 min · dès 13 ans |
 
----
+**Les quatre derniers ne sont pas des tâches ménagères, et c'est voulu.** Une application de temps d'écran qui écrit « Voir mes amis en vrai » et « Une heure sans téléphone » dans son propre catalogue dit quelque chose sur elle-même que dix arguments ne diraient pas. Ce sont les plus partageables de la série.
 
-## POST 09 — Trois enfants. Six écrans. Un seul abonnement.
+**Les consignes de sécurité sont dans l'image**, reprises mot pour mot du code — « Sans les couteaux : c'est l'adulte qui les range », « Un adulte reste joignable et responsable à tout moment ». Elles ne sont pas une réserve juridique : elles montrent qu'une application qui propose des tâches à des enfants sait où s'arrête ce qu'elle propose.
 
-**Carrousel 3 vues** · `post09-1` → `post09-3`
-L'argument de valeur, et il est réel : aucun plafond d'enfants ni d'appareils n'existe, ni dans le code ni dans la base.
-
-> Pas de supplément par enfant. Pas de supplément par appareil. Pas de plafond.
->
-> Un compte Mino est familial : autant d'enfants et autant d'appareils que vous voulez, sur le même abonnement. La tablette du salon, le vieux téléphone du grand, la console — tout entre dedans.
->
-> Et le deuxième parent rejoint depuis son propre téléphone avec le code famille. Pas d'adresse à donner, pas de mot de passe de plus à retenir. Il crée des missions, confirme, offre une minute, exactement comme vous.
-
-`#famille #fratrie #parentalité #enfants #tempsdécran #organisationfamiliale`
+**Écartés de la première version, à votre demande :** les poubelles, l'aspirateur, le linge sale, l'animal et les courses. Les accroches manquaient de bienveillance ou ne se comprenaient pas.
 
 ---
 
-## POST 10 — 30 jours pour voir si ça change quelque chose chez vous
+# CE QUI A ÉTÉ ÉCARTÉ
 
-**Carrousel 2 vues** · `post10-1`, `post10-2`
-Le prix arrive en fin de série, une fois la scène, la mécanique et la preuve passées.
+**Six carrousels retirés à votre demande** (15/09) : « Ce n'est plus à vous de dire non », « À quatorze ans, il va me rire au nez », « Personne ne peut les lui reprendre », « Le mercredi, on ne compte pas », « Trois enfants, six écrans, un seul abonnement », et « 30 jours pour voir » avec sa vue de prix. Manque de bienveillance pour les quatre premiers, incompréhensible pour le cinquième, et le prix n'a pas sa place dans un post.
 
-> On ne vous demande pas de nous croire. On vous demande d'essayer un mois.
->
-> Essai de 30 jours, pour tout le monde, sans exception. Le moyen de paiement est enregistré à l'inscription sans être débité, et la date du premier prélèvement s'affiche avant que vous confirmiez. Si ça ne change rien chez vous, vous arrêtez avant : la résiliation se fait dans les réglages de votre téléphone, en deux touches, et nous vous y emmenons.
->
-> Ensuite : 9,99 € par mois, ou 79,99 € par an — soit 6,67 € par mois, 4 mois offerts, 33 % de moins. Prix TTC, sans engagement, toute la famille comprise.
+**Restent quatre carrousels** — 01, 02, 03 et 07 — **et les dix posts fixes.**
 
-`#famille #parentalité #tempsdécran #enfants #essaigratuit`
-
-⚠️ **« 6,67 € » ne paraît jamais seul.** Le montant réellement débité — 79,99 € par an — est sur la même ligne, dans le visuel comme dans la légende.
-
-⛔ **À vérifier avant de publier celui-ci :** l'offre d'introduction « Gratuit · 1 mois » est-elle configurée dans App Store Connect **et** dans Play Console, sur les deux formules ? Sans elle, la boutique prélève le plein tarif sous une promesse de gratuité — c'est déjà arrivé sur Google Play, et c'est le motif qui a fait refuser la 1.0.
-
----
-
-# CE QUI A ÉTÉ ÉCARTÉ DE LA SÉRIE
+## Les angles écartés plus tôt
 
 Quatre angles sont vrais, bien écrits, et ne vendent rien. Ils parlent du produit à quelqu'un qui l'a déjà adopté : ce sont des posts de deuxième trimestre, pas de lancement.
 
