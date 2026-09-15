@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
+import QRCode from 'react-native-qrcode-svg';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Text } from '@/components/ui';
 import { Child } from '@/domain/types';
-import { colors, spacing } from '@/theme';
+import { LIEN_TELECHARGEMENT } from '@/features/onboarding/InstallerSurLAppareil';
+import { colors, radii, spacing } from '@/theme';
 
 /**
  * Ce qui reste à faire, quand rien ne s'est encore passé.
@@ -67,12 +69,52 @@ export function FirstStepCard({
   if (!premier) return null;
   const plusieurs = enfants.length > 1;
 
+  /**
+   * ------------------------------------------- « installez Mino » ne suffit pas
+   *
+   * **Le défaut, et il coûte des familles entières.** Cette carte disait « Sur
+   * l'appareil de Manon : installez Mino » — et laissait le parent se
+   * débrouiller pour trouver Mino dans une boutique où plusieurs applications
+   * portent ce nom, sans rapport avec celle-ci. Un parent qui vient de payer,
+   * qui a créé sa famille et sa première mission, se retrouvait à chercher.
+   * Beaucoup s'arrêtent là, et rien dans nos chiffres ne le dit.
+   *
+   * **Le code mène à `minoapp.fr/telecharger`, pas à une boutique.** La page
+   * aiguille selon l'appareil qui l'ouvre : celui qu'on scanne est presque
+   * toujours celui de l'enfant, et il peut être Android. Un code figé sur
+   * l'App Store enverrait ce parent-là dans le mur — et un code QR imprimé dans
+   * un binaire est exactement ce qu'on ne peut pas rattraper. C'est la même
+   * adresse que l'écran d'installation et que celui du blocage : une seule à
+   * tenir à jour, et elle vit sur le site.
+   *
+   * **Et jamais le code seul.** Une caméra qui ne scanne pas, un écran mal
+   * éclairé, quelqu'un qui voit mal : l'adresse est écrite en toutes lettres
+   * dessous. Un chemin unique n'est pas un chemin.
+   */
   const code = (
     <View style={styles.code}>
       <Text variant="caption" color={colors.textMuted} center>
         {plusieurs
-          ? 'Sur chaque appareil confié à un enfant : installez Mino, puis « J’ai un code famille »'
-          : `Sur l’appareil de ${premier.firstName} : installez Mino, puis « J’ai un code famille »`}
+          ? 'Sur chaque appareil confié à un enfant : scannez ce code pour installer Mino, puis « J’ai un code famille »'
+          : `Sur l’appareil de ${premier.firstName} : scannez ce code pour installer Mino, puis « J’ai un code famille »`}
+      </Text>
+
+      <View style={styles.qr}>
+        <QRCode
+          value={LIEN_TELECHARGEMENT}
+          size={132}
+          color={colors.navy}
+          backgroundColor="#FFFFFF"
+          quietZone={10}
+        />
+      </View>
+
+      <Text variant="caption" color={colors.textSubtle} center>
+        ou minoapp.fr/telecharger
+      </Text>
+
+      <Text variant="caption" color={colors.textMuted} center>
+        Puis ce code famille :
       </Text>
       <Text variant="title" color={colors.blueInk} center>
         {familyCode}
@@ -143,5 +185,14 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
+  },
+  // Fond blanc et non la teinte de la carte : un code QR se lit par contraste,
+  // et une caméra de téléphone d'enfant n'est pas celle d'un appareil photo.
+  qr: {
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: spacing.sm,
+    borderRadius: radii.md,
+    marginVertical: spacing.xs,
   },
 });

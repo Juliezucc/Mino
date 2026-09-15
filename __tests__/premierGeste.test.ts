@@ -49,6 +49,27 @@ describe('la carte du premier pas', () => {
     expect(accueil).toMatch(/telephoneDuParent=\{telephoneDuParent\}/);
   });
 
+  it('donne de quoi INSTALLER Mino, pas seulement l’ordre de le faire', () => {
+    /**
+     * **Le défaut, signalé par Julie avant la publication.** « Installez Mino »
+     * laissait le parent chercher dans une boutique où plusieurs applications
+     * portent ce nom, sans rapport avec celle-ci. Un parent qui vient de payer
+     * et de créer sa première mission s'arrêtait là, et rien dans les chiffres
+     * ne le disait.
+     */
+    expect(carte).toMatch(/LIEN_TELECHARGEMENT/);
+    expect(carte).toMatch(/<QRCode/);
+    // L'adresse en toutes lettres aussi : une caméra qui ne scanne pas, un
+    // écran mal éclairé, quelqu'un qui voit mal.
+    expect(carte).toMatch(/minoapp\.fr\/telecharger/);
+  });
+
+  it('le code mène à la page d’aiguillage, jamais à une boutique figée', () => {
+    // L'appareil scanné est presque toujours celui de l'enfant, et il peut être
+    // Android. Et un code QR imprimé dans un binaire ne se rattrape pas.
+    expect(carte).not.toMatch(/apps\.apple\.com|play\.google\.com/);
+  });
+
   it('sur l’appareil d’un enfant, on n’explique pas comment installer Mino ici', () => {
     // On est dessus. La carte descend aussi sous « Vue d'ensemble » — c'est
     // l'autre appel, celui qui porte `appareilDeLEnfant`.
