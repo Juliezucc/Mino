@@ -156,21 +156,22 @@ recomposer.
 
 ## Restaurer
 
-**Cette procédure est un point de départ, pas un fait.** Elle n'aura de valeur
-que le jour où elle aura été jouée en vrai, et ce qu'il aura fallu taper
-réellement devra être réécrit ici. C'est la règle du dépôt :
-[`de-ici-au-lancement.md`](de-ici-au-lancement.md) le dit déjà — « une
-sauvegarde jamais restaurée est une hypothèse, pas un filet. »
+**Éprouvé le 16 septembre 2026, sur la première sauvegarde produite.** Ce n'est
+plus une procédure espérée : le fichier a été retéléchargé depuis l'interface
+de Cloudflare, déchiffré, restauré dans une base jetable, et les lignes
+comptées — 5 familles, 6 enfants, 15 missions, 5 abonnements, 21 missions
+accomplies, 17 comptes dans `auth.users`, et 0 conversation, ce qui est le
+résultat voulu.
 
-**Il manque `pg_restore` sur la machine, et c'est bloquant le jour venu.** Ce
-Mac n'a ni Homebrew ni client PostgreSQL — `which pg_restore` ne rend rien.
-Ça n'a aucune conséquence au quotidien (`npm run test:sql` ne tourne
-réellement qu'en intégration continue, où le runner Ubuntu fournit le sien),
-mais ça arrête net une restauration. Le plus simple sans gestionnaire de
-paquets est **Postgres.app** — une application qu'on glisse dans le dossier
-Applications et qui apporte `pg_restore` et `psql`. À installer **avant** d'en
-avoir besoin : le jour d'un incident n'est pas le moment de découvrir qu'il
-manque un outil.
+Ce qui reste non éprouvé, et il faut le dire : la restauration **dans un projet
+Supabase neuf**. Ce qui est prouvé, c'est que l'archive est complète et se
+recharge entièrement ; ce qui ne l'est pas, c'est la manière de composer avec
+le schéma `auth` d'un projet Supabase qui n'est jamais vide. Le jour venu,
+réécrire ici ce qu'il aura fallu taper.
+
+`pg_restore` vient de **Postgres.app** — ce Mac n'a pas Homebrew. À garder
+installée : le jour d'un incident n'est pas le moment de découvrir qu'il manque
+un outil.
 
 ```bash
 # 1. Récupérer le fichier depuis R2 (aws configure une fois, region « auto »)
@@ -186,17 +187,41 @@ pg_restore --clean --if-exists --no-owner --no-privileges \
   --dbname "<URI du nouveau projet>" mino.dump
 ```
 
+### Éprouver l'archive sans toucher à Supabase
+
+Avant d'écraser quoi que ce soit de vivant, on peut la recharger dans un
+PostgreSQL jetable. C'est ce qui a été fait le 16 septembre, et c'est
+reproductible en cinq minutes :
+
+```bash
+D=/tmp/pgjetable; P=55433
+initdb -D "$D/data" -U postgres --auth=trust
+pg_ctl -D "$D/data" -o "-h 127.0.0.1 -p $P -c unix_socket_directories=''" \
+  -l "$D/serveur.log" start
+createdb -h 127.0.0.1 -p $P -U postgres essai
+pg_restore -h 127.0.0.1 -p $P -U postgres -d essai \
+  --no-owner --no-privileges mino.dump
+psql -h 127.0.0.1 -p $P -U postgres -d essai -Atc "select count(*) from families"
+pg_ctl -D "$D/data" stop && rm -rf "$D"
+```
+
+**Écouter en TCP, pas sur une socket.** Un chemin de socket Unix ne peut pas
+dépasser 103 octets, et un dossier temporaire un peu profond suffit à le
+dépasser — le serveur refuse alors de démarrer avec un message qui n'a rien à
+voir avec la sauvegarde.
+
+**Trois erreurs sont normales.** `pg_restore` signale des rôles et extensions
+propres à Supabase qui n'existent pas sur une base locale. Elles n'affectent
+aucune donnée. Ce qu'il faut regarder, ce sont les comptages.
+
 Puis, avant de croire que c'est fait :
 
-1. Une famille se connecte-t-elle ? (c'est le schéma `auth` qui répond)
+1. Les comptes sont-ils là ? (`auth.users` — c'est lui qui permet de se
+   connecter, et c'est ce qu'une copie du seul schéma `public` perdrait)
 2. Un appareil rattaché retrouve-t-il sa famille ? (`family_devices.user_id`)
 3. Le solde de minutes d'un enfant est-il le bon ?
 4. Les conversations sont-elles vides ? **C'est le résultat attendu**, pas un
    défaut.
-
-Le schéma `auth` d'un projet neuf n'est pas vide : il faudra probablement
-composer avec ce qui s'y trouve déjà. C'est précisément ce que l'essai de
-restauration doit établir, et personne ne peut l'écrire d'avance sans mentir.
 
 ---
 
