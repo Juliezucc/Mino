@@ -29,6 +29,7 @@ import { gestePlageLibre } from '@/domain/freeWindows';
 import { AvatarKey, FamilyData, ID, ISODate, RepeatRule } from '@/domain/types';
 import * as notify from '@/domain/notifications';
 import { AuthResult, getAuthService } from '@/services/auth';
+import { lirePreferences, ecrirePreferences } from '@/data/preferencesNotification';
 import { getNotificationService } from '@/services/notifications';
 import {
   poserJetonPush,
@@ -638,7 +639,35 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     setNotificationPreferences(patch) {
-      set({ notifications: { ...get().notifications, ...patch } });
+      const avant = get().notifications;
+      const apres = { ...avant, ...patch };
+      set({ notifications: apres });
+
+      /**
+       * **Deux choses manquaient, et l'interrupteur n'obéissait donc à rien.**
+       *
+       * 1. RIEN N'ÉTAIT ÉCRIT. Le magasin est un zustand nu : au lancement
+       *    suivant, les trois pastilles étaient revenues à leur place. Le pire
+       *    des réglages est celui qui semble obéir puis oublie.
+       *
+       * 2. LE SERVEUR N'EN SAVAIT RIEN. Les heures calmes vivent côté serveur
+       *    — c'est lui qui pousse aux autres appareils, et il lit la colonne
+       *    `heures_calmes` du jeton. Or ce jeton n'était reposé qu'au
+       *    démarrage et au changement de « à qui est cet appareil ? », jamais
+       *    en touchant l'interrupteur. Un parent qui coupait les heures calmes
+       *    lisait aussitôt « les notifications peuvent arriver à toute heure »
+       *    pendant que le serveur continuait de se taire jusqu'au lendemain.
+       *
+       * On ne repose le jeton que si LA préférence qui voyage a changé : les
+       * deux autres sont locales à l'appareil, et c'est écrit dans
+       * `pousserAuxAutres`.
+       */
+      void ecrirePreferences(apres).catch(() => undefined);
+
+      if (apres.quietHours !== avant.quietHours) {
+        const famille = get().data?.family;
+        if (famille) void poserJetonPush(famille.id, apres.quietHours).catch(() => undefined);
+      }
     },
 
     async bootstrap() {
@@ -646,6 +675,15 @@ export const useMinoStore = create<MinoState>((set, get) => {
       // rendu, et un profil qui arrive une frame trop tard fait clignoter
       // « Qui utilise Mino ? » avant de l'escamoter.
       const device = await readDeviceProfile();
+
+      /**
+       * Les préférences de notification, relues du disque AVANT de poser le
+       * jeton — sans quoi le serveur recevrait `DEFAULT_PREFERENCES` et non ce
+       * que le parent a réglé, et les heures calmes se rallumeraient toutes
+       * seules à chaque lancement.
+       */
+      const prefs = await lirePreferences();
+      set({ notifications: prefs });
 
       // Le réseau tombe pour les raisons les plus banales : un ascenseur, un
       // sous-sol, une voiture. Laisser la promesse rejeter laissait
@@ -662,7 +700,7 @@ export const useMinoStore = create<MinoState>((set, get) => {
       publish(data, { status: 'ready', device, offline });
       // L'appareil se déclare joignable dès qu'on sait de quelle famille il
       // est. Silencieux et sans effet s'il n'y a pas de permission.
-      if (data) void poserJetonPush(data.family.id, get().notifications.quietHours).catch(() => undefined);
+      if (data) void poserJetonPush(data.family.id, prefs.quietHours).catch(() => undefined);
       if (data) await get().loadBilling();
       if (data) void get().reportShield();
       // Une plage libre en cours doit ouvrir l'écran MAINTENANT, sans attendre

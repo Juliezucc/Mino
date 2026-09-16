@@ -223,6 +223,31 @@ describe('le serveur applique la même règle', () => {
   it('laisse recevoir ce dont il ignore le genre', () => {
     expect(edge).toContain("?? 'inconnu'");
   });
+
+  /**
+   * **Le nettoyage des jetons morts doit s'indexer sur la liste ENVOYÉE.**
+   *
+   * Expo rend ses tickets dans l'ordre exact des messages, donc indexés sur
+   * `eveilles`. Le code les faisait correspondre à `destinataires`, qui
+   * contient en plus les appareils écartés par les heures calmes : dès qu'un
+   * seul était filtré, tout se décalait et c'est le jeton d'un appareil
+   * VIVANT qui était supprimé.
+   *
+   * Un parent se retrouvait ainsi débranché sans le savoir — le jeton n'est
+   * reposé qu'au prochain lancement, et rien ne lui dit de rouvrir Mino. Il
+   * cessait simplement de recevoir les demandes de ses enfants.
+   *
+   * Il suffit d'un parent qui garde les heures calmes et d'un autre qui les
+   * coupe, ou qui vit dans un autre fuseau.
+   */
+  it('nettoie les jetons morts en s’indexant sur ceux à qui il a écrit', () => {
+    expect(edge).toContain('const morts = eveilles');
+    expect(edge).not.toMatch(/const morts = destinataires/);
+  });
+
+  it('et compte les envois sur la même liste', () => {
+    expect(edge).toContain('envoyes: eveilles.length - morts.length');
+  });
 });
 
 /**

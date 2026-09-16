@@ -217,6 +217,23 @@ export default function ParentSettings() {
                 ? `Rien n’est envoyé entre ${QUIET_FROM_HOUR}h et ${QUIET_UNTIL_HOUR}h — sauf l’alerte « plus que 5 minutes », qui évite qu’un écran s’arrête sans prévenir.`
                 : 'Les notifications peuvent arriver à toute heure, y compris le soir sur l’appareil de votre enfant.'}
             </Text>
+            {/**
+             * **La portée de chaque pastille, parce qu'elles n'ont pas la
+             * même.** « Heures calmes » voyage avec l'appareil jusqu'au
+             * serveur, qui s'en sert pour décider s'il envoie. Les deux autres
+             * sont locales : celui qui envoie ne peut pas savoir si l'autre a
+             * demandé le silence (voir `pousserAuxAutres`). Les présenter
+             * identiquement laissait croire qu'éteindre « Alertes enfant »
+             * taisait la tablette d'en face — ce qu'aucune des trois ne fait.
+             *
+             * Le dire coûte une ligne ; le laisser croire coûte la confiance
+             * du parent le jour où il s'en aperçoit.
+             */}
+            <Text variant="caption" color={colors.textSubtle}>
+              « Mes alertes » et « Alertes enfant » ne valent que pour cet appareil-ci. Pour faire
+              taire un autre téléphone, c’est dans ses propres réglages — ou dans ceux de son
+              système, qui font toujours autorité.
+            </Text>
             <Button
               label="Autoriser les notifications"
               variant="secondary"

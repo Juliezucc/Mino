@@ -262,13 +262,33 @@ Deno.serve(servir(async (request) => {
      */
     const resultat = await reponse.json();
     const tickets: { status?: string; details?: { error?: string } }[] = resultat?.data ?? [];
-    const morts = destinataires
+
+    /**
+     * **`eveilles`, et surtout pas `destinataires` — c'est la même liste que
+     * celle qui a servi à composer `messages`.**
+     *
+     * Expo rend ses tickets dans l'ordre exact des messages envoyés, donc
+     * indexés sur `eveilles`. Les faire correspondre à `destinataires`, qui
+     * contient EN PLUS les appareils écartés par les heures calmes, décale
+     * tout dès qu'un seul a été filtré : le ticket du jeton mort tombait alors
+     * en face de quelqu'un d'autre, et c'est le jeton d'un appareil VIVANT
+     * qu'on effaçait.
+     *
+     * Le cas n'a rien de rare : il suffit d'un parent qui a gardé les heures
+     * calmes et d'un autre qui les a coupées — ou qui vit dans un autre
+     * fuseau. Le téléphone ainsi débranché ne se répare pas tout seul : le
+     * jeton n'est reposé qu'au prochain lancement de l'application, et son
+     * propriétaire ne sait pas qu'il doit la rouvrir. Il cesse simplement de
+     * recevoir les demandes de ses enfants.
+     */
+    const morts = eveilles
       .filter((_, i) => tickets[i]?.details?.error === 'DeviceNotRegistered')
       .map((j) => j.user_id as string);
 
     if (morts.length > 0) await db.from('push_tokens').delete().in('user_id', morts);
 
-    return json({ envoyes: destinataires.length - morts.length });
+    // Le compte porte lui aussi sur ceux à qui on a réellement écrit.
+    return json({ envoyes: eveilles.length - morts.length });
   } catch (error) {
     console.error('notify', error);
     // Une notification perdue ne doit jamais faire échouer ce qui l'a
