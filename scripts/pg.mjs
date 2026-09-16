@@ -21,6 +21,12 @@ export const BIN = [
   '/usr/lib/postgresql/15/bin',
   '/usr/local/bin',
   '/opt/homebrew/bin',
+  // Postgres.app — la seule façon simple d'avoir PostgreSQL sur un Mac qui n'a
+  // pas Homebrew, et c'est le cas de celui qui tient ce projet. Sans cette
+  // ligne, `test:sql` annonçait « PostgreSQL absent » et sortait en 0 sur la
+  // machine de développement : la vérification la plus précieuse du dépôt ne
+  // tournait qu'en intégration continue, sans que rien ne le signale.
+  '/Applications/Postgres.app/Contents/Versions/latest/bin',
 ].find((dir) => existsSync(join(dir, 'initdb')));
 
 /**
@@ -38,6 +44,7 @@ export function announceMissing() {
   dire('PostgreSQL absent.');
   dire('Sur Debian/Ubuntu : sudo apt install postgresql');
   dire('Sur macOS : brew install postgresql@16');
+  dire('Sur macOS sans Homebrew : https://postgresapp.com (glisser dans Applications)');
   if (exige) {
     console.error('');
     console.error('MINO_REQUIRE_PG=1 : on refuse de rendre un vert qui ne prouve rien.');

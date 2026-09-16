@@ -1,0 +1,196 @@
+# La copie qui ne vit pas chez Supabase.
+#
+# Le plan Pro sauvegarde déjà la base tous les jours et les garde sept jours.
+# Ces sauvegardes-là protègent d'une bêtise de notre côté : une migration
+# ratée, un `delete` trop large, un travail de nuit qui déraille. Elles ne
+# protègent de rien du tout si le problème vient de Supabase — compte
+# suspendu, facture qui passe mal, incident chez eux — parce qu'elles sont
+# rangées au même endroit que ce qu'elles sauvegardent.
+#
+# D'où ce fichier : une copie par nuit, chiffrée, déposée chez un autre
+# hébergeur, sur un autre compte, payé séparément.
+#
+# TROIS CHOIX QUI NE SONT PAS DES DÉTAILS
+#
+# 1. **2 h 30 UTC, et pas plus tard.** Les travaux de nuit tournent de 3 h à
+#    4 h 45 (`supabase/planification.sql`) et SUPPRIMENT des lignes : purge de
+#    l'historique, des tentatives de rattachement, des appareils orphelins,
+#    des conversations. Une sauvegarde prise après eux contient déjà les
+#    dégâts le jour où l'un d'eux se trompe. Elle passe donc avant.
+#
+# 2. **Les conversations du compagnon ne partent pas.** La politique de
+#    confidentialité promet « 30 jours, puis effacement automatique », et
+#    `companion.sql:139` le tient. Une sauvegarde qui les garde plus longtemps
+#    fait mentir la politique. `--exclude-table-data` laisse donc la table
+#    dans le schéma et son contenu dehors — restaurer rend une base complète
+#    et des conversations vides, ce qui est le comportement voulu.
+#
+# 3. **Chiffrement asymétrique.** La clé PUBLIQUE est dans le dépôt, la clé
+#    PRIVÉE n'est nulle part ici. Conséquence : quelqu'un qui prendrait la
+#    main sur GitHub *et* sur o2switch ne pourrait lire aucune sauvegarde. Le
+#    revers est entier — SANS LA CLÉ PRIVÉE, CES FICHIERS NE VALENT RIEN.
+#    Elle se garde hors ligne, sur papier. Voir `docs/ops/sauvegardes.md`.
+
+name: Sauvegarde hors-Supabase
+
+on:
+  schedule:
+    # 2 h 30 UTC, tous les jours. Avant les travaux de nuit (voir ci-dessus).
+    - cron: '30 2 * * *'
+  # Pour la lancer à la main le jour où on veut vérifier qu'elle marche
+  # encore — et c'est ce qu'on fera après chaque changement de ce fichier.
+  workflow_dispatch:
+
+concurrency:
+  group: sauvegarde
+  cancel-in-progress: false
+
+jobs:
+  sauvegarder:
+    name: Vider, chiffrer, déposer
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # `pg_dump` doit être d'une version au moins égale à celle du serveur.
+      # Le runner Ubuntu n'embarque pas forcément la bonne : on prend celle de
+      # PostgreSQL directement plutôt que d'espérer.
+      - name: Installer pg_dump et age
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17 age
+          pg_dump --version
+
+      # Le placeholder qui traîne est le défaut le plus bête possible : la
+      # sauvegarde tournerait, chiffrerait vers une clé que personne ne
+      # possède, et on ne s'en apercevrait que le jour de la restauration.
+      - name: Vérifier la clé publique
+        run: |
+          CLE=".github/sauvegarde.age.pub"
+          if ! test -s "$CLE"; then
+            echo "::error::$CLE est absent ou vide."
+            exit 1
+          fi
+          if grep -q "REMPLACER" "$CLE"; then
+            echo "::error::$CLE contient encore le texte d'exemple."
+            echo "Générez la paire de clés : voir docs/ops/sauvegardes.md"
+            exit 1
+          fi
+          grep -qE '^age1[0-9a-z]{20,}$' "$CLE" || {
+            echo "::error::$CLE ne ressemble pas à une clé publique age."
+            exit 1
+          }
+
+      # `public` ET `auth` : les deux, et c'est le point qui fait échouer les
+      # restaurations mal préparées. `parents.user_id` et
+      # `family_devices.user_id` pointent vers `auth.users` — une copie du
+      # seul schéma `public` rend une base dont plus personne ne peut se
+      # connecter, et dont chaque appareil rattaché est orphelin.
+      - name: Vider la base
+        env:
+          PGCONNECT_TIMEOUT: '30'
+        run: |
+          set -o pipefail
+          HORODATAGE=$(date -u +%Y-%m-%dT%H%M)
+          echo "HORODATAGE=$HORODATAGE" >> "$GITHUB_ENV"
+          pg_dump "${{ secrets.SUPABASE_DB_URL }}" \
+            --schema=public \
+            --schema=auth \
+            --exclude-table-data='public.companion_messages' \
+            --no-owner \
+            --no-privileges \
+            --quote-all-identifiers \
+            --format=custom \
+            --compress=9 \
+            --file="mino-$HORODATAGE.dump"
+          ls -l "mino-$HORODATAGE.dump"
+
+      # Un `pg_dump` interrompu rend un fichier court sans toujours sortir en
+      # erreur. Sans ce garde-fou, on déposerait des fichiers tronqués nuit
+      # après nuit en croyant être couvert — le genre de vert qui ne prouve
+      # rien contre lequel tout ce dépôt est écrit.
+      - name: Refuser un fichier anormalement court
+        run: |
+          TAILLE=$(stat -c%s "mino-$HORODATAGE.dump")
+          echo "Taille : $TAILLE octets"
+          if [ "$TAILLE" -lt 51200 ]; then
+            echo "::error::Le fichier fait moins de 50 Ko : ce n'est pas une base de familles."
+            exit 1
+          fi
+          echo "TAILLE=$TAILLE" >> "$GITHUB_ENV"
+
+      - name: Chiffrer
+        run: |
+          age --encrypt --recipient "$(cat .github/sauvegarde.age.pub)" \
+            --output "mino-$HORODATAGE.dump.age" \
+            "mino-$HORODATAGE.dump"
+          rm -f "mino-$HORODATAGE.dump"
+          ls -l "mino-$HORODATAGE.dump.age"
+
+      - name: Préparer l’accès à o2switch
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "${{ secrets.O2SWITCH_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "${{ secrets.O2SWITCH_PORT }}" -H "${{ secrets.O2SWITCH_HOST }}" \
+            >> ~/.ssh/known_hosts 2>/dev/null
+
+      # Le dossier de dépôt est HORS de public_html. Un `.dump` posé sous une
+      # racine web est téléchargeable par qui devine son nom : c'est la façon
+      # la plus banale de perdre une base entière, et le chiffrement ne serait
+      # plus alors que la dernière ligne de défense au lieu d'être la seconde.
+      - name: Déposer
+        run: |
+          DEST="${{ secrets.O2SWITCH_PATH }}"
+          ssh -p "${{ secrets.O2SWITCH_PORT }}" \
+            "${{ secrets.O2SWITCH_USER }}@${{ secrets.O2SWITCH_HOST }}" \
+            "mkdir -p '$DEST' && chmod 700 '$DEST'"
+          scp -P "${{ secrets.O2SWITCH_PORT }}" \
+            "mino-$HORODATAGE.dump.age" \
+            "${{ secrets.O2SWITCH_USER }}@${{ secrets.O2SWITCH_HOST }}:$DEST/"
+
+      # On relit ce qu'on vient d'écrire. Un `scp` qui rend 0 sur un disque
+      # plein existe ; un fichier déposé à moitié aussi.
+      - name: Relire depuis le serveur
+        run: |
+          DEST="${{ secrets.O2SWITCH_PATH }}"
+          DISTANTE=$(ssh -p "${{ secrets.O2SWITCH_PORT }}" \
+            "${{ secrets.O2SWITCH_USER }}@${{ secrets.O2SWITCH_HOST }}" \
+            "stat -c%s '$DEST/mino-$HORODATAGE.dump.age'")
+          LOCALE=$(stat -c%s "mino-$HORODATAGE.dump.age")
+          echo "local : $LOCALE — distant : $DISTANTE"
+          if [ "$DISTANTE" != "$LOCALE" ]; then
+            echo "::error::Le fichier déposé ne fait pas la même taille que l'original."
+            exit 1
+          fi
+
+      # 30 jours, et pas plus. La politique de confidentialité promet
+      # l'effacement des profils enfants « immédiat et définitif » à la
+      # suppression d'un compte : une sauvegarde qui vivrait des mois
+      # rendrait cette phrase fausse. 30 jours est aussi la plus courte des
+      # promesses de conservation, ce qui rend la règle simple à tenir.
+      - name: Purger au-delà de 30 jours
+        run: |
+          DEST="${{ secrets.O2SWITCH_PATH }}"
+          ssh -p "${{ secrets.O2SWITCH_PORT }}" \
+            "${{ secrets.O2SWITCH_USER }}@${{ secrets.O2SWITCH_HOST }}" \
+            "find '$DEST' -name 'mino-*.dump.age' -type f -mtime +30 -print -delete"
+
+      - name: Compter ce qui reste
+        run: |
+          DEST="${{ secrets.O2SWITCH_PATH }}"
+          ssh -p "${{ secrets.O2SWITCH_PORT }}" \
+            "${{ secrets.O2SWITCH_USER }}@${{ secrets.O2SWITCH_HOST }}" \
+            "ls -1 '$DEST'/mino-*.dump.age | wc -l | xargs echo 'Sauvegardes présentes :'"
+
+      - name: Effacer la clé du runner
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519

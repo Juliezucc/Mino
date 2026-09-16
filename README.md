@@ -116,6 +116,7 @@ npm run typecheck && npm test && npm run compil
 | --- | --- |
 | Architecture, règles à ne pas casser | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
 | Tenir 10 000 familles, coûts | [`docs/ops/capacite.md`](docs/ops/capacite.md) |
+| Sauvegardes, et comment restaurer | [`docs/ops/sauvegardes.md`](docs/ops/sauvegardes.md) |
 | MRR, churn, cohortes, LTV, CAC | [`docs/ops/analytics.md`](docs/ops/analytics.md) |
 | Les deux rails de paiement | [`docs/ops/paiements.md`](docs/ops/paiements.md) |
 | Mino qui parle : coût, sécurité, classement d'âge | [`docs/ops/compagnon.md`](docs/ops/compagnon.md) |
