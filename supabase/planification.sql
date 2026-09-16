@@ -49,7 +49,10 @@ begin
       'mino-purge-history',
       'mino-purge-join-attempts',
       'mino-purge-orphan-devices',
-      'mino-purge-companion'
+      'mino-purge-companion',
+      -- À tenir à jour avec la liste ci-dessous : une tâche absente d'ici se
+      -- reprogramme en double à chaque application du fichier.
+      'mino-purge-support'
     )
   loop
     perform cron.unschedule(j.jobid);
@@ -75,6 +78,15 @@ select cron.schedule('mino-purge-orphan-devices', '30 4 * * *',
 -- 04:45 — les conversations avec Mino, trente jours, comme la politique le dit.
 select cron.schedule('mino-purge-companion', '45 4 * * *',
                      $$select purge_companion_messages()$$);
+
+-- 05:00 — les signalements, douze mois, comme la politique le dit aussi.
+--
+-- **Cette ligne manquait, et le mot « automatique » du tableau de conservation
+-- était donc faux.** Le fichier avait tiré la leçon pour les conversations et
+-- pas pour les signalements — alors que c'est la table où la tablette d'un
+-- enfant peut écrire, trace d'erreur comprise.
+select cron.schedule('mino-purge-support', '0 5 * * *',
+                     $$select purge_support_reports()$$);
 
 -- ---------------------------------------------------------------------
 -- Vérifier, après avoir collé

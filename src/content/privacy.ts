@@ -67,7 +67,7 @@ export const PRIVACY: LegalDocument = {
             },
             {
               label: 'Abonnement',
-              value: 'Statut de l’abonnement, dates, codes de parrainage. Les coordonnées bancaires ne transitent jamais par Mino : elles sont saisies et conservées directement par notre prestataire de paiement.',
+              value: 'Statut de l’abonnement, dates, codes de parrainage, et — si vous choisissez de nous le dire en résiliant — la raison de votre départ, parmi quatre réponses proposées. Les coordonnées bancaires ne transitent jamais par Mino : elles sont saisies et conservées directement par notre prestataire de paiement.',
             },
             {
               label: 'Signalements et rapports d’incident',
@@ -110,6 +110,10 @@ export const PRIVACY: LegalDocument = {
             {
               label: 'Conversations avec Mino',
               value: 'Faire fonctionner le personnage et repérer les messages qui appellent l’attention d’un adulte. Base légale : exécution du contrat, sur autorisation du titulaire de l’autorité parentale, qui peut désactiver la fonctionnalité à tout moment.',
+            },
+            {
+              label: 'Comprendre les départs, et proposer de revenir',
+              value: 'Enregistrer la raison que vous indiquez en résiliant, pour corriger ce qui doit l’être ; et, si vous nous avez quittés, vous écrire une fois pour vous proposer de revenir. Base légale : intérêt légitime (art. 6.1.f). Vous pouvez vous y opposer à tout moment depuis le lien de désabonnement figurant dans ce message, ou en nous écrivant — et cela n’affecte en rien les autres e-mails, qui relèvent du contrat.',
             },
           ],
         },
@@ -219,7 +223,7 @@ export const PRIVACY: LegalDocument = {
             { label: 'Stripe', value: 'Traitement des paiements et facturation. Stripe est responsable de traitement pour les données bancaires, que nous ne voyons jamais.' },
             { label: 'Anthropic', value: 'Génération des réponses du personnage Mino, lorsque cette fonctionnalité est activée. Voir la section 5.' },
             { label: 'Expo', value: 'Acheminement des notifications vers vos appareils. Le service reçoit le jeton de l’appareil et le texte de la notification — par exemple « Manon a terminé une mission » : un prénom d’enfant y figure donc.' },
-            { label: 'Notre hébergeur de courrier', value: 'Acheminement de nos e-mails : bienvenue, rappel avant le premier prélèvement, information avant reconduction, réponse à un signalement. Il reçoit votre adresse et le contenu du message.' },
+            { label: 'Notre hébergeur de courrier', value: 'Acheminement de nos e-mails. Ils sont de huit sortes : bienvenue ; aide à la mise en route lorsqu’aucun appareil d’enfant n’a rejoint la famille, ou que le blocage n’a pas été autorisé ; rappel avant le premier prélèvement ; information avant reconduction ; échec de prélèvement ; réponse à un signalement ; confirmation de résiliation ; et, si vous nous avez quittés, une proposition de revenir — celle-là seule porte un lien de désabonnement, parce qu’elle seule est une sollicitation. Notre hébergeur reçoit votre adresse et le contenu du message.' },
             { label: 'Cloudflare', value: 'Conservation de nos sauvegardes chiffrées, dans un espace de stockage situé au sein de l’Union européenne. Les fichiers y sont chiffrés avant d’être déposés : Cloudflare ne peut pas les lire, et nous seuls détenons la clé.' },
             { label: 'GitHub', value: 'Fabrication de ces sauvegardes, une fois par nuit. La copie de la base y est extraite puis chiffrée avant d’en sortir ; elle n’y est pas conservée. Voir la section 8.' },
           ],

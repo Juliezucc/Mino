@@ -261,7 +261,7 @@ Non, et pas seulement parce que l’application ne l’affiche pas : la base de 
 
 ### Où sont hébergées les données ?
 
-Dans l’Union européenne. Trois services situés hors UE interviennent malgré tout, et la politique de confidentialité les nomme : le paiement, l’acheminement des notifications — qui reçoit le texte, où peut figurer le prénom de votre enfant — et, si vous avez laissé « Parler à Mino » activé, la génération des réponses du personnage. Chacun de ces transferts est encadré par les clauses contractuelles types de la Commission européenne.
+Dans l’Union européenne, y compris nos sauvegardes. Quatre services situés hors UE interviennent malgré tout, et la politique de confidentialité les nomme : le paiement ; l’acheminement des notifications — qui reçoit le texte, où peut figurer le prénom de votre enfant ; la génération des réponses du personnage, si vous avez laissé « Parler à Mino » activé ; et l’outil qui fabrique nos sauvegardes chaque nuit, par lequel la copie de la base transite avant d’être chiffrée, et qui n’en garde rien. Chacun de ces transferts est encadré par les clauses contractuelles types de la Commission européenne.
 
 ## 🛠️ Ça ne marche pas
 

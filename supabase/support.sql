@@ -129,3 +129,39 @@ group by fingerprint, kind
 order by max(created_at) desc;
 
 revoke all on support_queue from anon, authenticated;
+
+/**
+ * ------------------------------------------- douze mois, comme la politique le dit
+ *
+ * **La politique annonçait « 12 mois, puis effacement automatique » et aucun
+ * automatisme n'existait.** Cinq tâches de nuit sont programmées dans
+ * `planification.sql` ; aucune ne touchait cette table. Le mot « automatique »
+ * était donc faux — pas encore préjudiciable, puisque la base a été vidée en
+ * septembre 2026 et qu'aucun rapport n'a douze mois, mais faux.
+ *
+ * C'est la ligne la plus exposée du tableau de conservation : `support.sql`
+ * laisse EXPRESSÉMENT la tablette d'un enfant écrire un rapport, avec sa trace
+ * d'erreur. Les garder pour toujours, c'est accumuler indéfiniment des traces
+ * venues d'appareils d'enfants.
+ *
+ * Le détachement de l'auteur (`on delete set null`) ne suffit pas : un rapport
+ * anonyme reste une donnée, et la durée annoncée l'engage quand même.
+ */
+create or replace function purge_support_reports()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare removed integer;
+begin
+  delete from support_reports where created_at < now() - interval '12 months';
+  get diagnostics removed = row_count;
+  return removed;
+end;
+$$;
+
+revoke all on function purge_support_reports() from public, anon, authenticated;
+
+comment on function purge_support_reports() is
+  'Efface les signalements de plus de douze mois. Tenue par cron, voir planification.sql.';
