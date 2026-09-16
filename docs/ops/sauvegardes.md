@@ -7,7 +7,7 @@ d'un côté.
 | | Où | Contre quoi | Combien de temps |
 |---|---|---|---|
 | **Supabase Pro** | chez Supabase | une bêtise de notre côté : migration ratée, `delete` trop large, travail de nuit qui déraille | 7 jours |
-| **Copie hors-Supabase** | o2switch, chiffrée | un problème **de leur côté** : compte suspendu, facture qui passe mal, incident, disparition | 30 jours |
+| **Copie hors-Supabase** | Cloudflare R2, chiffrée | un problème **de leur côté** : compte suspendu, facture qui passe mal, incident, disparition | 30 jours |
 
 Les sauvegardes de Supabase sont rangées au même endroit que ce qu'elles
 sauvegardent. Le jour où l'on ne peut plus ouvrir le tableau de bord, elles
@@ -81,10 +81,10 @@ echo 'age1XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX' > .github/sauveg
 Puis, et c'est la partie qu'on saute et qu'on regrette :
 
 > **Imprimez `~/mino-sauvegarde.key` et rangez le papier ailleurs que chez
-> vous.** Sans cette clé, les fichiers déposés sur o2switch sont du bruit.
+> vous.** Sans cette clé, les fichiers déposés sur R2 sont du bruit.
 > Aucune sauvegarde n'est récupérable sans elle, ni par Supabase, ni par
-> o2switch, ni par nous. C'est le prix du chiffrement asymétrique, et c'est
-> aussi ce qui fait qu'une intrusion sur GitHub **et** sur o2switch ne donne
+> Cloudflare, ni par nous. C'est le prix du chiffrement asymétrique, et c'est
+> aussi ce qui fait qu'une intrusion sur GitHub **et** sur Cloudflare ne donne
 > accès à rien.
 
 Le fichier `~/mino-sauvegarde.key` doit être en `chmod 600` et n'entre jamais
@@ -93,39 +93,56 @@ personnel, ce qui est justement le but.
 
 ---
 
-## Les six secrets GitHub
+## Pourquoi Cloudflare R2, et pas o2switch
+
+C'était le premier choix : l'hébergement était déjà payé, et il est français.
+Il a fallu y renoncer, et la raison mérite d'être écrite pour que personne ne
+réessaie.
+
+**Le pare-feu d'o2switch bloque SSH par défaut** et ne l'ouvre qu'à des
+adresses IP nommément autorisées, sur demande au support. Les runners GitHub
+tournent sur des milliers de plages Azure qui changent sans préavis : il n'y a
+aucune adresse fixe à faire autoriser. Le journal l'a dit sans ambiguïté —
+`Connection timed out` depuis le runner, alors que la même clé ouvrait la
+session depuis le Mac une minute plus tôt. Ce n'était pas un réglage à
+trouver, c'était une impasse.
+
+R2 est joignable de partout, parle le protocole S3 — donc l'outil `aws` déjà
+présent sur le runner suffit, sans confier la sauvegarde à une action tierce
+qu'on n'a pas lue — et ses 10 Go gratuits couvrent très large : un dump fait
+274 Ko, trente jours pèsent 8 Mo. Même à 30 000 familles (~1,5 Go par copie,
+~45 Go au total), le dépassement coûterait moins d'un dollar par mois.
+
+---
+
+## Les cinq secrets GitHub
 
 `Settings → Secrets and variables → Actions → New repository secret`.
 
 | Secret | Ce que c'est |
 |---|---|
 | `SUPABASE_DB_URL` | l'URI de connexion, **« Session pooler »** — pas « Transaction pooler » |
-| `O2SWITCH_HOST` | le serveur SSH du compte |
-| `O2SWITCH_USER` | l'identifiant cPanel |
-| `O2SWITCH_PORT` | le port SSH |
-| `O2SWITCH_SSH_KEY` | la clé privée SSH dédiée à cette tâche, en entier |
-| `O2SWITCH_PATH` | le dossier de dépôt, **hors de `public_html`** |
-
-Deux pièges, tous les deux vérifiés dans la douleur ailleurs :
+| `R2_ACCOUNT_ID` | l'identifiant de compte Cloudflare (32 caractères, visible dans R2) |
+| `R2_BUCKET` | le nom du seau, par exemple `mino-sauvegardes` |
+| `R2_ACCESS_KEY_ID` | jeton d'API R2, partie publique |
+| `R2_SECRET_ACCESS_KEY` | jeton d'API R2, partie secrète — **montrée une seule fois** |
 
 **Le « Transaction pooler » (port 6543) ne sait pas faire de `pg_dump`.** Il ne
 tient pas les transactions longues qu'exige une copie cohérente. C'est le
-« Session pooler » ou la connexion directe qu'il faut, et l'erreur renvoyée
-quand on se trompe ne le dit pas clairement.
+« Session pooler » (port 5432) ou la connexion directe qu'il faut, et l'erreur
+renvoyée quand on se trompe ne le dit pas clairement.
 
-**Le dossier de dépôt ne doit jamais être sous `public_html`.** Un fichier posé
-sous une racine web est téléchargeable par qui devine son nom. Le chiffrement
-ne serait plus alors que la dernière ligne de défense au lieu d'être la
-seconde. Quelque chose comme `/home/<utilisateur>/sauvegardes-mino` convient.
+**Le jeton R2 ne doit pouvoir qu'écrire et lire ce seau-là.** Cloudflare
+propose de restreindre un jeton à un seul seau : il n'y a aucune raison de
+s'en priver. Un jeton volé sur GitHub ne donnerait alors accès qu'à des
+fichiers chiffrés dont la clé n'est pas là.
 
-La clé SSH se génère à part, et ne sert qu'à ça :
-
-```bash
-ssh-keygen -t ed25519 -f ~/mino-o2switch -C "sauvegarde mino" -N ""
-```
-
-La **publique** (`~/mino-o2switch.pub`) se colle dans cPanel → SSH Access. La
-**privée** (`~/mino-o2switch`) va dans le secret `O2SWITCH_SSH_KEY`.
+**Le seau se crée avec l'emplacement « Europe (EU) », et ce n'est pas un
+détail de confort.** La politique de confidentialité annoncera que les
+sauvegardes restent dans l'Union européenne ; R2 laisse ce choix à la création
+et **il ne se change plus ensuite**. Un seau créé par défaut, c'est une phrase
+publiée qui devient fausse — la famille de défauts la plus coûteuse de ce
+projet, et celle contre laquelle tout le reste de ce document est écrit.
 
 ---
 
@@ -148,8 +165,9 @@ avoir besoin : le jour d'un incident n'est pas le moment de découvrir qu'il
 manque un outil.
 
 ```bash
-# 1. Récupérer le fichier
-scp -P <port> <user>@<host>:<chemin>/mino-AAAA-MM-JJTHHMM.dump.age .
+# 1. Récupérer le fichier depuis R2 (aws configure une fois, region « auto »)
+aws s3 cp "s3://<seau>/mino-AAAA-MM-JJTHHMM.dump.age" . \
+  --endpoint-url "https://<identifiant-de-compte>.r2.cloudflarestorage.com"
 
 # 2. Déchiffrer
 age --decrypt -i ~/mino-sauvegarde.key \
@@ -184,9 +202,9 @@ Ligne à ajouter à [`privacy.ts`](../../src/content/privacy.ts), section
 Conservation :
 
 > **Sauvegardes** — Des copies chiffrées de la base sont conservées 30 jours
-> au maximum, chez notre hébergeur et chez un second prestataire établi en
-> France. Une suppression de compte y est répercutée à leur expiration. Les
-> conversations de votre enfant avec Mino n'y figurent pas.
+> au maximum, chez notre hébergeur et chez un second prestataire, au sein de
+> l'Union européenne. Une suppression de compte y est répercutée à leur
+> expiration. Les conversations de votre enfant avec Mino n'y figurent pas.
 
 Non écrite, c'est une divergence de plus entre ce que Mino publie et ce que
 Mino fait — la famille de défauts la plus coûteuse de ce projet.

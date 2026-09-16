@@ -8,7 +8,20 @@
 # rangées au même endroit que ce qu'elles sauvegardent.
 #
 # D'où ce fichier : une copie par nuit, chiffrée, déposée chez un autre
-# hébergeur, sur un autre compte, payé séparément.
+# fournisseur, sur un autre compte.
+#
+# **POURQUOI CLOUDFLARE R2 ET NON o2switch**, puisque c'est l'hébergement déjà
+# payé. Parce que le pare-feu d'o2switch bloque SSH par défaut et n'ouvre que
+# des adresses IP nommément autorisées, sur demande au support. Les runners
+# GitHub tournent sur des milliers de plages Azure qui changent sans préavis :
+# il n'y a aucune adresse fixe à faire autoriser. Essayé, et le journal l'a dit
+# sans ambiguïté — « Connection timed out » depuis le runner, alors que la même
+# clé ouvrait la session depuis le Mac. Ce n'était pas un réglage à trouver,
+# c'était une impasse.
+#
+# R2 est joignable de partout, ses 10 Go gratuits couvrent mille fois nos
+# besoins — un dump fait 274 Ko, trente jours pèsent 8 Mo — et c'est un
+# fournisseur distinct de Supabase, ce qui est tout l'objet de l'exercice.
 #
 # TROIS CHOIX QUI NE SONT PAS DES DÉTAILS
 #
@@ -27,7 +40,7 @@
 #
 # 3. **Chiffrement asymétrique.** La clé PUBLIQUE est dans le dépôt, la clé
 #    PRIVÉE n'est nulle part ici. Conséquence : quelqu'un qui prendrait la
-#    main sur GitHub *et* sur o2switch ne pourrait lire aucune sauvegarde. Le
+#    main sur GitHub *et* sur Cloudflare ne pourrait lire aucune sauvegarde. Le
 #    revers est entier — SANS LA CLÉ PRIVÉE, CES FICHIERS NE VALENT RIEN.
 #    Elle se garde hors ligne, sur papier. Voir `docs/ops/sauvegardes.md`.
 
@@ -160,128 +173,95 @@ jobs:
           rm -f "mino-$HORODATAGE.dump"
           ls -l "mino-$HORODATAGE.dump.age"
 
-      # **Cette étape a échoué au deuxième passage, et elle s'était bâillonnée
-      # elle-même** : un `2>/dev/null` sur `ssh-keyscan` jetait précisément le
-      # message qui aurait dit pourquoi. Un garde-fou muet ne garde rien.
-      #
-      # Elle est réécrite sur trois principes :
-      #   — les secrets passent par `env:` et non par interpolation directe,
-      #     ce qui permet de tester qu'ils existent sans jamais les afficher ;
-      #   — chaque manque est NOMMÉ : on ne cherche pas lequel des six ;
-      #   — `ssh-keyscan` disparaît au profit de `StrictHostKeyChecking=
-      #     accept-new` sur les appels eux-mêmes. Même niveau de confiance — on
-      #     accepte la clé présentée au premier contact dans les deux cas — mais
-      #     une pièce mobile en moins, et l'erreur remonte là où elle se produit.
-      - name: Préparer l’accès à o2switch
+      # Cloudflare R2 parle le protocole S3 : l'outil `aws`, déjà présent sur le
+      # runner, suffit. Aucune action tierce à qui confier des identifiants —
+      # une action de dépôt est du code que l'on n'a pas lu et qui voit passer
+      # la sauvegarde entière.
+      - name: Déposer sur Cloudflare R2
         env:
-          CLE: ${{ secrets.O2SWITCH_SSH_KEY }}
-          HOTE: ${{ secrets.O2SWITCH_HOST }}
-          UTILISATEUR: ${{ secrets.O2SWITCH_USER }}
-          PORT: ${{ secrets.O2SWITCH_PORT }}
-          DEST: ${{ secrets.O2SWITCH_PATH }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          COMPTE: ${{ secrets.R2_ACCOUNT_ID }}
+          SEAU: ${{ secrets.R2_BUCKET }}
         run: |
           manque=0
-          [ -n "$HOTE" ]        || { echo "::error::Secret O2SWITCH_HOST vide ou absent."; manque=1; }
-          [ -n "$UTILISATEUR" ] || { echo "::error::Secret O2SWITCH_USER vide ou absent."; manque=1; }
-          [ -n "$PORT" ]        || { echo "::error::Secret O2SWITCH_PORT vide ou absent."; manque=1; }
-          [ -n "$DEST" ]        || { echo "::error::Secret O2SWITCH_PATH vide ou absent."; manque=1; }
-          [ -n "$CLE" ]         || { echo "::error::Secret O2SWITCH_SSH_KEY vide ou absent."; manque=1; }
+          [ -n "$AWS_ACCESS_KEY_ID" ]     || { echo "::error::Secret R2_ACCESS_KEY_ID vide ou absent."; manque=1; }
+          [ -n "$AWS_SECRET_ACCESS_KEY" ] || { echo "::error::Secret R2_SECRET_ACCESS_KEY vide ou absent."; manque=1; }
+          [ -n "$COMPTE" ]                || { echo "::error::Secret R2_ACCOUNT_ID vide ou absent."; manque=1; }
+          [ -n "$SEAU" ]                  || { echo "::error::Secret R2_BUCKET vide ou absent."; manque=1; }
           [ "$manque" = 0 ] || exit 1
-          echo "les cinq secrets o2switch sont présents"
+          echo "les quatre secrets R2 sont présents"
 
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$CLE" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          POINT="https://$COMPTE.r2.cloudflarestorage.com"
+          echo "POINT=$POINT" >> "$GITHUB_ENV"
 
-          # Une clé collée sans ses lignes BEGIN/END est le défaut le plus
-          # courant, et SSH n'en dit qu'un « Permission denied » sans indice.
-          head -1 ~/.ssh/id_ed25519 | grep -q 'BEGIN OPENSSH PRIVATE KEY' || {
-            echo "::error::O2SWITCH_SSH_KEY ne commence pas par -----BEGIN OPENSSH PRIVATE KEY----- . Recoller le fichier ENTIER (pbcopy < ~/mino-o2switch)."
-            exit 1
-          }
-          grep -q 'END OPENSSH PRIVATE KEY' ~/.ssh/id_ed25519 || {
-            echo "::error::O2SWITCH_SSH_KEY n'a pas sa ligne -----END OPENSSH PRIVATE KEY----- . La clé est tronquée."
-            exit 1
-          }
-          ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null || {
-            echo "::error::La clé est présente mais illisible : contenu abîmé au copier-coller."
-            exit 1
-          }
-          echo "clé complète et lisible"
+          aws s3 cp "mino-$HORODATAGE.dump.age" "s3://$SEAU/" \
+            --endpoint-url "$POINT" --only-show-errors
+          echo "déposé : mino-$HORODATAGE.dump.age"
 
-          # Connexion d'essai, stderr VISIBLE cette fois.
-          ssh -i ~/.ssh/id_ed25519 -p "$PORT" \
-            -o StrictHostKeyChecking=accept-new \
-            -o BatchMode=yes -o ConnectTimeout=20 \
-            "$UTILISATEUR@$HOTE" "echo 'connexion o2switch : ok'"
-
-      # Le dossier de dépôt est HORS de public_html. Un `.dump` posé sous une
-      # racine web est téléchargeable par qui devine son nom : c'est la façon
-      # la plus banale de perdre une base entière, et le chiffrement ne serait
-      # plus alors que la dernière ligne de défense au lieu d'être la seconde.
-      - name: Déposer
+      # On relit ce qu'on vient d'écrire. Un dépôt qui rend 0 sur un transfert
+      # tronqué existe — et ici on va plus loin que la taille : l'empreinte MD5
+      # d'un objet R2 déposé d'un seul tenant est son ETag. On compare donc le
+      # fichier distant bit pour bit, pas seulement sa longueur.
+      - name: Relire depuis R2
         env:
-          HOTE: ${{ secrets.O2SWITCH_HOST }}
-          UTILISATEUR: ${{ secrets.O2SWITCH_USER }}
-          PORT: ${{ secrets.O2SWITCH_PORT }}
-          DEST: ${{ secrets.O2SWITCH_PATH }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          SEAU: ${{ secrets.R2_BUCKET }}
         run: |
-          case "$DEST" in
-            *public_html*)
-              echo "::error::O2SWITCH_PATH est sous public_html : le fichier serait téléchargeable par qui devine son nom."
-              exit 1 ;;
-          esac
-          ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o StrictHostKeyChecking=accept-new \
-            "$UTILISATEUR@$HOTE" "mkdir -p '$DEST' && chmod 700 '$DEST'"
-          scp -i ~/.ssh/id_ed25519 -P "$PORT" -o StrictHostKeyChecking=accept-new \
-            "mino-$HORODATAGE.dump.age" \
-            "$UTILISATEUR@$HOTE:$DEST/"
-
-      # On relit ce qu'on vient d'écrire. Un `scp` qui rend 0 sur un disque
-      # plein existe ; un fichier déposé à moitié aussi.
-      - name: Relire depuis le serveur
-        env:
-          HOTE: ${{ secrets.O2SWITCH_HOST }}
-          UTILISATEUR: ${{ secrets.O2SWITCH_USER }}
-          PORT: ${{ secrets.O2SWITCH_PORT }}
-          DEST: ${{ secrets.O2SWITCH_PATH }}
-        run: |
-          DISTANTE=$(ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o StrictHostKeyChecking=accept-new \
-            "$UTILISATEUR@$HOTE" "stat -c%s '$DEST/mino-$HORODATAGE.dump.age'")
-          LOCALE=$(stat -c%s "mino-$HORODATAGE.dump.age")
-          echo "local : $LOCALE — distant : $DISTANTE"
+          CLE="mino-$HORODATAGE.dump.age"
+          DISTANTE=$(aws s3api head-object --bucket "$SEAU" --key "$CLE" \
+            --endpoint-url "$POINT" --query ContentLength --output text)
+          ETAG=$(aws s3api head-object --bucket "$SEAU" --key "$CLE" \
+            --endpoint-url "$POINT" --query ETag --output text | tr -d '"')
+          LOCALE=$(stat -c%s "$CLE")
+          LOCAL_MD5=$(md5sum "$CLE" | cut -d' ' -f1)
+          echo "taille locale $LOCALE — distante $DISTANTE"
           if [ "$DISTANTE" != "$LOCALE" ]; then
             echo "::error::Le fichier déposé ne fait pas la même taille que l'original."
             exit 1
           fi
+          case "$ETAG" in
+            *-*)          echo "dépôt en plusieurs morceaux : empreinte non comparable, taille vérifiée" ;;
+            "$LOCAL_MD5") echo "empreinte identique : le fichier distant est bit pour bit le nôtre" ;;
+            *)            echo "::error::L'empreinte du fichier distant diffère de l'original."; exit 1 ;;
+          esac
 
       # 30 jours, et pas plus. La politique de confidentialité promet
       # l'effacement des profils enfants « immédiat et définitif » à la
-      # suppression d'un compte : une sauvegarde qui vivrait des mois
-      # rendrait cette phrase fausse. 30 jours est aussi la plus courte des
-      # promesses de conservation, ce qui rend la règle simple à tenir.
+      # suppression d'un compte : une sauvegarde qui vivrait des mois rendrait
+      # cette phrase fausse. 30 jours est aussi la plus courte des promesses de
+      # conservation, ce qui rend la règle simple à tenir.
+      #
+      # La purge lit la DATE DANS LE NOM du fichier plutôt que l'horodatage de
+      # l'objet : un nom en ISO se compare comme du texte, et il ne ment pas si
+      # un objet est un jour recopié ou déplacé.
       - name: Purger au-delà de 30 jours
         env:
-          HOTE: ${{ secrets.O2SWITCH_HOST }}
-          UTILISATEUR: ${{ secrets.O2SWITCH_USER }}
-          PORT: ${{ secrets.O2SWITCH_PORT }}
-          DEST: ${{ secrets.O2SWITCH_PATH }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          SEAU: ${{ secrets.R2_BUCKET }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o StrictHostKeyChecking=accept-new \
-            "$UTILISATEUR@$HOTE" \
-            "find '$DEST' -name 'mino-*.dump.age' -type f -mtime +30 -print -delete"
+          LIMITE=$(date -u -d '30 days ago' +%Y-%m-%d)
+          echo "on retire ce qui est antérieur au $LIMITE"
+          aws s3 ls "s3://$SEAU/" --endpoint-url "$POINT" \
+            | awk '{print $4}' | grep '^mino-' | while read -r cle; do
+              jour=${cle#mino-}; jour=${jour%%T*}
+              if [ "$jour" \< "$LIMITE" ]; then
+                echo "  retiré : $cle"
+                aws s3 rm "s3://$SEAU/$cle" --endpoint-url "$POINT" --only-show-errors
+              fi
+            done
 
       - name: Compter ce qui reste
         env:
-          HOTE: ${{ secrets.O2SWITCH_HOST }}
-          UTILISATEUR: ${{ secrets.O2SWITCH_USER }}
-          PORT: ${{ secrets.O2SWITCH_PORT }}
-          DEST: ${{ secrets.O2SWITCH_PATH }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          SEAU: ${{ secrets.R2_BUCKET }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o StrictHostKeyChecking=accept-new \
-            "$UTILISATEUR@$HOTE" \
-            "ls -1 '$DEST'/mino-*.dump.age | wc -l | xargs echo 'Sauvegardes présentes :'"
-
-      - name: Effacer la clé du runner
-        if: always()
-        run: rm -f ~/.ssh/id_ed25519
+          N=$(aws s3 ls "s3://$SEAU/" --endpoint-url "$POINT" | grep -c 'mino-' || true)
+          echo "Sauvegardes présentes : $N"
