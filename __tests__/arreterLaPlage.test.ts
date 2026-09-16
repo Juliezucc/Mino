@@ -1,4 +1,6 @@
+import * as actions from '@/domain/actions';
 import { interromprePlage, reprendrePlage } from '@/domain/actions';
+import { buildDemoFamily } from '@/data/demo';
 import {
   FreeWindow,
   dansSonCreneau,
@@ -264,5 +266,72 @@ describe('le geste de l’appareil pendant une plage libre', () => {
       maintenant: MERCREDI_15H,
     });
     expect(geste.kind).toBe('refermer');
+  });
+});
+
+
+/**
+ * Une demande née AVANT la plage, confirmée PENDANT.
+ *
+ * `startSession` refusait déjà de lancer une séance pendant une plage ouverte.
+ * `approveSession` ne le faisait pas — et c'est pourtant là que le compteur
+ * démarre vraiment. Manon demande 30 minutes à 13 h 50, la plage de 14 h n'est
+ * pas encore ouverte, la demande passe légitimement. Le parent confirme à
+ * 14 h 05 : trente minutes retirées, pendant un créneau où l'écran de l'enfant
+ * annonce « tes minos ne bougent pas ».
+ *
+ * Et pour une séance supervisée, `grant` n'est jamais appelé : l'enfant payait
+ * donc sans qu'aucun bouclier ne soit levé pour lui. L'écran n'était ouvert que
+ * par la plage — ce que le produit promet de ne jamais faire payer.
+ */
+describe('confirmer une demande pendant une plage ouverte', () => {
+  const avecPlage = (): FamilyData => {
+    const base = buildDemoFamily(new Date('2026-09-16T09:00:00'));
+    return {
+      ...base,
+      freeWindows: [
+        {
+          id: 'fw-mer',
+          familyId: base.family.id,
+          label: 'Mercredi après-midi',
+          childIds: null,
+          days: [3],
+          startMinute: 14 * 60,
+          endMinute: 16 * 60,
+          enabled: true,
+          createdAt: base.family.createdAt,
+        },
+      ],
+    };
+  };
+
+  it('refuse, au lieu de débiter un temps qui ne coûte rien', () => {
+    const data = avecPlage();
+    const enfant = data.children[0];
+    const treizeCinquante = new Date(2026, 8, 16, 13, 50);
+    const demande = actions.startSession(
+      data,
+      { childId: enfant.id, minutes: 10 },
+      treizeCinquante,
+    );
+
+    const quatorzeCinq = new Date(2026, 8, 16, 14, 5);
+    if (demande.session.status !== 'requested') {
+      // La famille de démonstration n'exige pas toujours l'accord : on force
+      // l'état demandé, puisque c'est ce chemin-là qui nous intéresse.
+      const forcee = {
+        ...demande.data,
+        sessions: demande.data.sessions.map((s) =>
+          s.id === demande.session.id ? { ...s, status: 'requested' as const } : s,
+        ),
+      };
+      expect(() =>
+        actions.approveSession(forcee, { sessionId: demande.session.id }, quatorzeCinq),
+      ).toThrow(/déjà ouvert/);
+      return;
+    }
+    expect(() =>
+      actions.approveSession(demande.data, { sessionId: demande.session.id }, quatorzeCinq),
+    ).toThrow(/déjà ouvert/);
   });
 });

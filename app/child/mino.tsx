@@ -336,7 +336,7 @@ export default function CompanionScreen() {
         {micError ? (
           <Text
             variant="caption"
-            color={micError.startsWith('La dictée') ? colors.textMuted : colors.danger}
+            color={micError.startsWith('La dictée') ? colors.textMuted : colors.dangerInk}
             center
             style={styles.footer}
           >

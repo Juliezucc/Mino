@@ -646,6 +646,33 @@ export function approveSession(
   if (!session) throw new DomainError('Demande introuvable.');
   if (session.status !== 'requested') return { data, session };
 
+  /**
+   * **La même règle qu'à `startSession`, appliquée là où le compteur démarre
+   * vraiment.** Elle y était, et seulement là.
+   *
+   * Le chemin qui manquait : Manon est réglée sur « demander à un parent ».
+   * Elle demande 30 minutes à 13 h 50 — la plage de 14 h n'est pas encore
+   * ouverte, la demande passe légitimement. Le parent confirme à 14 h 05 : le
+   * compte à rebours partait, et trente minutes lui étaient retirées pendant
+   * un créneau où son écran lui annonce « tes minos ne bougent pas ».
+   *
+   * Pire que le décompte lui-même : pour une séance supervisée, `grant` n'est
+   * jamais appelé (`app/child/(tabs)/temps.tsx` : `if (supervised) return;`).
+   * L'enfant payait donc ses minutes sans qu'aucun bouclier ne soit levé pour
+   * lui — l'écran n'était ouvert que par la plage, c'est-à-dire par ce que le
+   * produit promet de ne jamais faire payer.
+   *
+   * `deviceId === undefined` seulement, comme à `startSession` : une demande
+   * qui vise un AUTRE écran — la console, la télévision — n'est pas derrière
+   * le bouclier de Mino, et il est normal qu'elle coûte, plage ou pas.
+   */
+  const ouverte = openWindowAt(data.freeWindows ?? [], session.childId, now);
+  if (ouverte && session.deviceId === undefined) {
+    throw new DomainError(
+      `L’écran est déjà ouvert jusqu’à ${heure(ouverte.endMinute)} : rien à lancer, et rien à décompter. Vous pouvez refuser la demande.`,
+    );
+  }
+
   const available = balanceOf(data.transactions, session.childId);
   const minutes = Math.min(session.requestedMinutes, available);
   if (minutes <= 0) throw new DomainError('Le compteur est vide.');

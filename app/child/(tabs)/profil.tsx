@@ -104,11 +104,38 @@ export default function ChildProfile() {
           {BADGES.map((badge) => {
             const unlocked = approved >= badge.at;
             return (
-              <View key={badge.key} style={[styles.badge, !unlocked && styles.badgeLocked]}>
-                <Text style={styles.badgeIcon}>{badge.icon}</Text>
-                <Text variant="caption" color={unlocked ? colors.text : colors.textSubtle} center>
+              <View
+                key={badge.key}
+                style={styles.badge}
+                accessible
+                accessibilityLabel={
+                  unlocked
+                    ? `${badge.label}, gagné`
+                    : `${badge.label}, à débloquer avec ${badge.at} missions`
+                }
+              >
+                {/**
+                 * **L'opacité ne portait plus sur l'icône seule mais sur toute
+                 * la tuile**, libellé compris : « Organisé », « Champion » et
+                 * les autres tombaient à 1,75:1, c'est-à-dire illisibles. Un
+                 * badge verrouillé doit se lire — c'est même tout son intérêt,
+                 * il dit ce qu'il reste à faire.
+                 *
+                 * L'icône ternie suffit à dire « pas encore », et le libellé
+                 * accessible dit le seuil : au lecteur d'écran, un badge gagné
+                 * et un badge verrouillé s'annonçaient exactement pareil.
+                 */}
+                <Text style={[styles.badgeIcon, !unlocked && styles.badgeIconLocked]}>
+                  {badge.icon}
+                </Text>
+                <Text variant="caption" color={unlocked ? colors.text : colors.textMuted} center>
                   {badge.label}
                 </Text>
+                {unlocked ? null : (
+                  <Text variant="caption" color={colors.textSubtle} center>
+                    {`${badge.at} missions`}
+                  </Text>
+                )}
               </View>
             );
           })}
@@ -176,6 +203,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
   },
-  badgeLocked: { opacity: 0.4 },
+  badgeIconLocked: { opacity: 0.35 },
   badgeIcon: { fontSize: 28 },
 });

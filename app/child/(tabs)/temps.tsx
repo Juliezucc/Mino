@@ -265,7 +265,13 @@ export default function ChildTime() {
             label="VOIR MES MISSIONS"
             icon="📋"
             variant={child.companionEnabled === false ? 'primary' : 'secondary'}
-            size={child.companionEnabled === false ? 'kid' : undefined}
+            // `taille`, et non `'kid'` en dur : la ligne servait un bouton de
+            // 64 px avec un libellé de 20 px à une adolescente de quatorze ans,
+            // quand les trois autres boutons du même écran sont à 52 px. C'est
+            // `tailleBouton` qui connaît le seuil des treize ans — s'en écarter
+            // ici rouvrait exactement ce que ce fichier ferme deux lignes plus
+            // haut.
+            size={child.companionEnabled === false ? taille : undefined}
             onPress={() => router.push('/child/missions')}
           />
         </Card>

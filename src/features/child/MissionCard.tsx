@@ -22,7 +22,9 @@ export function MissionCard({ item, unit = 'minos', onPress }: Props) {
   return (
     <Card
       onPress={onPress}
-      accessibilityLabel={`${item.mission.title}, ${formatTime(item.mission.minutes, unit)}`}
+      accessibilityLabel={`${item.mission.title}, ${formatTime(item.mission.minutes, unit)}${
+        done ? ', en attente de confirmation' : ''
+      }`}
       style={[styles.card, done && styles.done]}
     >
       <View style={styles.row}>
