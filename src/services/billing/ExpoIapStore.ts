@@ -55,9 +55,21 @@ export { PRODUITS };
  */
 const ETIQUETTE_ESSAI = 'essai';
 
-/** Cette offre-ci porte-t-elle l'étiquette de l'essai ? */
-function estLEssai(offre: { offerTags?: string[] | null }): boolean {
-  return (offre.offerTags ?? []).some((t) => String(t).toLowerCase() === ETIQUETTE_ESSAI);
+/**
+ * Cette offre-ci porte-t-elle l'étiquette de l'essai ?
+ *
+ * On lit les DEUX noms du champ, exactement pour la raison qui est écrite plus
+ * bas à propos du jeton d'offre : la liaison a renommé ces champs entre deux
+ * versions, et une lecture qui se trompe de nom ne lève rien — elle rend
+ * `undefined`, donc « pas d'essai », donc un parent Android débité tout de
+ * suite alors qu'on lui a promis trente jours.
+ *
+ * `expo-iap` émet aujourd'hui `offerTagsAndroid`. `offerTags` reste lu au cas
+ * où : un nom de trop ne coûte rien, un nom manquant coûte un abonnement.
+ */
+function estLEssai(offre: { offerTagsAndroid?: string[] | null; offerTags?: string[] | null }): boolean {
+  const etiquettes = offre.offerTagsAndroid ?? offre.offerTags ?? [];
+  return etiquettes.some((t) => String(t).toLowerCase() === ETIQUETTE_ESSAI);
 }
 
 /** Le compte a-t-il encore droit à l'essai sur ce produit ? Voir `estLEssai`. */
@@ -267,7 +279,29 @@ export interface ProduitBoutique {
     | {
         offerTokenAndroid?: string | null;
         offerToken?: string | null;
-        /** Les étiquettes posées dans la Play Console. C'est par là qu'on reconnaît l'essai. */
+        /**
+         * Les étiquettes posées dans la Play Console. C'est par là qu'on
+         * reconnaît l'essai.
+         *
+         * **Les DEUX noms, et l'avertissement ci-dessus valait aussi pour ce
+         * champ-ci.** Il n'était lu que sous `offerTags` ; `expo-iap` l'émet
+         * sous `offerTagsAndroid` (`node_modules/expo-iap/build/types.d.ts`,
+         * champ « [Android] List of tags associated with this offer »). La
+         * lecture rendait donc toujours `undefined`, et `estLEssai` toujours
+         * `false` — avec deux conséquences qu'aucune erreur ne signalait :
+         *
+         *   • `trialAvailable()` rendait `false` pour tout le monde, donc le
+         *     paywall Android annonçait « 9,99 € par mois, à partir
+         *     d'aujourd'hui » là où la fiche Play, les CGV et la FAQ
+         *     promettent trente jours d'essai ;
+         *   • le jeton d'offre retombait sur `offres[0]`, c'est-à-dire une
+         *     offre prise dans l'ordre où la console la rend, et non celle de
+         *     l'essai.
+         *
+         * Le jeton, lui, lisait déjà les deux noms — deux lignes plus haut. La
+         * même précaution manquait ici.
+         */
+        offerTagsAndroid?: string[] | null;
         offerTags?: string[] | null;
         offerId?: string | null;
       }[]

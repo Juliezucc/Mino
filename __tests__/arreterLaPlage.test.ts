@@ -182,6 +182,50 @@ describe('le geste de l’appareil pendant une plage libre', () => {
     expect(geste.kind).toBe('rien');
   });
 
+  /**
+   * **Le frère, et l'exemption qui allait trop loin.**
+   *
+   * L'essai juste au-dessus tient un cas réel : le parent ouvre son espace, la
+   * plage n'a pas bougé, on ne referme pas. Mais la condition qui le tenait ne
+   * posait aucune question sur le profil ACTIF — elle demandait seulement si
+   * la plage restait ouverte pour l'enfant à qui on l'avait levée. Elle
+   * couvrait donc aussi le cas où un autre enfant prend l'appareil.
+   *
+   * Le bouclier est global à l'appareil : un seul `ManagedSettingsStore` côté
+   * iOS, une seule échéance côté Android, sans aucune notion d'enfant. Laisser
+   * « rien » ici, c'est laisser à Noah les applications que le parent avait
+   * bloquées pour lui, pendant une plage réservée à sa sœur — et son écran ne
+   * lui annonce rien, puisque de son côté aucune plage n'est ouverte.
+   *
+   * C'est le blocage qui tombe, c'est-à-dire le produit.
+   */
+  it('referme quand c’est un AUTRE ENFANT qui prend la tablette', () => {
+    const pourManon = plage({ childIds: ['enf-1'] });
+    const geste = gestePlageLibre({
+      ...rien,
+      fenetres: [pourManon],
+      childId: 'enf-2', // Noah ouvre son profil
+      levee: { id: 'fw-1', childId: 'enf-1' }, // le bouclier avait été levé pour Manon
+      maintenant: MERCREDI_15H,
+    });
+    expect(geste.kind).toBe('refermer');
+  });
+
+  it('mais ne referme pas si c’est le même enfant qui revient', () => {
+    // La plage lui est bien ouverte : le haut de la fonction répond « ouvrir »
+    // avant même d'arriver à l'exemption. On le tient quand même, parce que
+    // c'est cette distinction-là qui a été ajoutée.
+    const pourManon = plage({ childIds: ['enf-1'] });
+    const geste = gestePlageLibre({
+      ...rien,
+      fenetres: [pourManon],
+      childId: 'enf-1',
+      levee: { id: 'fw-1', childId: 'enf-1' },
+      maintenant: MERCREDI_15H,
+    });
+    expect(geste.kind).toBe('ouvrir');
+  });
+
   it('laisse une séance en cours tenir l’écran', () => {
     // Le bouclier d'une séance appartient à `grant`/`revoke` : le reposer ici
     // prendrait à l'enfant des minutes qu'il a déjà payées.

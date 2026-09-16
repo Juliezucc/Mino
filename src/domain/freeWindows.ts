@@ -249,10 +249,35 @@ export function gestePlageLibre(params: {
   if (!levee) return { kind: 'rien' };
 
   // Est-ce NOTRE plage qui s'est fermée, ou seulement le profil qui a changé ?
-  // La question se pose pour l'enfant à qui on l'avait ouverte, jamais pour
-  // celui qui regarde l'écran maintenant.
+  //
+  // **Cette exemption ne vaut que pour l'espace parent, et l'oublier a ouvert
+  // l'appareil au frère.** Elle existe pour un cas précis : le parent touche
+  // « Espace parent » au milieu du mercredi après-midi, `childId` tombe à
+  // `null`, et l'écran ne doit pas se refermer sur une plage qui court
+  // toujours. Écrite sans condition sur `childId`, elle couvrait aussi le cas
+  // où un AUTRE ENFANT ouvre son profil.
+  //
+  // Le scénario, sur une tablette partagée : plage « Mercredi après-midi »
+  // cochée pour Manon seule. À 14 h Manon ouvre son profil, le bouclier tombe
+  // — il est global à l'appareil, iOS comme Android n'en connaissent qu'un.
+  // À 14 h 30 Noah change de profil : la plage n'est pas ouverte POUR LUI,
+  // mais elle l'est encore pour Manon, donc on répondait « rien » et le
+  // bouclier restait à terre jusqu'à 16 h. Noah avait toutes les applications
+  // que le parent avait bloquées, et son écran ne lui annonçait rien.
+  //
+  // Si un profil d'enfant est ouvert, la seule question qui vaille est « cet
+  // écran est-il ouvert pour LUI ? » — et le haut de cette fonction y a déjà
+  // répondu non. On referme donc, et le profil de Manon rouvrira en revenant.
+  const profilParent = childId === null;
+  const memeEnfant = childId !== null && childId === levee.childId;
   const notre = fenetres.find((f) => f.id === levee.id);
-  if (notre && openWindowAt([notre], levee.childId, maintenant)) return { kind: 'rien' };
+  if (
+    (profilParent || memeEnfant) &&
+    notre &&
+    openWindowAt([notre], levee.childId, maintenant)
+  ) {
+    return { kind: 'rien' };
+  }
 
   const tenuParUneSeance = levee.childId
     ? enfantsEnSeance.includes(levee.childId)

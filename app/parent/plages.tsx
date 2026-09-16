@@ -172,6 +172,24 @@ export default function PlagesLibres() {
                 Arrêtée pour aujourd’hui. Elle revient demain, à son heure.
               </Text>
             ) : null}
+            {/**
+             * **La portée de « Suspendre » ne se lisait nulle part avant le
+             * clic**, et Julie s'y est trompée : « je peux cliquer sur
+             * suspendre — pourquoi ? on est mardi ! ». Elle cherchait à
+             * arrêter la plage du jour ; ce bouton-ci l'éteint durablement.
+             *
+             * Le geste qui lui manquait existe désormais ailleurs
+             * (« Arrêter », sur l'accueil parent, et seulement quand la plage
+             * est réellement en cours). Le vocabulaire est donc juste, et la
+             * FAQ le distingue déjà. Ce qui manquait, c'est de le dire ICI,
+             * au moment où l'on hésite — une légende ne s'affichait qu'APRÈS
+             * la suspension, quand il était trop tard pour éclairer le choix.
+             */}
+            {plage.enabled ? (
+              <Text variant="caption" color={colors.textSubtle}>
+                La suspendre l’éteint jusqu’à ce que vous la repreniez, pas seulement aujourd’hui.
+              </Text>
+            ) : null}
             <View style={styles.actions}>
               <Chip
                 label={plage.enabled ? 'Suspendre' : 'Reprendre'}

@@ -433,7 +433,26 @@ create index if not exists idx_sessions_child_running on screen_time_sessions (c
 -- ------------------------------------------------------- balance (derived)
 
 -- Convenience view. It is a projection of the ledger, never a source of truth.
-create or replace view child_balances as
+--
+-- `security_invoker` N'EST PAS UNE OPTION DE CONFORT, et son absence a été une
+-- fuite en production. Une vue PostgreSQL s'exécute par défaut avec les droits
+-- de SON PROPRIÉTAIRE, pas de l'appelant : les politiques RLS des tables
+-- qu'elle lit ne s'appliquent donc pas. `children` était bien protégée — et
+-- cette vue construite dessus rendait `child_id`, `family_id` et le solde de
+-- TOUTES les familles à quiconque présentait la clé anonyme publique de
+-- l'application, sans même ouvrir de session.
+--
+-- Mesuré le 16 septembre 2026 avant correction, sur la base de production :
+--   GET /rest/v1/child_balances  →  200, 6 lignes, 4 familles distinctes
+--   GET /rest/v1/children        →  200, []          (la table, elle, tenait)
+--
+-- C'est la seule des douze vues du dépôt qui soit lisible par `anon` : les
+-- onze autres rendent 401 faute d'un droit de lecture. Celle-ci l'a parce que
+-- l'application s'en sert — donc la seule exposée est aussi la seule qui porte
+-- des données d'enfants.
+--
+-- Toute vue ajoutée ici et lue par l'application doit porter cette option.
+create or replace view child_balances with (security_invoker = true) as
 select
   c.id   as child_id,
   c.family_id,
@@ -1648,7 +1667,27 @@ create table if not exists support_reports (
   id          bigserial primary key,
   -- Renseigné par la base, jamais par le client : un rapport ne doit pas
   -- pouvoir se faire passer pour celui d'une autre famille.
-  user_id     uuid not null default auth.uid() references auth.users (id) on delete set null,
+  --
+  -- **`not null` ET `on delete set null` sur la même colonne, c'est une
+  -- suppression de compte impossible**, et ça l'a été jusqu'au 16 septembre
+  -- 2026. `delete_my_account()` finit par `delete from auth.users` ; Postgres
+  -- déclenche alors `update support_reports set user_id = null`, qui viole la
+  -- contrainte, lève 23502, et annule TOUTE la transaction — y compris
+  -- l'effacement de la famille et des profils d'enfants déjà faits juste
+  -- avant. Le parent lisait « La suppression n'a pas abouti. Rien n'a été
+  -- effacé. », et c'était exact.
+  --
+  -- La population touchée n'était pas « les parents qui ont écrit au
+  -- support » : `ExpoIapStore.ts` envoie un rapport `crash` à CHAQUE achat
+  -- refusé par la boutique, et `ErrorBoundary.tsx` à chaque plantage. Un
+  -- premier paiement refusé suffisait à rendre le compte indestructible.
+  --
+  -- `set null` plutôt que `cascade`, et c'est la politique publiée qui
+  -- tranche : elle promet qu'après suppression « le lien est rompu et il ne
+  -- subsiste qu'un texte anonyme ». Effacer le rapport rendrait cette phrase
+  -- fausse à son tour ; le détacher la tient. La colonne doit donc accepter
+  -- `null`, et la valeur par défaut continue de la remplir à l'insertion.
+  user_id     uuid default auth.uid() references auth.users (id) on delete set null,
   kind        text not null check (kind in ('manual', 'crash')),
   -- Déjà nettoyé côté application (voir src/domain/diagnostics.ts) : ni prénom
   -- d'enfant, ni adresse, ni code.

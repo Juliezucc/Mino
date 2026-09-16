@@ -372,7 +372,9 @@ export default function CompteParent() {
           </Text>
           <Text variant="body" color={colors.textMuted}>
             Les profils de vos enfants, leurs missions, leur historique et les
-            minutes gagnées seront effacés. Rien ne peut être récupéré ensuite.
+            minutes gagnées seront effacés. Nos sauvegardes chiffrées en gardent
+            une copie trente jours au plus, puis plus rien — ensuite, rien ne
+            peut être récupéré.
           </Text>
           <Text variant="caption" color={colors.textSubtle}>
             Votre abonnement, lui, ne s’annule pas ici : il se résilie depuis

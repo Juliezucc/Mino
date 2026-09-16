@@ -220,6 +220,8 @@ export const PRIVACY: LegalDocument = {
             { label: 'Anthropic', value: 'Génération des réponses du personnage Mino, lorsque cette fonctionnalité est activée. Voir la section 5.' },
             { label: 'Expo', value: 'Acheminement des notifications vers vos appareils. Le service reçoit le jeton de l’appareil et le texte de la notification — par exemple « Manon a terminé une mission » : un prénom d’enfant y figure donc.' },
             { label: 'Notre hébergeur de courrier', value: 'Acheminement de nos e-mails : bienvenue, rappel avant le premier prélèvement, information avant reconduction, réponse à un signalement. Il reçoit votre adresse et le contenu du message.' },
+            { label: 'Cloudflare', value: 'Conservation de nos sauvegardes chiffrées, dans un espace de stockage situé au sein de l’Union européenne. Les fichiers y sont chiffrés avant d’être déposés : Cloudflare ne peut pas les lire, et nous seuls détenons la clé.' },
+            { label: 'GitHub', value: 'Fabrication de ces sauvegardes, une fois par nuit. La copie de la base y est extraite puis chiffrée avant d’en sortir ; elle n’y est pas conservée. Voir la section 8.' },
           ],
         },
         {
@@ -240,7 +242,7 @@ export const PRIVACY: LegalDocument = {
             { label: 'Conversations avec Mino', value: '30 jours, puis effacement automatique.' },
             { label: 'Signalements et rapports d’incident', value: '12 mois, puis effacement automatique. Ils ne sont pas rattachés à votre famille mais au compte qui les a envoyés : si vous supprimez votre compte, le lien est rompu et il ne subsiste qu’un texte anonyme — déjà nettoyé des prénoms — dont nous ne pouvons plus dire de qui il vient.' },
             { label: 'Journaux techniques', value: '12 mois au maximum.' },
-            { label: 'Sauvegardes', value: 'Des copies chiffrées de la base sont conservées 30 jours au maximum, chez notre hébergeur et chez un second prestataire, au sein de l’Union européenne. Une suppression de compte y est répercutée à leur expiration. Les conversations de votre enfant avec Mino n’y figurent pas.' },
+            { label: 'Sauvegardes', value: 'Il en existe deux, et elles ne gardent pas la même chose. Notre hébergeur conserve ses propres sauvegardes quotidiennes pendant 7 jours : elles contiennent l’ensemble de la base, conversations comprises. Nous déposons par ailleurs, chaque nuit, une copie chiffrée chez un second prestataire au sein de l’Union européenne, conservée 30 jours au maximum ; les conversations de votre enfant en sont retirées avant qu’elle ne parte, et n’y figurent donc jamais. Une suppression de compte est répercutée sur les unes et sur les autres à leur expiration — c’est le seul délai, et il ne dépasse pas trente jours.' },
           ],
         },
         {

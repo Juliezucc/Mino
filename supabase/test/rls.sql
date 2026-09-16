@@ -428,6 +428,28 @@ do $$ begin
   );
 
   /**
+   * **La fuite que ces essais laissaient passer, et pourquoi.**
+   *
+   * Ils éprouvaient les TABLES, une par une, et jamais les VUES. Or une vue
+   * PostgreSQL s'exécute par défaut avec les droits de son propriétaire : les
+   * politiques des tables qu'elle lit ne s'appliquent pas à l'appelant.
+   * `children` tenait bon — et `child_balances`, construite dessus, rendait
+   * l'identifiant et le solde de tous les enfants de toutes les familles à
+   * quiconque présentait la clé anonyme publique de l'application.
+   *
+   * Vérifié sur la base de production le 16 septembre 2026, avant correction :
+   * 200 et six lignes de quatre familles, sans aucune session.
+   *
+   * La correction est `with (security_invoker = true)` sur la vue. La garde,
+   * c'est cet essai : il interroge la vue exactement comme l'application, et
+   * refuse qu'elle en dise plus que la table.
+   */
+  perform assert(
+    (select count(*) = 0 from child_balances where family_id = 'fam-1'),
+    'lire par une VUE les soldes d''enfants qu''on ne peut pas lire par la table'
+  );
+
+  /**
    * Ici on regarde l'effet, et non l'exception — et c'est une leçon à part
    * entière.
    *

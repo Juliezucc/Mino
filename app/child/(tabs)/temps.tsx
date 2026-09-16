@@ -216,6 +216,34 @@ export default function ChildTime() {
             }
           />
         </Card>
+      ) : plageOuverte ? (
+        /* Ni demande en attente, ni séance en cours, et l'écran est ouvert : le
+           lanceur ne mènerait qu'à un refus. On met la nouvelle à sa place.
+
+           **Cette branche passe AVANT celle du solde vide, et l'ordre est le
+           défaut lui-même.** Elle était en dessous : un enfant à zéro mino
+           pendant une plage ouverte lisait « Plus de minos pour aujourd'hui »
+           sur l'écran où il venait justement profiter d'un moment où rien
+           n'est décompté. C'est le cas le plus fréquent — un mercredi
+           après-midi arrive rarement avec un solde intact — et c'est celui
+           que les enfants de Julie ont signalé.
+
+           Pendant une plage, le solde n'a aucune conséquence : il ne bouge
+           pas. Il n'a donc rien à dire ici. */
+        <Card style={styles.useCard} background={colors.mintSoft} elevation="soft">
+          <AnimatedMascot expression="delighted" size={110} />
+          <Text variant="hero" color={colors.mintInk} center>
+            🎉 C’est ouvert !
+          </Text>
+          <Text variant="section" color={colors.mintInk} center>
+            {`${plageOuverte.label} — jusqu’à ${heure(plageOuverte.endMinute)}`}
+          </Text>
+          <Text variant="body" color={colors.textMuted} center>
+            {unit === 'minos'
+              ? 'Tu n’as rien à lancer et rien à dépenser : tes minos t’attendent pour plus tard.'
+              : 'Rien à lancer : tes minutes ne sont pas décomptées pendant ce moment.'}
+          </Text>
+        </Card>
       ) : balance.minutes <= 0 ? (
         <Card style={styles.useCard}>
           {/* Plus de temps d'écran, mais Mino reste. C'est le seul endroit de
@@ -240,23 +268,6 @@ export default function ChildTime() {
             size={child.companionEnabled === false ? 'kid' : undefined}
             onPress={() => router.push('/child/missions')}
           />
-        </Card>
-      ) : plageOuverte ? (
-        /* Ni demande en attente, ni séance en cours, et l'écran est ouvert : le
-           lanceur ne mènerait qu'à un refus. On met la nouvelle à sa place. */
-        <Card style={styles.useCard} background={colors.mintSoft} elevation="soft">
-          <AnimatedMascot expression="delighted" size={110} />
-          <Text variant="hero" color={colors.mintInk} center>
-            🎉 C’est ouvert !
-          </Text>
-          <Text variant="section" color={colors.mintInk} center>
-            {`${plageOuverte.label} — jusqu’à ${heure(plageOuverte.endMinute)}`}
-          </Text>
-          <Text variant="body" color={colors.textMuted} center>
-            {unit === 'minos'
-              ? 'Tu n’as rien à lancer et rien à dépenser : tes minos t’attendent pour plus tard.'
-              : 'Rien à lancer : tes minutes ne sont pas décomptées pendant ce moment.'}
-          </Text>
         </Card>
       ) : (
         <Card style={styles.useCard}>

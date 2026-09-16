@@ -98,9 +98,47 @@ describe('l’onglet Temps pendant une plage libre', () => {
     expect(plage).toBeGreaterThan(enCours);
   });
 
+  /**
+   * **La garde qui manquait, et qui a laissé le défaut partir en boutique.**
+   *
+   * L'essai ci-dessus vérifiait `requested` → `running` → `plageOuverte` et
+   * s'arrêtait là. Il ne regardait pas la quatrième branche, `balance.minutes
+   * <= 0`, qui était placée AVANT la plage. Un enfant à zéro mino pendant une
+   * plage ouverte lisait donc « Plus de minos pour aujourd'hui » sur l'écran
+   * même où il venait profiter d'un moment sans décompte.
+   *
+   * Le cas n'a rien d'exceptionnel : un mercredi après-midi arrive rarement
+   * avec un solde intact. C'est celui que les enfants de Julie ont signalé, et
+   * la version 1.1.0 l'annonçait corrigé alors qu'il ne l'était qu'à moitié —
+   * sur l'accueil, pas sur l'onglet où ils vont.
+   *
+   * L'essai était vert, le défaut était là. Une garde qui ne regarde pas la
+   * bonne branche ne garde rien.
+   */
+  it('et la plage passe AVANT le solde vide, parce qu’un solde vide ne coûte rien pendant une plage', () => {
+    const plage = ecran.indexOf(') : plageOuverte ? (');
+    const soldeVide = ecran.indexOf(') : balance.minutes <= 0 ? (');
+    expect(plage).toBeGreaterThan(0);
+    expect(soldeVide).toBeGreaterThan(0);
+    expect(plage).toBeLessThan(soldeVide);
+  });
+
   it('et le dit aussi grand qu’ailleurs', () => {
-    const i = ecran.indexOf(') : plageOuverte ? (');
-    const carte = ecran.slice(i, i + 900);
+    /**
+     * **Découper la branche, et non 900 caractères.** Cet essai prenait une
+     * tranche de longueur fixe après le marqueur : ajouter un commentaire dans
+     * la branche suffisait à repousser la carte hors de la fenêtre, et l'essai
+     * tombait sans qu'aucun comportement ait changé. C'est arrivé le
+     * 16 septembre, en documentant précisément pourquoi l'ordre des branches
+     * compte.
+     *
+     * Un essai qui casse pour la mauvaise raison finit désactivé, puis oublié.
+     * On lit maintenant jusqu'au début de la branche suivante.
+     */
+    const debut = ecran.indexOf(') : plageOuverte ? (');
+    expect(debut).toBeGreaterThan(0);
+    const suite = ecran.indexOf(') : ', debut + 10);
+    const carte = suite > debut ? ecran.slice(debut, suite) : ecran.slice(debut);
     expect(carte).toMatch(/variant="hero"/);
     expect(carte).toMatch(/colors\.mintInk/);
     expect(carte).toMatch(/expression="delighted"/);

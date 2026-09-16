@@ -58,7 +58,12 @@ function fausseBoutique(options: {
     price?: number | null;
     offre?: string;
     /** Plusieurs offres, comme Play en rend quand un essai est configuré. */
-    offres?: { offerTokenAndroid?: string; offerToken?: string; offerTags?: string[] }[];
+    offres?: {
+      offerTokenAndroid?: string;
+      offerToken?: string;
+      offerTagsAndroid?: string[];
+      offerTags?: string[];
+    }[];
   }[];
   historique?: {
     id: string;
@@ -858,9 +863,28 @@ describe('le rail Google', () => {
  * Android : « débit aujourd'hui », sans mention d'essai.
  */
 describe('l’offre d’essai de Play', () => {
-  type Offre = { offerTokenAndroid?: string; offerToken?: string; offerTags?: string[] };
-  const base: Offre = { offerTokenAndroid: 'jeton-base', offerTags: [] };
-  const essai: Offre = { offerTokenAndroid: 'jeton-essai', offerTags: ['essai'] };
+  /**
+   * **`offerTagsAndroid`, et ces essais passaient sur l'autre nom.**
+   *
+   * Ils alimentaient `offerTags` — le nom que le CODE attendait — et ils
+   * étaient verts pendant qu'`expo-iap` émettait `offerTagsAndroid` (voir
+   * `node_modules/expo-iap/build/types.d.ts`, « [Android] List of tags
+   * associated with this offer »). L'étiquette n'était donc jamais lue sur un
+   * vrai téléphone : `estLEssai` rendait toujours `false`, le paywall annonçait
+   * « à partir d'aujourd'hui » et le jeton retombait sur `offres[0]`.
+   *
+   * Un essai qui alimente l'hypothèse du code au lieu de ce que la dépendance
+   * produit ne vérifie rien : il confirme ce qu'on espérait. Le jeu de données
+   * porte désormais le VRAI nom, et l'ancien reste couvert à part.
+   */
+  type Offre = {
+    offerTokenAndroid?: string;
+    offerToken?: string;
+    offerTagsAndroid?: string[];
+    offerTags?: string[];
+  };
+  const base: Offre = { offerTokenAndroid: 'jeton-base', offerTagsAndroid: [] };
+  const essai: Offre = { offerTokenAndroid: 'jeton-essai', offerTagsAndroid: ['essai'] };
 
   const jetonEnvoye = (journal: Journal) =>
     (journal.demandes[0] as { request: { google: { subscriptionOffers: { offerToken: string }[] } } })
@@ -896,8 +920,16 @@ describe('l’offre d’essai de Play', () => {
     // La liaison l'a appelé `offerToken` puis `offerTokenAndroid` selon les
     // versions. Se tromper de nom rend `undefined` — donc un achat au plein
     // tarif, sans la moindre erreur.
-    const journal = await acheter([{ offerToken: 'ancien-nom', offerTags: ['essai'] }]);
+    const journal = await acheter([{ offerToken: 'ancien-nom', offerTagsAndroid: ['essai'] }]);
     expect(jetonEnvoye(journal)).toBe('ancien-nom');
+  });
+
+  it('et l’ÉTIQUETTE sous ses deux noms aussi', async () => {
+    // Le nom qu'émet expo-iap aujourd'hui...
+    expect(jetonEnvoye(await acheter([base, { offerTokenAndroid: 'x', offerTagsAndroid: ['essai'] }]))).toBe('x');
+    // ...et celui que ces essais utilisaient à tort, gardé par précaution :
+    // un nom de trop ne coûte rien, un nom manquant coûte un abonnement.
+    expect(jetonEnvoye(await acheter([base, { offerTokenAndroid: 'y', offerTags: ['essai'] }]))).toBe('y');
   });
 });
 
@@ -1029,8 +1061,8 @@ describe('l’essai annoncé à l’écran', () => {
   it('dit non quand aucune offre d’essai n’est servie par Play', async () => {
     const { iap } = fausseBoutique({
       produits: [
-        { ...mensuel, offres: [{ offerTokenAndroid: 'base', offerTags: [] }] },
-        { ...annuel, offres: [{ offerTokenAndroid: 'base', offerTags: [] }] },
+        { ...mensuel, offres: [{ offerTokenAndroid: 'base', offerTagsAndroid: [] }] },
+        { ...annuel, offres: [{ offerTokenAndroid: 'base', offerTagsAndroid: [] }] },
       ],
     });
     expect(await service(iap, 'google').trialAvailable()).toBe(false);
@@ -1039,8 +1071,8 @@ describe('l’essai annoncé à l’écran', () => {
   it('dit oui dès qu’une offre porte l’étiquette', async () => {
     const { iap } = fausseBoutique({
       produits: [
-        { ...mensuel, offres: [{ offerTokenAndroid: 'essai', offerTags: ['ESSAI'] }] },
-        { ...annuel, offres: [{ offerTokenAndroid: 'base', offerTags: [] }] },
+        { ...mensuel, offres: [{ offerTokenAndroid: 'essai', offerTagsAndroid: ['ESSAI'] }] },
+        { ...annuel, offres: [{ offerTokenAndroid: 'base', offerTagsAndroid: [] }] },
       ],
     });
     expect(await service(iap, 'google').trialAvailable()).toBe(true);

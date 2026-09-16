@@ -389,7 +389,7 @@ export const TERMS: LegalDocument = {
         },
         {
           kind: 'p',
-          text: 'Toute modification vous est annoncée par e-mail et dans l’application au moins un mois avant son entrée en vigueur, avec la mention de ce qui change. Elle ne s’applique qu’aux périodes d’abonnement postérieures à cette entrée en vigueur : la période déjà payée reste régie par les conditions en vigueur lorsque vous l’avez souscrite.',
+          text: 'Toute modification vous est annoncée par e-mail, à l’adresse du parent qui a ouvert le compte, au moins un mois avant son entrée en vigueur, avec la mention de ce qui change. Elle ne s’applique qu’aux périodes d’abonnement postérieures à cette entrée en vigueur : la période déjà payée reste régie par les conditions en vigueur lorsque vous l’avez souscrite.',
         },
         {
           kind: 'note',

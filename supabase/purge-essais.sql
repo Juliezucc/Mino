@@ -19,8 +19,15 @@
  *               companion_messages, referrals, subscriptions, billing_events,
  *               store_notifications, et companion_usage par children.
  *
- *   auth.users → parent_secrets, join_attempts, support_reports, et les
- *                sessions anonymes des appareils enfants.
+ *   auth.users → parent_secrets, join_attempts, et les sessions anonymes des
+ *                appareils enfants.
+ *
+ *   `support_reports` n'est PAS de la partie : la ligne survit, détachée de
+ *   son auteur (`on delete set null`). C'est voulu — la politique de
+ *   confidentialité promet qu'après suppression « il ne subsiste qu'un texte
+ *   anonyme ». Ce commentaire l'annonçait en cascade, ce qui était faux, et
+ *   ce malentendu a coûté une contrainte `not null` qui rendait toute
+ *   suppression de compte impossible.
  *
  * Seule `marketing_spend` reste, et c'est voulu : elle ne contient aucune
  * donnée de famille, seulement ce qu'on a dépensé en publicité.

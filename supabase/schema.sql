@@ -399,7 +399,26 @@ create index if not exists idx_sessions_child_running on screen_time_sessions (c
 -- ------------------------------------------------------- balance (derived)
 
 -- Convenience view. It is a projection of the ledger, never a source of truth.
-create or replace view child_balances as
+--
+-- `security_invoker` N'EST PAS UNE OPTION DE CONFORT, et son absence a été une
+-- fuite en production. Une vue PostgreSQL s'exécute par défaut avec les droits
+-- de SON PROPRIÉTAIRE, pas de l'appelant : les politiques RLS des tables
+-- qu'elle lit ne s'appliquent donc pas. `children` était bien protégée — et
+-- cette vue construite dessus rendait `child_id`, `family_id` et le solde de
+-- TOUTES les familles à quiconque présentait la clé anonyme publique de
+-- l'application, sans même ouvrir de session.
+--
+-- Mesuré le 16 septembre 2026 avant correction, sur la base de production :
+--   GET /rest/v1/child_balances  →  200, 6 lignes, 4 familles distinctes
+--   GET /rest/v1/children        →  200, []          (la table, elle, tenait)
+--
+-- C'est la seule des douze vues du dépôt qui soit lisible par `anon` : les
+-- onze autres rendent 401 faute d'un droit de lecture. Celle-ci l'a parce que
+-- l'application s'en sert — donc la seule exposée est aussi la seule qui porte
+-- des données d'enfants.
+--
+-- Toute vue ajoutée ici et lue par l'application doit porter cette option.
+create or replace view child_balances with (security_invoker = true) as
 select
   c.id   as child_id,
   c.family_id,

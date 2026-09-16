@@ -51,6 +51,28 @@ do $$ begin
     ('tx-part', 'fam-part', 'enf-part', 30, 'mission_reward', 'Mission');
   insert into family_devices (id, family_id, user_id) values
     ('dev-part', 'fam-part', '88888888-8888-8888-8888-888888888888');
+
+  /**
+   * **Le signalement que ce jeu d'essai n'avait pas, et qui rendait toute la
+   * suite verte par omission.**
+   *
+   * `support_reports.user_id` portait `not null` ET `on delete set null` :
+   * deux clauses contradictoires sur la même colonne. Le `delete from
+   * auth.users` qui termine `delete_my_account()` déclenchait alors
+   * `update support_reports set user_id = null`, violait la contrainte, et
+   * annulait TOUTE la transaction — la famille et les profils d'enfants
+   * effacés juste avant revenaient avec elle. Le parent lisait « La
+   * suppression n'a pas abouti. Rien n'a été effacé. », et c'était exact.
+   *
+   * Ces essais ne l'ont jamais vu parce qu'aucun n'insérait de rapport. Or ce
+   * n'est pas un cas rare : l'application en écrit un à chaque plantage, et à
+   * chaque achat refusé par la boutique. Un premier paiement décliné suffisait
+   * à rendre un compte indestructible.
+   *
+   * Une ligne de jeu d'essai, et la garde existe.
+   */
+  insert into support_reports (user_id, kind, message, fingerprint, app_version, platform) values
+    ('55555555-5555-5555-5555-555555555555', 'crash', '', 'sig-part', '1.1.1', 'ios');
 end $$;
 
 do $$
@@ -68,6 +90,12 @@ do $$ begin
   perform assert(
     not exists (select 1 from families where id = 'fam-part'),
     'la famille a disparu');
+  -- Le rapport SURVIT, détaché : la politique de confidentialité promet
+  -- qu'après suppression « le lien est rompu et il ne subsiste qu'un texte
+  -- anonyme ». Une cascade rendrait cette phrase fausse à son tour.
+  perform assert(
+    exists (select 1 from support_reports where fingerprint = 'sig-part' and user_id is null),
+    'le signalement reste, sans son auteur');
   perform assert(
     not exists (select 1 from children where id = 'enf-part'),
     'l''enfant avec elle');

@@ -203,8 +203,20 @@ jobs:
           POINT=${POINT%/$SEAU}
           POINT=${POINT%/}
 
+          # **La résidence européenne est une phrase publiée**, et rien ne la
+          # vérifiait. La politique annonce aux parents que la copie reste dans
+          # l'Union ; c'est la juridiction du seau qui l'engage, et elle se
+          # lit dans l'adresse — un seau en juridiction European Union répond
+          # sur `<compte>.eu.r2.cloudflarestorage.com`.
+          #
+          # Un avertissement et non un échec, pour l'instant : une sauvegarde
+          # qui s'arrête est pire qu'une sauvegarde à vérifier. À durcir dès
+          # que l'adresse aura été constatée.
           case "$POINT" in
+            https://*.eu.r2.cloudflarestorage.com)
+              echo "adresse R2 reconnue, juridiction européenne" ;;
             https://*.r2.cloudflarestorage.com)
+              echo "::warning::L'adresse R2 ne porte pas « .eu. » : le seau n'est peut-être pas en juridiction European Union, alors que la politique de confidentialité annonce aux parents que les sauvegardes restent dans l'Union. À vérifier dans les réglages du seau."
               echo "adresse R2 reconnue" ;;
             *)
               echo "::error::R2_ENDPOINT n'a pas la forme attendue. Cloudflare en donne une du genre https://<compte>.r2.cloudflarestorage.com — ou https://<compte>.eu.r2.cloudflarestorage.com en juridiction européenne."
@@ -262,12 +274,16 @@ jobs:
           AWS_DEFAULT_REGION: auto
           SEAU: ${{ secrets.R2_BUCKET }}
         run: |
+          # `30 jours au maximum` est une phrase PUBLIÉE, pas un ordre de
+          # grandeur. Un `<` strict sur une limite à J-30 garde les jours J-30
+          # à J inclus, soit TRENTE ET UN jours — un de trop, tous les jours,
+          # sans que rien ne le signale. Le `=` ferme l'écart.
           LIMITE=$(date -u -d '30 days ago' +%Y-%m-%d)
-          echo "on retire ce qui est antérieur au $LIMITE"
+          echo "on retire ce qui date du $LIMITE ou d'avant (30 jours gardés, pas 31)"
           aws s3 ls "s3://$SEAU/" --endpoint-url "$POINT" \
             | awk '{print $4}' | grep '^mino-' | while read -r cle; do
               jour=${cle#mino-}; jour=${jour%%T*}
-              if [ "$jour" \< "$LIMITE" ]; then
+              if [ "$jour" \< "$LIMITE" ] || [ "$jour" = "$LIMITE" ]; then
                 echo "  retiré : $cle"
                 aws s3 rm "s3://$SEAU/$cle" --endpoint-url "$POINT" --only-show-errors
               fi

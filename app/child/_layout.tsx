@@ -1,8 +1,10 @@
 import { Redirect, Stack, usePathname, useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
 
+import * as notify from '@/domain/notifications';
+import { getNotificationService } from '@/services/notifications';
 import { useMinoStore } from '@/store/useMinoStore';
-import { useUncelebrated } from '@/store/selectors';
+import { useChildren, useRunningSession, useUncelebrated } from '@/store/selectors';
 
 /**
  * Child area.
@@ -16,6 +18,7 @@ export default function ChildLayout() {
   const pathname = usePathname();
   const activeChildId = useMinoStore((s) => s.activeChildId);
   const uncelebrated = useUncelebrated(activeChildId);
+  const children = useChildren();
 
   /**
    * Ce qui a déjà été fêté sur cet écran-ci, et pourquoi il faut s'en souvenir.
@@ -56,6 +59,62 @@ export default function ChildLayout() {
       params: { completionId: neufs.map((c) => c.id).join(',') },
     });
   }, [uncelebrated, pathname, router]);
+
+  /**
+   * « Plus que 5 minutes » — programmé ici, et nulle part ailleurs.
+   *
+   * **Ce que faisait le code, et c'est pire que de ne rien faire.** Le magasin
+   * annonçait `sessionEndingSoon` au démarrage d'une séance ; la charge
+   * portait bien un `inSeconds` calculé pour sonner cinq minutes avant la fin.
+   * Mais `pousserAuxAutres` ne transmettait pas ce champ (il envoie titre,
+   * corps, route et genre, rien d'autre), et la branche locale est coupée dès
+   * qu'un dépôt distant existe. Résultat : l'avertissement partait par le
+   * serveur, DANS LA SECONDE. Un enfant obtenait trente minutes et son écran
+   * lui annonçait aussitôt qu'il ne lui en restait que cinq — puis plus rien à
+   * la vingt-cinquième. Et quand c'est lui qui lançait la séance, `notify`
+   * écarte l'appareil appelant : il ne recevait strictement rien.
+   *
+   * Une notification à retardement ne peut pas voyager par une notification
+   * poussée : Expo la remet tout de suite. Elle doit être PROGRAMMÉE, et donc
+   * sur l'appareil où elle doit sonner — celui de l'enfant.
+   *
+   * D'où cet effet plutôt qu'un appel dans le magasin : il voit la séance quel
+   * que soit l'écran ouvert, et surtout que la séance ait été lancée ici ou
+   * par le parent depuis son téléphone — le cas que le magasin ne pouvait pas
+   * couvrir, puisqu'il s'exécutait alors sur le mauvais appareil.
+   *
+   * Et il annule : une séance arrêtée avant l'heure emporterait sinon un
+   * avertissement qui sonnerait dans le vide, après coup.
+   */
+  const seance = useRunningSession(activeChildId);
+  const avertissement = useRef<{ sessionId: string; notifId: string } | null>(null);
+
+  useEffect(() => {
+    const service = getNotificationService();
+    const encours = avertissement.current;
+
+    if (!seance) {
+      if (encours) {
+        void service.cancel(encours.notifId).catch(() => undefined);
+        avertissement.current = null;
+      }
+      return;
+    }
+    if (encours?.sessionId === seance.id) return;
+    if (encours) void service.cancel(encours.notifId).catch(() => undefined);
+
+    const enfant = children.find((c) => c.id === activeChildId);
+    if (!enfant) return;
+    const charge = notify.sessionEndingSoon(enfant, seance.endsAt);
+    // `null` quand il reste moins de trente secondes avant l'heure de
+    // l'avertissement : une séance plus courte que le préavis n'en reçoit pas.
+    if (!charge) return;
+
+    avertissement.current = { sessionId: seance.id, notifId: '' };
+    void service.schedule(charge).then((id) => {
+      if (id) avertissement.current = { sessionId: seance.id, notifId: id };
+    });
+  }, [seance, activeChildId, children]);
 
   if (!activeChildId) return <Redirect href="/who" />;
 

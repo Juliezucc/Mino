@@ -1577,10 +1577,19 @@ export const useMinoStore = create<MinoState>((set, get) => {
       const child = notify.childOf(data, childId);
       if (!child || !session) return id!;
 
+      /**
+       * Seule la DEMANDE part d'ici. L'avertissement de fin de séance, lui,
+       * est programmé par l'appareil de l'enfant (`app/child/_layout.tsx`).
+       *
+       * Il partait d'ici, et il arrivait au mauvais moment : `pousserAuxAutres`
+       * ne transmet pas `inSeconds`, et une notification poussée est remise
+       * tout de suite. L'enfant recevait « Plus que 5 minutes » à la seconde où
+       * sa demi-heure commençait. Le programmer suppose de le faire sur
+       * l'appareil où il doit sonner — ce qui n'est pas forcément celui-ci :
+       * `approveSession` s'exécute sur le téléphone du parent.
+       */
       if (session.status === 'requested') {
         await announce(notify.sessionRequested(child, minutes, data?.devices, deviceId));
-      } else {
-        await announce(notify.sessionEndingSoon(child, session.endsAt));
       }
       return id!;
     },
@@ -1591,11 +1600,10 @@ export const useMinoStore = create<MinoState>((set, get) => {
         const out = actions.approveSession(data, { sessionId });
         return { data: out.data, upsert: { sessions: [out.session] } };
       });
-
-      const data = get().data;
-      const session = data?.sessions.find((s) => s.id === sessionId);
-      const child = notify.childOf(data, session?.childId);
-      if (child && session) await announce(notify.sessionEndingSoon(child, session.endsAt));
+      // Rien à annoncer d'ici : ce geste s'exécute sur le téléphone du PARENT,
+      // et l'avertissement doit sonner sur l'appareil de l'enfant. C'est lui
+      // qui le programme en voyant la séance apparaître — voir
+      // `app/child/_layout.tsx`.
     },
 
     async refuseSession(sessionId) {
