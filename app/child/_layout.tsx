@@ -4,7 +4,8 @@ import React, { useEffect, useRef } from 'react';
 import * as notify from '@/domain/notifications';
 import { getNotificationService } from '@/services/notifications';
 import { useMinoStore } from '@/store/useMinoStore';
-import { useChildren, useRunningSession, useUncelebrated } from '@/store/selectors';
+import { openWindowAt } from '@/domain/freeWindows';
+import { useChildren, useMinuteCourante, useRunningSession, useUncelebrated } from '@/store/selectors';
 
 /**
  * Child area.
@@ -115,6 +116,33 @@ export default function ChildLayout() {
       if (id) avertissement.current = { sessionId: seance.id, notifId: id };
     });
   }, [seance, activeChildId, children]);
+
+  /**
+   * **À l'heure pile, la carte s'affichait et le bouclier ne bougeait pas.**
+   *
+   * `appliquerPlageLibre()` n'est appelé qu'au démarrage et au retour de
+   * l'application au premier plan (`app/_layout.tsx`). Or le cas le plus
+   * fréquent d'un mercredi est justement l'inverse : l'enfant est DÉJÀ dans
+   * Mino à 13 h 58 et attend 14 h. Le battement de minute faisait apparaître
+   * « 🎉 C'est ouvert ! » — et rien d'autre. Il sortait vers YouTube, se
+   * faisait bloquer, revenait dans Mino (ce qui déclenchait enfin la levée),
+   * ressortait, et ça marchait. Mino lui avait menti pendant une minute.
+   *
+   * On suit donc la plage ouverte, à la minute, et on applique dès qu'elle
+   * change — ouverture comme fermeture.
+   */
+  const minute = useMinuteCourante();
+  const fenetres = useMinoStore((s) => s.data?.freeWindows);
+  const appliquer = useMinoStore((s) => s.appliquerPlageLibre);
+  const ouverte = openWindowAt(fenetres ?? [], activeChildId, new Date(minute * 60_000));
+  const derniere = useRef<string | null>(null);
+
+  useEffect(() => {
+    const cle = ouverte ? ouverte.id : null;
+    if (derniere.current === cle) return;
+    derniere.current = cle;
+    void appliquer().catch(() => undefined);
+  }, [ouverte, appliquer]);
 
   if (!activeChildId) return <Redirect href="/who" />;
 

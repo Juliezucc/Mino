@@ -160,3 +160,33 @@ describe('le battement d’horloge', () => {
     expect(parent).not.toMatch(/setInterval/);
   });
 });
+
+
+/**
+ * Le bouclier doit se lever À L'HEURE, pas au prochain geste.
+ *
+ * `appliquerPlageLibre()` n'était appelé qu'au démarrage et au retour de
+ * l'application au premier plan. Or le cas le plus fréquent d'un mercredi est
+ * l'inverse : l'enfant est déjà dans Mino à 13 h 58 et attend 14 h. Le
+ * battement de minute faisait apparaître « 🎉 C'est ouvert ! » — et rien
+ * d'autre. Il sortait vers YouTube, se faisait bloquer, revenait dans Mino (ce
+ * qui déclenchait enfin la levée), ressortait, et ça marchait.
+ *
+ * Mino lui avait menti pendant une minute, sur la seule chose qu'il attendait.
+ */
+describe('le bouclier à l’heure pile', () => {
+  const layout = lire('app/child/_layout.tsx');
+
+  it('l’écran de l’enfant suit la plage à la minute', () => {
+    expect(layout).toMatch(/useMinuteCourante\(\)/);
+    expect(layout).toMatch(/openWindowAt\(fenetres \?\? \[\], activeChildId/);
+  });
+
+  it('et applique dès qu’elle change, ouverture comme fermeture', () => {
+    expect(layout).toMatch(/appliquer\(\)/);
+    // La mémoire de ce qui a déjà été appliqué : sans elle, l'effet
+    // rappellerait le service à chaque battement, soit deux fois par minute
+    // pour rien.
+    expect(layout).toMatch(/derniere\.current === cle/);
+  });
+});
