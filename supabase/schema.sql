@@ -790,8 +790,27 @@ begin
   -- (c'est un rapport, pas une action), l'appareil cessait simplement de donner
   -- de ses nouvelles. Au bout de trois jours il passait « muet », c'est-à-dire
   -- exactement l'alerte qu'on venait de faire taire.
+  --
+  -- **Et c'est arrivé deux fois de plus, pour la même raison.** Cette liste
+  -- avait divergé de ce que le client envoie réellement, des DEUX côtés :
+  --
+  --   • `telephone-parent` manquait. Le second parent qui répond « c'est mon
+  --     téléphone à moi » rapportait ce statut à chaque lancement, la fonction
+  --     levait, `shield_seen_at` n'était jamais écrit, et au bout de 72 h sa
+  --     femme lisait « sans nouvelles » sur un téléphone parfaitement vivant.
+  --   • `unsupported` manquait aussi — c'est ce que rapporte une plateforme
+  --     qui ne sait rien verrouiller, le web notamment.
+  --   • `unavailable`, lui, n'est envoyé par personne : un fantôme accepté.
+  --
+  -- La liste est désormais éprouvée contre les types du client
+  -- (`__tests__/rapportBouclier.test.ts`), qui lit ce fichier-ci et refuse
+  -- qu'un statut envoyable ne soit pas accepté. Une liste tenue à la main
+  -- diverge ; une liste comparée à sa source ne le peut plus.
   if p_status is not null
-     and p_status not in ('approved', 'denied', 'not-determined', 'unavailable', 'compteur-seul')
+     and p_status not in (
+       'approved', 'denied', 'not-determined', 'unsupported',
+       'compteur-seul', 'telephone-parent'
+     )
   then
     raise exception 'Statut inconnu' using errcode = '22023';
   end if;
