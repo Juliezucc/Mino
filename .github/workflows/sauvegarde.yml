@@ -193,9 +193,23 @@ jobs:
           [ "$manque" = 0 ] || exit 1
           echo "les quatre secrets R2 sont présents"
 
+          # Cloudflare affiche l'adresse S3 AVEC le nom du seau à la fin, et un
+          # copier-coller y ajoute volontiers une espace ou une fin de ligne.
+          # Ce sont trois variantes normales : on les absorbe au lieu de les
+          # refuser. Une garde qui rejette ce qu'elle pourrait corriger fait
+          # perdre un aller-retour pour rien — celle-ci l'a fait une fois.
+          POINT=$(printf '%s' "$POINT" | tr -d '[:space:]')
+          POINT=${POINT%/}
+          POINT=${POINT%/$SEAU}
+          POINT=${POINT%/}
+
           case "$POINT" in
-            https://*.r2.cloudflarestorage.com) ;;
-            *) echo "::error::R2_ENDPOINT doit être l'adresse affichée par Cloudflare, de la forme https://<compte>.r2.cloudflarestorage.com (ou <compte>.eu.… si le seau est en juridiction européenne)."; exit 1 ;;
+            https://*.r2.cloudflarestorage.com)
+              echo "adresse R2 reconnue" ;;
+            *)
+              echo "::error::R2_ENDPOINT n'a pas la forme attendue. Cloudflare en donne une du genre https://<compte>.r2.cloudflarestorage.com — ou https://<compte>.eu.r2.cloudflarestorage.com en juridiction européenne."
+              echo "Reçu, après nettoyage : $(printf '%s' "$POINT" | wc -c) caractères, commençant par « $(printf '%s' "$POINT" | cut -c1-8) »."
+              exit 1 ;;
           esac
           echo "POINT=$POINT" >> "$GITHUB_ENV"
 
