@@ -182,18 +182,21 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
-          COMPTE: ${{ secrets.R2_ACCOUNT_ID }}
+          POINT: ${{ secrets.R2_ENDPOINT }}
           SEAU: ${{ secrets.R2_BUCKET }}
         run: |
           manque=0
           [ -n "$AWS_ACCESS_KEY_ID" ]     || { echo "::error::Secret R2_ACCESS_KEY_ID vide ou absent."; manque=1; }
           [ -n "$AWS_SECRET_ACCESS_KEY" ] || { echo "::error::Secret R2_SECRET_ACCESS_KEY vide ou absent."; manque=1; }
-          [ -n "$COMPTE" ]                || { echo "::error::Secret R2_ACCOUNT_ID vide ou absent."; manque=1; }
+          [ -n "$POINT" ]                 || { echo "::error::Secret R2_ENDPOINT vide ou absent."; manque=1; }
           [ -n "$SEAU" ]                  || { echo "::error::Secret R2_BUCKET vide ou absent."; manque=1; }
           [ "$manque" = 0 ] || exit 1
           echo "les quatre secrets R2 sont présents"
 
-          POINT="https://$COMPTE.r2.cloudflarestorage.com"
+          case "$POINT" in
+            https://*.r2.cloudflarestorage.com) ;;
+            *) echo "::error::R2_ENDPOINT doit être l'adresse affichée par Cloudflare, de la forme https://<compte>.r2.cloudflarestorage.com (ou <compte>.eu.… si le seau est en juridiction européenne)."; exit 1 ;;
+          esac
           echo "POINT=$POINT" >> "$GITHUB_ENV"
 
           aws s3 cp "mino-$HORODATAGE.dump.age" "s3://$SEAU/" \

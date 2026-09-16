@@ -122,7 +122,7 @@ qu'on n'a pas lue — et ses 10 Go gratuits couvrent très large : un dump fait
 | Secret | Ce que c'est |
 |---|---|
 | `SUPABASE_DB_URL` | l'URI de connexion, **« Session pooler »** — pas « Transaction pooler » |
-| `R2_ACCOUNT_ID` | l'identifiant de compte Cloudflare (32 caractères, visible dans R2) |
+| `R2_ENDPOINT` | l'adresse affichée par Cloudflare à la création du jeton, telle quelle |
 | `R2_BUCKET` | le nom du seau, par exemple `mino-sauvegardes` |
 | `R2_ACCESS_KEY_ID` | jeton d'API R2, partie publique |
 | `R2_SECRET_ACCESS_KEY` | jeton d'API R2, partie secrète — **montrée une seule fois** |
@@ -137,12 +137,20 @@ propose de restreindre un jeton à un seul seau : il n'y a aucune raison de
 s'en priver. Un jeton volé sur GitHub ne donnerait alors accès qu'à des
 fichiers chiffrés dont la clé n'est pas là.
 
-**Le seau se crée avec l'emplacement « Europe (EU) », et ce n'est pas un
+**Le seau se crée en juridiction « European Union », et ce n'est pas un
 détail de confort.** La politique de confidentialité annoncera que les
 sauvegardes restent dans l'Union européenne ; R2 laisse ce choix à la création
 et **il ne se change plus ensuite**. Un seau créé par défaut, c'est une phrase
 publiée qui devient fausse — la famille de défauts la plus coûteuse de ce
 projet, et celle contre laquelle tout le reste de ce document est écrit.
+
+Attention à ne pas confondre les deux réglages que R2 propose. Un **« location
+hint »** n'est qu'une indication de performance, sans garantie de résidence.
+C'est la **juridiction** qui engage, et elle seule autorise la phrase de la
+politique. Elle change aussi l'adresse du point d'accès, qui devient
+`https://<compte>.eu.r2.cloudflarestorage.com` — raison pour laquelle le
+secret `R2_ENDPOINT` prend l'adresse affichée par Cloudflare plutôt que de la
+recomposer.
 
 ---
 
@@ -167,7 +175,7 @@ manque un outil.
 ```bash
 # 1. Récupérer le fichier depuis R2 (aws configure une fois, region « auto »)
 aws s3 cp "s3://<seau>/mino-AAAA-MM-JJTHHMM.dump.age" . \
-  --endpoint-url "https://<identifiant-de-compte>.r2.cloudflarestorage.com"
+  --endpoint-url "<la valeur du secret R2_ENDPOINT>"
 
 # 2. Déchiffrer
 age --decrypt -i ~/mino-sauvegarde.key \
