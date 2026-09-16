@@ -100,6 +100,21 @@ export interface BillingService {
   redeemReferralMonth?(familyId: ID): Promise<CheckoutOutcome>;
 
   /**
+   * Ce rail-ci sait-il RÉELLEMENT livrer un mois offert ?
+   *
+   * **La présence de la méthode ne le disait pas**, et l'écran de parrainage
+   * s'y fiait : `!!getBillingService().redeemReferralMonth`. Or
+   * `StoreBillingService` la définit sur les deux plateformes et refuse
+   * ensuite sur Google. Un parent abonné par le Play Store lisait donc
+   * « l'App Store demande votre accord » sur son Android, appuyait sur
+   * « Récupérer mon mois offert », et recevait « Disponible seulement sur
+   * iPhone et iPad ».
+   *
+   * Une capacité se déclare ; elle ne se devine pas à la forme de l'objet.
+   */
+  peutLivrerLeMoisOffert?(): boolean;
+
+  /**
    * Où l'on gère son abonnement : changer de formule, mettre à jour sa carte,
    * résilier. Cela doit rester atteignable en trois clics — c'est une
    * obligation légale en France, pas une politesse.

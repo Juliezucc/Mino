@@ -422,7 +422,7 @@ export const GUIDE: GuideChapter[] = [
       {
         title: 'Résilier',
         body: [
-          'Réglages → Abonnement → Résilier. Deux touches, aucune justification à donner, aucun appel à passer.',
+          'Réglages → Abonnement → Résilier. Aucune justification à donner, aucun appel à passer. Si vous vous êtes abonné depuis l’application, Mino vous emmène dans les réglages de votre téléphone : Apple et Google ne laissent personne d’autre résilier à votre place, pas même nous.',
           'Vous gardez l’accès jusqu’à la fin de la période déjà payée, et rien n’est prélevé ensuite. Vos données sont conservées si vous revenez.',
         ],
       },

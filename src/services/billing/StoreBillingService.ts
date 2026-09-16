@@ -389,6 +389,17 @@ export class StoreBillingService implements BillingService {
    * appliquée, qui retire le mois de l'ardoise. Un parent qui referme la
    * feuille ne perd rien.
    */
+  /**
+   * Apple seulement, et c'est la vérité du serveur autant que du client :
+   * `_shared/parrainage.ts` n'incrémente que `credit_months` hors Stripe, la
+   * route `promo` refuse tout `source !== 'apple'`, et `store.ts` ne consomme
+   * le crédit que si `promoAppliquee` — un drapeau que la branche Google ne
+   * renseigne jamais. Prétendre le contraire à l'écran ne livrerait rien.
+   */
+  peutLivrerLeMoisOffert(): boolean {
+    return this.store.platform === 'apple';
+  }
+
   async redeemReferralMonth(familyId: ID): Promise<CheckoutOutcome> {
     if (this.store.platform !== 'apple') {
       return { kind: 'failed', reason: 'Disponible seulement sur iPhone et iPad pour l’instant.' };

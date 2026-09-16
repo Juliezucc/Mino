@@ -64,7 +64,16 @@ export default function ReferralScreen() {
    * service plutôt qu'à la plateforme laisse la doublure locale et les essais
    * répondre juste.
    */
-  const aDemander = !!getBillingService().redeemReferralMonth;
+  /**
+   * **La présence de la méthode ne dit pas qu'elle livre.**
+   * `StoreBillingService` la définit sur les deux plateformes et refuse
+   * ensuite sur Google — un parent Android lisait donc « l'App Store demande
+   * votre accord » et recevait « Disponible seulement sur iPhone et iPad ».
+   * On interroge maintenant la capacité, déclarée par le service.
+   */
+  const service = getBillingService();
+  const aDemander = !!service.redeemReferralMonth && (service.peutLivrerLeMoisOffert?.() ?? true);
+  const moisEnAttente = !!service.redeemReferralMonth && !aDemander;
 
   const recuperer = async () => {
     setLoading(true);
@@ -147,6 +156,20 @@ export default function ReferralScreen() {
                 onPress={recuperer}
               />
             </>
+          ) : moisEnAttente ? (
+            /**
+             * Le rail de boutique qui ne sait pas encore livrer. Le dire, plutôt
+             * que de promettre une déduction qui n'arrivera pas : `paiements.md`
+             * avait posé la règle — « soit implémenter les offres
+             * promotionnelles avant d'ouvrir le parrainage aux abonnés de
+             * boutique, soit dire clairement que le mois sera appliqué plus
+             * tard ». Ce n'était fait ni l'un ni l'autre.
+             */
+            <Text variant="body" color={colors.textMuted}>
+              Votre filleul s’est abonné, et {moisDus > 1 ? 'vos mois sont enregistrés' : 'votre mois est enregistré'}.
+              Nous ne savons pas encore l’appliquer automatiquement à un abonnement pris sur Google Play :
+              écrivez-nous et nous le ferons à la main. {moisDus > 1 ? 'Ils ne se perdent pas' : 'Il ne se perd pas'}.
+            </Text>
           ) : (
             <Text variant="body" color={colors.textMuted}>
               Votre filleul s’est abonné. {moisDus > 1 ? 'Ces mois seront déduits' : 'Ce mois sera déduit'}{' '}

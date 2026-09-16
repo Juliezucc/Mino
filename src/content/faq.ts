@@ -509,7 +509,7 @@ export const FAQ: FaqEntry[] = [
     id: 'parrainage',
     question: 'Comment fonctionne le parrainage ?',
     answer:
-      'Vous partagez votre code. La famille qui l’utilise reçoit les 30 jours d’essai proposés à tout le monde — ni plus, ni moins. Dès qu’elle devient abonnée, vous recevez un mois offert, déduit de votre prochaine facture. Les mois se cumulent : un par filleul qui paie, jusqu’à douze par an. Votre code se trouve dans Réglages, section Parrainage.',
+      'Vous partagez votre code. La famille qui l’utilise reçoit les 30 jours d’essai proposés à tout le monde — ni plus, ni moins. Dès qu’elle devient abonnée, vous recevez un mois offert. Il est déduit tout seul de votre prochaine facture si vous êtes abonné par le site ou par l’App Store ; sur Google Play, nous ne savons pas encore le faire automatiquement — le mois vous reste acquis et nous l’appliquons dès que vous nous écrivez. Les mois se cumulent : un par filleul qui paie, jusqu’à douze par an. Votre code se trouve dans Réglages, section Parrainage.',
     category: 'abonnement',
     keywords: ['parrainage', 'parrain', 'filleul', 'inviter', 'code parrainage', 'offert', 'gratuit'],
     route: '/parent/parrainage',
@@ -518,7 +518,7 @@ export const FAQ: FaqEntry[] = [
     id: 'changer-formule',
     question: 'Puis-je passer du mensuel à l’annuel ?',
     answer:
-      'Oui, à tout moment. Depuis l’application, le changement se fait dans les réglages de votre téléphone, à la rubrique Abonnements ; depuis le site, dans Abonnement. Ce que vous avez déjà payé est déduit.',
+      'Oui, à tout moment. Depuis l’application, le changement se fait dans les réglages de votre téléphone, à la rubrique Abonnements ; depuis le site, dans Abonnement. Vous gardez l’accès jusqu’au terme de la période déjà payée, et la nouvelle formule prend le relais ensuite : rien n’est perdu, mais rien n’est remboursé non plus.',
     category: 'abonnement',
     keywords: ['changer formule', 'annuel', 'mensuel', 'passer', 'prorata'],
   },

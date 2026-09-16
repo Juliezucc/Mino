@@ -197,7 +197,7 @@ export const TERMS: LegalDocument = {
           items: [
             `La personne parrainée bénéficie de la période d’essai de ${TRIAL_DAYS} jours proposée à tout nouvel abonné. Le parrainage ne lui accorde aucun avantage supplémentaire.`,
             `Le parrain reçoit ${REFERRAL.referrerFreeMonths} mois d’abonnement offert lorsque son filleul devient abonné payant, c’est-à-dire à l’issue de son premier paiement effectif.`,
-            'Chaque mois offert est déduit de votre prochaine facture. Si vous êtes encore en période d’essai, il en repousse le terme d’autant. Les mois offerts se cumulent.',
+            'Chaque mois offert est déduit de votre prochaine facture. Si vous êtes encore en période d’essai, il en repousse le terme d’autant. Les mois offerts se cumulent. Pour un abonnement souscrit sur Google Play, cette déduction n’est pas encore automatique : le mois vous reste acquis et nous l’appliquons sur demande, à l’adresse de contact figurant à l’article 1.',
             `Un même parrain peut recevoir au maximum ${REFERRAL.maxFreeMonthsPerYear} mois offerts par période de douze mois.`,
             'Un code ne peut pas être utilisé par un foyer déjà client, ni sur un compte utilisant un moyen de paiement déjà associé à un autre compte.',
             'Les mois offerts n’ont aucune valeur monétaire : ils ne peuvent être ni échangés, ni remboursés, ni transférés.',

@@ -625,9 +625,47 @@ export default function SubscriptionScreen() {
          * portail Stripe, qui sait remplacer au lieu d'ajouter.
          */
         <View style={styles.actions}>
+          {/**
+           * **Un bouton muet vaut moins que pas de bouton.**
+           *
+           * « Reprendre mon abonnement » appelait `resumeSubscription()`, qui
+           * lève `VERS_LES_REGLAGES` dès que le rail est une boutique — et le
+           * `.catch(() => undefined)` avalait l'exception sans appeler
+           * `setError`. Un parent abonné par l'App Store qui coupe le
+           * renouvellement puis change d'avis appuyait dessus et ne voyait
+           * RIEN : ni message, ni erreur, ni mouvement. Il concluait que
+           * l'application était cassée, ou que sa résiliation était
+           * irréversible.
+           *
+           * Son voisin immédiat, `confirmCancel`, faisait déjà les choses
+           * correctement pour le cas symétrique : il teste le rail, explique
+           * où ça se passe, et propose d'y emmener. On applique la même règle
+           * — celle du dépôt : un rail de boutique se gère dans la boutique,
+           * et on le DIT.
+           */}
           <Button
-            label="Reprendre mon abonnement"
-            onPress={() => resumeSubscription().catch(() => undefined)}
+            label={
+              isStore(subscription?.source)
+                ? 'Reprendre — dans les réglages'
+                : 'Reprendre mon abonnement'
+            }
+            onPress={() => {
+              if (isStore(subscription?.source)) {
+                const seller = sellerOf(subscription?.source);
+                void confirmer({
+                  titre: 'Reprendre l’abonnement',
+                  message: `Votre abonnement a été souscrit via ${seller}. Le renouvellement se réactive dans les réglages de votre téléphone — nous vous y emmenons.`,
+                  action: 'M’y emmener',
+                  annuler: 'Plus tard',
+                }).then((oui) => {
+                  if (oui) ouvrirGestion();
+                });
+                return;
+              }
+              resumeSubscription().catch((e) =>
+                setError(e instanceof Error ? e.message : 'La reprise n’a pas abouti.'),
+              );
+            }}
           />
           <Button
             label={
@@ -743,7 +781,17 @@ export default function SubscriptionScreen() {
             d'avis à une étoile. */}
         {billing.capability === 'store' ? (
           <Text variant="caption" color={colors.textSubtle} center>
-            {`Abonnement reconduit automatiquement, sauf résiliation au moins 24 h avant la fin de la période. Vendu par ${sellerOf(subscription?.source ?? (Platform.OS === 'ios' ? 'apple' : 'google'))}, et résiliable dans les réglages de votre téléphone.`}
+            {/**
+             * **Où l'on résilie dépend de QUI a vendu, pas de l'appareil.**
+             * Cette mention s'affiche dès que l'application peut vendre, et
+             * elle envoyait tout le monde dans les réglages du téléphone — y
+             * compris un parent abonné par carte sur minoapp.fr, qui cherchait
+             * Mino dans ses abonnements iOS, ne l'y trouvait pas, et en
+             * concluait qu'il ne pouvait pas résilier.
+             */}
+            {isStore(subscription?.source ?? (Platform.OS === 'ios' ? 'apple' : 'google'))
+              ? `Abonnement reconduit automatiquement, sauf résiliation au moins 24 h avant la fin de la période. Vendu par ${sellerOf(subscription?.source ?? (Platform.OS === 'ios' ? 'apple' : 'google'))}, et résiliable dans les réglages de votre téléphone.`
+              : `Abonnement reconduit automatiquement, sauf résiliation au moins 24 h avant la fin de la période. Vendu par ${sellerOf(subscription?.source)}, et résiliable ici même, depuis cet écran.`}
           </Text>
         ) : null}
         {/* Les DEUX liens, sur l'écran d'achat lui-même.
