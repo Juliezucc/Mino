@@ -160,36 +160,94 @@ jobs:
           rm -f "mino-$HORODATAGE.dump"
           ls -l "mino-$HORODATAGE.dump.age"
 
+      # **Cette étape a échoué au deuxième passage, et elle s'était bâillonnée
+      # elle-même** : un `2>/dev/null` sur `ssh-keyscan` jetait précisément le
+      # message qui aurait dit pourquoi. Un garde-fou muet ne garde rien.
+      #
+      # Elle est réécrite sur trois principes :
+      #   — les secrets passent par `env:` et non par interpolation directe,
+      #     ce qui permet de tester qu'ils existent sans jamais les afficher ;
+      #   — chaque manque est NOMMÉ : on ne cherche pas lequel des six ;
+      #   — `ssh-keyscan` disparaît au profit de `StrictHostKeyChecking=
+      #     accept-new` sur les appels eux-mêmes. Même niveau de confiance — on
+      #     accepte la clé présentée au premier contact dans les deux cas — mais
+      #     une pièce mobile en moins, et l'erreur remonte là où elle se produit.
       - name: Préparer l’accès à o2switch
+        env:
+          CLE: ${{ secrets.O2SWITCH_SSH_KEY }}
+          HOTE: ${{ secrets.O2SWITCH_HOST }}
+          UTILISATEUR: ${{ secrets.O2SWITCH_USER }}
+          PORT: ${{ secrets.O2SWITCH_PORT }}
+          DEST: ${{ secrets.O2SWITCH_PATH }}
         run: |
+          manque=0
+          [ -n "$HOTE" ]        || { echo "::error::Secret O2SWITCH_HOST vide ou absent."; manque=1; }
+          [ -n "$UTILISATEUR" ] || { echo "::error::Secret O2SWITCH_USER vide ou absent."; manque=1; }
+          [ -n "$PORT" ]        || { echo "::error::Secret O2SWITCH_PORT vide ou absent."; manque=1; }
+          [ -n "$DEST" ]        || { echo "::error::Secret O2SWITCH_PATH vide ou absent."; manque=1; }
+          [ -n "$CLE" ]         || { echo "::error::Secret O2SWITCH_SSH_KEY vide ou absent."; manque=1; }
+          [ "$manque" = 0 ] || exit 1
+          echo "les cinq secrets o2switch sont présents"
+
           install -d -m 700 ~/.ssh
-          printf '%s\n' "${{ secrets.O2SWITCH_SSH_KEY }}" > ~/.ssh/id_ed25519
+          printf '%s\n' "$CLE" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p "${{ secrets.O2SWITCH_PORT }}" -H "${{ secrets.O2SWITCH_HOST }}" \
-            >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Une clé collée sans ses lignes BEGIN/END est le défaut le plus
+          # courant, et SSH n'en dit qu'un « Permission denied » sans indice.
+          head -1 ~/.ssh/id_ed25519 | grep -q 'BEGIN OPENSSH PRIVATE KEY' || {
+            echo "::error::O2SWITCH_SSH_KEY ne commence pas par -----BEGIN OPENSSH PRIVATE KEY----- . Recoller le fichier ENTIER (pbcopy < ~/mino-o2switch)."
+            exit 1
+          }
+          grep -q 'END OPENSSH PRIVATE KEY' ~/.ssh/id_ed25519 || {
+            echo "::error::O2SWITCH_SSH_KEY n'a pas sa ligne -----END OPENSSH PRIVATE KEY----- . La clé est tronquée."
+            exit 1
+          }
+          ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null || {
+            echo "::error::La clé est présente mais illisible : contenu abîmé au copier-coller."
+            exit 1
+          }
+          echo "clé complète et lisible"
+
+          # Connexion d'essai, stderr VISIBLE cette fois.
+          ssh -i ~/.ssh/id_ed25519 -p "$PORT" \
+            -o StrictHostKeyChecking=accept-new \
+            -o BatchMode=yes -o ConnectTimeout=20 \
+            "$UTILISATEUR@$HOTE" "echo 'connexion o2switch : ok'"
 
       # Le dossier de dépôt est HORS de public_html. Un `.dump` posé sous une
       # racine web est téléchargeable par qui devine son nom : c'est la façon
       # la plus banale de perdre une base entière, et le chiffrement ne serait
       # plus alors que la dernière ligne de défense au lieu d'être la seconde.
       - name: Déposer
+        env:
+          HOTE: ${{ secrets.O2SWITCH_HOST }}
+          UTILISATEUR: ${{ secrets.O2SWITCH_USER }}
+          PORT: ${{ secrets.O2SWITCH_PORT }}
+          DEST: ${{ secrets.O2SWITCH_PATH }}
         run: |
-          DEST="${{ secrets.O2SWITCH_PATH }}"
-          ssh -p "${{ secrets.O2SWITCH_PORT }}" \
-            "${{ secrets.O2SWITCH_USER }}@${{ secrets.O2SWITCH_HOST }}" \
-            "mkdir -p '$DEST' && chmod 700 '$DEST'"
-          scp -P "${{ secrets.O2SWITCH_PORT }}" \
+          case "$DEST" in
+            *public_html*)
+              echo "::error::O2SWITCH_PATH est sous public_html : le fichier serait téléchargeable par qui devine son nom."
+              exit 1 ;;
+          esac
+          ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o StrictHostKeyChecking=accept-new \
+            "$UTILISATEUR@$HOTE" "mkdir -p '$DEST' && chmod 700 '$DEST'"
+          scp -i ~/.ssh/id_ed25519 -P "$PORT" -o StrictHostKeyChecking=accept-new \
             "mino-$HORODATAGE.dump.age" \
-            "${{ secrets.O2SWITCH_USER }}@${{ secrets.O2SWITCH_HOST }}:$DEST/"
+            "$UTILISATEUR@$HOTE:$DEST/"
 
       # On relit ce qu'on vient d'écrire. Un `scp` qui rend 0 sur un disque
       # plein existe ; un fichier déposé à moitié aussi.
       - name: Relire depuis le serveur
+        env:
+          HOTE: ${{ secrets.O2SWITCH_HOST }}
+          UTILISATEUR: ${{ secrets.O2SWITCH_USER }}
+          PORT: ${{ secrets.O2SWITCH_PORT }}
+          DEST: ${{ secrets.O2SWITCH_PATH }}
         run: |
-          DEST="${{ secrets.O2SWITCH_PATH }}"
-          DISTANTE=$(ssh -p "${{ secrets.O2SWITCH_PORT }}" \
-            "${{ secrets.O2SWITCH_USER }}@${{ secrets.O2SWITCH_HOST }}" \
-            "stat -c%s '$DEST/mino-$HORODATAGE.dump.age'")
+          DISTANTE=$(ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o StrictHostKeyChecking=accept-new \
+            "$UTILISATEUR@$HOTE" "stat -c%s '$DEST/mino-$HORODATAGE.dump.age'")
           LOCALE=$(stat -c%s "mino-$HORODATAGE.dump.age")
           echo "local : $LOCALE — distant : $DISTANTE"
           if [ "$DISTANTE" != "$LOCALE" ]; then
@@ -203,17 +261,25 @@ jobs:
       # rendrait cette phrase fausse. 30 jours est aussi la plus courte des
       # promesses de conservation, ce qui rend la règle simple à tenir.
       - name: Purger au-delà de 30 jours
+        env:
+          HOTE: ${{ secrets.O2SWITCH_HOST }}
+          UTILISATEUR: ${{ secrets.O2SWITCH_USER }}
+          PORT: ${{ secrets.O2SWITCH_PORT }}
+          DEST: ${{ secrets.O2SWITCH_PATH }}
         run: |
-          DEST="${{ secrets.O2SWITCH_PATH }}"
-          ssh -p "${{ secrets.O2SWITCH_PORT }}" \
-            "${{ secrets.O2SWITCH_USER }}@${{ secrets.O2SWITCH_HOST }}" \
+          ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o StrictHostKeyChecking=accept-new \
+            "$UTILISATEUR@$HOTE" \
             "find '$DEST' -name 'mino-*.dump.age' -type f -mtime +30 -print -delete"
 
       - name: Compter ce qui reste
+        env:
+          HOTE: ${{ secrets.O2SWITCH_HOST }}
+          UTILISATEUR: ${{ secrets.O2SWITCH_USER }}
+          PORT: ${{ secrets.O2SWITCH_PORT }}
+          DEST: ${{ secrets.O2SWITCH_PATH }}
         run: |
-          DEST="${{ secrets.O2SWITCH_PATH }}"
-          ssh -p "${{ secrets.O2SWITCH_PORT }}" \
-            "${{ secrets.O2SWITCH_USER }}@${{ secrets.O2SWITCH_HOST }}" \
+          ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o StrictHostKeyChecking=accept-new \
+            "$UTILISATEUR@$HOTE" \
             "ls -1 '$DEST'/mino-*.dump.age | wc -l | xargs echo 'Sauvegardes présentes :'"
 
       - name: Effacer la clé du runner
