@@ -253,6 +253,25 @@ export default function SubscriptionScreen() {
   };
 
   const restore = async () => {
+    /**
+     * **Le même garde-fou que pour l'achat, et il manquait ici.**
+     *
+     * Un parent peut ouvrir l'espace parent avec les quatre chiffres sur la
+     * tablette de son enfant — c'est prévu et voulu. Mais cet appareil a
+     * rejoint la famille par le code : le serveur ne peut pas lui rattacher un
+     * achat, et `store-purchase` répondait « Non autorisé. », restitué mot pour
+     * mot à l'écran. Un message de serveur, sans cause ni remède, sur l'écran
+     * d'un parent qui vient de chercher son abonnement.
+     *
+     * `subscribe` faisait déjà les choses correctement vingt lignes plus haut.
+     * On dit la même chose, avant l'appel plutôt qu'après le refus.
+     */
+    if (session && session.kind !== 'parent') {
+      setError(
+        'La restauration se fait depuis le téléphone du parent qui a créé la famille. Cet appareil a rejoint la famille avec le code : Mino ne peut pas y rattacher un achat.',
+      );
+      return;
+    }
     setLoading(true);
     setError(null);
     setSucces(null);

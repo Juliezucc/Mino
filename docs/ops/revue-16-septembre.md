@@ -7,7 +7,21 @@ second agent** envoyé chercher la raison pour laquelle la trouvaille n’en
 serait pas une.
 
 **Les six bloquants ont été corrigés dans la 1.1.1**, chacun avec une garde
-éprouvée en la cassant. Ce document porte le reste.
+éprouvée en la cassant — et le reste a suivi le même jour.
+
+**État au soir du 16 septembre : 32 des 34 trouvailles sont corrigées.** Les
+deux qui restent le sont délibérément, et elles sont marquées ⏳ :
+
+- **La purge des familles dormantes à trois ans.** Écrire un travail de nuit
+  qui SUPPRIME DES FAMILLES en bloc mérite sa propre session et ses propres
+  essais ; le bâcler entre deux correctifs serait la pire façon de tenir une
+  promesse. Aucune donnée n'a trois ans — le produit en a quelques mois — donc
+  la promesse n'est pas encore rompue.
+- **Le plafond de police à 160 %.** `CLAUDE.md` demande qu'un libellé survive à
+  200 %, et le composant `Text` s'arrête à 160. Le relever pourrait casser des
+  mises en page qu'on ne peut pas éprouver sans un vrai appareil ; le laisser,
+  c'est refuser le dernier cran à un parent presbyte. C'est un arbitrage de
+  produit, pas une correction — il revient à Julie.
 
 **Trois trouvailles ont été écartées** par les contradicteurs, et c’est aussi un
 résultat — elles auraient coûté du travail pour rien :
@@ -26,6 +40,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 1. « L'écran se referme tout de suite sur son appareil » : l'arrêt n'arrive pas sur un iPhone où Mino est suspendu
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `src/content/faq.ts:219` · plages-libres
 
 **Ce que vit l'utilisateur.** Mercredi 15 h, l'enfant joue sur son iPad, Mino est en arrière-plan donc suspendu. Le parent touche « Arrêter » sur son accueil ; sa carte bascule sur « arrêtée pour aujourd'hui », la ligne part en base. Rien ne se passe sur l'iPad : l'enfant joue jusqu'à 16 h, et le parent a lu dans l'aide que l'écran se refermait tout de suite.
@@ -35,6 +51,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Réécrire la phrase de faq.ts:219 comme celle de faq.ts:253 : l'arrêt s'applique dès que Mino est ouvert (ou de retour au premier plan) sur l'appareil de l'enfant ; sur iPhone, si l'enfant joue à autre chose, l'écran se referme à son prochain passage dans Mino ou à l'heure de fin prévue.
 
 ### 2. Une demande en attente confirmée pendant une plage débite quand même les minutes
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `src/domain/actions.ts:640` · plages-libres
 
@@ -58,6 +76,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 4. Huit courriels partent, quatre sont annoncés : la relance de reconquête et le questionnaire de départ ne figurent dans aucune finalité publiée
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `src/content/privacy.ts:222` · textes-publies
 
 **Ce que vit l'utilisateur.** Un parent laisse son essai s'éteindre. Quelques jours plus tard il reçoit « Noé peut regagner son temps d'écran ». S'il avait résilié, il aurait reçu « Votre résiliation est enregistrée » avec quatre raisons cliquables, dont celle qu'il choisit est écrite en base. Il relit la politique : quatre types de courriels annoncés, aucune finalité de prospection ni de reconquête, et une liste de données déclarée exhaustive où le motif de départ ne figure pas.
@@ -67,6 +87,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Compléter privacy.ts:222 avec les huit types réellement envoyés ; ajouter à §3 une ligne « Reconquête et compréhension des départs — base légale : intérêt légitime (art. 6.1.f), avec opposition possible depuis le lien de chaque message » ; ajouter le motif de résiliation à la ligne « Abonnement » de §2 et à la table de §8. Alternative cohérente avec la pratique du dépôt (article 6 des CGV, §12 de la politique) : retirer `reprise` et `au_revoir` de la tournée jusqu'à ce que les textes les décrivent.
 
 ### 5. Deux durées de conservation annoncées « automatiques » n'ont aucune tâche pour les appliquer
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `src/content/privacy.ts:241` · textes-publies
 
@@ -78,6 +100,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 6. notify supprime le jeton d'un appareil vivant dès qu'une heure calme en écarte un autre
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `supabase/functions/notify/index.ts:265` · notifications
 
 **Ce que vit l'utilisateur.** 21 h. La mère a gardé les heures calmes, le père les a coupées (ou il est à la Martinique, où il est 16 h). Raphaël termine une mission depuis sa tablette. `eveilles` ne retient que le père, dont le téléphone a été réinitialisé : Expo rend `DeviceNotRegistered` au ticket 0. Mais `destinataires[0]` est la MÈRE : c'est sa ligne qui est effacée de `push_tokens`. Elle cesse de tout recevoir, sans aucun signal, jusqu'au prochain démarrage à froid de Mino sur son téléphone. Le jeton réellement mort, lui, est conservé et refait le même dégât à chaque mission.
@@ -87,6 +111,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Nettoyer sur la liste qui a servi à envoyer : `const morts = eveilles.filter((_, i) => …)` et `envoyes: eveilles.length - morts.length`.
 
 ### 7. Les trois interrupteurs de notification des Réglages ne commandent rien et ne survivent pas au lancement suivant
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `src/store/useMinoStore.ts:640` · notifications
 
@@ -98,6 +124,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 8. Deux appareils connectés avec la même adresse : un seul reste joignable, et il change à chaque lancement
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `supabase/notifications.sql:23` · notifications
 
 **Ce que vit l'utilisateur.** Julie a créé la famille sur la tablette du salon (déclarée « partagée »), puis installe Mino sur son propre téléphone et s'y reconnecte avec la même adresse — exactement ce que l'écran de connexion prévoit (« The parent signing back in — a new phone, a reinstall, a second parent », app/login.tsx:14). Les deux appareils portent le même `user_id`, donc une seule ligne dans `push_tokens` : celui qui a démarré en dernier écrase le jeton ET l'`usage` de l'autre. Le soir, son fils termine une mission ; elle a le téléphone en poche, la tablette a redémarré ce matin, et elle n'est prévenue nulle part. Si elle se déconnecte d'un des deux, l'unique ligne disparaît et le compte entier cesse de recevoir.
@@ -107,6 +135,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Faire porter la clé sur l'appareil et non sur le compte : clé primaire `(user_id, token)` ou une colonne `device_id` stable, `upsert` sur cette clé, et suppression du seul jeton de l'appareil qui se déconnecte. Corriger au passage le commentaire des lignes 21-22, qui décrit l'inverse du schéma qu'il surplombe.
 
 ### 9. « Reprendre mon abonnement » est un bouton mort et muet sur un rail Apple/Google
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `app/parent/abonnement.tsx:630` · paiement
 
@@ -118,6 +148,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 10. Parrainage sur Android : le mois offert n'est jamais livré, et l'écran parle de « l'App Store » avec un bouton qui refuse
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `app/parent/parrainage.tsx:137` · paiement
 
 **Ce que vit l'utilisateur.** Un parent abonné par Google Play parraine une famille qui s'abonne. `credit_months` passe à 1. Il ouvre Réglages → Parrainage sur son Android et lit « Un mois vous attend · … l'App Store demande votre accord », appuie sur « Récupérer mon mois offert » et reçoit « Disponible seulement sur iPhone et iPad pour l'instant. » Aucun chemin du dépôt ne lui donnera ce mois.
@@ -127,6 +159,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Conditionner `aDemander` à la plateforme réelle (`Platform.OS === 'ios'` ou une capacité exposée par le service) et afficher sur Android la phrase d'attente ; aligner FAQ et CGV sur ce qui est tenu par rail.
 
 ### 11. report_shield refuse le statut `telephone-parent` que l'application lui envoie : le téléphone du second parent passe « sans nouvelles » pour toujours
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `supabase/schema.sql:775` · cloisonnement
 
@@ -138,6 +172,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 12. Un adolescent est encore félicité : « Bravo ! » et « Tout est fait ! 🎉 » ignorent le registre
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `app/child/(tabs)/index.tsx:152` · deux-registres
 
 **Ce que vit l'utilisateur.** Léa, 14 ans, a fait ses trois missions et il lui reste 30 minutes. Onglet Missions : « Toutes tes missions sont faites. Bravo ! », puis « Tout est fait ! 🎉 ». La FAQ publiée promet à son parent que « les célébrations s’effacent » à partir de treize ans.
@@ -147,6 +183,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Passer les trois libellés par le registre, comme app/child/mission/[id].tsx le fait déjà. index.tsx:152 → `unit === 'minos' ? 'Toutes tes missions sont faites. Bravo !' : 'Toutes tes missions sont faites.'`. missions.tsx:102 → `title={unit === 'minos' ? 'Tout est fait ! 🎉' : 'Tout est fait pour aujourd’hui'}`. index.tsx:189 et temps.tsx:236 → retirer l'émoji et le point d'exclamation en registre ado (`unit === 'minos' ? '🎉 C’est ouvert !' : 'Écran ouvert'`). Ajouter un test qui rend l'écran avec un enfant de 14 ans et vérifie l'absence de « Bravo », « 🎉 » et « minos » — le test actuel (__tests__/screens.test.ts:212-247) n'éprouve que `tailleBouton`, jamais un écran.
 
 ### 13. Le message d'erreur du micro de Mino est écrit à 2,75:1, alors que le dépôt a créé une encre exprès pour ce cas
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `app/child/mino.tsx:339` · deux-registres
 
@@ -198,6 +236,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 1. À l'heure pile, l'écran de l'enfant annonce « C'est ouvert ! » alors que le bouclier n'a pas bougé
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `app/child/(tabs)/index.tsx:45` · plages-libres
 
 **Ce que vit l'utilisateur.** Mercredi 13 h 58, Noah attend dans Mino. À 14 h 00 la carte verte apparaît toute seule. Il sort vers YouTube : bloqué. Il revient dans Mino (ce qui déclenche enfin la levée), ressort : ça marche.
@@ -208,6 +248,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 2. Le message d'erreur demande une date que le formulaire ne permet pas de saisir
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `app/parent/plages.tsx:209` · plages-libres
 
 **Ce que vit l'utilisateur.** Un parent veut ouvrir l'écran pour un anniversaire samedi prochain seulement. Il ne coche aucun jour, enregistre, lit « ou une date précise », cherche le champ — il n'existe pas. Il coche « Sam » et se retrouve avec une plage qui rouvre l'écran tous les samedis indéfiniment.
@@ -217,6 +259,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Soit exposer le champ date dans le formulaire (le domaine, la base et l'affichage le gèrent déjà), soit retirer « ou une date précise » du message de valideFenetre et « un anniversaire » de la carte d'en-tête tant que le champ n'existe pas.
 
 ### 3. Une plage dont l'enfant a été supprimé s'annonce « Toute la famille » alors qu'elle n'ouvre rien à personne
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `src/domain/actions.ts:94` · plages-libres
 
@@ -240,6 +284,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 5. Le guide promet une résiliation « en deux touches » dans Mino, inexacte pour tout abonné de boutique
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `src/content/guide.ts:425` · paiement
 
 **Ce que vit l'utilisateur.** Un parent abonné depuis l'application ouvre Aide → « Abonnement et parrainage » → « Résilier » et lit « Réglages → Abonnement → Résilier. Deux touches, aucune justification à donner, aucun appel à passer. » Il suit le chemin et reçoit une fenêtre « Votre abonnement a été souscrit via Apple. La résiliation se fait dans les réglages de votre téléphone… » : rien n'est résilié dans Mino.
@@ -249,6 +295,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Scinder le pas en deux phrases, comme les CGV : « Depuis le site : Réglages → Abonnement → Résilier. Depuis l'application : Réglages → Abonnement → Résilier vous emmène à la rubrique Abonnements de votre compte Apple ou Google. »
 
 ### 6. « Restaurer mes achats » depuis un appareil appairé répond « Non autorisé. »
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `app/parent/abonnement.tsx:255` · paiement
 
@@ -260,6 +308,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 7. L'écran Abonnement dit à un abonné Stripe du site que son abonnement est « résiliable dans les réglages de votre téléphone »
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `app/parent/abonnement.tsx:746` · paiement
 
 **Ce que vit l'utilisateur.** Un parent s'abonne par carte sur minoapp.fr, installe l'application et ouvre Réglages → Abonnement. En pied de page il lit « Abonnement reconduit automatiquement… Vendu par Agence Wheb, et résiliable dans les réglages de votre téléphone. » Il cherche Mino dans les abonnements iOS, n'y trouve rien, et conclut qu'il ne peut pas résilier — alors que le bouton « Résilier mon abonnement » juste au-dessus le fait en deux touches.
@@ -269,6 +319,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Terminer la phrase selon la source : « et résiliable depuis cet écran » quand `canCancelInApp(subscription)`, « dans les réglages de votre téléphone » sinon.
 
 ### 8. La FAQ promet une déduction au changement de formule que le serveur refuse explicitement de faire
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `src/content/faq.ts:521` · paiement
 
@@ -280,6 +332,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 9. notify supprime le mauvais jeton de notification quand les heures calmes en ont filtré un
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `supabase/functions/notify/index.ts:265` · cloisonnement
 
 **Ce que vit l'utilisateur.** Une famille a deux téléphones de parent, celui de la mère avec les heures calmes (le défaut) et celui du père sans. Un vieux jeton du père est mort en base. À 21 h l'enfant termine une mission : destinataires = [mère, jeton mort], eveilles = [jeton mort], Expo rend un seul ticket DeviceNotRegistered à l'indice 0, le code lit destinataires[0] — la mère — et supprime sa ligne de push_tokens. Elle cesse de recevoir « Raphaël a terminé une mission » sans qu'aucun écran ne le dise, jusqu'au prochain démarrage à froid de son application ; le jeton mort, lui, survit.
@@ -289,6 +343,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Calculer les morts sur `eveilles`, pas sur `destinataires` : `const morts = eveilles.filter((_, i) => tickets[i]?.details?.error === 'DeviceNotRegistered').map((j) => j.user_id)` ; mieux, supprimer par `token` plutôt que par `user_id`, et corriger le compte rendu en `eveilles.length - morts.length`. Puis redéployer la fonction Edge — le correctif ne part pas avec le build de l'application.
 
 ### 10. Un bouton géant d'enfant de cinq ans reste servi à un adolescent sur l'onglet « Mon temps »
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `app/child/(tabs)/temps.tsx:268` · deux-registres
 
@@ -300,6 +356,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 11. Les badges verrouillés de l'enfant ne se distinguent que par une opacité — 1,75:1, et rien pour le lecteur d'écran
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `app/child/(tabs)/profil.tsx:107` · deux-registres
 
 **Ce que vit l'utilisateur.** Noah, 8 ans, ouvre l'onglet Profil. Quatre des six badges sont verrouillés et peints à 40 % : « Organisé », « Top ! », « Responsable », « Champion » sont à 1,75:1, illisibles, et rien n'indique le seuil. Avec VoiceOver, il entend exactement la même phrase pour un badge gagné et un badge verrouillé.
@@ -309,6 +367,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Distinguer les deux états autrement que par l'opacité : remonter `badgeLocked` à `opacity: 0.85` (ou remplacer par un fond `surfaceSunken` et un cadenas 🔒 en icône), et surtout donner au badge un libellé qui porte l'état et le seuil — `accessible`, `accessibilityLabel={unlocked ? \`${badge.label}, obtenu\` : \`${badge.label}, verrouillé — ${badge.at} missions\`}`. Afficher le seuil à l'œil aussi (« 10 missions »), sans quoi aucun enfant ne sait quoi faire. Corriger la sonde de scripts/audit-a11y.mjs pour multiplier l'alpha par l'opacité calculée des ancêtres, sinon elle continuera à certifier ce cas.
 
 ### 12. L'état d'une mission n'est jamais annoncé : le libellé accessible de la carte remplace la pastille « EN ATTENTE »
+
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
 
 `src/features/child/MissionCard.tsx:25` · deux-registres
 
@@ -320,6 +380,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 13. Le sélecteur de profils annonce « minutes » à un enfant de moins de treize ans
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `app/who.tsx:152` · deux-registres
 
 **Ce que vit l'utilisateur.** Noah, 8 ans, malvoyant, ouvre Mino sur la tablette partagée. VoiceOver lit sa vignette : « Noah, 35 minutes disponibles », alors que l'écran affiche « 35 minos » deux lignes plus bas — et que l'application est censée ne jamais lui parler en minutes.
@@ -330,6 +392,8 @@ résultat — elles auraient coûté du travail pour rien :
 
 ### 14. Choisir deux enfants d'un coup désactive complètement le filtre d'âge des missions proposées
 
+> ✅ **Corrigé le 16 septembre**, avec sa garde éprouvée.
+
 `src/features/parent/MissionForm.tsx:81` · deux-registres
 
 **Ce que vit l'utilisateur.** Julie crée une mission commune pour Léa (14 ans) et Noah (8 ans). Dès qu'elle coche les deux, la rangée « Missions prêtes à l'emploi » lui propose « M'habiller sans aide » et « Mettre mon pyjama », deux suggestions écrites pour 5 à 9 ans, à attribuer à sa fille de quatorze ans. Avec un seul enfant coché, le filtre fonctionne.
@@ -339,6 +403,8 @@ résultat — elles auraient coûté du travail pour rien :
 **Correction proposée.** Aligner MissionForm sur app/parent/routine/[id].tsx : remplacer lignes 81-85 par une intersection sur les enfants cochés — garder `suggestionsFor(null, siblings)` puis `.filter((s) => picked.length === 0 || picked.every((c) => suits(s, c, children.filter((o) => o.id !== c.id))))`. Une mission commune ne doit proposer que ce qui convient à tous les enfants sélectionnés.
 
 ### 15. La police est plafonnée à 160 %, alors que le bouton justifie sa mise en page par les 200 % d'Apple
+
+> ⏳ **Laissé de côté sciemment** — arbitrage de produit, voir l'en-tête.
 
 `src/components/ui/Text.tsx:57` · deux-registres
 
