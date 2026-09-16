@@ -54,9 +54,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # `pg_dump` doit être d'une version au moins égale à celle du serveur.
-      # Le runner Ubuntu n'embarque pas forcément la bonne : on prend celle de
-      # PostgreSQL directement plutôt que d'espérer.
+      # `pg_dump` doit être d'une version au moins égale à celle du serveur —
+      # Supabase tourne en 17.6, un client 16 REFUSE de lui parler et s'arrête.
+      #
+      # **Installer le bon paquet ne suffit pas, et c'est ce qui a échoué au
+      # premier passage.** Sur Ubuntu, `/usr/bin/pg_dump` n'est pas un binaire
+      # mais une enveloppe de `postgresql-client-common` qui choisit elle-même
+      # une version parmi celles présentes. Le runner en embarque déjà une, et
+      # c'est elle qui l'emportait : le journal disait « pg_dump version:
+      # 16.15 » alors que le 17 venait d'être installé.
+      #
+      # On met donc le chemin versionné en TÊTE du PATH pour les étapes
+      # suivantes, au lieu de s'en remettre à l'enveloppe.
       - name: Installer pg_dump et age
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
@@ -67,7 +76,23 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17 age
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
+      # La garde qui manquait. `$GITHUB_PATH` ne prend effet qu'à l'étape
+      # SUIVANTE : c'est donc ici, et pas plus haut, qu'on peut vérifier ce que
+      # `pg_dump` résout réellement. Sans elle, une version trop ancienne ne se
+      # découvrait qu'au moment de vider la base — et une version trop récente
+      # côté serveur, le jour où Supabase met à jour, ne se découvrirait qu'une
+      # nuit, en silence.
+      - name: Vérifier que c’est bien le pg_dump 17 qui répond
+        run: |
+          echo "pg_dump résolu : $(command -v pg_dump)"
           pg_dump --version
+          case "$(pg_dump --version)" in
+            *" 17."*) echo "version 17 : ok" ;;
+            *) echo "::error::pg_dump n'est pas en 17. Si Supabase a changé de version majeure, corriger postgresql-client-17 dans ce fichier." ; exit 1 ;;
+          esac
 
       # Le placeholder qui traîne est le défaut le plus bête possible : la
       # sauvegarde tournerait, chiffrerait vers une clé que personne ne
