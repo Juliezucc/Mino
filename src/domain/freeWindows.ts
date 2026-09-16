@@ -308,7 +308,17 @@ export function valideFenetre(entree: FreeWindowInput): string | null {
   if (!entree.label.trim()) return 'Donnez un nom à cette plage, pour la retrouver.';
 
   if (!entree.date && entree.days.length === 0) {
-    return 'Choisissez au moins un jour, ou une date précise.';
+    /**
+     * **« Ou une date précise » envoyait chercher un champ inexistant.** Le
+     * formulaire des plages ne propose que des jours de la semaine ; la date
+     * unique existe dans le domaine (`date`), pas à l'écran. Un parent qui
+     * voulait ouvrir l'écran pour un seul samedi lisait ce message, cherchait
+     * le champ, ne le trouvait pas, et finissait par cocher « Sam » — donc par
+     * créer une plage qui rouvre TOUS les samedis, indéfiniment.
+     *
+     * Un message d'erreur ne doit demander que ce qu'on peut lui donner.
+     */
+    return 'Choisissez au moins un jour de la semaine.';
   }
   if (entree.date && entree.days.length > 0) {
     return 'Une plage se répète certains jours, ou n’arrive qu’une fois. Pas les deux.';
@@ -361,9 +371,14 @@ export function decritFenetre(fenetre: FreeWindow, prenoms?: Map<ID, string>): s
   const qui =
     fenetre.childIds === null
       ? 'toute la famille'
-      : fenetre.childIds
-          .map((id) => prenoms?.get(id) ?? 'un enfant')
-          .join(', ');
+      : fenetre.childIds.length === 0
+        ? // Un tableau vide ne vise personne, et `concerne()` le traite bien
+          // ainsi : la plage n'ouvre rien. Le dire, plutôt que de rendre une
+          // chaîne vide qui se lisait comme une plage ordinaire.
+          'plus aucun enfant'
+        : fenetre.childIds
+            .map((id) => prenoms?.get(id) ?? 'un enfant')
+            .join(', ');
 
   return `${quand} ${horaire} · ${qui}`;
 }

@@ -99,6 +99,26 @@ export function removeChild(data: FamilyData, childId: ID): FamilyData {
     completions: data.completions.filter((c) => c.childId !== childId),
     transactions: data.transactions.filter((t) => t.childId !== childId),
     sessions: data.sessions.filter((s) => s.childId !== childId),
+    /**
+     * **Les plages nominatives gardaient le nom d'un enfant supprimé**, et
+     * aucune cascade ne pouvait les rattraper : `child_ids` est un `text[]`
+     * sans clé étrangère, et la suppression ne touche que `children`.
+     *
+     * Ce qui se voyait : le parent supprime le profil d'essai de Lucas, seul
+     * enfant visé par « Mercredi après-midi ». Le mercredi suivant, son
+     * accueil affichait « Toute la famille · écran libre jusqu'à 16:00 » avec
+     * un bouton « Arrêter » — alors qu'aucun écran n'était ouvert pour
+     * personne. Le repli d'affichage transformait un vide en promesse.
+     *
+     * Une plage qui ne vise plus personne (`childIds: []`) n'ouvre rien —
+     * `concerne()` le dit déjà. On la laisse visible plutôt que de la
+     * supprimer d'autorité : elle porte peut-être un réglage que le parent
+     * veut réattribuer, et `decritFenetre` dit maintenant franchement qu'elle
+     * ne concerne plus personne.
+     */
+    freeWindows: (data.freeWindows ?? []).map((f) =>
+      f.childIds === null ? f : { ...f, childIds: f.childIds.filter((id) => id !== childId) },
+    ),
   };
 }
 

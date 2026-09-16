@@ -1395,10 +1395,21 @@ export const useMinoStore = create<MinoState>((set, get) => {
     },
 
     async deleteChild(childId) {
-      await commit('child.removed', (data) => ({
-        data: actions.removeChild(data, childId),
-        deleteChildId: childId,
-      }));
+      await commit('child.removed', (data) => {
+        const apres = actions.removeChild(data, childId);
+        // Les plages dont il faisait partie ont changé : sans cet `upsert`,
+        // le nettoyage ne vivait que dans l'état local et l'enfant supprimé
+        // revenait dans `child_ids` au rechargement suivant.
+        const touchees = (apres.freeWindows ?? []).filter((f) => {
+          const avant = (data.freeWindows ?? []).find((x) => x.id === f.id);
+          return avant && avant.childIds !== null && avant.childIds.includes(childId);
+        });
+        return {
+          data: apres,
+          deleteChildId: childId,
+          ...(touchees.length > 0 ? { upsert: { freeWindows: touchees } } : {}),
+        };
+      });
       if (get().activeChildId === childId) set({ activeChildId: null });
     },
 

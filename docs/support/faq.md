@@ -65,7 +65,7 @@ Une plage libre est un moment que vous déclarez ouvert : le mercredi de 14 h à
 
 ### Comment arrêter une plage libre en cours ?
 
-Sur l’accueil de votre espace parent, la plage en cours apparaît avec le prénom de l’enfant concerné et un bouton « Arrêter ». L’écran se referme tout de suite sur son appareil. Cet arrêt ne vaut que pour aujourd’hui : la plage revient d’elle-même la prochaine fois, sans que vous ayez rien à rallumer. Tant que l’heure de la plage n’est pas passée, un bouton « Reprendre » permet de revenir sur votre décision. Pour la suspendre durablement, c’est ailleurs : Réglages → Plages libres → Suspendre.
+Sur l’accueil de votre espace parent, la plage en cours apparaît avec le prénom de l’enfant concerné et un bouton « Arrêter ». L’écran se referme sur son appareil dès que Mino y reprend la main — immédiatement si l’application est ouverte ou en arrière-plan actif, et sinon à la première fois qu’il la rouvre : ni Apple ni Google ne laissent une application réveiller un téléphone pour refermer un écran. Cet arrêt ne vaut que pour aujourd’hui : la plage revient d’elle-même la prochaine fois, sans que vous ayez rien à rallumer. Tant que l’heure de la plage n’est pas passée, un bouton « Reprendre » permet de revenir sur votre décision. Pour la suspendre durablement, c’est ailleurs : Réglages → Plages libres → Suspendre.
 
 ### Est-ce que les appels et les messages sont bloqués aussi ?
 

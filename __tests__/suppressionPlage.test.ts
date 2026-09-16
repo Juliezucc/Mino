@@ -128,3 +128,62 @@ describe('supprimer une plage libre', () => {
     expect(depot.changements[0]?.deleteChildId).toBe(enfant!.id);
   });
 });
+
+
+/**
+ * Supprimer un enfant doit le retirer des plages qui le visaient.
+ *
+ * **Aucune cascade ne pouvait le faire** : `child_ids` est un `text[]` sans clé
+ * étrangère, et la suppression ne touche que `children`. La plage gardait donc
+ * l'identifiant d'un enfant qui n'existe plus.
+ *
+ * Ce que le parent voyait : il supprime le profil d'essai de Lucas, seul enfant
+ * visé par « Mercredi après-midi ». Le mercredi suivant, son accueil affichait
+ * « Toute la famille · écran libre jusqu'à 16:00 » avec un bouton « Arrêter »,
+ * alors qu'aucun écran n'était ouvert pour personne. Le repli d'affichage
+ * transformait un vide en promesse.
+ */
+describe('supprimer un enfant visé par une plage', () => {
+  it('le retire de la plage, et le changement part en base', async () => {
+    const { depot } = magasinAvecEspion();
+    const enfant = useMinoStore.getState().data?.children[0];
+    expect(enfant).toBeTruthy();
+
+    const id = await useMinoStore.getState().addFreeWindow({
+      label: 'Mercredi après-midi',
+      childIds: [enfant!.id],
+      days: [3],
+      startMinute: 840,
+      endMinute: 960,
+    });
+
+    depot.changements.length = 0;
+    await useMinoStore.getState().deleteChild(enfant!.id);
+
+    const plage = useMinoStore.getState().data?.freeWindows?.find((f) => f.id === id);
+    expect(plage?.childIds).toEqual([]);
+
+    // Et surtout : le dépôt distant en a été informé. Sans cet `upsert`, le
+    // nettoyage ne vivait que dans l'état local et l'enfant supprimé revenait
+    // au rechargement suivant.
+    const envoye = depot.changements[0];
+    expect(envoye.deleteChildId).toBe(enfant!.id);
+    expect(envoye.upsert?.freeWindows?.some((f) => f.id === id)).toBe(true);
+  });
+
+  it('et une plage de toute la famille n’est pas touchée', async () => {
+    const { } = magasinAvecEspion();
+    const enfant = useMinoStore.getState().data?.children[0];
+    const id = await useMinoStore.getState().addFreeWindow({
+      label: 'Vacances',
+      childIds: null,
+      days: [],
+      date: '2026-12-24',
+      startMinute: 600,
+      endMinute: 1200,
+    });
+    await useMinoStore.getState().deleteChild(enfant!.id);
+    const plage = useMinoStore.getState().data?.freeWindows?.find((f) => f.id === id);
+    expect(plage?.childIds).toBeNull();
+  });
+});
