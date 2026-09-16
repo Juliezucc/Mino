@@ -55,18 +55,36 @@ do $$ begin
   perform assert(true, 'un parent déclare son appareil joignable');
 
   /**
-   * La fusion doit passer — et ce n'est pas acquis. Un jeton d'appareil change
-   * après une réinstallation ou une restauration, et le client réécrit donc le
-   * sien à chaque démarrage. `insert … on conflict do update` fait appliquer
-   * par PostgreSQL la clause de la politique de MISE À JOUR à la ligne neuve :
-   * sans les deux politiques, cette ligne-ci échouerait, et le produit
-   * cesserait de notifier après le premier changement de jeton.
+   * La fusion doit passer — et ce n'est pas acquis. Le client réécrit son jeton
+   * à chaque démarrage, donc `insert … on conflict do update` est le chemin
+   * normal. PostgreSQL applique alors la clause de la politique de MISE À JOUR
+   * à la ligne neuve : sans les deux politiques, cette ligne-ci échouerait, et
+   * le produit cesserait de notifier après le premier redémarrage.
+   */
+  insert into push_tokens (user_id, family_id, token)
+  values ('eeeeeeee-0000-0000-0000-000000000001', 'fam-notif-a', 'ExponentPushToken[a]')
+  on conflict (user_id, token) do update set updated_at = now();
+
+  perform assert(true, 'il repose le même jeton à chaque démarrage');
+
+  /**
+   * **ET UN SECOND APPAREIL DOIT TENIR À CÔTÉ DU PREMIER.**
+   *
+   * C'est le défaut que la clé composite corrige. La table était unique sur
+   * `user_id` : un parent reconnecté avec la MÊME adresse sur un second
+   * appareil — un cas que l'écran de connexion annonce explicitement —
+   * écrasait la ligne du premier. Un seul des deux restait joignable, et
+   * lequel changeait à chaque lancement, selon qui avait démarré en dernier.
    */
   insert into push_tokens (user_id, family_id, token)
   values ('eeeeeeee-0000-0000-0000-000000000001', 'fam-notif-a', 'ExponentPushToken[a2]')
-  on conflict (user_id) do update set token = excluded.token;
+  on conflict (user_id, token) do update set updated_at = now();
 
-  perform assert(true, 'et il peut le remplacer quand l''appareil en change');
+  perform assert(
+    (select count(*) = 2 from push_tokens
+      where user_id = 'eeeeeeee-0000-0000-0000-000000000001'),
+    'ses DEUX appareils restent joignables'
+  );
 end $$;
 
 -- ------------------------------------------- l'appareil de l'enfant aussi
@@ -119,9 +137,13 @@ do $$ begin
    * d'écrire ne révèle rien, lire celui d'un autre reviendrait à obtenir
    * l'adresse de l'appareil de son enfant.
    */
+  -- Deux depuis la clé composite : ses DEUX appareils. Ce que l'essai tient
+  -- n'est pas le nombre, c'est qu'aucun d'eux n'appartienne à quelqu'un
+  -- d'autre — le compter à « 1 » aurait masqué le défaut au lieu de le garder.
   perform assert(
-    (select count(*) from push_tokens) = 1,
-    'un parent ne voit qu''un jeton : le sien');
+    (select count(*) from push_tokens) = 2
+      and (select bool_and(user_id = 'eeeeeeee-0000-0000-0000-000000000001') from push_tokens),
+    'un parent ne voit que SES jetons, et aucun autre');
 
   perform assert(
     (select count(*) from push_tokens
@@ -158,9 +180,11 @@ do $$ begin
   -- vérifier : Bruno ne voit pas cette ligne, donc de chez lui « elle a
   -- disparu » et « elle a toujours été invisible » se ressemblent trait pour
   -- trait. C'est le propriétaire qui doit constater qu'elle est intacte.
+  -- Deux depuis la clé composite : les deux appareils d'Anne, intacts tous les
+  -- deux. Bruno n'a pas pu en emporter un seul.
   perform assert(
     (select count(*) from push_tokens
-      where user_id = 'eeeeeeee-0000-0000-0000-000000000001') = 1,
+      where user_id = 'eeeeeeee-0000-0000-0000-000000000001') = 2,
     'la tentative de suppression par un autre n''a rien touché');
 end $$;
 

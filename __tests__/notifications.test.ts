@@ -248,6 +248,19 @@ describe('le serveur applique la même règle', () => {
   it('et compte les envois sur la même liste', () => {
     expect(edge).toContain('envoyes: eveilles.length - morts.length');
   });
+
+  /**
+   * **Et il efface par JETON, pas par compte.**
+   *
+   * Depuis que `push_tokens` est à clé (user_id, token), un même parent peut
+   * avoir deux appareils inscrits — c'est précisément ce que la table ne
+   * savait pas faire avant. Effacer sur `user_id` débrancherait alors le
+   * second appareil, qui va très bien, sur la foi du ticket du premier.
+   */
+  it('efface le jeton mort, et pas tous ceux du compte', () => {
+    expect(edge).toContain("delete().in('token', morts)");
+    expect(edge).not.toMatch(/delete\(\)\.in\('user_id', morts\)/);
+  });
 });
 
 /**

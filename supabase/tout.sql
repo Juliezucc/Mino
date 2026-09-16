@@ -3106,15 +3106,46 @@ grant execute on function delete_my_account() to authenticated;
  */
 
 create table if not exists push_tokens (
-  -- Un compte, un appareil. Un parent qui installe Mino sur un second
-  -- téléphone ouvre une seconde session, donc une seconde ligne.
-  user_id    uuid primary key references auth.users (id) on delete cascade,
+  -- **« Un compte, un appareil » était faux, et ce commentaire décrivait
+  -- l'inverse du schéma qu'il surplombait.**
+  --
+  -- Un parent qui se reconnecte avec la MÊME adresse sur un second appareil
+  -- n'ouvre pas une seconde session : Supabase lui rend le même `user_id`. Avec
+  -- une clé primaire sur ce seul compte, l'`upsert` du démarrage écrasait la
+  -- ligne de l'autre appareil — et c'est un cas prévu par le produit, l'écran
+  -- de connexion l'annonce (« un nouveau téléphone, une réinstallation, un
+  -- second parent »).
+  --
+  -- Conséquence : un seul des deux appareils restait joignable, et LEQUEL
+  -- changeait à chaque lancement — celui qui avait démarré en dernier. Le
+  -- parent voyait ses notifications arriver tantôt sur son téléphone, tantôt
+  -- sur la tablette, sans logique apparente.
+  --
+  -- La clé porte donc sur l'APPAREIL, c'est-à-dire sur le jeton d'Expo qui en
+  -- est l'identifiant stable.
+  user_id    uuid not null references auth.users (id) on delete cascade,
   family_id  text not null references families (id) on delete cascade,
   -- Le jeton d'Expo, pas celui d'Apple : c'est le service d'Expo qui parle à
   -- APNs, et c'est lui qui détient la clé.
   token      text not null,
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  primary key (user_id, token)
 );
+
+-- La table existait avec `user_id` seul en clé primaire : on bascule sans
+-- perdre les lignes déjà posées.
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+     where conname = 'push_tokens_pkey'
+       and conrelid = 'push_tokens'::regclass
+       and array_length(conkey, 1) = 1
+  ) then
+    alter table push_tokens drop constraint push_tokens_pkey;
+    alter table push_tokens add primary key (user_id, token);
+  end if;
+end $$;
 
 /**
  * ------------------------------------------- à qui est cet appareil, côté serveur

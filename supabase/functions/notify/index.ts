@@ -283,9 +283,12 @@ Deno.serve(servir(async (request) => {
      */
     const morts = eveilles
       .filter((_, i) => tickets[i]?.details?.error === 'DeviceNotRegistered')
-      .map((j) => j.user_id as string);
+      .map((j) => j.token as string);
 
-    if (morts.length > 0) await db.from('push_tokens').delete().in('user_id', morts);
+    // Par JETON, et non par compte : depuis que la table est à clé
+    // (user_id, token), un même parent peut avoir deux appareils. Effacer sur
+    // `user_id` débrancherait le second, qui va très bien.
+    if (morts.length > 0) await db.from('push_tokens').delete().in('token', morts);
 
     // Le compte porte lui aussi sur ceux à qui on a réellement écrit.
     return json({ envoyes: eveilles.length - morts.length });

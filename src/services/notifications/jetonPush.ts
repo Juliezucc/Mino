@@ -110,15 +110,25 @@ export async function poserJetonPush(
   const { data } = await client.auth.getUser();
   if (!data.user) return;
 
-  const { error } = await client.from('push_tokens').upsert({
-    user_id: data.user.id,
-    family_id: familyId,
-    token: jeton,
-    usage: genre,
-    fuseau,
-    heures_calmes: heuresCalmes,
-    updated_at: new Date().toISOString(),
-  });
+  /**
+   * `onConflict` sur (user_id, token), c'est-à-dire sur l'APPAREIL.
+   *
+   * La table était à clé unique sur le compte : un parent reconnecté avec la
+   * même adresse sur un second appareil écrasait la ligne du premier, et un
+   * seul des deux restait joignable — celui qui avait démarré en dernier.
+   */
+  const { error } = await client.from('push_tokens').upsert(
+    {
+      user_id: data.user.id,
+      family_id: familyId,
+      token: jeton,
+      usage: genre,
+      fuseau,
+      heures_calmes: heuresCalmes,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id,token' },
+  );
 
   if (!error) {
     pose = jeton;
@@ -142,7 +152,19 @@ export async function retirerJetonPush(): Promise<void> {
   if (!client) return;
   const { data } = await client.auth.getUser();
   if (!data.user) return;
-  await client.from('push_tokens').delete().eq('user_id', data.user.id);
+
+  /**
+   * Seulement CET appareil-ci. Effacer toutes les lignes du compte
+   * débrancherait le second téléphone du même parent, qui n'a rien demandé —
+   * possible depuis que la clé porte sur l'appareil.
+   *
+   * Si le jeton n'est pas connu (permission refusée, Expo Go), on retombe sur
+   * l'ancien comportement : mieux vaut tout retirer que laisser un appareil
+   * revendu recevoir le prénom d'un enfant.
+   */
+  const jeton = pose ?? (await getNotificationService().pushToken().catch(() => null));
+  const requete = client.from('push_tokens').delete().eq('user_id', data.user.id);
+  await (jeton ? requete.eq('token', jeton) : requete);
 }
 
 /**
