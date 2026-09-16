@@ -149,7 +149,7 @@ export default function Who() {
             <Card
               key={child.id}
               onPress={() => openChild(child.id)}
-              accessibilityLabel={`${child.firstName}, ${minutes} minutes disponibles`}
+              accessibilityLabel={`${child.firstName}, ${formatTime(minutes, unitOf(child))} disponible${minutes > 1 ? 's' : ''}`}
               style={styles.childCard}
               elevation="soft"
             >

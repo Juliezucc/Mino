@@ -326,6 +326,30 @@ export function routinesFor(child: Child, siblings: Child[]): MissionRoutine[] {
  * A flat, de-duplicated list for the "missions prêtes à l'emploi" row on the
  * creation form. Ordered as the routines are, so the morning comes first.
  */
+/**
+ * Les suggestions qui conviennent à TOUS les enfants cochés.
+ *
+ * **`suggestionsFor` ne filtre rien quand `child` vaut `null`** — et c'est
+ * exactement ce que recevait le formulaire dès que le parent cochait deux
+ * enfants : `picked.length === 1 ? picked[0] : null`. La rangée « Missions
+ * prêtes à l'emploi » proposait alors « Mettre mon pyjama » à côté d'une
+ * adolescente de quatorze ans, c'est-à-dire précisément ce que le seuil des
+ * treize ans existe pour empêcher.
+ *
+ * Avec plusieurs enfants, la seule réponse juste est l'INTERSECTION : une
+ * mission commune doit convenir à chacun d'eux. Prendre le plus jeune
+ * infantiliserait l'aîné, prendre l'aîné donnerait au petit des tâches qu'il
+ * ne sait pas faire.
+ */
+export function suggestionsCommunes(picked: Child[], tous: Child[]): MissionSuggestion[] {
+  if (picked.length === 0) return suggestionsFor(null, tous);
+  const autres = (c: Child) => tous.filter((x) => x.id !== c.id);
+  if (picked.length === 1) return suggestionsFor(picked[0], autres(picked[0]));
+
+  const parEnfant = picked.map((c) => new Set(suggestionsFor(c, autres(c)).map((s) => s.title)));
+  return suggestionsFor(null, tous).filter((s) => parEnfant.every((titres) => titres.has(s.title)));
+}
+
 export function suggestionsFor(child: Child | null, siblings: Child[]): MissionSuggestion[] {
   const seen = new Set<string>();
   const out: MissionSuggestion[] = [];

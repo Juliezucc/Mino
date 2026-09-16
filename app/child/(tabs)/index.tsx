@@ -149,7 +149,9 @@ export default function ChildHome() {
           : 'Presque plus de temps.'
         : todo.length > 0
           ? `Tu as ${todo.length} mission${todo.length > 1 ? 's' : ''} à faire aujourd’hui.`
-          : 'Toutes tes missions sont faites. Bravo !';
+          : unit === 'minos'
+            ? 'Toutes tes missions sont faites. Bravo !'
+            : 'Tout est fait pour aujourd’hui.';
 
   return (
     <Screen contentStyle={styles.content}>

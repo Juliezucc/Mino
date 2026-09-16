@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Chip, Field, Text } from '@/components/ui';
-import { resolveTitle, suggestionsFor } from '@/domain/missionLibrary';
+import { resolveTitle, suggestionsCommunes } from '@/domain/missionLibrary';
 import { ID, RepeatKind, RepeatRule, Weekday } from '@/domain/types';
 import { useChildren } from '@/store/selectors';
 import { colors, radii, spacing } from '@/theme';
@@ -78,9 +78,11 @@ export function MissionForm({
   // brother or sister when there is one.
   const suggestions = useMemo(() => {
     const picked = children.filter((c) => childIds.includes(c.id));
+    // L'intersection, et non « le premier si un seul, sinon aucun filtre » :
+    // deux enfants cochés désactivaient complètement le seuil des treize ans.
     const child = picked.length === 1 ? picked[0] : null;
-    const siblings = child ? children.filter((c) => c.id !== child.id) : [];
-    return suggestionsFor(child, siblings)
+    const siblings = child ? children.filter((c) => c.id !== child.id) : children;
+    return suggestionsCommunes(picked, children)
       .slice(0, 10)
       .map((s) => ({ ...s, label: resolveTitle(s, siblings) }));
   }, [children, childIds]);
