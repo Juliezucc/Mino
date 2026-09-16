@@ -14,7 +14,7 @@ import { LegalDocument, OPERATOR } from './document';
 export const PRIVACY: LegalDocument = {
   title: 'Politique de confidentialité',
   subtitle: 'Ce que Mino sait de votre famille, et ce qu’il n’en fait pas',
-  updatedAt: '11 septembre 2026',
+  updatedAt: '16 septembre 2026',
   intro: [
     {
       kind: 'p',
@@ -240,11 +240,12 @@ export const PRIVACY: LegalDocument = {
             { label: 'Conversations avec Mino', value: '30 jours, puis effacement automatique.' },
             { label: 'Signalements et rapports d’incident', value: '12 mois, puis effacement automatique. Ils ne sont pas rattachés à votre famille mais au compte qui les a envoyés : si vous supprimez votre compte, le lien est rompu et il ne subsiste qu’un texte anonyme — déjà nettoyé des prénoms — dont nous ne pouvons plus dire de qui il vient.' },
             { label: 'Journaux techniques', value: '12 mois au maximum.' },
+            { label: 'Sauvegardes', value: 'Des copies chiffrées de la base sont conservées 30 jours au maximum, chez notre hébergeur et chez un second prestataire, au sein de l’Union européenne. Une suppression de compte y est répercutée à leur expiration. Les conversations de votre enfant avec Mino n’y figurent pas.' },
           ],
         },
         {
           kind: 'p',
-          text: 'La suppression de votre compte se fait depuis l’application — Réglages, « Gérer mon compte » — et n’exige de nous écrire à personne. Elle entraîne l’effacement immédiat et définitif des profils enfants, des missions, de l’historique de temps et des minutes gagnées. Elle est réservée au parent qui a ouvert le compte : un second parent, qui a rejoint la famille par le code et n’a donné aucune adresse, ne peut pas l’exercer — il peut en revanche demander à tout moment que son propre profil soit retiré. Seules les factures déjà émises subsistent, pour la durée légale rappelée ci-dessus ; elles ne contiennent aucune donnée d’enfant.',
+          text: 'La suppression de votre compte se fait depuis l’application — Réglages, « Gérer mon compte » — et n’exige de nous écrire à personne. Elle entraîne l’effacement immédiat et définitif des profils enfants, des missions, de l’historique de temps et des minutes gagnées — nos sauvegardes chiffrées, décrites ci-dessus, en conservent une copie pendant trente jours au maximum, puis plus rien. Elle est réservée au parent qui a ouvert le compte : un second parent, qui a rejoint la famille par le code et n’a donné aucune adresse, ne peut pas l’exercer — il peut en revanche demander à tout moment que son propre profil soit retiré. Seules les factures déjà émises subsistent, pour la durée légale rappelée ci-dessus ; elles ne contiennent aucune donnée d’enfant.',
         },
         {
           kind: 'note',

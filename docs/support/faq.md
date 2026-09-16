@@ -233,7 +233,7 @@ Quatre-vingt-dix jours. Passé ce délai, le détail est effacé — quelle miss
 
 ### Comment supprimer mon compte et nos données ?
 
-Depuis Réglages, « Gérer mon compte », tout en bas. L’effacement est immédiat et définitif : profils des enfants, missions, historique, minutes gagnées. Rien ne peut être récupéré ensuite, et personne chez nous ne le peut non plus. Vous pouvez aussi supprimer le profil d’un seul enfant sans supprimer votre compte : ses missions, son historique et ses minutes partent avec lui. Résiliez votre abonnement avant, là où vous l’avez souscrit — voir « Comment annuler mon abonnement ? » : supprimer le compte ne l’annule pas. Les factures déjà émises sont conservées dix ans, comme la loi comptable l’exige, et elles ne contiennent aucune donnée d’enfant.
+Depuis Réglages, « Gérer mon compte », tout en bas. L’effacement est immédiat et définitif : profils des enfants, missions, historique, minutes gagnées. Nos sauvegardes chiffrées en gardent une copie pendant trente jours au maximum — elles n’existent que pour pouvoir vous rendre vos données si un incident technique les détruisait, et elles ne servent jamais à autre chose. Passé ce délai, rien ne peut plus être récupéré, et personne chez nous ne le peut non plus. Vous pouvez aussi supprimer le profil d’un seul enfant sans supprimer votre compte : ses missions, son historique et ses minutes partent avec lui. Résiliez votre abonnement avant, là où vous l’avez souscrit — voir « Comment annuler mon abonnement ? » : supprimer le compte ne l’annule pas. Les factures déjà émises sont conservées dix ans, comme la loi comptable l’exige, et elles ne contiennent aucune donnée d’enfant.
 
 ### Mon enfant discute avec Mino : qu’est-ce que c’est ?
 
