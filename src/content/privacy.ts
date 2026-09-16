@@ -313,7 +313,7 @@ export const PRIVACY: LegalDocument = {
       blocks: [
         {
           kind: 'p',
-          text: 'Toute évolution substantielle vous sera signalée dans l’application et par e-mail avant son entrée en vigueur. La date de dernière mise à jour figure en haut de cette page.',
+          text: 'Toute évolution substantielle vous sera signalée par e-mail avant son entrée en vigueur, à l’adresse du parent qui a ouvert le compte. La date de dernière mise à jour figure en haut de cette page, et l’application affiche la même.',
         },
       ],
     },
